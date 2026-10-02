@@ -21,16 +21,16 @@ import de.hannes.camperlog.ui.tours.ToursViewModel
 import kotlinx.serialization.Serializable
 
 @Serializable
-private object ToursRoute
+internal object ToursRoute
 
 @Serializable
-private data class EditRoute(val tourId: Long = 0)
+internal data class EditRoute(val tourId: Long = 0)
 
 @Serializable
-private data class DetailRoute(val tourId: Long)
+internal data class DetailRoute(val tourId: Long)
 
 @Serializable
-private object OverviewRoute
+internal object OverviewRoute
 
 /** Navigationsgraph der App mit Start auf der Tourenliste. */
 @Composable
