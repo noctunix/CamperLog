@@ -21,13 +21,13 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
         )
-        val repository = (application as CamperLogApp).repository
+        val app = application as CamperLogApp
         if (savedInstanceState == null) {
             lifecycleScope.launch { cleanUpExports(applicationContext) }
         }
         setContent {
             CamperLogTheme {
-                CamperLogNavHost(repository)
+                CamperLogNavHost(app.repository, app.exchangeRates)
             }
         }
     }

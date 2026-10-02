@@ -107,6 +107,38 @@
     <string name="overview_empty">Noch keine Touren erfasst.</string>
     <string name="overview_total">Gesamt</string>
     <string name="overview_tours">Touren</string>
+    <string name="overview_converted">≈ Summe in %1$s</string>
+    <string name="overview_missing_rates">Kurs fehlt: %1$s</string>
+
+    <!-- Wechselkurse -->
+    <string name="rates_title">Wechselkurse</string>
+    <string name="rates_main_currency">Hauptwährung</string>
+    <string name="rates_main_currency_hint">Die Übersicht rechnet alle Kosten zusätzlich in diese Währung um.</string>
+    <string name="rates_change_main_currency">Hauptwährung ändern, aktuell %1$s</string>
+    <string name="rates_currency_option">%1$s · %2$s</string>
+    <string name="rates_list">Kurse zum Euro</string>
+    <string name="rates_empty">Noch keine Kurse erfasst.</string>
+    <string name="rates_missing">Für diese Währungen fehlt ein Kurs:</string>
+    <string name="rates_add">Kurs hinzufügen</string>
+    <string name="rates_add_for">Kurs für %1$s hinzufügen</string>
+    <string name="rates_value">1 € = %1$s %2$s</string>
+    <string name="rates_as_of">Stand %1$s</string>
+    <string name="rates_as_of_source">Stand %1$s · %2$s</string>
+    <string name="rates_edit">Kurs für %1$s bearbeiten</string>
+    <string name="rates_delete">Kurs für %1$s löschen</string>
+    <string name="rates_deleted">Kurs für %1$s gelöscht</string>
+    <string name="rates_write_failed">Änderung konnte nicht gespeichert werden.</string>
+    <string name="rate_edit_title">Kurs für %1$s</string>
+    <string name="rate_field_currency">Währung</string>
+    <string name="rate_field_rate">%1$s pro Euro</string>
+    <string name="rate_field_rate_unknown">Betrag pro Euro</string>
+    <string name="rate_field_rate_hint">Wie viel %1$s du für 1 € bekommst.</string>
+    <string name="rate_field_date">Stand</string>
+    <string name="rate_field_source">Quelle (optional)</string>
+    <string name="rate_field_source_hint">z. B. EZB, Bank oder Wechselstube</string>
+    <string name="rate_error_currency">Bitte eine Währung wählen.</string>
+    <string name="rate_error_rate">Bitte einen Kurs größer 0 mit höchstens 6 Nachkommastellen eingeben.</string>
+    <string name="rate_save_failed">Kurs konnte nicht gespeichert werden.</string>
 
     <!-- Teilen -->
     <string name="share_subject">Tour nach %1$s</string>

@@ -63,7 +63,7 @@ class TourFlowTest {
 
     private fun start(vararg tours: Tour): FakeTourRepository {
         val repository = FakeTourRepository(tours.toList())
-        compose.setContent { CamperLogTheme { CamperLogNavHost(repository) } }
+        compose.setContent { CamperLogTheme { CamperLogNavHost(repository, FakeExchangeRateRepository()) } }
         return repository
     }
 

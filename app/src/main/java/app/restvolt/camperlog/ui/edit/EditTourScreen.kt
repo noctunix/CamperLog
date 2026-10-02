@@ -1,8 +1,6 @@
 package app.restvolt.camperlog.ui.edit
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,25 +16,18 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,13 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -75,14 +60,12 @@ import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
-import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.ui.BackTopBar
+import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
-import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.messageRes
-import java.time.LocalDate
 
 /** Formular zum Anlegen und Bearbeiten einer Tour. [onDone] verlässt es ohne, [onSaved] nach dem Speichern. */
 @Composable
@@ -338,89 +321,6 @@ private fun NumberField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateField(
-    label: String,
-    date: LocalDate?,
-    error: String?,
-    onDateSelected: (LocalDate) -> Unit,
-    modifier: Modifier = Modifier,
-    initialDate: LocalDate? = null,
-    minDate: LocalDate? = null,
-) {
-    var showPicker by rememberSaveable { mutableStateOf(false) }
-    val pickLabel = stringResource(R.string.edit_pick_date, label)
-    val interactionSource = remember { MutableInteractionSource() }
-    LaunchedEffect(interactionSource) {
-        interactionSource.interactions.collect { if (it is PressInteraction.Release) showPicker = true }
-    }
-
-    OutlinedTextField(
-        value = date?.let { formatDate(it, currentLocale()) }.orEmpty(),
-        onValueChange = {},
-        readOnly = true,
-        modifier = modifier
-            .fillMaxWidth()
-            // Tastatur: Enter/Leertaste öffnen den Kalender wie ein Tippen.
-            .onPreviewKeyEvent { event ->
-                val opens = event.key == Key.Enter || event.key == Key.NumPadEnter || event.key == Key.Spacebar
-                if (opens && event.type == KeyEventType.KeyUp) showPicker = true
-                opens
-            }
-            // Screenreader: Doppeltippen öffnet den Kalender statt nur den Fokus zu setzen.
-            .semantics {
-                onClick(label = pickLabel) {
-                    showPicker = true
-                    true
-                }
-            },
-        label = { Text(label) },
-        isError = error != null,
-        supportingText = error?.let { { Text(it) } },
-        trailingIcon = {
-            IconButton(onClick = { showPicker = true }) {
-                Icon(painterResource(R.drawable.ic_calendar), contentDescription = pickLabel)
-            }
-        },
-        singleLine = true,
-        interactionSource = interactionSource,
-        shape = MaterialTheme.shapes.medium,
-    )
-
-    if (showPicker) {
-        val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = (date ?: initialDate)?.let { it.toEpochDay() * MILLIS_PER_DAY },
-            selectableDates = minDate?.let(::notBefore) ?: DatePickerDefaults.AllDates,
-        )
-        DatePickerDialog(
-            onDismissRequest = { showPicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let {
-                        onDateSelected(LocalDate.ofEpochDay(Math.floorDiv(it, MILLIS_PER_DAY)))
-                    }
-                    showPicker = false
-                }) { Text(stringResource(R.string.action_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.action_cancel)) }
-            },
-        ) {
-            DatePicker(state = pickerState)
-        }
-    }
-}
-
-/** Sperrt im Kalender alle Tage vor [minDate], z. B. Enddaten vor dem Start. */
-@OptIn(ExperimentalMaterial3Api::class)
-private fun notBefore(minDate: LocalDate) = object : SelectableDates {
-    override fun isSelectableDate(utcTimeMillis: Long) =
-        Math.floorDiv(utcTimeMillis, MILLIS_PER_DAY) >= minDate.toEpochDay()
-
-    override fun isSelectableYear(year: Int) = year >= minDate.year
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 private fun <T> ChoiceField(
     label: String,
     options: List<T>,
@@ -472,5 +372,3 @@ private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean
         Switch(checked = checked, onCheckedChange = null)
     }
 }
-
-private const val MILLIS_PER_DAY = 86_400_000L

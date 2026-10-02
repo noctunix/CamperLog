@@ -8,16 +8,22 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /** Lokale Room-Datenbank der App. */
-@Database(entities = [TourEntity::class, TourCostEntity::class], version = 2, exportSchema = true)
+@Database(
+    entities = [TourEntity::class, TourCostEntity::class, ExchangeRateEntity::class, SettingsEntity::class],
+    version = 3,
+    exportSchema = true,
+)
 abstract class CamperLogDatabase : RoomDatabase() {
 
     abstract fun tourDao(): TourDao
+
+    abstract fun exchangeRateDao(): ExchangeRateDao
 
     companion object {
         /** Öffnet die Datenbankdatei der App. Nur einmal pro Prozess aufrufen. */
         fun open(context: Context): CamperLogDatabase =
             Room.databaseBuilder(context.applicationContext, CamperLogDatabase::class.java, "camperlog.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
     }
 }
@@ -51,6 +57,19 @@ internal val MIGRATION_1_2 = object : Migration(1, 2) {
         db.execSQL("DROP TABLE `tours`")
         db.execSQL("ALTER TABLE `tours_new` RENAME TO `tours`")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)")
+    }
+}
+
+/** Version 3: manuell gepflegte Wechselkurse und die Einstellungstabelle für die Hauptwährung. */
+internal val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE `exchange_rates` (`currency` TEXT NOT NULL, `per_euro` TEXT NOT NULL, " +
+                "`rate_date` TEXT NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`currency`))",
+        )
+        db.execSQL(
+            "CREATE TABLE `settings` (`id` INTEGER NOT NULL, `main_currency` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        )
     }
 }
 

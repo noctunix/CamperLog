@@ -57,12 +57,24 @@ fun parseAmount(input: String, currency: Currency, locale: Locale): Long? {
         .replace(currency.currencyCode, "", ignoreCase = true)
         .replace(currency.getSymbol(locale), "")
         .replace("€", "")
-        .filterNot { it.isWhitespace() || Character.isSpaceChar(it) || it == '\'' || it == '’' }
+    val digits = currency.fractionDigits
+    val value = parseDecimal(text, locale, maxFractionDigits = digits) ?: return null
+    return runCatching { value.movePointRight(digits).longValueExact() }.getOrNull()
+}
+
+/**
+ * Liest eine nicht negative Dezimalzahl nach den Trennzeichen-Regeln von [parseAmount].
+ * Leerzeichen und Apostrophe als Tausendertrennzeichen werden ignoriert.
+ *
+ * @return Zahl mit der eingegebenen Anzahl Nachkommastellen oder `null`, wenn die Eingabe ungültig
+ *   ist oder mehr als [maxFractionDigits] Nachkommastellen hat
+ */
+internal fun parseDecimal(input: String, locale: Locale, maxFractionDigits: Int): BigDecimal? {
+    val text = input.filterNot { it.isWhitespace() || Character.isSpaceChar(it) || it == '\'' || it == '’' }
     if (text.isEmpty() || text.any { !it.isDigit() && it != '.' && it != ',' }) return null
 
-    val digits = currency.fractionDigits
     val lastSeparator = text.indexOfLast { it == '.' || it == ',' }
-    if (lastSeparator < 0) return toMinor(text, "", digits)
+    if (lastSeparator < 0) return decimalOf(text, "")
 
     val separator = text[lastSeparator]
     val tail = text.substring(lastSeparator + 1)
@@ -77,9 +89,9 @@ fun parseAmount(input: String, currency: Currency, locale: Locale): Long? {
     }
     return if (isDecimal) {
         val integer = if (mixed) ungroup(head, head.first { !it.isDigit() }) else head
-        if (tail.isEmpty() || tail.length > digits) null else integer?.let { toMinor(it, tail, digits) }
+        if (tail.isEmpty() || tail.length > maxFractionDigits) null else integer?.let { decimalOf(it, tail) }
     } else {
-        ungroup(text, separator)?.let { toMinor(it, "", digits) }
+        ungroup(text, separator)?.let { decimalOf(it, "") }
     }
 }
 
@@ -91,9 +103,9 @@ private fun ungroup(text: String, separator: Char): String? {
     return if (valid) groups.joinToString("") else null
 }
 
-private fun toMinor(integer: String, fraction: String, digits: Int): Long? {
+private fun decimalOf(integer: String, fraction: String): BigDecimal? {
     if (integer.isEmpty()) return null
-    return (integer + fraction.padEnd(digits, '0')).toLongOrNull()
+    return BigDecimal(if (fraction.isEmpty()) integer else "$integer.$fraction")
 }
 
 /** Formatiert [minor] für die Anzeige nach den Regeln von [locale], z. B. `1.234,56 €`. */

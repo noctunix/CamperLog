@@ -4,14 +4,19 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.EUR
+import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.Money
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
+import java.util.Currency
 
 /**
  * Prüft die Migration auf Version 2 mit einer Datenbank, die exakt nach `schemas/…/1.json` angelegt
@@ -55,26 +60,80 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migration2To3AddsEmptyRatesAndKeepsCosts() = runTest {
+        createVersion2(
+            "INSERT INTO tours VALUES (1, '2026-06-01', '2026-06-14', 'Lofoten', 'VACATION', 14, 13, 4200, 1, " +
+                "'YES', 'GOOD', 'LEVEL', 0, '', NULL, 1000, 2000)",
+            "INSERT INTO tour_costs VALUES (1, 'NOK', 1250000, 0)",
+            "INSERT INTO tour_costs VALUES (1, 'EUR', 4500, 1)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val tours = RoomTourRepository(db.tourDao()) { Instant.EPOCH }.allTours()
+            val rates = RoomExchangeRateRepository(db.exchangeRateDao())
+
+            assertEquals(listOf(Money(1_250_000, Currency.getInstance("NOK")), Money(4_500, EUR)), tours.single().costs)
+            assertEquals(emptyList<ExchangeRate>(), rates.observeRates().first())
+            assertEquals(EUR, rates.observeMainCurrency().first())
+
+            val nok = ExchangeRate(Currency.getInstance("NOK"), BigDecimal("11.4850"), LocalDate.of(2026, 10, 1), "EZB")
+            rates.saveRate(nok)
+            rates.setMainCurrency(Currency.getInstance("NOK"))
+            assertEquals(listOf(nok), rates.observeRates().first())
+            assertEquals(Currency.getInstance("NOK"), rates.observeMainCurrency().first())
+        } finally {
+            db.close()
+        }
+    }
+
+    /** Legt `camperlog.db` im Stand von Version 2 nach `schemas/…/2.json` an und füllt sie mit [inserts]. */
+    private fun createVersion2(vararg inserts: String) = createDatabase(
+        version = 2,
+        identityHash = "0fbe0e06f94a429cb1f6be32b5b70d9a",
+        schema = listOf(
+            "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, " +
+                "`tour_type` TEXT NOT NULL, `travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, " +
+                "`distance_km` INTEGER NOT NULL, `pitch_assigned` INTEGER NOT NULL, " +
+                "`electricity_flat_rate` TEXT NOT NULL, `lte_quality` TEXT NOT NULL, `pitch_slope` TEXT NOT NULL, " +
+                "`leveling_blocks_used` INTEGER NOT NULL, `notes` TEXT NOT NULL, `map_link` TEXT, " +
+                "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+            "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)",
+            "CREATE TABLE IF NOT EXISTS `tour_costs` (`tour_id` INTEGER NOT NULL, `currency` TEXT NOT NULL, " +
+                "`amount_minor` INTEGER NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`tour_id`, `currency`), " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        ),
+        inserts = inserts.toList(),
+    )
+
     /** Legt `camperlog.db` im Stand von Version 1 an und füllt sie mit [inserts]. */
-    private fun createVersion1(vararg inserts: String) {
+    private fun createVersion1(vararg inserts: String) = createDatabase(
+        version = 1,
+        identityHash = "31867d8464f1071ee996d113f1e1e356",
+        schema = listOf(
+            "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, " +
+                "`tour_type` TEXT NOT NULL, `travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, " +
+                "`distance_km` INTEGER NOT NULL, `cost_cents` INTEGER NOT NULL, `pitch_assigned` INTEGER NOT NULL, " +
+                "`electricity_flat_rate` TEXT NOT NULL, `lte_quality` TEXT NOT NULL, `pitch_slope` TEXT NOT NULL, " +
+                "`leveling_blocks_used` INTEGER NOT NULL, `notes` TEXT NOT NULL, `map_link` TEXT, " +
+                    "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+            "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)",
+        ),
+        inserts = inserts.toList(),
+    )
+
+    /** Legt `camperlog.db` mit [schema] und dem Room-[identityHash] von [version] an. */
+    private fun createDatabase(version: Int, identityHash: String, schema: List<String>, inserts: List<String>) {
         val file = context.getDatabasePath("camperlog.db").apply { parentFile?.mkdirs() }
         SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
-            db.execSQL(
-                "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
-                    "`start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, " +
-                    "`tour_type` TEXT NOT NULL, `travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, " +
-                    "`distance_km` INTEGER NOT NULL, `cost_cents` INTEGER NOT NULL, `pitch_assigned` INTEGER NOT NULL, " +
-                    "`electricity_flat_rate` TEXT NOT NULL, `lte_quality` TEXT NOT NULL, `pitch_slope` TEXT NOT NULL, " +
-                    "`leveling_blocks_used` INTEGER NOT NULL, `notes` TEXT NOT NULL, `map_link` TEXT, " +
-                    "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
-            )
-            db.execSQL("CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)")
+            schema.forEach(db::execSQL)
             db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
-            db.execSQL(
-                "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '31867d8464f1071ee996d113f1e1e356')",
-            )
+            db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '$identityHash')")
             inserts.forEach(db::execSQL)
-            db.version = 1
+            db.version = version
         }
     }
 }
