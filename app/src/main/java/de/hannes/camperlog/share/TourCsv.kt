@@ -1,7 +1,8 @@
 package de.hannes.camperlog.share
 
+import de.hannes.camperlog.domain.EUR
 import de.hannes.camperlog.domain.Tour
-import de.hannes.camperlog.domain.centsToDecimal
+import de.hannes.camperlog.domain.amountToDecimal
 
 /** Spaltenreihenfolge des CSV-Exports. Neue Spalten nur am Ende anfügen. */
 val CSV_HEADER = listOf(
@@ -73,7 +74,7 @@ private fun Tour.csvFields(): List<String> = listOf(
     travelDays.toString(),
     overnightStays.toString(),
     distanceKm.toString(),
-    centsToDecimal(costCents),
+    amountToDecimal(costCents, EUR),
     yesNo(pitchAssigned),
     electricityFlatRate.csvValue,
     lteQuality.csvValue,

@@ -1,6 +1,9 @@
 package de.hannes.camperlog.ui
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.platform.LocalConfiguration
 import de.hannes.camperlog.R
 import de.hannes.camperlog.domain.ElectricityFlatRate
 import de.hannes.camperlog.domain.LteQuality
@@ -8,6 +11,12 @@ import de.hannes.camperlog.domain.PitchSlope
 import de.hannes.camperlog.domain.TourError
 import de.hannes.camperlog.domain.TourField
 import de.hannes.camperlog.domain.TourType
+import java.util.Locale
+
+/** Aktuelle Sprache der App für Datums- und Zahlenformate; ein Sprachwechsel löst Neukomposition aus. */
+@Composable
+@ReadOnlyComposable
+fun currentLocale(): Locale = LocalConfiguration.current.locales[0]
 
 /** Anzeigetext der Tourart. */
 @get:StringRes

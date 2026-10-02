@@ -33,15 +33,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.hannes.camperlog.R
+import de.hannes.camperlog.domain.EUR
 import de.hannes.camperlog.domain.Tour
+import de.hannes.camperlog.domain.formatAmount
 import de.hannes.camperlog.domain.formatDate
-import de.hannes.camperlog.domain.formatEuro
 import de.hannes.camperlog.share.openInMaps
 import de.hannes.camperlog.share.shareTour
 import de.hannes.camperlog.ui.BackTopBar
 import de.hannes.camperlog.ui.EmptyHint
 import de.hannes.camperlog.ui.LabeledValue
 import de.hannes.camperlog.ui.SectionCard
+import de.hannes.camperlog.ui.currentLocale
 import de.hannes.camperlog.ui.labelRes
 import de.hannes.camperlog.ui.yesNoRes
 import kotlinx.coroutines.launch
@@ -108,6 +110,7 @@ private fun TourDetails(
     onShare: () -> Unit,
     onOpenMaps: () -> Unit,
 ) {
+    val locale = currentLocale()
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
@@ -115,8 +118,8 @@ private fun TourDetails(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionCard {
-            LabeledValue(stringResource(R.string.field_start_date), formatDate(tour.startDate))
-            LabeledValue(stringResource(R.string.field_end_date), formatDate(tour.endDate))
+            LabeledValue(stringResource(R.string.field_start_date), formatDate(tour.startDate, locale))
+            LabeledValue(stringResource(R.string.field_end_date), formatDate(tour.endDate, locale))
             LabeledValue(stringResource(R.string.field_destination), tour.destination)
             LabeledValue(stringResource(R.string.field_tour_type), stringResource(tour.tourType.labelRes))
         }
@@ -124,7 +127,7 @@ private fun TourDetails(
             LabeledValue(stringResource(R.string.field_travel_days), tour.travelDays.toString())
             LabeledValue(stringResource(R.string.field_overnight_stays), tour.overnightStays.toString())
             LabeledValue(stringResource(R.string.field_distance), stringResource(R.string.distance_km, tour.distanceKm))
-            LabeledValue(stringResource(R.string.field_cost), formatEuro(tour.costCents))
+            LabeledValue(stringResource(R.string.field_cost), formatAmount(tour.costCents, EUR, locale))
         }
         SectionCard {
             LabeledValue(stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(tour.pitchAssigned)))

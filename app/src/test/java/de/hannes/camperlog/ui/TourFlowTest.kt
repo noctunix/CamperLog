@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
@@ -19,7 +20,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -68,10 +69,13 @@ class TourFlowTest {
     private fun clickSave() =
         compose.onNode(hasText("Speichern") and hasAnyAncestor(hasScrollAction())).performScrollTo().performClick()
 
+    /** Kalenderzelle des Tages; das Datumsfeld im Formular trägt dasselbe Datum. */
+    private fun dayCell(day: Int) = hasText(" $day, ", substring = true) and hasClickAction() and hasAnyAncestor(isDialog())
+
     private fun pickDay(fieldLabel: String, day: Int) {
         compose.onNodeWithContentDescription("$fieldLabel wählen").performClick()
         // Tageszellen tragen ihr volles Datum als Text, z. B. "Saturday, October 10, 2026".
-        compose.onNode(hasText(" $day, ", substring = true) and hasClickAction()).performClick()
+        compose.onNode(dayCell(day)).performClick()
         compose.onNodeWithText("OK").performClick()
     }
 
@@ -234,9 +238,9 @@ class TourFlowTest {
         pickDay("Startdatum", 10)
 
         compose.onNodeWithContentDescription("Enddatum wählen").performClick()
-        compose.onNode(hasText(" 9, ", substring = true) and hasClickAction()).assertIsNotEnabled()
-        compose.onNode(hasText(" 10, ", substring = true) and hasClickAction()).assertIsEnabled()
-        compose.onNode(hasText(" 11, ", substring = true) and hasClickAction()).assertIsEnabled()
+        compose.onNode(dayCell(9)).assertIsNotEnabled()
+        compose.onNode(dayCell(10)).assertIsEnabled()
+        compose.onNode(dayCell(11)).assertIsEnabled()
     }
 
     @Test

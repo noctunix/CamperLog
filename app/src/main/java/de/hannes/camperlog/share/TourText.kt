@@ -2,16 +2,18 @@ package de.hannes.camperlog.share
 
 import android.content.res.Resources
 import de.hannes.camperlog.R
+import de.hannes.camperlog.domain.EUR
 import de.hannes.camperlog.domain.Tour
-import de.hannes.camperlog.domain.formatEuro
+import de.hannes.camperlog.domain.formatAmount
 import de.hannes.camperlog.domain.period
 import de.hannes.camperlog.ui.labelRes
 import de.hannes.camperlog.ui.yesNoRes
 
 /** Lesbare Zusammenfassung einer Tour zum Teilen per Messenger oder E-Mail, in der Sprache von [res]. */
 fun tourShareText(res: Resources, tour: Tour): String = buildString {
+    val locale = res.configuration.locales[0]
     appendLine(res.getString(R.string.share_subject, tour.destination))
-    appendLine(res.getString(R.string.share_period, tour.period, res.getString(tour.tourType.labelRes)))
+    appendLine(res.getString(R.string.share_period, tour.period(locale), res.getString(tour.tourType.labelRes)))
     appendLine(
         res.getString(
             R.string.share_trip_stats,
@@ -20,7 +22,7 @@ fun tourShareText(res: Resources, tour: Tour): String = buildString {
             res.getString(R.string.distance_km, tour.distanceKm),
         ),
     )
-    appendLine(res.getString(R.string.share_cost, formatEuro(tour.costCents)))
+    appendLine(res.getString(R.string.share_cost, formatAmount(tour.costCents, EUR, locale)))
     appendLine(res.getString(R.string.share_pitch_assigned, res.getString(yesNoRes(tour.pitchAssigned))))
     appendLine(res.getString(R.string.share_electricity, res.getString(tour.electricityFlatRate.labelRes)))
     appendLine(res.getString(R.string.share_lte, res.getString(tour.lteQuality.labelRes)))

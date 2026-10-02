@@ -7,7 +7,6 @@ import de.hannes.camperlog.domain.LteQuality
 import de.hannes.camperlog.domain.PitchSlope
 import de.hannes.camperlog.domain.Tour
 import de.hannes.camperlog.domain.TourType
-import de.hannes.camperlog.domain.formatEuro
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,7 +16,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "de-rDE")
 class TourTextTest {
 
     private val resources = ApplicationProvider.getApplicationContext<Context>().resources
@@ -50,7 +49,7 @@ class TourTextTest {
                 "Tour nach Bodensee",
                 "10.07.2026 – 12.07.2026 (Wochenende)",
                 "3 Reisetage, 2 Übernachtungen, 412 km",
-                "Kosten: ${formatEuro(8_950)}",
+                "Kosten: 89,50\u00A0€",
                 "Stellplatz zugewiesen: ja",
                 "Strompauschale: nicht genutzt",
                 "LTE: geht so",
@@ -77,5 +76,15 @@ class TourTextTest {
 
         assertEquals("1 Reisetag, 1 Übernachtung, 412 km", lines[2])
         assertEquals("Stellplatz: abschüssig, Keile nicht genutzt", lines.last())
+        assertEquals("10.07.2026 (Wochenende)", lines[1])
+    }
+
+    @Test
+    @Config(qualifiers = "en-rUS")
+    fun datesAndAmountsFollowSystemLocale() {
+        val lines = tourShareText(resources, tour).lines()
+
+        assertEquals("Jul 10, 2026 – Jul 12, 2026 (Wochenende)", lines[1])
+        assertEquals("Kosten: €89.50", lines[3])
     }
 }

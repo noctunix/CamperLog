@@ -56,6 +56,7 @@ import de.hannes.camperlog.domain.period
 import de.hannes.camperlog.share.shareCsv
 import de.hannes.camperlog.share.writeCsvExport
 import de.hannes.camperlog.ui.EmptyHint
+import de.hannes.camperlog.ui.currentLocale
 import de.hannes.camperlog.ui.labelRes
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -254,7 +255,7 @@ private fun TourCard(tour: Tour, onClick: () -> Unit) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(tour.destination, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    tour.period,
+                    tour.period(currentLocale()),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

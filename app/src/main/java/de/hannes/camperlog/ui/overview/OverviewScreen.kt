@@ -15,13 +15,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.hannes.camperlog.R
+import de.hannes.camperlog.domain.EUR
 import de.hannes.camperlog.domain.TourTotals
 import de.hannes.camperlog.domain.YearTotals
-import de.hannes.camperlog.domain.formatEuro
+import de.hannes.camperlog.domain.formatAmount
 import de.hannes.camperlog.ui.BackTopBar
 import de.hannes.camperlog.ui.EmptyHint
 import de.hannes.camperlog.ui.LabeledValue
 import de.hannes.camperlog.ui.SectionCard
+import de.hannes.camperlog.ui.currentLocale
 
 /** Kennzahlen über alle Touren und je Jahr, neuestes Jahr zuerst. */
 @Composable
@@ -60,6 +62,6 @@ private fun TotalsCard(title: String, totals: TourTotals) {
         LabeledValue(stringResource(R.string.field_distance), stringResource(R.string.distance_km, totals.distanceKm))
         LabeledValue(stringResource(R.string.field_travel_days), totals.travelDays.toString())
         LabeledValue(stringResource(R.string.field_overnight_stays), totals.overnightStays.toString())
-        LabeledValue(stringResource(R.string.field_cost), formatEuro(totals.costCents))
+        LabeledValue(stringResource(R.string.field_cost), formatAmount(totals.costCents, EUR, currentLocale()))
     }
 }

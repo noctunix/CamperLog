@@ -4,6 +4,7 @@ import java.net.URI
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 /** Unvalidierte Eingaben des Tour-Formulars. Zahlen und Beträge liegen als Text vor. */
 data class TourInput(
@@ -41,9 +42,10 @@ enum class TourError {
 /**
  * Prüft alle fachlichen Regeln einer Tour-Eingabe.
  *
+ * @param locale bestimmt, wie mehrdeutige Beträge wie `1.234` gelesen werden
  * @return Fehlergrund je fehlerhaftem Feld; leer, wenn die Eingabe gültig ist
  */
-fun TourInput.validate(): Map<TourField, TourError> = buildMap {
+fun TourInput.validate(locale: Locale): Map<TourField, TourError> = buildMap {
     if (startDate == null) put(TourField.START_DATE, TourError.REQUIRED)
     when {
         endDate == null -> put(TourField.END_DATE, TourError.REQUIRED)
@@ -53,7 +55,7 @@ fun TourInput.validate(): Map<TourField, TourError> = buildMap {
     countError(travelDays)?.let { put(TourField.TRAVEL_DAYS, it) }
     countError(overnightStays)?.let { put(TourField.OVERNIGHT_STAYS, it) }
     countError(distanceKm)?.let { put(TourField.DISTANCE_KM, it) }
-    if (parseCost(cost) == null) put(TourField.COST, TourError.INVALID_AMOUNT)
+    if (parseCost(cost, locale) == null) put(TourField.COST, TourError.INVALID_AMOUNT)
     val days = parseCount(travelDays)
     val nights = parseCount(overnightStays)
     if (days != null && nights != null && nights > days) {
@@ -68,9 +70,10 @@ fun TourInput.validate(): Map<TourField, TourError> = buildMap {
  * Erzeugt aus einer gültigen Eingabe eine [Tour]. Vorher muss [validate] leer sein.
  *
  * @param original die bearbeitete Tour oder `null` für eine neue Tour
+ * @param locale dieselbe Sprache wie bei [validate]
  * @return Tour mit id und Zeitstempeln von [original]
  */
-fun TourInput.toTour(original: Tour?): Tour = Tour(
+fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
     id = original?.id ?: 0,
     startDate = checkNotNull(startDate),
     endDate = checkNotNull(endDate),
@@ -79,7 +82,7 @@ fun TourInput.toTour(original: Tour?): Tour = Tour(
     travelDays = checkNotNull(parseCount(travelDays)),
     overnightStays = checkNotNull(parseCount(overnightStays)),
     distanceKm = checkNotNull(parseCount(distanceKm)),
-    costCents = checkNotNull(parseCost(cost)),
+    costCents = checkNotNull(parseCost(cost, locale)),
     pitchAssigned = pitchAssigned,
     electricityFlatRate = electricityFlatRate,
     lteQuality = lteQuality,
@@ -91,8 +94,8 @@ fun TourInput.toTour(original: Tour?): Tour = Tour(
     updatedAt = original?.updatedAt ?: Instant.EPOCH,
 )
 
-/** Wandelt eine gespeicherte Tour in editierbare Formulardaten um. */
-fun Tour.toInput(): TourInput = TourInput(
+/** Wandelt eine gespeicherte Tour in editierbare Formulardaten im Zahlenformat von [locale] um. */
+fun Tour.toInput(locale: Locale): TourInput = TourInput(
     startDate = startDate,
     endDate = endDate,
     destination = destination,
@@ -100,7 +103,7 @@ fun Tour.toInput(): TourInput = TourInput(
     travelDays = travelDays.toString(),
     overnightStays = overnightStays.toString(),
     distanceKm = distanceKm.toString(),
-    cost = centsToInput(costCents),
+    cost = amountToInput(costCents, EUR, locale),
     pitchAssigned = pitchAssigned,
     electricityFlatRate = electricityFlatRate,
     lteQuality = lteQuality,
@@ -121,7 +124,8 @@ fun isWebUrl(link: String): Boolean {
 
 private fun parseCount(text: String): Int? = if (text.isBlank()) 0 else text.trim().toIntOrNull()?.takeIf { it >= 0 }
 
-private fun parseCost(text: String): Long? = if (text.isBlank()) 0 else parseEuroToCents(text)
+private fun parseCost(text: String, locale: Locale): Long? =
+    if (text.isBlank()) 0 else parseAmount(text, EUR, locale)
 
 private fun countError(text: String): TourError? = when {
     parseCount(text) != null -> null

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.util.Locale
 
 /** Zustand des Formulars. Fehler werden erst nach dem ersten Speicherversuch angezeigt. */
 data class EditUiState(
@@ -36,8 +37,17 @@ data class EditUiState(
     val rejectedSaves: Int = 0,
 )
 
-/** Lädt, validiert und speichert eine Tour. [tourId] 0 legt eine neue Tour an. */
-class EditTourViewModel(private val repository: TourRepository, tourId: Long) : ViewModel() {
+/**
+ * Lädt, validiert und speichert eine Tour. [tourId] 0 legt eine neue Tour an.
+ *
+ * @param locale liefert die aktuelle Sprache für Beträge; wird bei jedem Zugriff neu gelesen,
+ *   damit ein Sprachwechsel bei laufendem ViewModel greift
+ */
+class EditTourViewModel(
+    private val repository: TourRepository,
+    tourId: Long,
+    private val locale: () -> Locale = Locale::getDefault,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EditUiState(isNew = tourId == 0L, isLoading = tourId != 0L))
     val uiState: StateFlow<EditUiState> = _uiState.asStateFlow()
@@ -52,7 +62,7 @@ class EditTourViewModel(private val repository: TourRepository, tourId: Long) : 
                 val tour = repository.observeTour(tourId).first()
                 original = tour
                 _uiState.update {
-                    it.copy(isLoading = false, notFound = tour == null, input = tour?.toInput() ?: it.input)
+                    it.copy(isLoading = false, notFound = tour == null, input = tour?.toInput(locale()) ?: it.input)
                 }
             }
         }
@@ -62,7 +72,7 @@ class EditTourViewModel(private val repository: TourRepository, tourId: Long) : 
     fun onInputChange(transform: (TourInput) -> TourInput) {
         _uiState.update { state ->
             val input = transform(state.input)
-            state.copy(input = input, isDirty = true, errors = if (showErrors) input.validate() else emptyMap())
+            state.copy(input = input, isDirty = true, errors = if (showErrors) input.validate(locale()) else emptyMap())
         }
     }
 
@@ -74,16 +84,18 @@ class EditTourViewModel(private val repository: TourRepository, tourId: Long) : 
     fun save() {
         val state = _uiState.value
         if (state.isSaving || state.isLoading || state.notFound) return
-        val errors = state.input.validate()
+        val locale = locale()
+        val errors = state.input.validate(locale)
         if (errors.isNotEmpty()) {
             showErrors = true
             _uiState.update { it.copy(errors = errors, rejectedSaves = it.rejectedSaves + 1) }
             return
         }
+        val tour = state.input.toTour(original, locale)
         _uiState.update { it.copy(isSaving = true, errors = emptyMap(), saveFailed = false) }
         viewModelScope.launch {
             try {
-                repository.save(state.input.toTour(original))
+                repository.save(tour)
                 _uiState.update { it.copy(isSaving = false, isSaved = true) }
             } catch (_: SQLException) {
                 // Eingaben bleiben erhalten, damit der Nutzer es erneut versuchen kann.

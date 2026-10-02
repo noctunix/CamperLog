@@ -79,6 +79,7 @@ import de.hannes.camperlog.domain.formatDate
 import de.hannes.camperlog.ui.BackTopBar
 import de.hannes.camperlog.ui.EmptyHint
 import de.hannes.camperlog.ui.SectionCard
+import de.hannes.camperlog.ui.currentLocale
 import de.hannes.camperlog.ui.labelRes
 import de.hannes.camperlog.ui.messageRes
 import java.time.LocalDate
@@ -354,7 +355,7 @@ private fun DateField(
     }
 
     OutlinedTextField(
-        value = date?.let(::formatDate).orEmpty(),
+        value = date?.let { formatDate(it, currentLocale()) }.orEmpty(),
         onValueChange = {},
         readOnly = true,
         modifier = modifier
