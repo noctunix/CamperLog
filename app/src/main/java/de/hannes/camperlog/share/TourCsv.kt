@@ -35,9 +35,13 @@ fun toursToCsv(tours: List<Tour>): String = buildString {
     tours.forEach { appendCsvRow(it.csvFields()) }
 }
 
-/** Setzt [field] in Anführungszeichen, falls es Komma, Anführungszeichen, Zeilenumbruch oder Randleerzeichen enthält. */
+/**
+ * Setzt [field] in Anführungszeichen, falls es Komma, Semikolon, Anführungszeichen, Zeilenumbruch
+ * oder Randleerzeichen enthält. Das Semikolon wird mit gequotet, weil deutsches Excel es als
+ * Trennzeichen nutzt; sonst könnte Text nach `;` als eigene (Formel-)Zelle gelesen werden.
+ */
 fun escapeCsv(field: String): String {
-    val needsQuotes = field.any { it == ',' || it == '"' || it == '\n' || it == '\r' } ||
+    val needsQuotes = field.any { it in QUOTE_TRIGGERS } ||
         field.trim().length != field.length
     return if (needsQuotes) "\"" + field.replace("\"", "\"\"") + "\"" else field
 }
@@ -53,6 +57,7 @@ fun neutralizeFormula(field: String): String {
 }
 
 private val FORMULA_TRIGGERS = setOf('=', '+', '-', '@', '\t', '\r')
+private val QUOTE_TRIGGERS = setOf(',', ';', '"', '\n', '\r')
 
 private fun StringBuilder.appendCsvRow(fields: List<String>) {
     fields.joinTo(this, separator = ",", transform = ::escapeCsv)

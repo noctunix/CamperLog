@@ -16,7 +16,12 @@ class TourCsvTest {
     fun plainFieldsStayUnquoted() {
         assertEquals("Gardasee", escapeCsv("Gardasee"))
         assertEquals("", escapeCsv(""))
-        assertEquals("Ä-Ö ü;ß", escapeCsv("Ä-Ö ü;ß"))
+        assertEquals("Ä-Ö üß", escapeCsv("Ä-Ö üß"))
+    }
+
+    @Test
+    fun semicolonIsQuotedForGermanExcel() {
+        assertEquals("\"Platz;=1+1\"", escapeCsv("Platz;=1+1"))
     }
 
     @Test
