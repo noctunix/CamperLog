@@ -1,0 +1,90 @@
+package app.restvolt.camperlog.share
+
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.TourType
+import org.junit.Assert.assertEquals
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import java.time.Instant
+import java.time.LocalDate
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35], qualifiers = "de-rDE")
+class TourTextTest {
+
+    private val resources = ApplicationProvider.getApplicationContext<Context>().resources
+
+    private val tour = Tour(
+        id = 1,
+        startDate = LocalDate.of(2026, 7, 10),
+        endDate = LocalDate.of(2026, 7, 12),
+        destination = "Bodensee",
+        tourType = TourType.WEEKEND,
+        travelDays = 3,
+        overnightStays = 2,
+        distanceKm = 412,
+        costCents = 8_950,
+        pitchAssigned = true,
+        electricityFlatRate = ElectricityFlatRate.NOT_USED,
+        lteQuality = LteQuality.OK,
+        pitchSlope = PitchSlope.SLOPED,
+        levelingBlocksUsed = true,
+        notes = "Ruhiger Platz",
+        mapLink = "https://example.org/karte",
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
+
+    @Test
+    fun summaryUsesResourceLabels() {
+        assertEquals(
+            listOf(
+                "Tour nach Bodensee",
+                "10.07.2026 – 12.07.2026 (Wochenende)",
+                "3 Reisetage, 2 Übernachtungen, 412 km",
+                "Kosten: 89,50\u00A0€",
+                "Stellplatz zugewiesen: ja",
+                "Strompauschale: nicht genutzt",
+                "LTE: geht so",
+                "Stellplatz: abschüssig, Keile genutzt",
+                "Notizen: Ruhiger Platz",
+                "Karte: https://example.org/karte",
+            ),
+            tourShareText(resources, tour).lines(),
+        )
+    }
+
+    @Test
+    fun singleDayTripUsesSingularAndSkipsEmptyOptionalLines() {
+        val dayTrip = tour.copy(
+            endDate = tour.startDate,
+            travelDays = 1,
+            overnightStays = 1,
+            levelingBlocksUsed = false,
+            notes = " ",
+            mapLink = null,
+        )
+
+        val lines = tourShareText(resources, dayTrip).lines()
+
+        assertEquals("1 Reisetag, 1 Übernachtung, 412 km", lines[2])
+        assertEquals("Stellplatz: abschüssig, Keile nicht genutzt", lines.last())
+        assertEquals("10.07.2026 (Wochenende)", lines[1])
+    }
+
+    @Test
+    @Config(qualifiers = "en-rUS")
+    fun datesAndAmountsFollowSystemLocale() {
+        val lines = tourShareText(resources, tour).lines()
+
+        assertEquals("Jul 10, 2026 – Jul 12, 2026 (Wochenende)", lines[1])
+        assertEquals("Kosten: €89.50", lines[3])
+    }
+}

@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "de.hannes.camperlog"
+    namespace = "app.restvolt.camperlog"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "de.hannes.camperlog"
+        applicationId = "app.restvolt.camperlog"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
