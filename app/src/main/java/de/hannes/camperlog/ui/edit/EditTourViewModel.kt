@@ -31,6 +31,8 @@ data class EditUiState(
     val isSaved: Boolean = false,
     /** Der letzte Speicherversuch ist an der Datenbank gescheitert; Meldung steht noch aus. */
     val saveFailed: Boolean = false,
+    /** Zählt an der Validierung gescheiterte Speicherversuche; jede Erhöhung fokussiert das erste fehlerhafte Feld. */
+    val rejectedSaves: Int = 0,
 )
 
 /** Lädt, validiert und speichert eine Tour. [tourId] 0 legt eine neue Tour an. */
@@ -74,7 +76,7 @@ class EditTourViewModel(private val repository: TourRepository, tourId: Long) : 
         val errors = state.input.validate()
         if (errors.isNotEmpty()) {
             showErrors = true
-            _uiState.update { it.copy(errors = errors) }
+            _uiState.update { it.copy(errors = errors, rejectedSaves = it.rejectedSaves + 1) }
             return
         }
         _uiState.update { it.copy(isSaving = true, errors = emptyMap(), saveFailed = false) }

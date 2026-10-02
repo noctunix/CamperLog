@@ -43,8 +43,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -134,6 +139,15 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
     val input = state.input
     val errors = state.errors
     val change = viewModel::onInputChange
+    val focus = remember { TourField.entries.associateWith { FocusRequester() } }
+    fun focusOf(field: TourField) = Modifier.focusRequester(focus.getValue(field))
+
+    // Nach einem abgelehnten Speichern zum ersten fehlerhaften Feld springen; der Fokus scrollt es ins Bild.
+    LaunchedEffect(state.rejectedSaves) {
+        if (state.rejectedSaves > 0) {
+            errors.keys.minByOrNull(TourField::ordinal)?.let { focus.getValue(it).requestFocus() }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -142,13 +156,20 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionCard {
-            DateField("Startdatum", input.startDate, errors[TourField.START_DATE], viewModel::onStartDateChange)
+            DateField(
+                "Startdatum",
+                input.startDate,
+                errors[TourField.START_DATE],
+                viewModel::onStartDateChange,
+                modifier = focusOf(TourField.START_DATE),
+            )
             DateField(
                 "Enddatum",
                 input.endDate,
                 errors[TourField.END_DATE],
                 viewModel::onEndDateChange,
                 initialDate = input.startDate,
+                modifier = focusOf(TourField.END_DATE),
             )
             FormTextField(
                 label = "Ziel",
@@ -159,21 +180,31 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                     capitalization = KeyboardCapitalization.Words,
                     imeAction = ImeAction.Next,
                 ),
+                modifier = focusOf(TourField.DESTINATION),
             )
             ChoiceField("Tourart", TourType.entries, input.tourType, TourType::label) { value ->
                 change { it.copy(tourType = value) }
             }
         }
         SectionCard {
-            NumberField("Reisetage", input.travelDays, errors[TourField.TRAVEL_DAYS]) { value ->
-                change { it.copy(travelDays = value) }
-            }
-            NumberField("Übernachtungen", input.overnightStays, errors[TourField.OVERNIGHT_STAYS]) { value ->
-                change { it.copy(overnightStays = value) }
-            }
-            NumberField("Kilometer", input.distanceKm, errors[TourField.DISTANCE_KM]) { value ->
-                change { it.copy(distanceKm = value) }
-            }
+            NumberField(
+                "Reisetage",
+                input.travelDays,
+                errors[TourField.TRAVEL_DAYS],
+                focusOf(TourField.TRAVEL_DAYS),
+            ) { value -> change { it.copy(travelDays = value) } }
+            NumberField(
+                "Übernachtungen",
+                input.overnightStays,
+                errors[TourField.OVERNIGHT_STAYS],
+                focusOf(TourField.OVERNIGHT_STAYS),
+            ) { value -> change { it.copy(overnightStays = value) } }
+            NumberField(
+                "Kilometer",
+                input.distanceKm,
+                errors[TourField.DISTANCE_KM],
+                focusOf(TourField.DISTANCE_KM),
+            ) { value -> change { it.copy(distanceKm = value) } }
             FormTextField(
                 label = "Kosten (€)",
                 value = input.cost,
@@ -181,6 +212,7 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 onValueChange = { value -> change { it.copy(cost = value) } },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                 placeholder = "z. B. 49,90",
+                modifier = focusOf(TourField.COST),
             )
         }
         SectionCard {
@@ -219,6 +251,7 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 onValueChange = { value -> change { it.copy(mapLink = value) } },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
                 placeholder = "https://…",
+                modifier = focusOf(TourField.MAP_LINK),
             )
         }
         Button(
@@ -231,6 +264,7 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
         if (errors.isNotEmpty()) {
             Text(
                 "Bitte die markierten Felder prüfen.",
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -244,6 +278,7 @@ private fun FormTextField(
     value: String,
     error: String?,
     onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
     keyboardOptions: KeyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
     singleLine: Boolean = true,
     placeholder: String? = null,
@@ -251,7 +286,7 @@ private fun FormTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         label = { Text(label) },
         placeholder = placeholder?.let { { Text(it) } },
         isError = error != null,
@@ -264,13 +299,20 @@ private fun FormTextField(
 }
 
 @Composable
-private fun NumberField(label: String, value: String, error: String?, onValueChange: (String) -> Unit) {
+private fun NumberField(
+    label: String,
+    value: String,
+    error: String?,
+    modifier: Modifier,
+    onValueChange: (String) -> Unit,
+) {
     FormTextField(
         label = label,
         value = value,
         error = error,
         onValueChange = onValueChange,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+        modifier = modifier,
     )
 }
 
@@ -281,6 +323,7 @@ private fun DateField(
     date: LocalDate?,
     error: String?,
     onDateSelected: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier,
     initialDate: LocalDate? = null,
 ) {
     var showPicker by rememberSaveable { mutableStateOf(false) }
@@ -293,7 +336,7 @@ private fun DateField(
         value = date?.let(::formatDate).orEmpty(),
         onValueChange = {},
         readOnly = true,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         label = { Text(label) },
         isError = error != null,
         supportingText = error?.let { { Text(it) } },

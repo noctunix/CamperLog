@@ -1,6 +1,12 @@
 package de.hannes.camperlog.ui
 
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
@@ -150,6 +156,34 @@ class TourFlowTest {
         compose.onNodeWithText("Tour konnte nicht gelöscht werden.").assertExists()
         compose.onNodeWithText("Gardasee").assertExists()
         assertEquals(1, repository.tours.size)
+    }
+
+    @Test
+    fun saveRejected_focusesFirstInvalidFieldAndAnnouncesHint() {
+        start()
+        compose.onNodeWithText("Eingabe").performClick()
+        pickDay("Startdatum", 10)
+        pickDay("Enddatum", 12)
+        compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performTextInput("abc")
+
+        clickSave()
+
+        destinationField().assertIsFocused().assertIsDisplayed()
+        compose.onNodeWithText("Bitte die markierten Felder prüfen.")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+    }
+
+    @Test
+    fun saveRejected_scrollsDownToInvalidField() {
+        start()
+        compose.onNodeWithText("Eingabe").performClick()
+        pickDay("Startdatum", 10)
+        pickDay("Enddatum", 12)
+        destinationField().performTextInput("Ostsee")
+        compose.onNode(hasSetTextAction() and hasText("Kartenlink")).performTextInput("kein link")
+        compose.onNode(hasText("Speichern") and hasClickAction() and !hasAnyAncestor(hasScrollAction())).performClick()
+
+        compose.onNode(hasSetTextAction() and hasText("Kartenlink")).assertIsFocused().assertIsDisplayed()
     }
 
     @Test
