@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.domain
 
+import kotlinx.serialization.Serializable
 import java.net.URI
 import java.time.Instant
 import java.time.LocalDate
@@ -8,9 +9,10 @@ import java.util.Currency
 import java.util.Locale
 
 /** Unvalidierte Eingaben des Tour-Formulars. Zahlen und Beträge liegen als Text vor. */
+@Serializable
 data class TourInput(
-    val startDate: LocalDate? = null,
-    val endDate: LocalDate? = null,
+    @Serializable(with = LocalDateSerializer::class) val startDate: LocalDate? = null,
+    @Serializable(with = LocalDateSerializer::class) val endDate: LocalDate? = null,
     val destination: String = "",
     val tourType: TourType = TourType.WEEKEND,
     val travelDays: String = "",
@@ -27,7 +29,11 @@ data class TourInput(
 )
 
 /** Eine Kostenzeile des Formulars: Betrag als Text in [currency]. */
-data class CostInput(val amount: String = "", val currency: Currency = EUR)
+@Serializable
+data class CostInput(
+    val amount: String = "",
+    @Serializable(with = CurrencySerializer::class) val currency: Currency = EUR,
+)
 
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
 enum class TourField { START_DATE, END_DATE, DESTINATION, TRAVEL_DAYS, OVERNIGHT_STAYS, DISTANCE_KM, COST, MAP_LINK }

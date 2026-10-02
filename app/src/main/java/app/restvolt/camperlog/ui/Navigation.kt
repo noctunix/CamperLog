@@ -3,6 +3,7 @@ package app.restvolt.camperlog.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
@@ -62,7 +63,7 @@ fun CamperLogNavHost(repository: TourRepository, exchangeRates: ExchangeRateRepo
             val tourId = entry.toRoute<EditRoute>().tourId
             val toursViewModel = navController.toursViewModel(entry, repository)
             EditTourScreen(
-                viewModel = viewModel { EditTourViewModel(repository, tourId) },
+                viewModel = viewModel { EditTourViewModel(repository, tourId, createSavedStateHandle()) },
                 onDone = { navController.popFrom(entry) },
                 onSaved = {
                     if (tourId == 0L) toursViewModel.onTourCreated()
@@ -102,7 +103,7 @@ fun CamperLogNavHost(repository: TourRepository, exchangeRates: ExchangeRateRepo
         composable<RateEditRoute> { entry ->
             val currencyCode = entry.toRoute<RateEditRoute>().currencyCode
             RateEditScreen(
-                viewModel = viewModel { RateEditViewModel(exchangeRates, currencyCode) },
+                viewModel = viewModel { RateEditViewModel(exchangeRates, currencyCode, createSavedStateHandle()) },
                 onDone = { navController.popFrom(entry) },
             )
         }

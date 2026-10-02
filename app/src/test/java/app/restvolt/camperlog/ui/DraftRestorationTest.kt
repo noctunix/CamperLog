@@ -1,0 +1,233 @@
+package app.restvolt.camperlog.ui
+
+import android.os.Bundle
+import android.os.Parcel
+import androidx.lifecycle.SavedStateHandle
+import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.EUR
+import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.Money
+import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.TourError
+import app.restvolt.camperlog.domain.TourField
+import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.ui.edit.EditTourViewModel
+import app.restvolt.camperlog.ui.rates.RateEditViewModel
+import app.restvolt.camperlog.ui.rates.RateError
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import java.math.BigDecimal
+import java.time.Instant
+import java.time.LocalDate
+import java.util.Currency
+import java.util.Locale
+
+/**
+ * Prüft, dass ungespeicherte Formulareingaben ein Beenden des Prozesses im Hintergrund überstehen.
+ * Flow-Tests können das nicht nachstellen, weil ein Neuaufbau der Activity die ViewModels behält.
+ * Hier schreibt Android den Handle-Inhalt in ein Parcel und baut daraus ein neues ViewModel.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
+class DraftRestorationTest {
+
+    private val chf = Currency.getInstance("CHF")
+    private val nok = Currency.getInstance("NOK")
+    private val locale = { Locale.US }
+
+    @Before
+    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
+
+    @After
+    fun tearDown() = Dispatchers.resetMain()
+
+    @Test
+    fun newTourInputSurvivesProcessDeath() {
+        val repository = FakeTourRepository()
+        val handle = SavedStateHandle()
+        val before = EditTourViewModel(repository, 0, handle, locale)
+        before.onInputChange { it.copy(destination = "Gardasee", notes = "Stellplatz 12") }
+        before.onStartDateChange(LocalDate.of(2026, 7, 1))
+        before.onCostAmountChange(0, "139.90")
+        before.onCostCurrencyChange(0, chf)
+
+        val after = EditTourViewModel(repository, 0, handle.afterProcessDeath(), locale)
+
+        val state = after.uiState.value
+        assertEquals(before.uiState.value.input, state.input)
+        assertTrue(state.isDirty)
+        assertTrue(state.errors.isEmpty())
+    }
+
+    @Test
+    fun draftWinsOverStoredTour() {
+        val repository = FakeTourRepository(listOf(tour()))
+        val handle = SavedStateHandle()
+        EditTourViewModel(repository, 1, handle, locale).onInputChange { it.copy(destination = "Ostsee") }
+
+        val after = EditTourViewModel(repository, 1, handle.afterProcessDeath(), locale)
+
+        val state = after.uiState.value
+        assertFalse(state.isLoading)
+        assertEquals("Ostsee", state.input.destination)
+        assertEquals("420", state.input.distanceKm)
+        assertTrue(state.isDirty)
+    }
+
+    @Test
+    fun visibleErrorsSurviveProcessDeath() {
+        val handle = SavedStateHandle()
+        val before = EditTourViewModel(FakeTourRepository(), 0, handle, locale)
+        before.save()
+
+        val after = EditTourViewModel(FakeTourRepository(), 0, handle.afterProcessDeath(), locale)
+
+        assertEquals(TourError.REQUIRED, after.uiState.value.errors[TourField.DESTINATION])
+        after.onInputChange { it.copy(destination = "Harz") }
+        assertFalse(TourField.DESTINATION in after.uiState.value.errors)
+    }
+
+    @Test
+    fun prefilledTravelDaysKeepFollowingDatesAfterRestore() {
+        val handle = SavedStateHandle()
+        val before = EditTourViewModel(FakeTourRepository(), 0, handle, locale)
+        before.onStartDateChange(LocalDate.of(2026, 7, 1))
+        before.onEndDateChange(LocalDate.of(2026, 7, 3))
+        assertEquals("3", before.uiState.value.input.travelDays)
+
+        val after = EditTourViewModel(FakeTourRepository(), 0, handle.afterProcessDeath(), locale)
+        after.onEndDateChange(LocalDate.of(2026, 7, 5))
+
+        assertEquals("5", after.uiState.value.input.travelDays)
+    }
+
+    @Test
+    fun savedTourLeavesNoDraft() {
+        val repository = FakeTourRepository(listOf(tour()))
+        val handle = SavedStateHandle()
+        val before = EditTourViewModel(repository, 1, handle, locale)
+        before.onInputChange { it.copy(destination = "Ostsee") }
+        before.save()
+        assertTrue(before.uiState.value.isSaved)
+        assertTrue(handle.keys().isEmpty())
+
+        val after = EditTourViewModel(repository, 1, handle.afterProcessDeath(), locale)
+
+        assertEquals("Ostsee", after.uiState.value.input.destination)
+        assertFalse(after.uiState.value.isDirty)
+    }
+
+    @Test
+    fun untouchedFormStoresNothing() {
+        val handle = SavedStateHandle()
+        EditTourViewModel(FakeTourRepository(listOf(tour())), 1, handle, locale)
+        RateEditViewModel(FakeExchangeRateRepository(), null, handle, { LocalDate.of(2026, 10, 2) }, locale)
+
+        assertTrue(handle.keys().isEmpty())
+    }
+
+    @Test
+    fun newRateInputSurvivesProcessDeath() {
+        val repository = FakeExchangeRateRepository(listOf(rate(nok)))
+        val handle = SavedStateHandle()
+        val before = RateEditViewModel(repository, null, handle, { LocalDate.of(2026, 10, 2) }, locale)
+        before.onCurrencyChange(chf)
+        before.onRateChange("0.94")
+        before.onDateChange(LocalDate.of(2026, 9, 30))
+        before.onSourceChange("Bank")
+
+        val after = RateEditViewModel(repository, null, handle.afterProcessDeath(), { LocalDate.of(2026, 10, 3) }, locale)
+
+        val state = after.uiState.value
+        assertTrue(state.isNew)
+        assertEquals(chf, state.currency)
+        assertEquals("0.94", state.rate)
+        assertEquals(LocalDate.of(2026, 9, 30), state.date)
+        assertEquals("Bank", state.source)
+        assertEquals(setOf(EUR, nok), state.unavailable)
+        assertTrue(state.isDirty)
+    }
+
+    @Test
+    fun rateDraftKeepsCurrencyOfExistingRateAndErrors() {
+        val repository = FakeExchangeRateRepository(listOf(rate(nok)))
+        val handle = SavedStateHandle()
+        val before = RateEditViewModel(repository, "NOK", handle, { LocalDate.of(2026, 10, 2) }, locale)
+        before.onRateChange("abc")
+        before.save()
+
+        val after = RateEditViewModel(repository, "NOK", handle.afterProcessDeath(), { LocalDate.of(2026, 10, 2) }, locale)
+
+        val state = after.uiState.value
+        assertFalse(state.isNew)
+        assertEquals(nok, state.currency)
+        assertEquals("abc", state.rate)
+        assertEquals(setOf(RateError.RATE_INVALID), state.errors)
+        after.save()
+        assertEquals(BigDecimal("11.5"), repository.rates.single().perEuro)
+    }
+
+    @Test
+    fun savedRateLeavesNoDraft() {
+        val repository = FakeExchangeRateRepository()
+        val handle = SavedStateHandle()
+        val before = RateEditViewModel(repository, "CHF", handle, { LocalDate.of(2026, 10, 2) }, locale)
+        before.onRateChange("0.94")
+        before.save()
+        assertTrue(before.uiState.value.isSaved)
+
+        assertTrue(handle.keys().isEmpty())
+    }
+
+    private fun rate(currency: Currency) = ExchangeRate(currency, BigDecimal("11.5"), LocalDate.of(2026, 9, 1), "EZB")
+
+    private fun tour() = Tour(
+        id = 1,
+        startDate = LocalDate.of(2025, 6, 1),
+        endDate = LocalDate.of(2025, 6, 3),
+        destination = "Gardasee",
+        tourType = TourType.WEEKEND,
+        travelDays = 3,
+        overnightStays = 2,
+        distanceKm = 420,
+        costs = listOf(Money(8_990, EUR)),
+        pitchAssigned = true,
+        electricityFlatRate = ElectricityFlatRate.YES,
+        lteQuality = LteQuality.GOOD,
+        pitchSlope = PitchSlope.LEVEL,
+        levelingBlocksUsed = false,
+        notes = "",
+        mapLink = null,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
+
+    /** Schreibt den Handle-Inhalt wie Android beim Beenden des Prozesses in ein Parcel und liest ihn neu. */
+    private fun SavedStateHandle.afterProcessDeath(): SavedStateHandle {
+        val bundle = Bundle().apply { keys().forEach { key -> putBundle(key, get<Bundle>(key)) } }
+        val parcel = Parcel.obtain()
+        try {
+            parcel.writeBundle(bundle)
+            parcel.setDataPosition(0)
+            val restored = checkNotNull(parcel.readBundle(javaClass.classLoader))
+            return SavedStateHandle(restored.keySet().associateWith { restored.getBundle(it) })
+        } finally {
+            parcel.recycle()
+        }
+    }
+}
