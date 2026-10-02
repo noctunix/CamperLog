@@ -44,7 +44,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,6 +56,7 @@ import de.hannes.camperlog.domain.period
 import de.hannes.camperlog.share.shareCsv
 import de.hannes.camperlog.share.writeCsvExport
 import de.hannes.camperlog.ui.EmptyHint
+import de.hannes.camperlog.ui.labelRes
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -68,6 +71,7 @@ fun ToursScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val message by viewModel.message.collectAsStateWithLifecycle()
@@ -79,19 +83,19 @@ fun ToursScreen(
             val problem = try {
                 val tours = viewModel.toursForExport()
                 when {
-                    tours.isEmpty() -> "Noch keine Touren zum Exportieren"
-                    !context.shareCsv(writeCsvExport(context, tours)) -> "Keine App zum Teilen gefunden"
+                    tours.isEmpty() -> R.string.export_nothing
+                    !context.shareCsv(writeCsvExport(context, tours)) -> R.string.no_share_app
                     else -> null
                 }
             } catch (_: IOException) {
-                "CSV-Export fehlgeschlagen"
+                R.string.export_failed
             } catch (_: SQLException) {
-                "CSV-Export fehlgeschlagen"
+                R.string.export_failed
             } finally {
                 // Vor der Snackbar freigeben: showSnackbar wartet, bis die Meldung verschwindet.
                 exporting = false
             }
-            problem?.let { snackbar.showSnackbar(it, withDismissAction = true) }
+            problem?.let { snackbar.showSnackbar(resources.getString(it), withDismissAction = true) }
         }
     }
 
@@ -113,7 +117,7 @@ fun ToursScreen(
             ExtendedFloatingActionButton(onClick = onAddTour) {
                 Icon(painterResource(R.drawable.ic_add), contentDescription = null)
                 Spacer(Modifier.width(12.dp))
-                Text("Neue Tour")
+                Text(stringResource(R.string.tours_new))
             }
         },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -131,7 +135,7 @@ fun ToursScreen(
         ) {
             item {
                 Text(
-                    "Logbuch Hannes – unsere Wohnmobil-Fahrten",
+                    stringResource(R.string.tours_subtitle),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -146,8 +150,8 @@ fun ToursScreen(
             }
             when {
                 state.isLoading -> Unit
-                !state.hasAnyTour -> item { EmptyHint("Noch keine Touren. Lege mit „Neue Tour“ die erste Fahrt an.") }
-                state.tours.isEmpty() -> item { EmptyHint("Keine Tour passt zu Suche und Filter.") }
+                !state.hasAnyTour -> item { EmptyHint(stringResource(R.string.tours_empty)) }
+                state.tours.isEmpty() -> item { EmptyHint(stringResource(R.string.tours_no_match)) }
                 else -> items(state.tours, key = Tour::id) { tour ->
                     TourCard(tour = tour, onClick = { onOpenTour(tour.id) })
                 }
@@ -162,15 +166,15 @@ fun ToursScreen(
         when (current) {
             is ToursMessage.Deleted -> {
                 val result = snackbar.showSnackbar(
-                    message = "„${current.tour.destination}“ gelöscht",
-                    actionLabel = "Rückgängig",
+                    message = resources.getString(R.string.tours_deleted, current.tour.destination),
+                    actionLabel = resources.getString(R.string.tours_undo),
                     withDismissAction = true,
                     duration = SnackbarDuration.Long,
                 )
                 if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete(current.tour)
             }
-            ToursMessage.Saved -> snackbar.showSnackbar("Tour gespeichert")
-            is ToursMessage.Failed -> snackbar.showSnackbar(current.text, withDismissAction = true)
+            ToursMessage.Saved -> snackbar.showSnackbar(resources.getString(R.string.tours_saved))
+            is ToursMessage.Failed -> snackbar.showSnackbar(resources.getString(current.text), withDismissAction = true)
         }
         viewModel.onMessageShown(current)
     }
@@ -185,13 +189,13 @@ private fun ToursTopBar(
     exportEnabled: Boolean,
 ) {
     TopAppBar(
-        title = { Text("Touren") },
+        title = { Text(stringResource(R.string.tours_title)) },
         actions = {
             IconButton(onClick = onOpenOverview) {
-                Icon(painterResource(R.drawable.ic_bar_chart), contentDescription = "Übersicht")
+                Icon(painterResource(R.drawable.ic_bar_chart), contentDescription = stringResource(R.string.tours_overview))
             }
             IconButton(onClick = onExport, enabled = exportEnabled) {
-                Icon(painterResource(R.drawable.ic_download), contentDescription = "Als CSV exportieren")
+                Icon(painterResource(R.drawable.ic_download), contentDescription = stringResource(R.string.tours_export_csv))
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -208,7 +212,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
         value = query,
         onValueChange = onQueryChange,
         modifier = Modifier.fillMaxWidth(),
-        label = { Text("Ziel suchen") },
+        label = { Text(stringResource(R.string.tours_search)) },
         leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -220,7 +224,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
 private fun YearFilter(years: List<Int>, selected: Int?, onSelect: (Int?) -> Unit) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
-            FilterChip(selected = selected == null, onClick = { onSelect(null) }, label = { Text("Alle Jahre") })
+            FilterChip(selected = selected == null, onClick = { onSelect(null) }, label = { Text(stringResource(R.string.tours_all_years)) })
         }
         items(years) { year ->
             FilterChip(
@@ -243,7 +247,7 @@ private fun TourCard(tour: Tour, onClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClickLabel = "Details öffnen", onClick = onClick)
+                .clickable(onClickLabel = stringResource(R.string.tours_open_details), onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -255,7 +259,7 @@ private fun TourCard(tour: Tour, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "Jahr ${tour.year} · ${tour.tourType.label}",
+                    stringResource(R.string.tours_row_meta, tour.year, stringResource(tour.tourType.labelRes)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

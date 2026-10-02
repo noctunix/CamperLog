@@ -1,8 +1,10 @@
 package de.hannes.camperlog.ui.tours
 
 import android.database.SQLException
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import de.hannes.camperlog.R
 import de.hannes.camperlog.domain.Tour
 import de.hannes.camperlog.domain.TourRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +29,7 @@ data class ToursUiState(
 sealed interface ToursMessage {
     data class Deleted(val tour: Tour) : ToursMessage
     data object Saved : ToursMessage
-    data class Failed(val text: String) : ToursMessage
+    data class Failed(@StringRes val text: Int) : ToursMessage
 }
 
 /** Liefert die gefilterte Tourenliste und löscht Touren. */
@@ -74,7 +76,7 @@ class ToursViewModel(private val repository: TourRepository) : ViewModel() {
                 repository.delete(tour.id)
                 ToursMessage.Deleted(tour)
             } catch (_: SQLException) {
-                ToursMessage.Failed("Tour konnte nicht gelöscht werden.")
+                ToursMessage.Failed(R.string.tours_delete_failed)
             }
         }
     }
@@ -85,7 +87,7 @@ class ToursViewModel(private val repository: TourRepository) : ViewModel() {
             try {
                 repository.restore(tour)
             } catch (_: SQLException) {
-                _message.value = ToursMessage.Failed("Tour konnte nicht wiederhergestellt werden.")
+                _message.value = ToursMessage.Failed(R.string.tours_restore_failed)
             }
         }
     }

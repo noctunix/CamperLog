@@ -53,7 +53,9 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -77,6 +79,8 @@ import de.hannes.camperlog.domain.formatDate
 import de.hannes.camperlog.ui.BackTopBar
 import de.hannes.camperlog.ui.EmptyHint
 import de.hannes.camperlog.ui.SectionCard
+import de.hannes.camperlog.ui.labelRes
+import de.hannes.camperlog.ui.messageRes
 import java.time.LocalDate
 
 /** Formular zum Anlegen und Bearbeiten einer Tour. [onDone] verlässt es ohne, [onSaved] nach dem Speichern. */
@@ -86,13 +90,14 @@ fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: ()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
+    val resources = LocalResources.current
 
     LaunchedEffect(state.isSaved) {
         if (state.isSaved) onSaved()
     }
     LaunchedEffect(state.saveFailed) {
         if (state.saveFailed) {
-            snackbar.showSnackbar("Tour konnte nicht gespeichert werden.", withDismissAction = true)
+            snackbar.showSnackbar(resources.getString(R.string.edit_save_failed), withDismissAction = true)
             viewModel.onSaveFailureShown()
         }
     }
@@ -103,11 +108,11 @@ fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: ()
     Scaffold(
         topBar = {
             BackTopBar(
-                title = if (state.isNew) "Neue Tour" else "Tour bearbeiten",
+                title = stringResource(if (state.isNew) R.string.edit_title_new else R.string.edit_title_existing),
                 onBack = requestBack,
                 actions = {
                     if (!state.notFound && !state.isLoading) {
-                        TextButton(onClick = viewModel::save, enabled = !state.isSaving) { Text("Speichern") }
+                        TextButton(onClick = viewModel::save, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
                     }
                 },
             )
@@ -117,7 +122,7 @@ fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: ()
     ) { padding ->
         when {
             state.isLoading -> Unit
-            state.notFound -> EmptyHint("Diese Tour gibt es nicht mehr.", Modifier.padding(padding))
+            state.notFound -> EmptyHint(stringResource(R.string.tour_not_found), Modifier.padding(padding))
             else -> TourForm(
                 state = state,
                 viewModel = viewModel,
@@ -132,16 +137,16 @@ fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: ()
     if (confirmDiscard) {
         AlertDialog(
             onDismissRequest = { confirmDiscard = false },
-            title = { Text("Änderungen verwerfen?") },
-            text = { Text("Deine Eingaben gehen verloren.") },
+            title = { Text(stringResource(R.string.edit_discard_title)) },
+            text = { Text(stringResource(R.string.edit_discard_text)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDiscard = false
                     onDone()
-                }) { Text("Verwerfen") }
+                }) { Text(stringResource(R.string.edit_discard_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDiscard = false }) { Text("Weiter bearbeiten") }
+                TextButton(onClick = { confirmDiscard = false }) { Text(stringResource(R.string.edit_discard_keep)) }
             },
         )
     }
@@ -150,7 +155,7 @@ fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: ()
 @Composable
 private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier: Modifier) {
     val input = state.input
-    val errors = state.errors
+    val errors = state.errors.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
     val change = viewModel::onInputChange
     val focus = remember { TourField.entries.associateWith { FocusRequester() } }
     fun focusOf(field: TourField) = Modifier.focusRequester(focus.getValue(field))
@@ -170,14 +175,14 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
     ) {
         SectionCard {
             DateField(
-                "Startdatum",
+                stringResource(R.string.field_start_date),
                 input.startDate,
                 errors[TourField.START_DATE],
                 viewModel::onStartDateChange,
                 modifier = focusOf(TourField.START_DATE),
             )
             DateField(
-                "Enddatum",
+                stringResource(R.string.field_end_date),
                 input.endDate,
                 errors[TourField.END_DATE],
                 viewModel::onEndDateChange,
@@ -186,7 +191,7 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 modifier = focusOf(TourField.END_DATE),
             )
             FormTextField(
-                label = "Ziel",
+                label = stringResource(R.string.field_destination),
                 value = input.destination,
                 error = errors[TourField.DESTINATION],
                 onValueChange = { value -> change { it.copy(destination = value) } },
@@ -196,62 +201,62 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 ),
                 modifier = focusOf(TourField.DESTINATION),
             )
-            ChoiceField("Tourart", TourType.entries, input.tourType, TourType::label) { value ->
+            ChoiceField(stringResource(R.string.field_tour_type), TourType.entries, input.tourType, TourType::labelRes) { value ->
                 change { it.copy(tourType = value) }
             }
         }
         SectionCard {
             NumberField(
-                "Reisetage",
+                stringResource(R.string.field_travel_days),
                 input.travelDays,
                 errors[TourField.TRAVEL_DAYS],
                 focusOf(TourField.TRAVEL_DAYS),
             ) { value -> change { it.copy(travelDays = value) } }
             NumberField(
-                "Übernachtungen",
+                stringResource(R.string.field_overnight_stays),
                 input.overnightStays,
                 errors[TourField.OVERNIGHT_STAYS],
                 focusOf(TourField.OVERNIGHT_STAYS),
             ) { value -> change { it.copy(overnightStays = value) } }
             NumberField(
-                "Kilometer",
+                stringResource(R.string.field_distance),
                 input.distanceKm,
                 errors[TourField.DISTANCE_KM],
                 focusOf(TourField.DISTANCE_KM),
             ) { value -> change { it.copy(distanceKm = value) } }
             FormTextField(
-                label = "Kosten (€)",
+                label = stringResource(R.string.field_cost_euro),
                 value = input.cost,
                 error = errors[TourField.COST],
                 onValueChange = { value -> change { it.copy(cost = value) } },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                placeholder = "z. B. 49,90",
+                placeholder = stringResource(R.string.edit_cost_placeholder),
                 modifier = focusOf(TourField.COST),
             )
         }
         SectionCard {
-            SwitchRow("Stellplatz zugewiesen", input.pitchAssigned) { value ->
+            SwitchRow(stringResource(R.string.field_pitch_assigned), input.pitchAssigned) { value ->
                 change { it.copy(pitchAssigned = value) }
             }
             ChoiceField(
-                "Strompauschale",
+                stringResource(R.string.field_electricity),
                 ElectricityFlatRate.entries,
                 input.electricityFlatRate,
-                ElectricityFlatRate::label,
+                ElectricityFlatRate::labelRes,
             ) { value -> change { it.copy(electricityFlatRate = value) } }
-            ChoiceField("LTE", LteQuality.entries, input.lteQuality, LteQuality::label) { value ->
+            ChoiceField(stringResource(R.string.field_lte), LteQuality.entries, input.lteQuality, LteQuality::labelRes) { value ->
                 change { it.copy(lteQuality = value) }
             }
-            ChoiceField("Stellplatz", PitchSlope.entries, input.pitchSlope, PitchSlope::label) { value ->
+            ChoiceField(stringResource(R.string.field_pitch), PitchSlope.entries, input.pitchSlope, PitchSlope::labelRes) { value ->
                 change { it.copy(pitchSlope = value) }
             }
-            SwitchRow("Keile genutzt", input.levelingBlocksUsed) { value ->
+            SwitchRow(stringResource(R.string.field_leveling_blocks), input.levelingBlocksUsed) { value ->
                 change { it.copy(levelingBlocksUsed = value) }
             }
         }
         SectionCard {
             FormTextField(
-                label = "Notizen",
+                label = stringResource(R.string.field_notes),
                 value = input.notes,
                 error = null,
                 onValueChange = { value -> change { it.copy(notes = value) } },
@@ -259,12 +264,12 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             )
             FormTextField(
-                label = "Kartenlink",
+                label = stringResource(R.string.field_map_link),
                 value = input.mapLink,
                 error = errors[TourField.MAP_LINK],
                 onValueChange = { value -> change { it.copy(mapLink = value) } },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
-                placeholder = "https://…",
+                placeholder = stringResource(R.string.edit_map_link_placeholder),
                 modifier = focusOf(TourField.MAP_LINK),
             )
         }
@@ -274,10 +279,10 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 56.dp),
-        ) { Text("Speichern") }
+        ) { Text(stringResource(R.string.action_save)) }
         if (errors.isNotEmpty()) {
             Text(
-                "Bitte die markierten Felder prüfen.",
+                stringResource(R.string.edit_check_fields),
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
@@ -342,6 +347,7 @@ private fun DateField(
     minDate: LocalDate? = null,
 ) {
     var showPicker by rememberSaveable { mutableStateOf(false) }
+    val pickLabel = stringResource(R.string.edit_pick_date, label)
     val interactionSource = remember { MutableInteractionSource() }
     LaunchedEffect(interactionSource) {
         interactionSource.interactions.collect { if (it is PressInteraction.Release) showPicker = true }
@@ -361,7 +367,7 @@ private fun DateField(
             }
             // Screenreader: Doppeltippen öffnet den Kalender statt nur den Fokus zu setzen.
             .semantics {
-                onClick(label = "$label wählen") {
+                onClick(label = pickLabel) {
                     showPicker = true
                     true
                 }
@@ -371,7 +377,7 @@ private fun DateField(
         supportingText = error?.let { { Text(it) } },
         trailingIcon = {
             IconButton(onClick = { showPicker = true }) {
-                Icon(painterResource(R.drawable.ic_calendar), contentDescription = "$label wählen")
+                Icon(painterResource(R.drawable.ic_calendar), contentDescription = pickLabel)
             }
         },
         singleLine = true,
@@ -392,10 +398,10 @@ private fun DateField(
                         onDateSelected(LocalDate.ofEpochDay(Math.floorDiv(it, MILLIS_PER_DAY)))
                     }
                     showPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showPicker = false }) { Text("Abbrechen") }
+                TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         ) {
             DatePicker(state = pickerState)
@@ -418,7 +424,7 @@ private fun <T> ChoiceField(
     label: String,
     options: List<T>,
     selected: T,
-    optionLabel: (T) -> String,
+    optionLabel: (T) -> Int,
     onSelect: (T) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -431,7 +437,8 @@ private fun <T> ChoiceField(
         )
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             options.forEachIndexed { index, option ->
-                val text = optionLabel(option)
+                val text = stringResource(optionLabel(option))
+                val description = stringResource(R.string.edit_choice_option, label, text)
                 SegmentedButton(
                     selected = option == selected,
                     onClick = { onSelect(option) },
@@ -442,7 +449,7 @@ private fun <T> ChoiceField(
                         activeContentColor = MaterialTheme.colorScheme.onPrimary,
                         activeBorderColor = MaterialTheme.colorScheme.primary,
                     ),
-                    modifier = Modifier.semantics { contentDescription = "$label: $text" },
+                    modifier = Modifier.semantics { contentDescription = description },
                 ) {
                     Text(text, textAlign = TextAlign.Center)
                 }

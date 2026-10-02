@@ -1,3 +1,128 @@
 <resources>
     <string name="app_name">CamperLog</string>
+
+    <!-- Allgemein -->
+    <string name="action_back">Zurück</string>
+    <string name="action_save">Speichern</string>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="action_ok">OK</string>
+    <string name="yes">ja</string>
+    <string name="no">nein</string>
+    <string name="tour_not_found">Diese Tour gibt es nicht mehr.</string>
+    <string name="no_share_app">Keine App zum Teilen gefunden</string>
+    <string name="distance_km">%1$d km</string>
+
+    <!-- Feldbezeichnungen -->
+    <string name="field_start_date">Startdatum</string>
+    <string name="field_end_date">Enddatum</string>
+    <string name="field_destination">Ziel</string>
+    <string name="field_tour_type">Tourart</string>
+    <string name="field_travel_days">Reisetage</string>
+    <string name="field_overnight_stays">Übernachtungen</string>
+    <string name="field_distance">Kilometer</string>
+    <string name="field_cost">Kosten</string>
+    <string name="field_cost_euro">Kosten (€)</string>
+    <string name="field_pitch_assigned">Stellplatz zugewiesen</string>
+    <string name="field_electricity">Strompauschale</string>
+    <string name="field_lte">LTE</string>
+    <string name="field_pitch">Stellplatz</string>
+    <string name="field_leveling_blocks">Keile genutzt</string>
+    <string name="field_notes">Notizen</string>
+    <string name="field_map_link">Kartenlink</string>
+
+    <!-- Auswahlwerte -->
+    <string name="tour_type_day_trip">Tagestour</string>
+    <string name="tour_type_weekend">Wochenende</string>
+    <string name="tour_type_vacation">Urlaub</string>
+    <string name="electricity_yes">ja</string>
+    <string name="electricity_no">nein</string>
+    <string name="electricity_not_used">nicht genutzt</string>
+    <string name="lte_good">gut</string>
+    <string name="lte_ok">geht so</string>
+    <string name="lte_bad">schlecht</string>
+    <string name="pitch_level">gerade</string>
+    <string name="pitch_sloped">abschüssig</string>
+
+    <!-- Validierung -->
+    <string name="error_start_date_required">Startdatum erforderlich</string>
+    <string name="error_end_date_required">Enddatum erforderlich</string>
+    <string name="error_destination_required">Ziel erforderlich</string>
+    <string name="error_end_before_start">Enddatum liegt vor dem Startdatum</string>
+    <string name="error_negative_number">Keine negativen Zahlen</string>
+    <string name="error_invalid_number">Ungültige Zahl</string>
+    <string name="error_invalid_amount">Ungültiger Betrag, z. B. 49,90</string>
+    <string name="error_more_nights_than_days">Mehr Übernachtungen als Reisetage</string>
+    <string name="error_not_a_web_link">Nur http- oder https-Links</string>
+
+    <!-- Tourenliste -->
+    <string name="tours_title">Touren</string>
+    <string name="tours_subtitle">Logbuch Hannes – unsere Wohnmobil-Fahrten</string>
+    <string name="tours_new">Neue Tour</string>
+    <string name="tours_overview">Übersicht</string>
+    <string name="tours_export_csv">Als CSV exportieren</string>
+    <string name="tours_search">Ziel suchen</string>
+    <string name="tours_all_years">Alle Jahre</string>
+    <string name="tours_open_details">Details öffnen</string>
+    <string name="tours_row_meta">Jahr %1$d · %2$s</string>
+    <string name="tours_empty">Noch keine Touren. Lege mit „Neue Tour“ die erste Fahrt an.</string>
+    <string name="tours_no_match">Keine Tour passt zu Suche und Filter.</string>
+    <string name="tours_deleted">„%1$s“ gelöscht</string>
+    <string name="tours_undo">Rückgängig</string>
+    <string name="tours_saved">Tour gespeichert</string>
+    <string name="tours_delete_failed">Tour konnte nicht gelöscht werden.</string>
+    <string name="tours_restore_failed">Tour konnte nicht wiederhergestellt werden.</string>
+    <string name="export_nothing">Noch keine Touren zum Exportieren</string>
+    <string name="export_failed">CSV-Export fehlgeschlagen</string>
+    <string name="export_subject">CamperLog Touren</string>
+    <string name="export_chooser">Touren exportieren</string>
+
+    <!-- Detail -->
+    <string name="detail_fallback_title">Tour</string>
+    <string name="detail_delete">Tour löschen</string>
+    <string name="detail_edit">Bearbeiten</string>
+    <string name="detail_share">Tour teilen</string>
+    <string name="detail_open_maps">In Maps öffnen</string>
+    <string name="detail_no_maps_app">Keine Karten-App gefunden</string>
+
+    <!-- Bearbeiten -->
+    <string name="edit_title_new">Neue Tour</string>
+    <string name="edit_title_existing">Tour bearbeiten</string>
+    <string name="edit_save_failed">Tour konnte nicht gespeichert werden.</string>
+    <string name="edit_discard_title">Änderungen verwerfen?</string>
+    <string name="edit_discard_text">Deine Eingaben gehen verloren.</string>
+    <string name="edit_discard_confirm">Verwerfen</string>
+    <string name="edit_discard_keep">Weiter bearbeiten</string>
+    <string name="edit_check_fields">Bitte die markierten Felder prüfen.</string>
+    <string name="edit_cost_placeholder">z. B. 49,90</string>
+    <string name="edit_map_link_placeholder">https://…</string>
+    <string name="edit_pick_date">%1$s wählen</string>
+    <string name="edit_choice_option">%1$s: %2$s</string>
+
+    <!-- Übersicht -->
+    <string name="overview_title">Übersicht</string>
+    <string name="overview_empty">Noch keine Touren erfasst.</string>
+    <string name="overview_total">Gesamt</string>
+    <string name="overview_tours">Touren</string>
+
+    <!-- Teilen -->
+    <string name="share_subject">Tour nach %1$s</string>
+    <string name="share_period">%1$s (%2$s)</string>
+    <plurals name="share_travel_days">
+        <item quantity="one">%1$d Reisetag</item>
+        <item quantity="other">%1$d Reisetage</item>
+    </plurals>
+    <plurals name="share_overnight_stays">
+        <item quantity="one">%1$d Übernachtung</item>
+        <item quantity="other">%1$d Übernachtungen</item>
+    </plurals>
+    <string name="share_trip_stats">%1$s, %2$s, %3$s</string>
+    <string name="share_cost">Kosten: %1$s</string>
+    <string name="share_pitch_assigned">Stellplatz zugewiesen: %1$s</string>
+    <string name="share_electricity">Strompauschale: %1$s</string>
+    <string name="share_lte">LTE: %1$s</string>
+    <string name="share_pitch">Stellplatz: %1$s, %2$s</string>
+    <string name="share_blocks_used">Keile genutzt</string>
+    <string name="share_blocks_not_used">Keile nicht genutzt</string>
+    <string name="share_notes">Notizen: %1$s</string>
+    <string name="share_map">Karte: %1$s</string>
 </resources>

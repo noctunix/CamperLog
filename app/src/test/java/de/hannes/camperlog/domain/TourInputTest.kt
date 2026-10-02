@@ -46,7 +46,7 @@ class TourInputTest {
     @Test
     fun endBeforeStartIsInvalid() {
         val errors = valid.copy(endDate = LocalDate.of(2026, 4, 30)).validate()
-        assertEquals("Enddatum liegt vor dem Startdatum", errors[TourField.END_DATE])
+        assertEquals(TourError.END_BEFORE_START, errors[TourField.END_DATE])
     }
 
     @Test
@@ -57,19 +57,19 @@ class TourInputTest {
     @Test
     fun negativeAndMalformedNumbersAreInvalid() {
         val errors = valid.copy(travelDays = "-1", distanceKm = "12km", cost = "-5").validate()
-        assertEquals("Keine negativen Zahlen", errors[TourField.TRAVEL_DAYS])
-        assertEquals("Ungültige Zahl", errors[TourField.DISTANCE_KM])
-        assertTrue(TourField.COST in errors)
+        assertEquals(TourError.NEGATIVE_NUMBER, errors[TourField.TRAVEL_DAYS])
+        assertEquals(TourError.INVALID_NUMBER, errors[TourField.DISTANCE_KM])
+        assertEquals(TourError.INVALID_AMOUNT, errors[TourField.COST])
     }
 
     @Test
     fun moreNightsThanDaysIsInvalid() {
-        assertTrue(TourField.OVERNIGHT_STAYS in valid.copy(overnightStays = "4").validate())
+        assertEquals(TourError.MORE_NIGHTS_THAN_DAYS, valid.copy(overnightStays = "4").validate()[TourField.OVERNIGHT_STAYS])
     }
 
     @Test
     fun mapLinkMustBeWebUrl() {
-        assertTrue(TourField.MAP_LINK in valid.copy(mapLink = "javascript:alert(1)").validate())
+        assertEquals(TourError.NOT_A_WEB_LINK, valid.copy(mapLink = "javascript:alert(1)").validate()[TourField.MAP_LINK])
         assertTrue(TourField.MAP_LINK in valid.copy(mapLink = "maps.google.com").validate())
         assertTrue(valid.copy(mapLink = " https://maps.app.goo.gl/abc ").validate().isEmpty())
     }

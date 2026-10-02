@@ -57,8 +57,8 @@ class TourCsvTest {
         assertEquals(3, lines.size)
         assertEquals(CSV_HEADER.joinToString(","), lines[0])
         assertEquals(
-            "3,2026-07-10,2026-07-12,\"Bodensee, Nordufer\",${tour.tourType.label},3,2,412,89.50,ja," +
-                "${ElectricityFlatRate.NOT_USED.label},${LteQuality.GOOD.label},${PitchSlope.LEVEL.label},nein," +
+            "3,2026-07-10,2026-07-12,\"Bodensee, Nordufer\",${tour.tourType.csvValue},3,2,412,89.50,ja," +
+                "${ElectricityFlatRate.NOT_USED.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
                 "\"Sagte: \"\"toll\"\"\",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z",
             lines[1],
         )
@@ -110,8 +110,8 @@ class TourCsvTest {
         val row = toursToCsv(listOf(tour)).split("\r\n")[1]
 
         assertEquals(
-            "1,2026-07-10,2026-07-10,'=cmd|' /C calc'!A0,${TourType.DAY_TRIP.label},1,0,80,0.00,nein," +
-                "${ElectricityFlatRate.NO.label},${LteQuality.OK.label},${PitchSlope.SLOPED.label},ja," +
+            "1,2026-07-10,2026-07-10,'=cmd|' /C calc'!A0,${TourType.DAY_TRIP.csvValue},1,0,80,0.00,nein," +
+                "${ElectricityFlatRate.NO.csvValue},${LteQuality.OK.csvValue},${PitchSlope.SLOPED.csvValue},ja," +
                 "\"'@Kontakt, bitte\",,2026-07-10T08:00:00Z,2026-07-10T08:00:00Z",
             row,
         )

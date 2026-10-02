@@ -27,29 +27,40 @@ data class TourInput(
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
 enum class TourField { START_DATE, END_DATE, DESTINATION, TRAVEL_DAYS, OVERNIGHT_STAYS, DISTANCE_KM, COST, MAP_LINK }
 
+/** Grund eines Validierungsfehlers. Den Text dazu liefert die UI aus den String-Ressourcen. */
+enum class TourError {
+    REQUIRED,
+    END_BEFORE_START,
+    NEGATIVE_NUMBER,
+    INVALID_NUMBER,
+    INVALID_AMOUNT,
+    MORE_NIGHTS_THAN_DAYS,
+    NOT_A_WEB_LINK,
+}
+
 /**
  * Prüft alle fachlichen Regeln einer Tour-Eingabe.
  *
- * @return Fehlermeldung je fehlerhaftem Feld; leer, wenn die Eingabe gültig ist
+ * @return Fehlergrund je fehlerhaftem Feld; leer, wenn die Eingabe gültig ist
  */
-fun TourInput.validate(): Map<TourField, String> = buildMap {
-    if (startDate == null) put(TourField.START_DATE, "Startdatum erforderlich")
+fun TourInput.validate(): Map<TourField, TourError> = buildMap {
+    if (startDate == null) put(TourField.START_DATE, TourError.REQUIRED)
     when {
-        endDate == null -> put(TourField.END_DATE, "Enddatum erforderlich")
-        startDate != null && endDate < startDate -> put(TourField.END_DATE, "Enddatum liegt vor dem Startdatum")
+        endDate == null -> put(TourField.END_DATE, TourError.REQUIRED)
+        startDate != null && endDate < startDate -> put(TourField.END_DATE, TourError.END_BEFORE_START)
     }
-    if (destination.isBlank()) put(TourField.DESTINATION, "Ziel erforderlich")
+    if (destination.isBlank()) put(TourField.DESTINATION, TourError.REQUIRED)
     countError(travelDays)?.let { put(TourField.TRAVEL_DAYS, it) }
     countError(overnightStays)?.let { put(TourField.OVERNIGHT_STAYS, it) }
     countError(distanceKm)?.let { put(TourField.DISTANCE_KM, it) }
-    if (parseCost(cost) == null) put(TourField.COST, "Ungültiger Betrag, z. B. 49,90")
+    if (parseCost(cost) == null) put(TourField.COST, TourError.INVALID_AMOUNT)
     val days = parseCount(travelDays)
     val nights = parseCount(overnightStays)
     if (days != null && nights != null && nights > days) {
-        put(TourField.OVERNIGHT_STAYS, "Mehr Übernachtungen als Reisetage")
+        put(TourField.OVERNIGHT_STAYS, TourError.MORE_NIGHTS_THAN_DAYS)
     }
     if (mapLink.isNotBlank() && !isWebUrl(mapLink.trim())) {
-        put(TourField.MAP_LINK, "Nur http- oder https-Links")
+        put(TourField.MAP_LINK, TourError.NOT_A_WEB_LINK)
     }
 }
 
@@ -112,8 +123,8 @@ private fun parseCount(text: String): Int? = if (text.isBlank()) 0 else text.tri
 
 private fun parseCost(text: String): Long? = if (text.isBlank()) 0 else parseEuroToCents(text)
 
-private fun countError(text: String): String? = when {
+private fun countError(text: String): TourError? = when {
     parseCount(text) != null -> null
-    text.trim().toIntOrNull() != null -> "Keine negativen Zahlen"
-    else -> "Ungültige Zahl"
+    text.trim().toIntOrNull() != null -> TourError.NEGATIVE_NUMBER
+    else -> TourError.INVALID_NUMBER
 }

@@ -1,19 +1,31 @@
 package de.hannes.camperlog.share
 
+import android.content.res.Resources
+import de.hannes.camperlog.R
 import de.hannes.camperlog.domain.Tour
 import de.hannes.camperlog.domain.formatEuro
 import de.hannes.camperlog.domain.period
+import de.hannes.camperlog.ui.labelRes
+import de.hannes.camperlog.ui.yesNoRes
 
-/** Lesbare Zusammenfassung einer Tour zum Teilen per Messenger oder E-Mail. */
-fun tourShareText(tour: Tour): String = buildString {
-    appendLine("Tour nach ${tour.destination}")
-    appendLine("${tour.period} (${tour.tourType.label})")
-    appendLine("${tour.travelDays} Reisetage, ${tour.overnightStays} Übernachtungen, ${tour.distanceKm} km")
-    appendLine("Kosten: ${formatEuro(tour.costCents)}")
-    appendLine("Stellplatz zugewiesen: ${if (tour.pitchAssigned) "ja" else "nein"}")
-    appendLine("Strompauschale: ${tour.electricityFlatRate.label}")
-    appendLine("LTE: ${tour.lteQuality.label}")
-    appendLine("Stellplatz: ${tour.pitchSlope.label}, Keile ${if (tour.levelingBlocksUsed) "genutzt" else "nicht genutzt"}")
-    if (tour.notes.isNotBlank()) appendLine("Notizen: ${tour.notes}")
-    tour.mapLink?.let { appendLine("Karte: $it") }
+/** Lesbare Zusammenfassung einer Tour zum Teilen per Messenger oder E-Mail, in der Sprache von [res]. */
+fun tourShareText(res: Resources, tour: Tour): String = buildString {
+    appendLine(res.getString(R.string.share_subject, tour.destination))
+    appendLine(res.getString(R.string.share_period, tour.period, res.getString(tour.tourType.labelRes)))
+    appendLine(
+        res.getString(
+            R.string.share_trip_stats,
+            res.getQuantityString(R.plurals.share_travel_days, tour.travelDays, tour.travelDays),
+            res.getQuantityString(R.plurals.share_overnight_stays, tour.overnightStays, tour.overnightStays),
+            res.getString(R.string.distance_km, tour.distanceKm),
+        ),
+    )
+    appendLine(res.getString(R.string.share_cost, formatEuro(tour.costCents)))
+    appendLine(res.getString(R.string.share_pitch_assigned, res.getString(yesNoRes(tour.pitchAssigned))))
+    appendLine(res.getString(R.string.share_electricity, res.getString(tour.electricityFlatRate.labelRes)))
+    appendLine(res.getString(R.string.share_lte, res.getString(tour.lteQuality.labelRes)))
+    val blocks = if (tour.levelingBlocksUsed) R.string.share_blocks_used else R.string.share_blocks_not_used
+    appendLine(res.getString(R.string.share_pitch, res.getString(tour.pitchSlope.labelRes), res.getString(blocks)))
+    if (tour.notes.isNotBlank()) appendLine(res.getString(R.string.share_notes, tour.notes))
+    tour.mapLink?.let { appendLine(res.getString(R.string.share_map, it)) }
 }.trimEnd()

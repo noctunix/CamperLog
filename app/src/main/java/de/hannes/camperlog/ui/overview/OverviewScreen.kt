@@ -11,8 +11,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.hannes.camperlog.R
 import de.hannes.camperlog.domain.TourTotals
 import de.hannes.camperlog.domain.YearTotals
 import de.hannes.camperlog.domain.formatEuro
@@ -26,7 +28,7 @@ import de.hannes.camperlog.ui.SectionCard
 fun OverviewScreen(viewModel: OverviewViewModel, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Scaffold(topBar = { BackTopBar(title = "Übersicht", onBack = onBack) }) { padding ->
+    Scaffold(topBar = { BackTopBar(title = stringResource(R.string.overview_title), onBack = onBack) }) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
@@ -40,9 +42,9 @@ fun OverviewScreen(viewModel: OverviewViewModel, onBack: () -> Unit) {
             val total = state.total
             when {
                 state.isLoading -> Unit
-                total == null || total.tours == 0 -> item { EmptyHint("Noch keine Touren erfasst.") }
+                total == null || total.tours == 0 -> item { EmptyHint(stringResource(R.string.overview_empty)) }
                 else -> {
-                    item { TotalsCard("Gesamt", total) }
+                    item { TotalsCard(stringResource(R.string.overview_total), total) }
                     items(state.years, key = YearTotals::year) { TotalsCard(it.year.toString(), it.totals) }
                 }
             }
@@ -54,10 +56,10 @@ fun OverviewScreen(viewModel: OverviewViewModel, onBack: () -> Unit) {
 private fun TotalsCard(title: String, totals: TourTotals) {
     SectionCard {
         Text(title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-        LabeledValue("Touren", totals.tours.toString())
-        LabeledValue("Kilometer", "${totals.distanceKm} km")
-        LabeledValue("Reisetage", totals.travelDays.toString())
-        LabeledValue("Übernachtungen", totals.overnightStays.toString())
-        LabeledValue("Kosten", formatEuro(totals.costCents))
+        LabeledValue(stringResource(R.string.overview_tours), totals.tours.toString())
+        LabeledValue(stringResource(R.string.field_distance), stringResource(R.string.distance_km, totals.distanceKm))
+        LabeledValue(stringResource(R.string.field_travel_days), totals.travelDays.toString())
+        LabeledValue(stringResource(R.string.field_overnight_stays), totals.overnightStays.toString())
+        LabeledValue(stringResource(R.string.field_cost), formatEuro(totals.costCents))
     }
 }

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
+import de.hannes.camperlog.R
 import de.hannes.camperlog.domain.Tour
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -37,11 +38,11 @@ fun Context.shareCsv(uri: Uri): Boolean {
     val send = Intent(Intent.ACTION_SEND).apply {
         type = CSV_MIME
         putExtra(Intent.EXTRA_STREAM, uri)
-        putExtra(Intent.EXTRA_SUBJECT, "CamperLog Touren")
+        putExtra(Intent.EXTRA_SUBJECT, getString(R.string.export_subject))
         clipData = ClipData.newRawUri(null, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    return startChooser(send, "Touren exportieren")
+    return startChooser(send, getString(R.string.export_chooser))
 }
 
 /**
@@ -52,10 +53,10 @@ fun Context.shareCsv(uri: Uri): Boolean {
 fun Context.shareTour(tour: Tour): Boolean {
     val send = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
-        putExtra(Intent.EXTRA_SUBJECT, "Tour nach ${tour.destination}")
-        putExtra(Intent.EXTRA_TEXT, tourShareText(tour))
+        putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share_subject, tour.destination))
+        putExtra(Intent.EXTRA_TEXT, tourShareText(resources, tour))
     }
-    return startChooser(send, "Tour teilen")
+    return startChooser(send, getString(R.string.detail_share))
 }
 
 private fun Context.startChooser(send: Intent, title: String): Boolean = try {

@@ -27,7 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.hannes.camperlog.R
@@ -40,6 +42,8 @@ import de.hannes.camperlog.ui.BackTopBar
 import de.hannes.camperlog.ui.EmptyHint
 import de.hannes.camperlog.ui.LabeledValue
 import de.hannes.camperlog.ui.SectionCard
+import de.hannes.camperlog.ui.labelRes
+import de.hannes.camperlog.ui.yesNoRes
 import kotlinx.coroutines.launch
 
 /**
@@ -55,16 +59,17 @@ fun TourDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val tour = (state as? DetailUiState.Loaded)?.tour
 
     Scaffold(
         topBar = {
-            BackTopBar(title = tour?.destination ?: "Tour", onBack = onBack) {
+            BackTopBar(title = tour?.destination ?: stringResource(R.string.detail_fallback_title), onBack = onBack) {
                 if (tour != null) {
                     IconButton(onClick = { onDelete(tour) }) {
-                        Icon(painterResource(R.drawable.ic_delete), contentDescription = "Tour löschen")
+                        Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.detail_delete))
                     }
                 }
             }
@@ -73,7 +78,7 @@ fun TourDetailScreen(
     ) { padding ->
         when (val current = state) {
             DetailUiState.Loading -> Unit
-            DetailUiState.NotFound -> EmptyHint("Diese Tour gibt es nicht mehr.", Modifier.padding(padding))
+            DetailUiState.NotFound -> EmptyHint(stringResource(R.string.tour_not_found), Modifier.padding(padding))
             is DetailUiState.Loaded -> TourDetails(
                 tour = current.tour,
                 modifier = Modifier
@@ -82,12 +87,12 @@ fun TourDetailScreen(
                 onEdit = onEdit,
                 onShare = {
                     if (!context.shareTour(current.tour)) {
-                        scope.launch { snackbar.showSnackbar("Keine App zum Teilen gefunden") }
+                        scope.launch { snackbar.showSnackbar(resources.getString(R.string.no_share_app)) }
                     }
                 },
                 onOpenMaps = {
                     if (!context.openInMaps(current.tour)) {
-                        scope.launch { snackbar.showSnackbar("Keine Karten-App gefunden") }
+                        scope.launch { snackbar.showSnackbar(resources.getString(R.string.detail_no_maps_app)) }
                     }
                 },
             )
@@ -110,32 +115,32 @@ private fun TourDetails(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionCard {
-            LabeledValue("Startdatum", formatDate(tour.startDate))
-            LabeledValue("Enddatum", formatDate(tour.endDate))
-            LabeledValue("Ziel", tour.destination)
-            LabeledValue("Tourart", tour.tourType.label)
+            LabeledValue(stringResource(R.string.field_start_date), formatDate(tour.startDate))
+            LabeledValue(stringResource(R.string.field_end_date), formatDate(tour.endDate))
+            LabeledValue(stringResource(R.string.field_destination), tour.destination)
+            LabeledValue(stringResource(R.string.field_tour_type), stringResource(tour.tourType.labelRes))
         }
         SectionCard {
-            LabeledValue("Reisetage", tour.travelDays.toString())
-            LabeledValue("Übernachtungen", tour.overnightStays.toString())
-            LabeledValue("Kilometer", "${tour.distanceKm} km")
-            LabeledValue("Kosten", formatEuro(tour.costCents))
+            LabeledValue(stringResource(R.string.field_travel_days), tour.travelDays.toString())
+            LabeledValue(stringResource(R.string.field_overnight_stays), tour.overnightStays.toString())
+            LabeledValue(stringResource(R.string.field_distance), stringResource(R.string.distance_km, tour.distanceKm))
+            LabeledValue(stringResource(R.string.field_cost), formatEuro(tour.costCents))
         }
         SectionCard {
-            LabeledValue("Stellplatz zugewiesen", yesNo(tour.pitchAssigned))
-            LabeledValue("Strompauschale", tour.electricityFlatRate.label)
-            LabeledValue("LTE", tour.lteQuality.label)
-            LabeledValue("Stellplatz", tour.pitchSlope.label)
-            LabeledValue("Keile genutzt", yesNo(tour.levelingBlocksUsed))
+            LabeledValue(stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(tour.pitchAssigned)))
+            LabeledValue(stringResource(R.string.field_electricity), stringResource(tour.electricityFlatRate.labelRes))
+            LabeledValue(stringResource(R.string.field_lte), stringResource(tour.lteQuality.labelRes))
+            LabeledValue(stringResource(R.string.field_pitch), stringResource(tour.pitchSlope.labelRes))
+            LabeledValue(stringResource(R.string.field_leveling_blocks), stringResource(yesNoRes(tour.levelingBlocksUsed)))
         }
         if (tour.notes.isNotBlank() || tour.mapLink != null) {
             SectionCard {
                 if (tour.notes.isNotBlank()) {
-                    Text("Notizen", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.field_notes), style = MaterialTheme.typography.titleMedium)
                     Text(tour.notes, style = MaterialTheme.typography.bodyLarge)
                 }
                 tour.mapLink?.let {
-                    Text("Kartenlink", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.field_map_link), style = MaterialTheme.typography.titleMedium)
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                 }
             }
@@ -143,12 +148,12 @@ private fun TourDetails(
         val buttonModifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-        Button(onClick = onEdit, modifier = buttonModifier) { ButtonContent(R.drawable.ic_edit, "Bearbeiten") }
+        Button(onClick = onEdit, modifier = buttonModifier) { ButtonContent(R.drawable.ic_edit, stringResource(R.string.detail_edit)) }
         OutlinedButton(onClick = onShare, modifier = buttonModifier) {
-            ButtonContent(R.drawable.ic_share, "Tour teilen")
+            ButtonContent(R.drawable.ic_share, stringResource(R.string.detail_share))
         }
         OutlinedButton(onClick = onOpenMaps, modifier = buttonModifier, contentPadding = PaddingValues(12.dp)) {
-            ButtonContent(R.drawable.ic_place, "In Maps öffnen")
+            ButtonContent(R.drawable.ic_place, stringResource(R.string.detail_open_maps))
         }
     }
 }
@@ -159,5 +164,3 @@ private fun ButtonContent(icon: Int, label: String) {
     Spacer(Modifier.width(8.dp))
     Text(label)
 }
-
-private fun yesNo(value: Boolean) = if (value) "ja" else "nein"

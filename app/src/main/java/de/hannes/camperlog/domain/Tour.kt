@@ -31,29 +31,29 @@ data class Tour(
     val year: Int get() = startDate.year
 }
 
-/** Art der Tour mit deutscher Bezeichnung [label]. */
-enum class TourType(val label: String) {
+/** Art der Tour mit stabilem Exportwert [csvValue]. */
+enum class TourType(val csvValue: String) {
     DAY_TRIP("Tagestour"),
     WEEKEND("Wochenende"),
     VACATION("Urlaub"),
 }
 
-/** Ob eine Strompauschale vor Ort galt, mit deutscher Bezeichnung [label]. */
-enum class ElectricityFlatRate(val label: String) {
+/** Ob eine Strompauschale vor Ort galt, mit stabilem Exportwert [csvValue]. */
+enum class ElectricityFlatRate(val csvValue: String) {
     YES("ja"),
     NO("nein"),
     NOT_USED("nicht genutzt"),
 }
 
-/** Qualität des Mobilfunknetzes am Platz, mit deutscher Bezeichnung [label]. */
-enum class LteQuality(val label: String) {
+/** Qualität des Mobilfunknetzes am Platz, mit stabilem Exportwert [csvValue]. */
+enum class LteQuality(val csvValue: String) {
     GOOD("gut"),
     OK("geht so"),
     BAD("schlecht"),
 }
 
-/** Neigung des Standplatzes, mit deutscher Bezeichnung [label]. */
-enum class PitchSlope(val label: String) {
+/** Neigung des Standplatzes, mit stabilem Exportwert [csvValue]. */
+enum class PitchSlope(val csvValue: String) {
     LEVEL("gerade"),
     SLOPED("abschüssig"),
 }

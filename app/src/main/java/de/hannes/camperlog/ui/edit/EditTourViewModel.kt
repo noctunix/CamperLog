@@ -4,6 +4,7 @@ import android.database.SQLException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.hannes.camperlog.domain.Tour
+import de.hannes.camperlog.domain.TourError
 import de.hannes.camperlog.domain.TourField
 import de.hannes.camperlog.domain.TourInput
 import de.hannes.camperlog.domain.TourRepository
@@ -25,7 +26,7 @@ data class EditUiState(
     val isLoading: Boolean = false,
     val notFound: Boolean = false,
     val input: TourInput = TourInput(),
-    val errors: Map<TourField, String> = emptyMap(),
+    val errors: Map<TourField, TourError> = emptyMap(),
     val isDirty: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
