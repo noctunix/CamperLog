@@ -23,10 +23,16 @@ class FakeTourRepository(initial: List<Tour> = emptyList()) : TourRepository {
 
     override fun observeTour(id: Long): Flow<Tour?> = state.map { list -> list.firstOrNull { it.id == id } }
 
-    override suspend fun allTours(): List<Tour> = state.value.sortedBy { it.startDate }
+    override suspend fun allTours(): List<Tour> {
+        if (failExportRead) throw SQLiteException("simulierter Lesefehler")
+        return state.value.sortedBy { it.startDate }
+    }
 
     /** Simuliert eine volle oder defekte Datenbank: Schreibzugriffe werfen dann eine [SQLiteException]. */
     var failWrites = false
+
+    /** Lässt [allTours] (den CSV-Export) mit einer [SQLiteException] scheitern. */
+    var failExportRead = false
 
     private fun checkWritable() {
         if (failWrites) throw SQLiteException("simulierter Schreibfehler")

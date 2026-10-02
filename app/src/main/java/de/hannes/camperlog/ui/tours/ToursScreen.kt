@@ -1,5 +1,6 @@
 package de.hannes.camperlog.ui.tours
 
+import android.database.SQLException
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -71,18 +72,22 @@ fun ToursScreen(
     val exportCsv: () -> Unit = {
         exporting = true
         scope.launch {
-            try {
+            val problem = try {
                 val tours = viewModel.toursForExport()
-                if (tours.isEmpty()) {
-                    snackbar.showSnackbar("Noch keine Touren zum Exportieren")
-                } else {
-                    context.shareCsv(writeCsvExport(context, tours))
+                when {
+                    tours.isEmpty() -> "Noch keine Touren zum Exportieren"
+                    !context.shareCsv(writeCsvExport(context, tours)) -> "Keine App zum Teilen gefunden"
+                    else -> null
                 }
             } catch (_: IOException) {
-                snackbar.showSnackbar("CSV-Export fehlgeschlagen")
+                "CSV-Export fehlgeschlagen"
+            } catch (_: SQLException) {
+                "CSV-Export fehlgeschlagen"
             } finally {
+                // Vor der Snackbar freigeben: showSnackbar wartet, bis die Meldung verschwindet.
                 exporting = false
             }
+            problem?.let { snackbar.showSnackbar(it, withDismissAction = true) }
         }
     }
 

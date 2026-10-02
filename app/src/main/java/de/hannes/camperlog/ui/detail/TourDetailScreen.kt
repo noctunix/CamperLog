@@ -80,7 +80,11 @@ fun TourDetailScreen(
                     .padding(padding)
                     .fillMaxSize(),
                 onEdit = onEdit,
-                onShare = { context.shareTour(current.tour) },
+                onShare = {
+                    if (!context.shareTour(current.tour)) {
+                        scope.launch { snackbar.showSnackbar("Keine App zum Teilen gefunden") }
+                    }
+                },
                 onOpenMaps = {
                     if (!context.openInMaps(current.tour)) {
                         scope.launch { snackbar.showSnackbar("Keine Karten-App gefunden") }

@@ -1,5 +1,6 @@
 package de.hannes.camperlog.ui
 
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
@@ -149,6 +150,41 @@ class TourFlowTest {
         compose.onNodeWithText("Tour konnte nicht gelöscht werden.").assertExists()
         compose.onNodeWithText("Gardasee").assertExists()
         assertEquals(1, repository.tours.size)
+    }
+
+    @Test
+    fun saveTour_writeFails_keepsFormAndReportsError() {
+        val repository = start()
+        repository.failWrites = true
+
+        compose.onNodeWithText("Eingabe").performClick()
+        pickDay("Startdatum", 10)
+        pickDay("Enddatum", 12)
+        destinationField().performTextInput("Ostsee")
+        clickSave()
+
+        compose.onNodeWithText("Tour konnte nicht gespeichert werden.").assertExists()
+        compose.onNodeWithText("Neue Tour").assertExists()
+        compose.onNodeWithText("Ostsee").assertExists()
+        assertEquals(0, repository.tours.size)
+
+        // Die Snackbar überdeckt den unteren Button; erneut über die TopBar speichern.
+        repository.failWrites = false
+        compose.onNode(hasText("Speichern") and hasClickAction() and !hasAnyAncestor(hasScrollAction())).performClick()
+
+        assertEquals(listOf("Ostsee"), repository.tours.map { it.destination })
+        compose.onNodeWithText("Tour gespeichert").assertExists()
+    }
+
+    @Test
+    fun exportCsv_readFails_reportsError() {
+        val repository = start(tour(id = 1, destination = "Gardasee"))
+        repository.failExportRead = true
+
+        compose.onNodeWithText("CSV").performClick()
+
+        compose.onNodeWithText("CSV-Export fehlgeschlagen").assertExists()
+        compose.onNodeWithText("CSV").assertIsEnabled()
     }
 
     @Test

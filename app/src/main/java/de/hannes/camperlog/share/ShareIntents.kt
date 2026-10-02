@@ -28,8 +28,12 @@ suspend fun writeCsvExport(context: Context, tours: List<Tour>): Uri = withConte
     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 }
 
-/** Öffnet das Sharesheet für eine CSV-Datei unter [uri]. */
-fun Context.shareCsv(uri: Uri) {
+/**
+ * Öffnet das Sharesheet für eine CSV-Datei unter [uri].
+ *
+ * @return `false`, wenn kein Sharesheet geöffnet werden konnte
+ */
+fun Context.shareCsv(uri: Uri): Boolean {
     val send = Intent(Intent.ACTION_SEND).apply {
         type = CSV_MIME
         putExtra(Intent.EXTRA_STREAM, uri)
@@ -37,17 +41,28 @@ fun Context.shareCsv(uri: Uri) {
         clipData = ClipData.newRawUri(null, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    startActivity(Intent.createChooser(send, "Touren exportieren"))
+    return startChooser(send, "Touren exportieren")
 }
 
-/** Öffnet das Sharesheet mit einer Textzusammenfassung von [tour]. */
-fun Context.shareTour(tour: Tour) {
+/**
+ * Öffnet das Sharesheet mit einer Textzusammenfassung von [tour].
+ *
+ * @return `false`, wenn kein Sharesheet geöffnet werden konnte
+ */
+fun Context.shareTour(tour: Tour): Boolean {
     val send = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_SUBJECT, "Tour nach ${tour.destination}")
         putExtra(Intent.EXTRA_TEXT, tourShareText(tour))
     }
-    startActivity(Intent.createChooser(send, "Tour teilen"))
+    return startChooser(send, "Tour teilen")
+}
+
+private fun Context.startChooser(send: Intent, title: String): Boolean = try {
+    startActivity(Intent.createChooser(send, title))
+    true
+} catch (_: ActivityNotFoundException) {
+    false
 }
 
 /**

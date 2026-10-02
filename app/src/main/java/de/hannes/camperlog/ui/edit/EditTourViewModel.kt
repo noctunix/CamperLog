@@ -1,5 +1,6 @@
 package de.hannes.camperlog.ui.edit
 
+import android.database.SQLException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.hannes.camperlog.domain.Tour
@@ -28,6 +29,8 @@ data class EditUiState(
     val isDirty: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
+    /** Der letzte Speicherversuch ist an der Datenbank gescheitert; Meldung steht noch aus. */
+    val saveFailed: Boolean = false,
 )
 
 /** Lädt, validiert und speichert eine Tour. [tourId] 0 legt eine neue Tour an. */
@@ -74,11 +77,21 @@ class EditTourViewModel(private val repository: TourRepository, tourId: Long) : 
             _uiState.update { it.copy(errors = errors) }
             return
         }
-        _uiState.update { it.copy(isSaving = true, errors = emptyMap()) }
+        _uiState.update { it.copy(isSaving = true, errors = emptyMap(), saveFailed = false) }
         viewModelScope.launch {
-            repository.save(state.input.toTour(original))
-            _uiState.update { it.copy(isSaving = false, isSaved = true) }
+            try {
+                repository.save(state.input.toTour(original))
+                _uiState.update { it.copy(isSaving = false, isSaved = true) }
+            } catch (_: SQLException) {
+                // Eingaben bleiben erhalten, damit der Nutzer es erneut versuchen kann.
+                _uiState.update { it.copy(isSaving = false, saveFailed = true) }
+            }
         }
+    }
+
+    /** Die Fehlermeldung zu [EditUiState.saveFailed] wurde angezeigt. */
+    fun onSaveFailureShown() {
+        _uiState.update { it.copy(saveFailed = false) }
     }
 
     /**

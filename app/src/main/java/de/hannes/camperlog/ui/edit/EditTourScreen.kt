@@ -28,6 +28,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -66,8 +68,16 @@ fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: ()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
+    val snackbar = remember { SnackbarHostState() }
+
     LaunchedEffect(state.isSaved) {
         if (state.isSaved) onSaved()
+    }
+    LaunchedEffect(state.saveFailed) {
+        if (state.saveFailed) {
+            snackbar.showSnackbar("Tour konnte nicht gespeichert werden.", withDismissAction = true)
+            viewModel.onSaveFailureShown()
+        }
     }
 
     val requestBack = { if (state.isDirty) confirmDiscard = true else onDone() }
@@ -85,6 +95,7 @@ fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: ()
                 },
             )
         },
+        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         when {
             state.isLoading -> Unit
