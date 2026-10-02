@@ -1,5 +1,7 @@
 package app.restvolt.camperlog.ui
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.hasAnyAncestor
@@ -108,7 +110,9 @@ class RatesFlowTest {
 
         compose.onNodeWithText("Bitte eine Währung wählen.").assertExists()
         compose.onNodeWithText("Bitte einen Kurs größer 0 mit höchstens 6 Nachkommastellen eingeben.").assertExists()
-        compose.onNodeWithContentDescription("Währung: Währung wählen").assertIsFocused()
+        compose.onNodeWithContentDescription("Währung: Währung wählen")
+            .assertIsFocused()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Error, "Bitte eine Währung wählen."))
         assertTrue(rates.rates.isEmpty())
     }
 

@@ -47,6 +47,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -190,7 +192,7 @@ private fun ToursTopBar(
     exportEnabled: Boolean,
 ) {
     TopAppBar(
-        title = { Text(stringResource(R.string.tours_title)) },
+        title = { Text(stringResource(R.string.tours_title), modifier = Modifier.semantics { heading() }) },
         actions = {
             IconButton(onClick = onOpenOverview) {
                 Icon(painterResource(R.drawable.ic_bar_chart), contentDescription = stringResource(R.string.tours_overview))

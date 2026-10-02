@@ -30,6 +30,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
@@ -138,11 +140,19 @@ private fun TourDetails(
         if (tour.notes.isNotBlank() || tour.mapLink != null) {
             SectionCard {
                 if (tour.notes.isNotBlank()) {
-                    Text(stringResource(R.string.field_notes), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.field_notes),
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.titleMedium,
+                    )
                     Text(tour.notes, style = MaterialTheme.typography.bodyLarge)
                 }
                 tour.mapLink?.let {
-                    Text(stringResource(R.string.field_map_link), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.field_map_link),
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.titleMedium,
+                    )
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                 }
             }

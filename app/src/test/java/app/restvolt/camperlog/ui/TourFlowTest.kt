@@ -21,6 +21,7 @@ import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -189,8 +190,41 @@ class TourFlowTest {
         clickSave()
 
         destinationField().assertIsFocused().assertIsDisplayed()
-        compose.onNodeWithText("Bitte die markierten Felder prüfen.")
+        compose.onNodeWithText("Bitte diese Felder prüfen: Ziel, Kosten")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+    }
+
+    @Test
+    fun requiredFields_areMarkedUntilAnErrorReplacesTheHint() {
+        start()
+        compose.onNodeWithText("Neue Tour").performClick()
+
+        compose.onNode(hasText("Startdatum") and hasClickAction()).assert(hasText("Pflichtfeld"))
+        compose.onNode(hasText("Enddatum") and hasClickAction()).assert(hasText("Pflichtfeld"))
+        destinationField().assert(hasText("Pflichtfeld"))
+        compose.onNode(hasSetTextAction() and hasText("Kilometer")).assert(!hasText("Pflichtfeld"))
+        compose.onNode(hasSetTextAction() and hasText("Notizen")).assert(!hasText("Pflichtfeld"))
+
+        clickSave()
+
+        destinationField().assert(hasText("Ziel erforderlich")).assert(!hasText("Pflichtfeld"))
+        compose.onNodeWithText("Bitte diese Felder prüfen: Startdatum, Enddatum, Ziel").assertExists()
+    }
+
+    @Test
+    fun screenTitlesAndSections_areHeadings() {
+        start(tour(id = 1, destination = "Gardasee").copy(notes = "Ruhiger Platz", mapLink = "https://example.org/karte"))
+        compose.onNodeWithText("Touren").assert(isHeading())
+
+        compose.onNodeWithText("Gardasee").performClick()
+        compose.onNode(hasText("Gardasee") and isHeading()).assertExists()
+        compose.onNodeWithText("Notizen").performScrollTo().assert(isHeading())
+        compose.onNodeWithText("Kartenlink").performScrollTo().assert(isHeading())
+
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithContentDescription("Übersicht").performClick()
+        compose.onNodeWithText("Übersicht").assert(isHeading())
+        compose.onNodeWithText("Gesamt").assert(isHeading())
     }
 
     @Test

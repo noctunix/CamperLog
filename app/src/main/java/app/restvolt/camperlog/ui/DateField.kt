@@ -40,6 +40,7 @@ import java.time.LocalDate
 /**
  * Schreibgeschütztes Datumsfeld, das per Tippen, Tastatur oder Screenreader einen Kalender öffnet.
  * [initialDate] ist der vorausgewählte Tag, solange [date] leer ist; [minDate] sperrt frühere Tage.
+ * [hint] steht unter dem Feld, solange kein [error] angezeigt wird.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +52,7 @@ internal fun DateField(
     modifier: Modifier = Modifier,
     initialDate: LocalDate? = null,
     minDate: LocalDate? = null,
+    hint: String? = null,
 ) {
     var showPicker by rememberSaveable { mutableStateOf(false) }
     val pickLabel = stringResource(R.string.edit_pick_date, label)
@@ -80,7 +82,7 @@ internal fun DateField(
             },
         label = { Text(label) },
         isError = error != null,
-        supportingText = error?.let { { Text(it) } },
+        supportingText = (error ?: hint)?.let { { Text(it) } },
         trailingIcon = {
             IconButton(onClick = { showPicker = true }) {
                 Icon(painterResource(R.drawable.ic_calendar), contentDescription = pickLabel)

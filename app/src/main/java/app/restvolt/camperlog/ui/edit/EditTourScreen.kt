@@ -141,6 +141,7 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
     val input = state.input
     val errors = state.errors.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
     val change = viewModel::onInputChange
+    val required = stringResource(R.string.edit_required)
     val focus = remember { TourField.entries.associateWith { FocusRequester() } }
     fun focusOf(field: TourField) = Modifier.focusRequester(focus.getValue(field))
 
@@ -164,6 +165,7 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 errors[TourField.START_DATE],
                 viewModel::onStartDateChange,
                 modifier = focusOf(TourField.START_DATE),
+                hint = required,
             )
             DateField(
                 stringResource(R.string.field_end_date),
@@ -173,6 +175,7 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 initialDate = input.startDate,
                 minDate = input.startDate,
                 modifier = focusOf(TourField.END_DATE),
+                hint = required,
             )
             FormTextField(
                 label = stringResource(R.string.field_destination),
@@ -184,6 +187,7 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                     imeAction = ImeAction.Next,
                 ),
                 modifier = focusOf(TourField.DESTINATION),
+                hint = required,
             )
             ChoiceField(stringResource(R.string.field_tour_type), TourType.entries, input.tourType, TourType::labelRes) { value ->
                 change { it.copy(tourType = value) }
@@ -265,8 +269,10 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 .heightIn(min = 56.dp),
         ) { Text(stringResource(R.string.action_save)) }
         if (errors.isNotEmpty()) {
+            // Nennt die betroffenen Felder; ändert sich die Liste, sagt TalkBack sie erneut an.
+            val fields = errors.keys.sortedBy(TourField::ordinal).map { stringResource(it.labelRes) }
             Text(
-                stringResource(R.string.edit_check_fields),
+                stringResource(R.string.edit_check_fields, fields.joinToString(", ")),
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
@@ -285,6 +291,7 @@ private fun FormTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
     singleLine: Boolean = true,
     placeholder: String? = null,
+    hint: String? = null,
 ) {
     OutlinedTextField(
         value = value,
@@ -293,7 +300,7 @@ private fun FormTextField(
         label = { Text(label) },
         placeholder = placeholder?.let { { Text(it) } },
         isError = error != null,
-        supportingText = error?.let { { Text(it) } },
+        supportingText = (error ?: hint)?.let { { Text(it) } },
         singleLine = singleLine,
         minLines = if (singleLine) 1 else 3,
         keyboardOptions = keyboardOptions,

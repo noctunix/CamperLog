@@ -91,7 +91,8 @@
     <string name="edit_discard_text">Deine Eingaben gehen verloren.</string>
     <string name="edit_discard_confirm">Verwerfen</string>
     <string name="edit_discard_keep">Weiter bearbeiten</string>
-    <string name="edit_check_fields">Bitte die markierten Felder prüfen.</string>
+    <string name="edit_check_fields">Bitte diese Felder prüfen: %1$s</string>
+    <string name="edit_required">Pflichtfeld</string>
     <string name="edit_cost_placeholder">z. B. %1$s</string>
     <string name="edit_cost_amount">Kosten (%1$s)</string>
     <string name="edit_cost_currency">Währung: %1$s</string>

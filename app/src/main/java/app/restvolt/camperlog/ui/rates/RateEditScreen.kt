@@ -39,6 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -225,6 +226,7 @@ private fun CurrencyField(
     val label = stringResource(R.string.rate_field_currency)
     val text = currency?.let { stringResource(R.string.rates_currency_option, it.currencyCode, it.getDisplayName(locale)) }
         ?: stringResource(R.string.edit_cost_pick_currency)
+    val errorText = stringResource(R.string.rate_error_currency)
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             label,
@@ -236,14 +238,17 @@ private fun CurrencyField(
             onClick = onClick,
             modifier = modifier
                 .fillMaxWidth()
-                .semantics { contentDescription = "$label: $text" },
+                .semantics {
+                    contentDescription = "$label: $text"
+                    if (error) error(errorText)
+                },
             border = if (error) BorderStroke(1.dp, MaterialTheme.colorScheme.error) else ButtonDefaults.outlinedButtonBorder(),
         ) {
             Text(text)
         }
         if (error) {
             Text(
-                stringResource(R.string.rate_error_currency),
+                errorText,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,

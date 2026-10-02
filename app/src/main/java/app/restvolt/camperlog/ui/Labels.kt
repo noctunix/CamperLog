@@ -57,6 +57,20 @@ val PitchSlope.labelRes: Int
 @StringRes
 fun yesNoRes(value: Boolean): Int = if (value) R.string.yes else R.string.no
 
+/** Bezeichnung des Formularfelds, z. B. für die Fehlerzusammenfassung. */
+@get:StringRes
+val TourField.labelRes: Int
+    get() = when (this) {
+        TourField.START_DATE -> R.string.field_start_date
+        TourField.END_DATE -> R.string.field_end_date
+        TourField.DESTINATION -> R.string.field_destination
+        TourField.TRAVEL_DAYS -> R.string.field_travel_days
+        TourField.OVERNIGHT_STAYS -> R.string.field_overnight_stays
+        TourField.DISTANCE_KM -> R.string.field_distance
+        TourField.COST -> R.string.field_cost
+        TourField.MAP_LINK -> R.string.field_map_link
+    }
+
 /** Fehlermeldung zu [this] am Feld [field]; Pflichtfeld-Fehler nennen das Feld. */
 @StringRes
 fun TourError.messageRes(field: TourField): Int = when (this) {
