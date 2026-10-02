@@ -11,6 +11,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
@@ -207,6 +209,20 @@ class TourFlowTest {
         field.performKeyInput { pressKey(Key.Enter) }
 
         compose.onNodeWithText("OK").assertExists()
+    }
+
+    @Test
+    fun choiceField_namesGroupInEachOptionAndMarksSelection() {
+        start()
+        compose.onNodeWithText("Neue Tour").performClick()
+
+        // Gruppenname nur einmal pro Option, nicht als eigener Fokusstopp.
+        compose.onAllNodesWithText("LTE").assertCountEquals(0)
+        val bad = compose.onNodeWithContentDescription("LTE: schlecht")
+        bad.performScrollTo().assertIsNotSelected().performClick()
+
+        bad.assertIsSelected()
+        compose.onNodeWithContentDescription("LTE: gut").assertIsNotSelected()
     }
 
     @Test

@@ -55,12 +55,15 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.hannes.camperlog.R
@@ -417,16 +420,29 @@ private fun <T> ChoiceField(
     onSelect: (T) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Die Überschrift steckt in jeder Option (siehe unten), sonst liest TalkBack sie doppelt.
+        Text(
+            label,
+            modifier = Modifier.clearAndSetSemantics {},
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             options.forEachIndexed { index, option ->
+                val text = optionLabel(option)
                 SegmentedButton(
                     selected = option == selected,
                     onClick = { onSelect(option) },
                     shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                    icon = {},
+                    // Kräftige Füllung plus Standard-Häkchen: Auswahl ist nicht nur am Farbton erkennbar.
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = MaterialTheme.colorScheme.primary,
+                        activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                        activeBorderColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    modifier = Modifier.semantics { contentDescription = "$label: $text" },
                 ) {
-                    Text(optionLabel(option), maxLines = 1)
+                    Text(text, textAlign = TextAlign.Center)
                 }
             }
         }

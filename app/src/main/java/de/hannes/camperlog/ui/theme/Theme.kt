@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 private val NavyBlue = Color(0xFF0F2D52)
 private val GreyBlue = Color(0xFF5B6B82)
 
-private val colors = lightColorScheme(
+internal val LightColors = lightColorScheme(
     primary = NavyBlue,
     onPrimary = Color.White,
     primaryContainer = Color(0xFFD6E3F5),
@@ -32,7 +32,8 @@ private val colors = lightColorScheme(
     surfaceContainerHigh = Color(0xFFE7ECF4),
     surfaceContainerHighest = Color(0xFFE1E7F0),
     onSurfaceVariant = GreyBlue,
-    outline = Color(0xFF8A99AD),
+    // Mindestens 3:1 zu Karten und Hintergrund, damit Feld- und Segmentrahmen erkennbar sind.
+    outline = Color(0xFF6E7D94),
     outlineVariant = Color(0xFFCCD5E1),
     error = Color(0xFFB3261E),
 )
@@ -55,5 +56,5 @@ private val shapes = Shapes(
 /** Helles Theme der App mit dunkelblauer Primärfarbe. */
 @Composable
 fun CamperLogTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = colors, typography = typography, shapes = shapes, content = content)
+    MaterialTheme(colorScheme = LightColors, typography = typography, shapes = shapes, content = content)
 }
