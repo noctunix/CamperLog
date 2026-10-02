@@ -35,6 +35,10 @@ class RoomTourRepository(
 
     override suspend fun delete(id: Long) = dao.deleteById(id)
 
+    override suspend fun restore(tour: Tour) {
+        dao.insert(tour.toEntity())
+    }
+
     override fun observeTotals(): Flow<TourTotals> = dao.observeTotals().map(TotalsRow::toDomain)
 
     override fun observeYearTotals(): Flow<List<YearTotals>> =

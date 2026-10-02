@@ -1,5 +1,6 @@
 package de.hannes.camperlog.ui
 
+import android.database.sqlite.SQLiteException
 import de.hannes.camperlog.domain.Tour
 import de.hannes.camperlog.domain.TourRepository
 import de.hannes.camperlog.domain.TourTotals
@@ -24,7 +25,15 @@ class FakeTourRepository(initial: List<Tour> = emptyList()) : TourRepository {
 
     override suspend fun allTours(): List<Tour> = state.value.sortedBy { it.startDate }
 
+    /** Simuliert eine volle oder defekte Datenbank: Schreibzugriffe werfen dann eine [SQLiteException]. */
+    var failWrites = false
+
+    private fun checkWritable() {
+        if (failWrites) throw SQLiteException("simulierter Schreibfehler")
+    }
+
     override suspend fun save(tour: Tour): Long {
+        checkWritable()
         val now = Instant.EPOCH
         return if (tour.id == 0L) {
             val id = nextId++
@@ -37,7 +46,13 @@ class FakeTourRepository(initial: List<Tour> = emptyList()) : TourRepository {
     }
 
     override suspend fun delete(id: Long) {
+        checkWritable()
         state.value = state.value.filterNot { it.id == id }
+    }
+
+    override suspend fun restore(tour: Tour) {
+        checkWritable()
+        state.value += tour
     }
 
     override fun observeTotals(): Flow<TourTotals> = state.map(::totalsOf)

@@ -25,6 +25,9 @@ interface TourRepository {
     /** Löscht die Tour mit [id]. */
     suspend fun delete(id: Long)
 
+    /** Legt eine zuvor gelöschte [tour] mit ihrer bisherigen id und ihren Zeitstempeln wieder an. */
+    suspend fun restore(tour: Tour)
+
     /** Liefert die Gesamtwerte über alle Touren. */
     fun observeTotals(): Flow<TourTotals>
 

@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -41,9 +42,17 @@ import de.hannes.camperlog.ui.LabeledValue
 import de.hannes.camperlog.ui.SectionCard
 import kotlinx.coroutines.launch
 
-/** Schreibgeschützte Ansicht einer Tour mit Bearbeiten, Teilen und Kartenaufruf. */
+/**
+ * Schreibgeschützte Ansicht einer Tour mit Bearbeiten, Teilen, Kartenaufruf und Löschen.
+ * [onDelete] löscht ohne Rückfrage; die Liste bietet anschließend „Rückgängig“ an.
+ */
 @Composable
-fun TourDetailScreen(viewModel: TourDetailViewModel, onBack: () -> Unit, onEdit: () -> Unit) {
+fun TourDetailScreen(
+    viewModel: TourDetailViewModel,
+    onBack: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: (Tour) -> Unit,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -51,7 +60,15 @@ fun TourDetailScreen(viewModel: TourDetailViewModel, onBack: () -> Unit, onEdit:
     val tour = (state as? DetailUiState.Loaded)?.tour
 
     Scaffold(
-        topBar = { BackTopBar(title = tour?.destination ?: "Tour", onBack = onBack) },
+        topBar = {
+            BackTopBar(title = tour?.destination ?: "Tour", onBack = onBack) {
+                if (tour != null) {
+                    IconButton(onClick = { onDelete(tour) }) {
+                        Icon(painterResource(R.drawable.ic_delete), contentDescription = "Tour löschen")
+                    }
+                }
+            }
+        },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         when (val current = state) {

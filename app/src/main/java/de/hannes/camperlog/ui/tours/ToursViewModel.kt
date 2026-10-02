@@ -1,5 +1,6 @@
 package de.hannes.camperlog.ui.tours
 
+import android.database.SQLException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.hannes.camperlog.domain.Tour
@@ -7,6 +8,7 @@ import de.hannes.camperlog.domain.TourRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -20,6 +22,13 @@ data class ToursUiState(
     val query: String = "",
     val selectedYear: Int? = null,
 )
+
+/** Rückmeldungen, die die Tourenliste als Snackbar anzeigt. */
+sealed interface ToursMessage {
+    data class Deleted(val tour: Tour) : ToursMessage
+    data object Saved : ToursMessage
+    data class Failed(val text: String) : ToursMessage
+}
 
 /** Liefert die gefilterte Tourenliste und löscht Touren. */
 class ToursViewModel(private val repository: TourRepository) : ViewModel() {
@@ -53,8 +62,44 @@ class ToursViewModel(private val repository: TourRepository) : ViewModel() {
         selectedYear.value = year
     }
 
+    private val _message = MutableStateFlow<ToursMessage?>(null)
+
+    /** Einmalige Rückmeldung für die Snackbar der Liste; nach der Anzeige [onMessageShown] aufrufen. */
+    val message: StateFlow<ToursMessage?> = _message.asStateFlow()
+
+    /** Löscht [tour] und bietet über [ToursMessage.Deleted] das Rückgängigmachen an. */
     fun delete(tour: Tour) {
-        viewModelScope.launch { repository.delete(tour.id) }
+        viewModelScope.launch {
+            _message.value = try {
+                repository.delete(tour.id)
+                ToursMessage.Deleted(tour)
+            } catch (_: SQLException) {
+                ToursMessage.Failed("Tour konnte nicht gelöscht werden.")
+            }
+        }
+    }
+
+    /** Stellt eine über [delete] entfernte Tour unverändert wieder her. */
+    fun undoDelete(tour: Tour) {
+        viewModelScope.launch {
+            try {
+                repository.restore(tour)
+            } catch (_: SQLException) {
+                _message.value = ToursMessage.Failed("Tour konnte nicht wiederhergestellt werden.")
+            }
+        }
+    }
+
+    /** Nach dem Anlegen einer Tour: Filter zurücksetzen, damit die neue Tour sichtbar ist, und bestätigen. */
+    fun onTourCreated() {
+        query.value = ""
+        selectedYear.value = null
+        _message.value = ToursMessage.Saved
+    }
+
+    /** Verwirft [shown], sofern inzwischen keine neuere Meldung vorliegt. */
+    fun onMessageShown(shown: ToursMessage) {
+        _message.compareAndSet(shown, null)
     }
 
     /** Alle Touren in chronologischer Reihenfolge für den CSV-Export. */

@@ -60,14 +60,14 @@ import de.hannes.camperlog.ui.EmptyHint
 import de.hannes.camperlog.ui.SectionCard
 import java.time.LocalDate
 
-/** Formular zum Anlegen und Bearbeiten einer Tour. */
+/** Formular zum Anlegen und Bearbeiten einer Tour. [onDone] verlässt es ohne, [onSaved] nach dem Speichern. */
 @Composable
-fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit) {
+fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(state.isSaved) {
-        if (state.isSaved) onDone()
+        if (state.isSaved) onSaved()
     }
 
     val requestBack = { if (state.isDirty) confirmDiscard = true else onDone() }

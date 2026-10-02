@@ -67,6 +67,18 @@ class RoomTourRepositoryTest {
     }
 
     @Test
+    fun restoreBringsBackDeletedTourUnchanged() = runTest {
+        val id = repository.save(tour(start = "2026-05-01", destination = "Gardasee"))
+        val stored = checkNotNull(repository.observeTour(id).first())
+        repository.delete(id)
+
+        now = Instant.parse("2026-03-01T08:00:00Z")
+        repository.restore(stored)
+
+        assertEquals(stored, repository.observeTour(id).first())
+    }
+
+    @Test
     fun listIsNewestFirstAndExportOldestFirst() = runTest {
         repository.save(tour(start = "2025-08-01", destination = "B"))
         repository.save(tour(start = "2026-03-01", destination = "C"))

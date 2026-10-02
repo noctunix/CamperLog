@@ -16,27 +16,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,7 +65,7 @@ fun ToursScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
-    var pendingDeleteId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val message by viewModel.message.collectAsStateWithLifecycle()
     var exporting by remember { mutableStateOf(false) }
 
     val exportCsv: () -> Unit = {
@@ -120,32 +119,30 @@ fun ToursScreen(
                 !state.hasAnyTour -> item { EmptyHint("Noch keine Touren. Lege mit „Eingabe“ die erste Fahrt an.") }
                 state.tours.isEmpty() -> item { EmptyHint("Keine Tour passt zu Suche und Filter.") }
                 else -> items(state.tours, key = Tour::id) { tour ->
-                    TourCard(
-                        tour = tour,
-                        onClick = { onOpenTour(tour.id) },
-                        onDelete = { pendingDeleteId = tour.id },
-                    )
+                    TourCard(tour = tour, onClick = { onOpenTour(tour.id) })
                 }
             }
         }
     }
 
-    val tourToDelete = state.tours.firstOrNull { it.id == pendingDeleteId }
-    if (tourToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { pendingDeleteId = null },
-            title = { Text("Tour löschen?") },
-            text = { Text("„${tourToDelete.destination}“ (${tourToDelete.period}) wird endgültig gelöscht.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.delete(tourToDelete)
-                    pendingDeleteId = null
-                }) { Text("Löschen") }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDeleteId = null }) { Text("Abbrechen") }
-            },
-        )
+    // Die Meldung gilt erst nach vollständiger Anzeige als erledigt; wer die Liste währenddessen
+    // verlässt, sieht sie bei der Rückkehr erneut und kann das Löschen noch rückgängig machen.
+    LaunchedEffect(message) {
+        val current = message ?: return@LaunchedEffect
+        when (current) {
+            is ToursMessage.Deleted -> {
+                val result = snackbar.showSnackbar(
+                    message = "„${current.tour.destination}“ gelöscht",
+                    actionLabel = "Rückgängig",
+                    withDismissAction = true,
+                    duration = SnackbarDuration.Long,
+                )
+                if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete(current.tour)
+            }
+            ToursMessage.Saved -> snackbar.showSnackbar("Tour gespeichert")
+            is ToursMessage.Failed -> snackbar.showSnackbar(current.text, withDismissAction = true)
+        }
+        viewModel.onMessageShown(current)
     }
 }
 
@@ -226,7 +223,7 @@ private fun YearFilter(years: List<Int>, selected: Int?, onSelect: (Int?) -> Uni
 }
 
 @Composable
-private fun TourCard(tour: Tour, onClick: () -> Unit, onDelete: () -> Unit) {
+private fun TourCard(tour: Tour, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -237,7 +234,7 @@ private fun TourCard(tour: Tour, onClick: () -> Unit, onDelete: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClickLabel = "Details öffnen", onClick = onClick)
-                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -251,13 +248,6 @@ private fun TourCard(tour: Tour, onClick: () -> Unit, onDelete: () -> Unit) {
                     "Jahr ${tour.year} · ${tour.tourType.label}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    painterResource(R.drawable.ic_delete),
-                    contentDescription = "Tour nach ${tour.destination} löschen",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

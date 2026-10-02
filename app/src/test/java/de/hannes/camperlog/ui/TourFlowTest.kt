@@ -106,27 +106,65 @@ class TourFlowTest {
     }
 
     @Test
-    fun deleteTour_afterConfirmation_removesIt() {
+    fun listOffersNoDeleteAction() {
+        start(tour(id = 1, destination = "Gardasee"))
+
+        compose.onNodeWithContentDescription("Tour löschen").assertDoesNotExist()
+    }
+
+    @Test
+    fun deleteTour_fromDetail_removesItAndOffersUndo() {
         val repository = start(tour(id = 1, destination = "Gardasee"))
 
-        compose.onNodeWithContentDescription("Tour nach Gardasee löschen").performClick()
-        compose.onNodeWithText("Tour löschen?").assertExists()
-        compose.onNodeWithText("Löschen").performClick()
+        compose.onNodeWithText("Gardasee").performClick()
+        compose.onNodeWithContentDescription("Tour löschen").performClick()
 
+        compose.onNodeWithText("Touren").assertExists()
+        compose.onNodeWithText("„Gardasee“ gelöscht").assertExists()
         compose.onNodeWithText("Noch keine Touren. Lege mit „Eingabe“ die erste Fahrt an.").assertExists()
         assertEquals(0, repository.tours.size)
     }
 
     @Test
-    fun deleteTour_cancelled_keepsIt() {
+    fun deleteTour_undo_restoresIt() {
+        val original = tour(id = 1, destination = "Gardasee")
+        val repository = start(original)
+
+        compose.onNodeWithText("Gardasee").performClick()
+        compose.onNodeWithContentDescription("Tour löschen").performClick()
+        compose.onNodeWithText("Rückgängig").performClick()
+
+        compose.onNodeWithText("Gardasee").assertExists()
+        assertEquals(listOf(original), repository.tours)
+    }
+
+    @Test
+    fun deleteTour_writeFails_keepsItAndReportsError() {
         val repository = start(tour(id = 1, destination = "Gardasee"))
+        repository.failWrites = true
 
-        compose.onNodeWithContentDescription("Tour nach Gardasee löschen").performClick()
-        compose.onNodeWithText("Abbrechen").performClick()
+        compose.onNodeWithText("Gardasee").performClick()
+        compose.onNodeWithContentDescription("Tour löschen").performClick()
 
-        compose.onNodeWithText("Tour löschen?").assertDoesNotExist()
+        compose.onNodeWithText("Tour konnte nicht gelöscht werden.").assertExists()
         compose.onNodeWithText("Gardasee").assertExists()
         assertEquals(1, repository.tours.size)
+    }
+
+    @Test
+    fun createTour_resetsSearchAndConfirmsSaving() {
+        start(tour(id = 1, destination = "Gardasee"))
+        compose.onNode(hasSetTextAction() and hasText("Ziel suchen")).performTextInput("garda")
+
+        compose.onNodeWithText("Eingabe").performClick()
+        pickDay("Startdatum", 10)
+        pickDay("Enddatum", 12)
+        destinationField().performTextInput("Ostsee")
+        clickSave()
+
+        compose.onNodeWithText("Tour gespeichert").assertExists()
+        compose.onNodeWithText("Ostsee").assertExists()
+        compose.onNodeWithText("Gardasee").assertExists()
     }
 
     @Test

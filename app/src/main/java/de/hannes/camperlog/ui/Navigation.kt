@@ -1,8 +1,9 @@
 package de.hannes.camperlog.ui
 
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -47,17 +48,29 @@ fun CamperLogNavHost(repository: TourRepository) {
         }
         composable<EditRoute> { entry ->
             val tourId = entry.toRoute<EditRoute>().tourId
+            val toursViewModel = navController.toursViewModel(entry, repository)
             EditTourScreen(
                 viewModel = viewModel { EditTourViewModel(repository, tourId) },
                 onDone = { navController.popFrom(entry) },
+                onSaved = {
+                    if (tourId == 0L) toursViewModel.onTourCreated()
+                    navController.popFrom(entry)
+                },
             )
         }
         composable<DetailRoute> { entry ->
             val tourId = entry.toRoute<DetailRoute>().tourId
+            val toursViewModel = navController.toursViewModel(entry, repository)
             TourDetailScreen(
                 viewModel = viewModel { TourDetailViewModel(repository, tourId) },
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(EditRoute(tourId)) },
+                onDelete = { tour ->
+                    if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                        toursViewModel.delete(tour)
+                        navController.popBackStack()
+                    }
+                },
             )
         }
         composable<OverviewRoute> { entry ->
@@ -67,6 +80,16 @@ fun CamperLogNavHost(repository: TourRepository) {
             )
         }
     }
+}
+
+/**
+ * Das [ToursViewModel] der Startseite, damit Detail und Formular dort Snackbar-Meldungen auslösen.
+ * Die Startseite liegt als Startziel immer unten im Back Stack.
+ */
+@Composable
+private fun NavController.toursViewModel(entry: NavBackStackEntry, repository: TourRepository): ToursViewModel {
+    val toursEntry = remember(entry) { getBackStackEntry<ToursRoute>() }
+    return viewModel(viewModelStoreOwner = toursEntry) { ToursViewModel(repository) }
 }
 
 /** Verlässt [entry] nur, solange er sichtbar ist; verhindert doppeltes Zurück bei schnellem Tippen. */
