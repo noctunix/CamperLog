@@ -33,9 +33,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
-import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.Tour
-import app.restvolt.camperlog.domain.formatAmount
+import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.share.openInMaps
 import app.restvolt.camperlog.share.shareTour
@@ -127,7 +126,7 @@ private fun TourDetails(
             LabeledValue(stringResource(R.string.field_travel_days), tour.travelDays.toString())
             LabeledValue(stringResource(R.string.field_overnight_stays), tour.overnightStays.toString())
             LabeledValue(stringResource(R.string.field_distance), stringResource(R.string.distance_km, tour.distanceKm))
-            LabeledValue(stringResource(R.string.field_cost), formatAmount(tour.costCents, EUR, locale))
+            LabeledValue(stringResource(R.string.field_cost), formatAmounts(tour.costs, locale))
         }
         SectionCard {
             LabeledValue(stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(tour.pitchAssigned)))

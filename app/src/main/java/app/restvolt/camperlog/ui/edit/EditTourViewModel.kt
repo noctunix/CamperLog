@@ -3,11 +3,15 @@ package app.restvolt.camperlog.ui.edit
 import android.database.SQLException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.restvolt.camperlog.domain.ALL_CURRENCIES
+import app.restvolt.camperlog.domain.CostInput
+import app.restvolt.camperlog.domain.QUICK_CURRENCIES
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourInput
 import app.restvolt.camperlog.domain.TourRepository
+import app.restvolt.camperlog.domain.costErrors
 import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toTour
 import app.restvolt.camperlog.domain.travelDaysBetween
@@ -19,6 +23,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.util.Currency
 import java.util.Locale
 
 /** Zustand des Formulars. Fehler werden erst nach dem ersten Speicherversuch angezeigt. */
@@ -28,6 +33,8 @@ data class EditUiState(
     val notFound: Boolean = false,
     val input: TourInput = TourInput(),
     val errors: Map<TourField, TourError> = emptyMap(),
+    /** Fehler je Kostenzeile, Schlüssel ist der Index in [TourInput.costs]. */
+    val costErrors: Map<Int, TourError> = emptyMap(),
     val isDirty: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
@@ -57,7 +64,15 @@ class EditTourViewModel(
     private var autoTravelDays: String? = null
 
     init {
-        if (tourId != 0L) {
+        if (tourId == 0L) {
+            viewModelScope.launch {
+                val currency = repository.lastUsedCurrency() ?: return@launch
+                // Nur vorbelegen, solange der Nutzer noch nichts eingegeben hat.
+                _uiState.update {
+                    if (it.isDirty) it else it.copy(input = it.input.copy(costs = listOf(CostInput(currency = currency))))
+                }
+            }
+        } else {
             viewModelScope.launch {
                 val tour = repository.observeTour(tourId).first()
                 original = tour
@@ -72,8 +87,34 @@ class EditTourViewModel(
     fun onInputChange(transform: (TourInput) -> TourInput) {
         _uiState.update { state ->
             val input = transform(state.input)
-            state.copy(input = input, isDirty = true, errors = if (showErrors) input.validate(locale()) else emptyMap())
+            state.copy(
+                input = input,
+                isDirty = true,
+                errors = if (showErrors) input.validate(locale()) else emptyMap(),
+                costErrors = if (showErrors) input.costErrors(locale()) else emptyMap(),
+            )
         }
+    }
+
+    fun onCostAmountChange(index: Int, amount: String) = onCostChange(index) { it.copy(amount = amount) }
+
+    fun onCostCurrencyChange(index: Int, currency: Currency) = onCostChange(index) { it.copy(currency = currency) }
+
+    /** Hängt eine Kostenzeile mit der ersten noch freien Währung an, bevorzugt aus [QUICK_CURRENCIES]. */
+    fun onAddCost() = onInputChange { input ->
+        val used = input.costs.map(CostInput::currency).toSet()
+        val next = (QUICK_CURRENCIES + ALL_CURRENCIES).firstOrNull { it !in used } ?: return@onInputChange input
+        input.copy(costs = input.costs + CostInput(currency = next))
+    }
+
+    /** Entfernt eine Kostenzeile; die letzte bleibt stehen und wird nur geleert. */
+    fun onRemoveCost(index: Int) = onInputChange { input ->
+        val costs = input.costs.filterIndexed { i, _ -> i != index }
+        input.copy(costs = costs.ifEmpty { listOf(CostInput(currency = input.costs[index].currency)) })
+    }
+
+    private fun onCostChange(index: Int, transform: (CostInput) -> CostInput) = onInputChange { input ->
+        input.copy(costs = input.costs.mapIndexed { i, cost -> if (i == index) transform(cost) else cost })
     }
 
     fun onStartDateChange(date: LocalDate) = onInputChange { prefillTravelDays(it.copy(startDate = date)) }
@@ -88,11 +129,13 @@ class EditTourViewModel(
         val errors = state.input.validate(locale)
         if (errors.isNotEmpty()) {
             showErrors = true
-            _uiState.update { it.copy(errors = errors, rejectedSaves = it.rejectedSaves + 1) }
+            _uiState.update {
+                it.copy(errors = errors, costErrors = state.input.costErrors(locale), rejectedSaves = it.rejectedSaves + 1)
+            }
             return
         }
         val tour = state.input.toTour(original, locale)
-        _uiState.update { it.copy(isSaving = true, errors = emptyMap(), saveFailed = false) }
+        _uiState.update { it.copy(isSaving = true, errors = emptyMap(), costErrors = emptyMap(), saveFailed = false) }
         viewModelScope.launch {
             try {
                 repository.save(tour)

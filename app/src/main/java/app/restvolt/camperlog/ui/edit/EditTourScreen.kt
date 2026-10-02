@@ -225,14 +225,14 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 errors[TourField.DISTANCE_KM],
                 focusOf(TourField.DISTANCE_KM),
             ) { value -> change { it.copy(distanceKm = value) } }
-            FormTextField(
-                label = stringResource(R.string.field_cost_euro),
-                value = input.cost,
-                error = errors[TourField.COST],
-                onValueChange = { value -> change { it.copy(cost = value) } },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                placeholder = stringResource(R.string.edit_cost_placeholder),
-                modifier = focusOf(TourField.COST),
+            CostFields(
+                costs = input.costs,
+                errors = state.costErrors,
+                focusRequester = focus.getValue(TourField.COST),
+                onAmountChange = viewModel::onCostAmountChange,
+                onCurrencyChange = viewModel::onCostCurrencyChange,
+                onAdd = viewModel::onAddCost,
+                onRemove = viewModel::onRemoveCost,
             )
         }
         SectionCard {

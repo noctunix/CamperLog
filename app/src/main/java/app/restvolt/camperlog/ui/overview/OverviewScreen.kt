@@ -15,10 +15,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
-import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.TourTotals
 import app.restvolt.camperlog.domain.YearTotals
-import app.restvolt.camperlog.domain.formatAmount
+import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LabeledValue
@@ -62,6 +61,6 @@ private fun TotalsCard(title: String, totals: TourTotals) {
         LabeledValue(stringResource(R.string.field_distance), stringResource(R.string.distance_km, totals.distanceKm))
         LabeledValue(stringResource(R.string.field_travel_days), totals.travelDays.toString())
         LabeledValue(stringResource(R.string.field_overnight_stays), totals.overnightStays.toString())
-        LabeledValue(stringResource(R.string.field_cost), formatAmount(totals.costCents, EUR, currentLocale()))
+        LabeledValue(stringResource(R.string.field_cost), formatAmounts(totals.costs, currentLocale()))
     }
 }

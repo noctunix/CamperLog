@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.share
 
 import app.restvolt.camperlog.domain.EUR
+import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.amountToDecimal
 
@@ -24,11 +25,13 @@ val CSV_HEADER = listOf(
     "kartenlink",
     "angelegt",
     "geaendert",
+    "kosten",
 )
 
 /**
  * Erzeugt eine CSV-Datei nach RFC 4180 (Komma, CRLF) mit Kopfzeile.
- * Datumswerte sind ISO-8601, Kosten eine exakte Dezimalzahl mit Punkt.
+ * Datumswerte sind ISO-8601, Kosten exakte Dezimalzahlen mit Punkt. `kosten_eur` enthält nur den
+ * Euro-Anteil, `kosten` alle Beträge mit ISO-Code, z. B. `120.00 EUR; 1450.00 NOK; 3500 ISK`.
  * Freitextfelder werden per [neutralizeFormula] gegen Formel-Injection entschärft.
  */
 fun toursToCsv(tours: List<Tour>): String = buildString {
@@ -74,7 +77,7 @@ private fun Tour.csvFields(): List<String> = listOf(
     travelDays.toString(),
     overnightStays.toString(),
     distanceKm.toString(),
-    amountToDecimal(costCents, EUR),
+    amountToDecimal(costs.filter { it.currency == EUR }.sumOf(Money::minor), EUR),
     yesNo(pitchAssigned),
     electricityFlatRate.csvValue,
     lteQuality.csvValue,
@@ -84,6 +87,7 @@ private fun Tour.csvFields(): List<String> = listOf(
     neutralizeFormula(mapLink.orEmpty()),
     createdAt.toString(),
     updatedAt.toString(),
+    costs.joinToString("; ") { "${amountToDecimal(it.minor, it.currency)} ${it.currency.currencyCode}" },
 )
 
 private fun yesNo(value: Boolean) = if (value) "ja" else "nein"

@@ -5,10 +5,12 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TourTotals
 import app.restvolt.camperlog.domain.YearTotals
+import app.restvolt.camperlog.domain.sumByCurrency
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
+import java.util.Currency
 
 /** Synchrones In-Memory-Repository für UI-Tests; die Room-Anbindung testet RoomTourRepositoryTest. */
 class FakeTourRepository(initial: List<Tour> = emptyList()) : TourRepository {
@@ -61,6 +63,12 @@ class FakeTourRepository(initial: List<Tour> = emptyList()) : TourRepository {
         state.value += tour
     }
 
+    /** Wie die Room-Abfrage: letzte Währung der zuletzt geänderten Tour mit Kosten. */
+    override suspend fun lastUsedCurrency(): Currency? = state.value
+        .filter { it.costs.isNotEmpty() }
+        .maxWithOrNull(compareBy<Tour> { it.updatedAt }.thenBy { it.id })
+        ?.costs?.last()?.currency
+
     override fun observeTotals(): Flow<TourTotals> = state.map(::totalsOf)
 
     override fun observeYearTotals(): Flow<List<YearTotals>> = state.map { list ->
@@ -72,6 +80,6 @@ class FakeTourRepository(initial: List<Tour> = emptyList()) : TourRepository {
         distanceKm = tours.sumOf { it.distanceKm.toLong() },
         travelDays = tours.sumOf { it.travelDays.toLong() },
         overnightStays = tours.sumOf { it.overnightStays.toLong() },
-        costCents = tours.sumOf { it.costCents },
+        costs = tours.flatMap(Tour::costs).sumByCurrency(),
     )
 }

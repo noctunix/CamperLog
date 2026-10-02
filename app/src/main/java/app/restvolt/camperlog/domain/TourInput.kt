@@ -4,6 +4,7 @@ import java.net.URI
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import java.util.Currency
 import java.util.Locale
 
 /** Unvalidierte Eingaben des Tour-Formulars. Zahlen und Beträge liegen als Text vor. */
@@ -15,7 +16,7 @@ data class TourInput(
     val travelDays: String = "",
     val overnightStays: String = "",
     val distanceKm: String = "",
-    val cost: String = "",
+    val costs: List<CostInput> = listOf(CostInput()),
     val pitchAssigned: Boolean = false,
     val electricityFlatRate: ElectricityFlatRate = ElectricityFlatRate.NOT_USED,
     val lteQuality: LteQuality = LteQuality.GOOD,
@@ -24,6 +25,9 @@ data class TourInput(
     val notes: String = "",
     val mapLink: String = "",
 )
+
+/** Eine Kostenzeile des Formulars: Betrag als Text in [currency]. */
+data class CostInput(val amount: String = "", val currency: Currency = EUR)
 
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
 enum class TourField { START_DATE, END_DATE, DESTINATION, TRAVEL_DAYS, OVERNIGHT_STAYS, DISTANCE_KM, COST, MAP_LINK }
@@ -55,7 +59,7 @@ fun TourInput.validate(locale: Locale): Map<TourField, TourError> = buildMap {
     countError(travelDays)?.let { put(TourField.TRAVEL_DAYS, it) }
     countError(overnightStays)?.let { put(TourField.OVERNIGHT_STAYS, it) }
     countError(distanceKm)?.let { put(TourField.DISTANCE_KM, it) }
-    if (parseCost(cost, locale) == null) put(TourField.COST, TourError.INVALID_AMOUNT)
+    if (costErrors(locale).isNotEmpty()) put(TourField.COST, TourError.INVALID_AMOUNT)
     val days = parseCount(travelDays)
     val nights = parseCount(overnightStays)
     if (days != null && nights != null && nights > days) {
@@ -66,12 +70,20 @@ fun TourInput.validate(locale: Locale): Map<TourField, TourError> = buildMap {
     }
 }
 
+/** Fehler je Kostenzeile, Schlüssel ist der Index in [TourInput.costs]; leere Zeilen sind gültig. */
+fun TourInput.costErrors(locale: Locale): Map<Int, TourError> = buildMap {
+    costs.forEachIndexed { index, cost ->
+        if (parseCost(cost.amount, cost.currency, locale) == null) put(index, TourError.INVALID_AMOUNT)
+    }
+}
+
 /**
  * Erzeugt aus einer gültigen Eingabe eine [Tour]. Vorher muss [validate] leer sein.
  *
  * @param original die bearbeitete Tour oder `null` für eine neue Tour
  * @param locale dieselbe Sprache wie bei [validate]
- * @return Tour mit id und Zeitstempeln von [original]
+ * @return Tour mit id und Zeitstempeln von [original]; leere Kostenzeilen und Beträge von 0 fallen
+ *   weg, doppelte Währungen werden addiert
  */
 fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
     id = original?.id ?: 0,
@@ -82,7 +94,11 @@ fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
     travelDays = checkNotNull(parseCount(travelDays)),
     overnightStays = checkNotNull(parseCount(overnightStays)),
     distanceKm = checkNotNull(parseCount(distanceKm)),
-    costCents = checkNotNull(parseCost(cost, locale)),
+    costs = costs
+        .map { Money(checkNotNull(parseCost(it.amount, it.currency, locale)), it.currency) }
+        .groupBy(Money::currency)
+        .map { (currency, amounts) -> Money(amounts.sumOf(Money::minor), currency) }
+        .filter { it.minor != 0L },
     pitchAssigned = pitchAssigned,
     electricityFlatRate = electricityFlatRate,
     lteQuality = lteQuality,
@@ -94,7 +110,10 @@ fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
     updatedAt = original?.updatedAt ?: Instant.EPOCH,
 )
 
-/** Wandelt eine gespeicherte Tour in editierbare Formulardaten im Zahlenformat von [locale] um. */
+/**
+ * Wandelt eine gespeicherte Tour in editierbare Formulardaten im Zahlenformat von [locale] um.
+ * Ohne Kosten gibt es eine leere Zeile in Euro.
+ */
 fun Tour.toInput(locale: Locale): TourInput = TourInput(
     startDate = startDate,
     endDate = endDate,
@@ -103,7 +122,9 @@ fun Tour.toInput(locale: Locale): TourInput = TourInput(
     travelDays = travelDays.toString(),
     overnightStays = overnightStays.toString(),
     distanceKm = distanceKm.toString(),
-    cost = amountToInput(costCents, EUR, locale),
+    costs = costs
+        .map { CostInput(amountToInput(it.minor, it.currency, locale), it.currency) }
+        .ifEmpty { listOf(CostInput()) },
     pitchAssigned = pitchAssigned,
     electricityFlatRate = electricityFlatRate,
     lteQuality = lteQuality,
@@ -124,8 +145,8 @@ fun isWebUrl(link: String): Boolean {
 
 private fun parseCount(text: String): Int? = if (text.isBlank()) 0 else text.trim().toIntOrNull()?.takeIf { it >= 0 }
 
-private fun parseCost(text: String, locale: Locale): Long? =
-    if (text.isBlank()) 0 else parseAmount(text, EUR, locale)
+private fun parseCost(text: String, currency: Currency, locale: Locale): Long? =
+    if (text.isBlank()) 0 else parseAmount(text, currency, locale)
 
 private fun countError(text: String): TourError? = when {
     parseCount(text) != null -> null

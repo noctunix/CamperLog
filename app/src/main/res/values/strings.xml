@@ -21,7 +21,6 @@
     <string name="field_overnight_stays">Übernachtungen</string>
     <string name="field_distance">Kilometer</string>
     <string name="field_cost">Kosten</string>
-    <string name="field_cost_euro">Kosten (€)</string>
     <string name="field_pitch_assigned">Stellplatz zugewiesen</string>
     <string name="field_electricity">Strompauschale</string>
     <string name="field_lte">LTE</string>
@@ -93,7 +92,12 @@
     <string name="edit_discard_confirm">Verwerfen</string>
     <string name="edit_discard_keep">Weiter bearbeiten</string>
     <string name="edit_check_fields">Bitte die markierten Felder prüfen.</string>
-    <string name="edit_cost_placeholder">z. B. 49,90</string>
+    <string name="edit_cost_placeholder">z. B. %1$s</string>
+    <string name="edit_cost_amount">Kosten (%1$s)</string>
+    <string name="edit_cost_currency">Währung: %1$s</string>
+    <string name="edit_cost_pick_currency">Währung wählen</string>
+    <string name="edit_cost_add">Weitere Währung</string>
+    <string name="edit_cost_remove">Betrag in %1$s entfernen</string>
     <string name="edit_map_link_placeholder">https://…</string>
     <string name="edit_pick_date">%1$s wählen</string>
     <string name="edit_choice_option">%1$s: %2$s</string>

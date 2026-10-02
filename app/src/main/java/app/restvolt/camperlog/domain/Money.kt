@@ -9,6 +9,33 @@ import java.util.Locale
 /** Euro, die Vorgabewährung. */
 val EUR: Currency = Currency.getInstance("EUR")
 
+/** Häufige Reisewährungen, die in der Auswahl oben stehen. */
+val QUICK_CURRENCIES: List<Currency> =
+    listOf("EUR", "DKK", "NOK", "SEK", "CHF", "GBP", "PLN", "CZK", "HUF", "ISK").map(Currency::getInstance)
+
+/** Alle Währungen nach ISO 4217 außer Rechnungseinheiten wie Gold (XAU), sortiert nach Code. */
+val ALL_CURRENCIES: List<Currency> by lazy {
+    Currency.getAvailableCurrencies().filter { it.defaultFractionDigits >= 0 }.sortedBy { it.currencyCode }
+}
+
+/** Betrag [minor] in der kleinsten Einheit von [currency], z. B. Cent. */
+data class Money(val minor: Long, val currency: Currency)
+
+/** Summiert Beträge je Währung, sortiert nach Währungscode. Summen von 0 fallen weg. */
+fun Iterable<Money>.sumByCurrency(): List<Money> =
+    groupBy(Money::currency)
+        .map { (currency, amounts) -> Money(amounts.sumOf(Money::minor), currency) }
+        .filter { it.minor != 0L }
+        .sortedBy { it.currency.currencyCode }
+
+/** Formatiert Beträge mehrerer Währungen, z. B. `1.234,56 € · 3.200,00 NOK`; ohne Beträge `0,00 €`. */
+fun formatAmounts(amounts: List<Money>, locale: Locale): String =
+    if (amounts.isEmpty()) {
+        formatAmount(0, EUR, locale)
+    } else {
+        amounts.joinToString(" · ") { formatAmount(it.minor, it.currency, locale) }
+    }
+
 /** Nachkommastellen von [currency], z. B. 2 für EUR und 0 für ISK. */
 val Currency.fractionDigits: Int
     get() = defaultFractionDigits.coerceAtLeast(0)

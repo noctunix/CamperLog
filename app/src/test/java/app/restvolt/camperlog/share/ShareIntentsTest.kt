@@ -1,8 +1,10 @@
 package app.restvolt.camperlog.share
 
 import android.content.Intent
+import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
@@ -34,7 +36,7 @@ class ShareIntentsTest {
         travelDays = 3,
         overnightStays = 2,
         distanceKm = 412,
-        costCents = 8_950,
+        costs = listOf(Money(8_950, EUR)),
         pitchAssigned = true,
         electricityFlatRate = ElectricityFlatRate.NOT_USED,
         lteQuality = LteQuality.OK,

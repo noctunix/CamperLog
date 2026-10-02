@@ -1,7 +1,9 @@
 package app.restvolt.camperlog.share
 
+import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
@@ -9,6 +11,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Currency
 
 class TourCsvTest {
 
@@ -45,7 +48,7 @@ class TourCsvTest {
             travelDays = 3,
             overnightStays = 2,
             distanceKm = 412,
-            costCents = 8_950,
+            costs = listOf(Money(8_950, EUR), Money(145_000, NOK)),
             pitchAssigned = true,
             electricityFlatRate = ElectricityFlatRate.NOT_USED,
             lteQuality = LteQuality.GOOD,
@@ -64,7 +67,7 @@ class TourCsvTest {
         assertEquals(
             "3,2026-07-10,2026-07-12,\"Bodensee, Nordufer\",${tour.tourType.csvValue},3,2,412,89.50,ja," +
                 "${ElectricityFlatRate.NOT_USED.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
-                "\"Sagte: \"\"toll\"\"\",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z",
+                "\"Sagte: \"\"toll\"\"\",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z,\"89.50 EUR; 1450.00 NOK\"",
             lines[1],
         )
         assertEquals("", lines[2])
@@ -100,7 +103,7 @@ class TourCsvTest {
             travelDays = 1,
             overnightStays = 0,
             distanceKm = 80,
-            costCents = 0,
+            costs = emptyList(),
             pitchAssigned = false,
             electricityFlatRate = ElectricityFlatRate.NO,
             lteQuality = LteQuality.OK,
@@ -117,9 +120,38 @@ class TourCsvTest {
         assertEquals(
             "1,2026-07-10,2026-07-10,'=cmd|' /C calc'!A0,${TourType.DAY_TRIP.csvValue},1,0,80,0.00,nein," +
                 "${ElectricityFlatRate.NO.csvValue},${LteQuality.OK.csvValue},${PitchSlope.SLOPED.csvValue},ja," +
-                "\"'@Kontakt, bitte\",,2026-07-10T08:00:00Z,2026-07-10T08:00:00Z",
+                "\"'@Kontakt, bitte\",,2026-07-10T08:00:00Z,2026-07-10T08:00:00Z,",
             row,
         )
+    }
+
+    @Test
+    fun kostenEurHoldsOnlyTheEuroShare() {
+        val tour = Tour(
+            id = 2,
+            startDate = LocalDate.of(2026, 8, 1),
+            endDate = LocalDate.of(2026, 8, 4),
+            destination = "Lofoten",
+            tourType = TourType.VACATION,
+            travelDays = 4,
+            overnightStays = 3,
+            distanceKm = 900,
+            costs = listOf(Money(300_000, NOK), Money(350_000, ISK)),
+            pitchAssigned = false,
+            electricityFlatRate = ElectricityFlatRate.NO,
+            lteQuality = LteQuality.OK,
+            pitchSlope = PitchSlope.LEVEL,
+            levelingBlocksUsed = false,
+            notes = "",
+            mapLink = null,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+
+        val values = toursToCsv(listOf(tour)).split("\r\n")[1].split(",")
+
+        assertEquals("0.00", values[CSV_HEADER.indexOf("kosten_eur")])
+        assertEquals("\"3000.00 NOK; 350000 ISK\"", values[CSV_HEADER.indexOf("kosten")])
     }
 
     @Test
@@ -127,3 +159,6 @@ class TourCsvTest {
         assertEquals(CSV_HEADER.joinToString(",") + "\r\n", toursToCsv(emptyList()))
     }
 }
+
+private val NOK: Currency = Currency.getInstance("NOK")
+private val ISK: Currency = Currency.getInstance("ISK")

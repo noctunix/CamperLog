@@ -4,7 +4,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 /**
- * Eine Wohnmobil-Tour. Geldbeträge sind in Cent gespeichert.
+ * Eine Wohnmobil-Tour. [costs] enthält höchstens einen Betrag je Währung.
  * Eine Tour mit [id] 0 ist noch nicht gespeichert.
  */
 data class Tour(
@@ -16,7 +16,7 @@ data class Tour(
     val travelDays: Int,
     val overnightStays: Int,
     val distanceKm: Int,
-    val costCents: Long,
+    val costs: List<Money>,
     val pitchAssigned: Boolean,
     val electricityFlatRate: ElectricityFlatRate,
     val lteQuality: LteQuality,
@@ -58,13 +58,13 @@ enum class PitchSlope(val csvValue: String) {
     SLOPED("abschüssig"),
 }
 
-/** Aufsummierte Kennzahlen über eine Menge von Touren. */
+/** Aufsummierte Kennzahlen über eine Menge von Touren; [costs] je Währung, sortiert nach Code. */
 data class TourTotals(
     val tours: Int,
     val distanceKm: Long,
     val travelDays: Long,
     val overnightStays: Long,
-    val costCents: Long,
+    val costs: List<Money>,
 )
 
 /** Kennzahlen [totals] aller Touren, die im Jahr [year] beginnen. */

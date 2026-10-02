@@ -5,6 +5,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
+import java.util.Currency
 import java.util.Locale
 
 class TourInputTest {
@@ -18,7 +19,7 @@ class TourInputTest {
         travelDays = "3",
         overnightStays = "2",
         distanceKm = "840",
-        cost = "123,45",
+        costs = listOf(CostInput("123,45")),
     )
 
     @Test
@@ -28,11 +29,11 @@ class TourInputTest {
 
     @Test
     fun emptyOptionalNumbersCountAsZero() {
-        val input = valid.copy(travelDays = "", overnightStays = "", distanceKm = "", cost = "")
+        val input = valid.copy(travelDays = "", overnightStays = "", distanceKm = "", costs = listOf(CostInput()))
         assertTrue(input.validate(de).isEmpty())
         val tour = input.toTour(null, de)
         assertEquals(0, tour.travelDays)
-        assertEquals(0L, tour.costCents)
+        assertEquals(emptyList<Money>(), tour.costs)
     }
 
     @Test
@@ -59,7 +60,7 @@ class TourInputTest {
 
     @Test
     fun negativeAndMalformedNumbersAreInvalid() {
-        val errors = valid.copy(travelDays = "-1", distanceKm = "12km", cost = "-5").validate(de)
+        val errors = valid.copy(travelDays = "-1", distanceKm = "12km", costs = listOf(CostInput("-5"))).validate(de)
         assertEquals(TourError.NEGATIVE_NUMBER, errors[TourField.TRAVEL_DAYS])
         assertEquals(TourError.INVALID_NUMBER, errors[TourField.DISTANCE_KM])
         assertEquals(TourError.INVALID_AMOUNT, errors[TourField.COST])
@@ -84,7 +85,7 @@ class TourInputTest {
         assertEquals(7L, tour.id)
         assertEquals("Ostsee", tour.destination)
         assertNull(tour.mapLink)
-        assertEquals(12_345L, tour.costCents)
+        assertEquals(listOf(Money(12_345, EUR)), tour.costs)
     }
 
     @Test
@@ -96,10 +97,40 @@ class TourInputTest {
     @Test
     fun costFollowsLocaleNumberFormat() {
         val tour = valid.toTour(null, de)
-        assertEquals("123.45", tour.toInput(Locale.US).cost)
+        assertEquals("123.45", tour.toInput(Locale.US).costs.single().amount)
         assertEquals(tour, tour.toInput(Locale.US).toTour(tour, Locale.US))
-        assertEquals(TourError.INVALID_AMOUNT, valid.copy(cost = "1,234").validate(de)[TourField.COST])
-        assertTrue(valid.copy(cost = "1,234").validate(Locale.US).isEmpty())
+        assertEquals(TourError.INVALID_AMOUNT, valid.copy(costs = listOf(CostInput("1,234"))).validate(de)[TourField.COST])
+        assertTrue(valid.copy(costs = listOf(CostInput("1,234"))).validate(Locale.US).isEmpty())
+    }
+
+    @Test
+    fun severalCurrenciesKeepTheirOrderAndDigits() {
+        val input = valid.copy(costs = listOf(CostInput("1.450,50", NOK), CostInput("12.000", ISK), CostInput("20", EUR)))
+        val tour = input.toTour(null, de)
+        assertEquals(listOf(Money(145_050, NOK), Money(12_000, ISK), Money(2_000, EUR)), tour.costs)
+        assertEquals(listOf("1450,50", "12000", "20,00"), tour.toInput(de).costs.map(CostInput::amount))
+        assertEquals(tour, tour.toInput(de).toTour(tour, de))
+    }
+
+    @Test
+    fun costErrorsPointToTheFaultyRow() {
+        val input = valid.copy(costs = listOf(CostInput("10"), CostInput("1,5", ISK), CostInput("", NOK)))
+        assertEquals(mapOf(1 to TourError.INVALID_AMOUNT), input.costErrors(de))
+        assertEquals(TourError.INVALID_AMOUNT, input.validate(de)[TourField.COST])
+    }
+
+    @Test
+    fun blankAndZeroRowsAreDroppedAndDuplicatesSummed() {
+        val input = valid.copy(
+            costs = listOf(CostInput("10", EUR), CostInput("", NOK), CostInput("0", ISK), CostInput("2,50", EUR)),
+        )
+        assertEquals(listOf(Money(1_250, EUR)), input.toTour(null, de).costs)
+    }
+
+    @Test
+    fun tourWithoutCostsGetsOneEmptyEuroRow() {
+        val tour = valid.copy(costs = listOf(CostInput())).toTour(null, de)
+        assertEquals(listOf(CostInput()), tour.toInput(de).costs)
     }
 
     @Test
@@ -108,3 +139,6 @@ class TourInputTest {
         assertEquals(3L, travelDaysBetween(LocalDate.of(2026, 2, 27), LocalDate.of(2026, 3, 1)))
     }
 }
+
+private val NOK: Currency = Currency.getInstance("NOK")
+private val ISK: Currency = Currency.getInstance("ISK")

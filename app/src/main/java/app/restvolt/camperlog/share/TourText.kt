@@ -2,9 +2,8 @@ package app.restvolt.camperlog.share
 
 import android.content.res.Resources
 import app.restvolt.camperlog.R
-import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.Tour
-import app.restvolt.camperlog.domain.formatAmount
+import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.domain.period
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.yesNoRes
@@ -22,7 +21,7 @@ fun tourShareText(res: Resources, tour: Tour): String = buildString {
             res.getString(R.string.distance_km, tour.distanceKm),
         ),
     )
-    appendLine(res.getString(R.string.share_cost, formatAmount(tour.costCents, EUR, locale)))
+    appendLine(res.getString(R.string.share_cost, formatAmounts(tour.costs, locale)))
     appendLine(res.getString(R.string.share_pitch_assigned, res.getString(yesNoRes(tour.pitchAssigned))))
     appendLine(res.getString(R.string.share_electricity, res.getString(tour.electricityFlatRate.labelRes)))
     appendLine(res.getString(R.string.share_lte, res.getString(tour.lteQuality.labelRes)))

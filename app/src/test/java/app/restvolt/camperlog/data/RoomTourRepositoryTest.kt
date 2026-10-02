@@ -3,8 +3,10 @@ package app.restvolt.camperlog.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourTotals
@@ -22,6 +24,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Currency
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -79,6 +82,53 @@ class RoomTourRepositoryTest {
     }
 
     @Test
+    fun costsKeepOrderAndAreReplacedOnUpdate() = runTest {
+        val costs = listOf(Money(145_050, NOK), Money(12_000, ISK), eur(2_000))
+        val id = repository.save(tour(start = "2026-05-01", costs = costs))
+        val stored = checkNotNull(repository.observeTour(id).first())
+        assertEquals(costs, stored.costs)
+        assertEquals(costs, repository.allTours().single().costs)
+
+        repository.save(stored.copy(costs = listOf(eur(500))))
+        assertEquals(listOf(eur(500)), repository.observeTour(id).first()?.costs)
+
+        repository.save(stored.copy(costs = emptyList()))
+        assertEquals(emptyList<Money>(), repository.observeTour(id).first()?.costs)
+        assertEquals(0, costRows())
+    }
+
+    @Test
+    fun deletingTourRemovesItsCosts() = runTest {
+        val id = repository.save(tour(start = "2026-05-01", costs = listOf(eur(100), Money(200, NOK))))
+        repository.save(tour(start = "2026-06-01", costs = listOf(eur(300))))
+        repository.delete(id)
+        assertEquals(1, costRows())
+    }
+
+    @Test
+    fun lastUsedCurrencyComesFromMostRecentlyChangedTour() = runTest {
+        assertNull(repository.lastUsedCurrency())
+
+        val first = repository.save(tour(start = "2026-05-01", costs = listOf(eur(100), Money(200, NOK))))
+        assertEquals(NOK, repository.lastUsedCurrency())
+
+        now = Instant.parse("2026-01-02T10:00:00Z")
+        repository.save(tour(start = "2025-01-01", costs = listOf(Money(5_000, ISK))))
+        assertEquals(ISK, repository.lastUsedCurrency())
+
+        now = Instant.parse("2026-01-03T10:00:00Z")
+        repository.save(checkNotNull(repository.observeTour(first).first()).copy(destination = "Neu"))
+        assertEquals(NOK, repository.lastUsedCurrency())
+
+        // Touren ohne Kosten zählen nicht.
+        now = Instant.parse("2026-01-04T10:00:00Z")
+        repository.save(tour(start = "2026-07-01", costs = emptyList()))
+        assertEquals(NOK, repository.lastUsedCurrency())
+    }
+
+    private fun costRows(): Int = db.query("SELECT COUNT(*) FROM tour_costs", null).use { it.moveToFirst(); it.getInt(0) }
+
+    @Test
     fun listIsNewestFirstAndExportOldestFirst() = runTest {
         repository.save(tour(start = "2025-08-01", destination = "B"))
         repository.save(tour(start = "2026-03-01", destination = "C"))
@@ -90,23 +140,23 @@ class RoomTourRepositoryTest {
 
     @Test
     fun totalsAreZeroWithoutTours() = runTest {
-        assertEquals(TourTotals(0, 0, 0, 0, 0), repository.observeTotals().first())
+        assertEquals(TourTotals(0, 0, 0, 0, emptyList()), repository.observeTotals().first())
         assertEquals(emptyList<YearTotals>(), repository.observeYearTotals().first())
     }
 
     @Test
     fun aggregatesTotalsAndYearsDescending() = runTest {
-        repository.save(tour(start = "2025-07-01", km = 300, days = 3, nights = 2, cents = 10_050))
-        repository.save(tour(start = "2025-12-30", km = 200, days = 4, nights = 3, cents = 5_000))
-        repository.save(tour(start = "2026-04-10", km = 150, days = 2, nights = 1, cents = 2_599))
-        repository.save(tour(start = "2023-01-01", km = 50, days = 1, nights = 0, cents = 0))
+        repository.save(tour(start = "2025-07-01", km = 300, days = 3, nights = 2, costs = listOf(eur(10_050), Money(30_000, NOK))))
+        repository.save(tour(start = "2025-12-30", km = 200, days = 4, nights = 3, costs = listOf(eur(5_000))))
+        repository.save(tour(start = "2026-04-10", km = 150, days = 2, nights = 1, costs = listOf(Money(1_500, NOK), eur(2_599))))
+        repository.save(tour(start = "2023-01-01", km = 50, days = 1, nights = 0, costs = emptyList()))
 
-        assertEquals(TourTotals(4, 700, 10, 6, 17_649), repository.observeTotals().first())
+        assertEquals(TourTotals(4, 700, 10, 6, listOf(eur(17_649), Money(31_500, NOK))), repository.observeTotals().first())
         assertEquals(
             listOf(
-                YearTotals(2026, TourTotals(1, 150, 2, 1, 2_599)),
-                YearTotals(2025, TourTotals(2, 500, 7, 5, 15_050)),
-                YearTotals(2023, TourTotals(1, 50, 1, 0, 0)),
+                YearTotals(2026, TourTotals(1, 150, 2, 1, listOf(eur(2_599), Money(1_500, NOK)))),
+                YearTotals(2025, TourTotals(2, 500, 7, 5, listOf(eur(15_050), Money(30_000, NOK)))),
+                YearTotals(2023, TourTotals(1, 50, 1, 0, emptyList())),
             ),
             repository.observeYearTotals().first(),
         )
@@ -118,7 +168,7 @@ class RoomTourRepositoryTest {
         km: Int = 100,
         days: Int = 2,
         nights: Int = 1,
-        cents: Long = 1_000,
+        costs: List<Money> = listOf(eur(1_000)),
     ): Tour {
         val startDate = LocalDate.parse(start)
         return Tour(
@@ -129,7 +179,7 @@ class RoomTourRepositoryTest {
             travelDays = days,
             overnightStays = nights,
             distanceKm = km,
-            costCents = cents,
+            costs = costs,
             pitchAssigned = true,
             electricityFlatRate = ElectricityFlatRate.YES,
             lteQuality = LteQuality.OK,
@@ -142,3 +192,8 @@ class RoomTourRepositoryTest {
         )
     }
 }
+
+private val NOK: Currency = Currency.getInstance("NOK")
+private val ISK: Currency = Currency.getInstance("ISK")
+
+private fun eur(minor: Long) = Money(minor, EUR)

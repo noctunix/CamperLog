@@ -2,8 +2,10 @@ package app.restvolt.camperlog.share
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
@@ -14,6 +16,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Currency
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "de-rDE")
@@ -30,7 +33,7 @@ class TourTextTest {
         travelDays = 3,
         overnightStays = 2,
         distanceKm = 412,
-        costCents = 8_950,
+        costs = listOf(Money(8_950, EUR)),
         pitchAssigned = true,
         electricityFlatRate = ElectricityFlatRate.NOT_USED,
         lteQuality = LteQuality.OK,
@@ -62,6 +65,18 @@ class TourTextTest {
     }
 
     @Test
+    fun costsInSeveralCurrenciesAreJoined() {
+        val lines = tourShareText(resources, tour.copy(costs = listOf(Money(8_950, EUR), Money(3_500, ISK)))).lines()
+
+        assertEquals("Kosten: 89,50\u00A0€ · 3.500\u00A0ISK", lines[3])
+    }
+
+    @Test
+    fun tourWithoutCostsShowsZero() {
+        assertEquals("Kosten: 0,00\u00A0€", tourShareText(resources, tour.copy(costs = emptyList())).lines()[3])
+    }
+
+    @Test
     fun singleDayTripUsesSingularAndSkipsEmptyOptionalLines() {
         val dayTrip = tour.copy(
             endDate = tour.startDate,
@@ -88,3 +103,5 @@ class TourTextTest {
         assertEquals("Kosten: €89.50", lines[3])
     }
 }
+
+private val ISK: Currency = Currency.getInstance("ISK")

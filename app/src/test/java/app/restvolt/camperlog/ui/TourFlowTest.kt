@@ -21,6 +21,7 @@ import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -33,8 +34,10 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
+import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
@@ -48,6 +51,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Currency
 
 /** End-to-end-Abläufe durch Navigation, Screens und ViewModels gegen ein Fake-Repository. */
 @RunWith(RobolectricTestRunner::class)
@@ -341,6 +345,37 @@ class TourFlowTest {
     }
 
     @Test
+    fun createTour_withSecondCurrencyFromPicker() {
+        val repository = start()
+        compose.onNodeWithText("Neue Tour").performClick()
+        pickDay("Startdatum", 10)
+        pickDay("Enddatum", 12)
+        destinationField().performTextInput("Lofoten")
+        compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performScrollTo().performTextInput("12.50")
+        compose.onNodeWithContentDescription("Betrag in EUR entfernen").assertDoesNotExist()
+
+        compose.onNodeWithText("Weitere Währung").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Währung: Danish Krone").performScrollTo().performClick()
+        compose.onNodeWithText("EUR · Euro").assertDoesNotExist()
+        compose.onNode(hasText("NOK · Norwegian Krone") and isSelectable()).performClick()
+        compose.onNode(hasSetTextAction() and hasText("Kosten (NOK)")).performScrollTo().performTextInput("1,450")
+        compose.onNodeWithContentDescription("Betrag in NOK entfernen").assertExists()
+        clickSave()
+
+        compose.onNodeWithText("Lofoten").assertExists()
+        val nok = Currency.getInstance("NOK")
+        assertEquals(listOf(Money(1_250, EUR), Money(145_000, nok)), repository.tours.single().costs)
+    }
+
+    @Test
+    fun newTour_startsWithLastUsedCurrency() {
+        start(tour(id = 1, destination = "Lofoten").copy(costs = listOf(Money(10_000, Currency.getInstance("NOK")))))
+        compose.onNodeWithText("Neue Tour").performClick()
+
+        compose.onNode(hasSetTextAction() and hasText("Kosten (NOK)")).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun search_filtersListByDestination() {
         start(tour(id = 1, destination = "Gardasee"), tour(id = 2, destination = "Ostsee"))
 
@@ -359,7 +394,7 @@ class TourFlowTest {
         travelDays = 3,
         overnightStays = 2,
         distanceKm = 420,
-        costCents = 8_990,
+        costs = listOf(Money(8_990, EUR)),
         pitchAssigned = true,
         electricityFlatRate = ElectricityFlatRate.YES,
         lteQuality = LteQuality.GOOD,

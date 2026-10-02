@@ -1,7 +1,9 @@
 package app.restvolt.camperlog.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Currency
 import java.util.Locale
@@ -90,5 +92,27 @@ class MoneyTest {
                 assertEquals(it, euro(amountToDecimal(it, EUR), locale))
             }
         }
+    }
+
+    @Test
+    fun sumsPerCurrencySortedByCodeWithoutZeroSums() {
+        val nok = Currency.getInstance("NOK")
+        val sums = listOf(Money(100, nok), Money(250, EUR), Money(-100, nok), Money(50, EUR), Money(7, isk)).sumByCurrency()
+        assertEquals(listOf(Money(300, EUR), Money(7, isk)), sums)
+        assertEquals(emptyList<Money>(), emptyList<Money>().sumByCurrency())
+    }
+
+    @Test
+    fun formatsSeveralAmountsJoined() {
+        assertEquals("0,00 €", plain(formatAmounts(emptyList(), de)))
+        assertEquals("12,50 € · 1.500 ISK", plain(formatAmounts(listOf(Money(1_250, EUR), Money(1_500, isk)), de)))
+    }
+
+    @Test
+    fun currencyListsContainQuickCurrenciesAndNoUnitsOfAccount() {
+        assertEquals(EUR, QUICK_CURRENCIES.first())
+        assertTrue(ALL_CURRENCIES.containsAll(QUICK_CURRENCIES))
+        assertEquals(ALL_CURRENCIES.sortedBy { it.currencyCode }, ALL_CURRENCIES)
+        assertFalse(Currency.getInstance("XAU") in ALL_CURRENCIES)
     }
 }

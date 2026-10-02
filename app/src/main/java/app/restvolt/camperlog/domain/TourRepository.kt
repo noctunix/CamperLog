@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.domain
 
 import kotlinx.coroutines.flow.Flow
+import java.util.Currency
 
 /** Zugriff auf alle gespeicherten Touren. */
 interface TourRepository {
@@ -27,6 +28,9 @@ interface TourRepository {
 
     /** Legt eine zuvor gelöschte [tour] mit ihrer bisherigen id und ihren Zeitstempeln wieder an. */
     suspend fun restore(tour: Tour)
+
+    /** Liefert die Währung des letzten Kostenbetrags der zuletzt geänderten Tour oder `null` ohne Kosten. */
+    suspend fun lastUsedCurrency(): Currency?
 
     /** Liefert die Gesamtwerte über alle Touren. */
     fun observeTotals(): Flow<TourTotals>
