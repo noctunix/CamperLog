@@ -9,21 +9,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -31,6 +30,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +42,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
@@ -55,6 +58,7 @@ import kotlinx.coroutines.launch
 import java.io.IOException
 
 /** Startseite: Tourenliste mit Suche, Jahresfilter und Einstieg in Eingabe, Übersicht und CSV-Export. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ToursScreen(
     viewModel: ToursViewModel,
@@ -91,24 +95,45 @@ fun ToursScreen(
         }
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            ToursTopBar(
+                scrollBehavior = scrollBehavior,
+                onOpenOverview = onOpenOverview,
+                onExport = exportCsv,
+                exportEnabled = !exporting,
+            )
+        },
+        floatingActionButton = {
+            // Content-Überladung statt text/icon: Letztere blendet den Text per
+            // clearAndSetSemantics aus, dann hätte der FAB für TalkBack keinen Namen.
+            ExtendedFloatingActionButton(onClick = onAddTour) {
+                Icon(painterResource(R.drawable.ic_add), contentDescription = null)
+                Spacer(Modifier.width(12.dp))
+                Text("Neue Tour")
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbar) },
+    ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
-                top = padding.calculateTopPadding() + 24.dp,
-                bottom = padding.calculateBottomPadding() + 24.dp,
+                top = padding.calculateTopPadding() + 8.dp,
+                // Platz unter der letzten Karte, damit der FAB sie nicht verdeckt.
+                bottom = padding.calculateBottomPadding() + 96.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { Header() }
             item {
-                ActionButtons(
-                    onAddTour = onAddTour,
-                    onOpenOverview = onOpenOverview,
-                    onExport = exportCsv,
-                    exportEnabled = !exporting,
+                Text(
+                    "Logbuch Hannes – unsere Wohnmobil-Fahrten",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (state.hasAnyTour) {
@@ -121,7 +146,7 @@ fun ToursScreen(
             }
             when {
                 state.isLoading -> Unit
-                !state.hasAnyTour -> item { EmptyHint("Noch keine Touren. Lege mit „Eingabe“ die erste Fahrt an.") }
+                !state.hasAnyTour -> item { EmptyHint("Noch keine Touren. Lege mit „Neue Tour“ die erste Fahrt an.") }
                 state.tours.isEmpty() -> item { EmptyHint("Keine Tour passt zu Suche und Filter.") }
                 else -> items(state.tours, key = Tour::id) { tour ->
                     TourCard(tour = tour, onClick = { onOpenTour(tour.id) })
@@ -151,50 +176,30 @@ fun ToursScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Header() {
-    Column(Modifier.padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Touren", style = MaterialTheme.typography.displaySmall)
-        Text(
-            "Logbuch Hannes – unsere Wohnmobil-Fahrten",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun ActionButtons(
-    onAddTour: () -> Unit,
+private fun ToursTopBar(
+    scrollBehavior: TopAppBarScrollBehavior,
     onOpenOverview: () -> Unit,
     onExport: () -> Unit,
     exportEnabled: Boolean,
 ) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        val buttonModifier = Modifier.weight(1f).heightIn(min = 56.dp)
-        val contentPadding = PaddingValues(horizontal = 8.dp)
-        Button(onClick = onAddTour, modifier = buttonModifier, contentPadding = contentPadding) {
-            ButtonContent(R.drawable.ic_add, "Eingabe")
-        }
-        OutlinedButton(onClick = onOpenOverview, modifier = buttonModifier, contentPadding = contentPadding) {
-            ButtonContent(R.drawable.ic_bar_chart, "Übersicht")
-        }
-        OutlinedButton(
-            onClick = onExport,
-            enabled = exportEnabled,
-            modifier = buttonModifier,
-            contentPadding = contentPadding,
-        ) {
-            ButtonContent(R.drawable.ic_download, "CSV")
-        }
-    }
-}
-
-@Composable
-private fun ButtonContent(icon: Int, label: String) {
-    Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(18.dp))
-    Spacer(Modifier.width(6.dp))
-    Text(label, maxLines = 1)
+    TopAppBar(
+        title = { Text("Touren") },
+        actions = {
+            IconButton(onClick = onOpenOverview) {
+                Icon(painterResource(R.drawable.ic_bar_chart), contentDescription = "Übersicht")
+            }
+            IconButton(onClick = onExport, enabled = exportEnabled) {
+                Icon(painterResource(R.drawable.ic_download), contentDescription = "Als CSV exportieren")
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.primary,
+        ),
+        scrollBehavior = scrollBehavior,
+    )
 }
 
 @Composable

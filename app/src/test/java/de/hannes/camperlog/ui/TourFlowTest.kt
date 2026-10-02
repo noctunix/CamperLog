@@ -66,9 +66,9 @@ class TourFlowTest {
     @Test
     fun createTour_appearsInListAndIsStored() {
         val repository = start()
-        compose.onNodeWithText("Noch keine Touren. Lege mit „Eingabe“ die erste Fahrt an.").assertExists()
+        compose.onNodeWithText("Noch keine Touren. Lege mit „Neue Tour“ die erste Fahrt an.").assertExists()
 
-        compose.onNodeWithText("Eingabe").performClick()
+        compose.onNodeWithText("Neue Tour").performClick()
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Gardasee")
@@ -85,12 +85,12 @@ class TourFlowTest {
     @Test
     fun saveWithoutRequiredFields_showsErrorsAndStaysOnForm() {
         val repository = start()
-        compose.onNodeWithText("Eingabe").performClick()
+        compose.onNodeWithText("Neue Tour").performClick()
         clickSave()
 
         compose.onNodeWithText("Ziel erforderlich").assertExists()
         compose.onNodeWithText("Startdatum erforderlich").assertExists()
-        compose.onNodeWithText("Neue Tour").assertExists()
+        destinationField().assertExists()
         assertEquals(0, repository.tours.size)
     }
 
@@ -128,7 +128,7 @@ class TourFlowTest {
 
         compose.onNodeWithText("Touren").assertExists()
         compose.onNodeWithText("„Gardasee“ gelöscht").assertExists()
-        compose.onNodeWithText("Noch keine Touren. Lege mit „Eingabe“ die erste Fahrt an.").assertExists()
+        compose.onNodeWithText("Noch keine Touren. Lege mit „Neue Tour“ die erste Fahrt an.").assertExists()
         assertEquals(0, repository.tours.size)
     }
 
@@ -161,7 +161,7 @@ class TourFlowTest {
     @Test
     fun saveRejected_focusesFirstInvalidFieldAndAnnouncesHint() {
         start()
-        compose.onNodeWithText("Eingabe").performClick()
+        compose.onNodeWithText("Neue Tour").performClick()
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
         compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performTextInput("abc")
@@ -176,7 +176,7 @@ class TourFlowTest {
     @Test
     fun saveRejected_scrollsDownToInvalidField() {
         start()
-        compose.onNodeWithText("Eingabe").performClick()
+        compose.onNodeWithText("Neue Tour").performClick()
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Ostsee")
@@ -191,7 +191,7 @@ class TourFlowTest {
         val repository = start()
         repository.failWrites = true
 
-        compose.onNodeWithText("Eingabe").performClick()
+        compose.onNodeWithText("Neue Tour").performClick()
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Ostsee")
@@ -215,10 +215,10 @@ class TourFlowTest {
         val repository = start(tour(id = 1, destination = "Gardasee"))
         repository.failExportRead = true
 
-        compose.onNodeWithText("CSV").performClick()
+        compose.onNodeWithContentDescription("Als CSV exportieren").performClick()
 
         compose.onNodeWithText("CSV-Export fehlgeschlagen").assertExists()
-        compose.onNodeWithText("CSV").assertIsEnabled()
+        compose.onNodeWithContentDescription("Als CSV exportieren").assertIsEnabled()
     }
 
     @Test
@@ -226,7 +226,7 @@ class TourFlowTest {
         start(tour(id = 1, destination = "Gardasee"))
         compose.onNode(hasSetTextAction() and hasText("Ziel suchen")).performTextInput("garda")
 
-        compose.onNodeWithText("Eingabe").performClick()
+        compose.onNodeWithText("Neue Tour").performClick()
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Ostsee")
@@ -238,15 +238,26 @@ class TourFlowTest {
     }
 
     @Test
+    fun list_offersNewTourFabAndOverviewInTopBar() {
+        start(tour(id = 1, destination = "Gardasee"))
+
+        compose.onNode(hasText("Neue Tour") and hasClickAction()).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Übersicht").performClick()
+
+        compose.onNodeWithContentDescription("Zurück").assertExists()
+        compose.onNodeWithText("Übersicht").assertExists()
+    }
+
+    @Test
     fun leavingDirtyForm_asksBeforeDiscarding() {
         val repository = start()
-        compose.onNodeWithText("Eingabe").performClick()
+        compose.onNodeWithText("Neue Tour").performClick()
         destinationField().performTextInput("Ostsee")
 
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Änderungen verwerfen?").assertExists()
         compose.onNodeWithText("Weiter bearbeiten").performClick()
-        compose.onNodeWithText("Neue Tour").assertExists()
+        destinationField().assertExists()
 
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Verwerfen").performClick()
