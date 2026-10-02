@@ -28,8 +28,13 @@ class ThemeContrastTest {
         }
         assertContrast("Text im aktiven Segment", scheme.onPrimary, scheme.primary, 4.5)
         assertContrast("Hinweistext auf Karte", scheme.onSurfaceVariant, scheme.surfaceContainerLowest, 4.5)
+        assertContrast("Fehlertext auf Karte", scheme.error, scheme.surfaceContainerLowest, 4.5)
+        assertContrast("Text auf Hintergrund", scheme.onBackground, scheme.background, 4.5)
     }
 
     @Test
     fun lightScheme_meetsContrastMinimums() = assertSchemeContrasts(LightColors)
+
+    @Test
+    fun darkScheme_meetsContrastMinimums() = assertSchemeContrasts(DarkColors)
 }
