@@ -119,8 +119,8 @@ private fun TourDetails(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionCard {
-            LabeledValue(stringResource(R.string.field_start_date), formatDate(tour.startDate, locale))
-            LabeledValue(stringResource(R.string.field_end_date), formatDate(tour.endDate, locale))
+            LabeledValue(stringResource(R.string.field_start_date), formatDate(tour.startDate))
+            LabeledValue(stringResource(R.string.field_end_date), formatDate(tour.endDate))
             LabeledValue(stringResource(R.string.field_destination), tour.destination)
             LabeledValue(stringResource(R.string.field_tour_type), stringResource(tour.tourType.labelRes))
         }

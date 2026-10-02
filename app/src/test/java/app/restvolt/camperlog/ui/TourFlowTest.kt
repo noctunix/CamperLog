@@ -25,6 +25,7 @@ import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -75,11 +76,11 @@ class TourFlowTest {
         compose.onNode(hasText("Speichern") and hasAnyAncestor(hasScrollAction())).performScrollTo().performClick()
 
     /** Kalenderzelle des Tages; das Datumsfeld im Formular trägt dasselbe Datum. */
-    private fun dayCell(day: Int) = hasText(" $day, ", substring = true) and hasClickAction() and hasAnyAncestor(isDialog())
+    private fun dayCell(day: Int) = hasText(", $day. ", substring = true) and hasClickAction() and hasAnyAncestor(isDialog())
 
     private fun pickDay(fieldLabel: String, day: Int) {
         compose.onNodeWithContentDescription("$fieldLabel wählen").performClick()
-        // Tageszellen tragen ihr volles Datum als Text, z. B. "Saturday, October 10, 2026".
+        // Tageszellen tragen ihr volles Datum als Text, z. B. "Samstag, 10. Oktober 2026".
         compose.onNode(dayCell(day)).performClick()
         compose.onNodeWithText("OK").performClick()
     }
@@ -225,6 +226,16 @@ class TourFlowTest {
         compose.onNodeWithContentDescription("Übersicht").performClick()
         compose.onNodeWithText("Übersicht").assert(isHeading())
         compose.onNodeWithText("Gesamt").assert(isHeading())
+    }
+
+    @Test
+    fun datePicker_isGermanOnEnglishDevice() {
+        start()
+        compose.onNodeWithText("Neue Tour").performClick()
+        compose.onNodeWithContentDescription("Startdatum wählen").performClick()
+
+        compose.onAllNodes(hasText("Montag", substring = true) and hasAnyAncestor(isDialog())).onFirst().assertExists()
+        compose.onAllNodes(hasText("Monday", substring = true)).assertCountEquals(0)
     }
 
     @Test

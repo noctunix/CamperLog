@@ -58,7 +58,6 @@ import app.restvolt.camperlog.domain.period
 import app.restvolt.camperlog.share.shareCsv
 import app.restvolt.camperlog.share.writeCsvExport
 import app.restvolt.camperlog.ui.EmptyHint
-import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -257,7 +256,7 @@ private fun TourCard(tour: Tour, onClick: () -> Unit) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(tour.destination, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    tour.period(currentLocale()),
+                    tour.period(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

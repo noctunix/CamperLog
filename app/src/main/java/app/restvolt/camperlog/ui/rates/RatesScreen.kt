@@ -200,7 +200,7 @@ private fun MissingRatesCard(missing: List<Currency>, onAdd: (Currency) -> Unit)
 private fun RateCard(rate: ExchangeRate, locale: Locale, onEdit: () -> Unit, onDelete: () -> Unit) {
     val code = rate.currency.currencyCode
     val editLabel = stringResource(R.string.rates_edit, code)
-    val date = formatDate(rate.date, locale)
+    val date = formatDate(rate.date)
     SectionCard(
         Modifier
             .clip(MaterialTheme.shapes.large)

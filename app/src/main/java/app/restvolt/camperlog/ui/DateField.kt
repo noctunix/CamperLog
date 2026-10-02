@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui
 
+import android.content.res.Configuration
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,12 +30,16 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.DATE_LOCALE
 import app.restvolt.camperlog.domain.formatDate
 import java.time.LocalDate
 
@@ -62,7 +68,7 @@ internal fun DateField(
     }
 
     OutlinedTextField(
-        value = date?.let { formatDate(it, currentLocale()) }.orEmpty(),
+        value = date?.let { formatDate(it) }.orEmpty(),
         onValueChange = {},
         readOnly = true,
         modifier = modifier
@@ -93,7 +99,7 @@ internal fun DateField(
         shape = MaterialTheme.shapes.medium,
     )
 
-    if (showPicker) {
+    if (showPicker) DateLocaleScope {
         val pickerState = rememberDatePickerState(
             initialSelectedDateMillis = (date ?: initialDate)?.let { it.toEpochDay() * MILLIS_PER_DAY },
             selectableDates = minDate?.let(::notBefore) ?: DatePickerDefaults.AllDates,
@@ -115,6 +121,26 @@ internal fun DateField(
             DatePicker(state = pickerState)
         }
     }
+}
+
+/**
+ * Stellt den Kalender auf [DATE_LOCALE] um: Monatsnamen, Wochenstart, Dialogtexte und
+ * Screenreader-Ansagen passen dann zu den deutschen App-Texten statt zur Gerätesprache.
+ */
+@Composable
+private fun DateLocaleScope(content: @Composable () -> Unit) {
+    val context = LocalContext.current
+    val base = LocalConfiguration.current
+    val localized = remember(context, base) {
+        val configuration = Configuration(base).apply { setLocale(DATE_LOCALE) }
+        context.createConfigurationContext(configuration)
+    }
+    CompositionLocalProvider(
+        LocalConfiguration provides localized.resources.configuration,
+        LocalContext provides localized,
+        LocalResources provides localized.resources,
+        content = content,
+    )
 }
 
 /** Sperrt im Kalender alle Tage vor [minDate], z. B. Enddaten vor dem Start. */

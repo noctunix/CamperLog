@@ -43,6 +43,14 @@ android {
         abortOnError = true
         warningsAsErrors = true
     }
+
+    // Der Kalender läuft immer auf Deutsch (DATE_LOCALE); ohne Sprach-Split bleiben die deutschen
+    // Material-Texte auch auf anderssprachigen Geräten im Bundle.
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
 }
 
 room {
