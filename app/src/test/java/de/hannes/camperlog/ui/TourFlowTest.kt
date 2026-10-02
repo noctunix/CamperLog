@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
@@ -38,6 +39,7 @@ import de.hannes.camperlog.domain.Tour
 import de.hannes.camperlog.domain.TourType
 import de.hannes.camperlog.ui.theme.CamperLogTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -266,9 +268,14 @@ class TourFlowTest {
         compose.onNodeWithText("Ostsee").assertExists()
         assertEquals(0, repository.tours.size)
 
-        // Die Snackbar überdeckt den unteren Button; erneut über die TopBar speichern.
+        // Der untere Button bleibt neben der Snackbar erreichbar und wird nicht von ihr verdeckt.
+        val bottomSave = compose.onNode(hasText("Speichern") and hasAnyAncestor(hasScrollAction())).performScrollTo()
+        val snackbarTop = compose.onNodeWithText("Tour konnte nicht gespeichert werden.").getUnclippedBoundsInRoot().top
+        val saveBottom = bottomSave.getUnclippedBoundsInRoot().bottom
+        assertTrue("Button endet bei $saveBottom, Snackbar beginnt bei $snackbarTop", saveBottom <= snackbarTop)
+
         repository.failWrites = false
-        compose.onNode(hasText("Speichern") and hasClickAction() and !hasAnyAncestor(hasScrollAction())).performClick()
+        bottomSave.performClick()
 
         assertEquals(listOf("Ostsee"), repository.tours.map { it.destination })
         compose.onNodeWithText("Tour gespeichert").assertExists()

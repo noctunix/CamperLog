@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
@@ -111,7 +112,8 @@ fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: ()
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbar) },
+        // Als bottomBar statt Overlay: Das Formular endet über der Snackbar, der untere Button bleibt frei.
+        bottomBar = { SnackbarHost(snackbar, Modifier.navigationBarsPadding()) },
     ) { padding ->
         when {
             state.isLoading -> Unit
