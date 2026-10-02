@@ -28,6 +28,7 @@ val CSV_HEADER = listOf(
 /**
  * Erzeugt eine CSV-Datei nach RFC 4180 (Komma, CRLF) mit Kopfzeile.
  * Datumswerte sind ISO-8601, Kosten eine exakte Dezimalzahl mit Punkt.
+ * Freitextfelder werden per [neutralizeFormula] gegen Formel-Injection entschärft.
  */
 fun toursToCsv(tours: List<Tour>): String = buildString {
     appendCsvRow(CSV_HEADER)
@@ -41,6 +42,18 @@ fun escapeCsv(field: String): String {
     return if (needsQuotes) "\"" + field.replace("\"", "\"\"") + "\"" else field
 }
 
+/**
+ * Entschärft Freitext gegen CSV-/Formel-Injection in Tabellenkalkulationen:
+ * Beginnt [field] (nach führenden Leerzeichen) mit `=`, `+`, `-`, `@`, Tab oder CR,
+ * wird ein `'` vorangestellt, sodass der Inhalt als Text statt als Formel gilt.
+ */
+fun neutralizeFormula(field: String): String {
+    val first = field.trimStart(' ').firstOrNull() ?: return field
+    return if (first in FORMULA_TRIGGERS) "'$field" else field
+}
+
+private val FORMULA_TRIGGERS = setOf('=', '+', '-', '@', '\t', '\r')
+
 private fun StringBuilder.appendCsvRow(fields: List<String>) {
     fields.joinTo(this, separator = ",", transform = ::escapeCsv)
     append("\r\n")
@@ -50,7 +63,7 @@ private fun Tour.csvFields(): List<String> = listOf(
     id.toString(),
     startDate.toString(),
     endDate.toString(),
-    destination,
+    neutralizeFormula(destination),
     tourType.label,
     travelDays.toString(),
     overnightStays.toString(),
@@ -61,8 +74,8 @@ private fun Tour.csvFields(): List<String> = listOf(
     lteQuality.label,
     pitchSlope.label,
     yesNo(levelingBlocksUsed),
-    notes,
-    mapLink.orEmpty(),
+    neutralizeFormula(notes),
+    neutralizeFormula(mapLink.orEmpty()),
     createdAt.toString(),
     updatedAt.toString(),
 )

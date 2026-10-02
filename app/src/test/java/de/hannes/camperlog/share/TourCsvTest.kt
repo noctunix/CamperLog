@@ -66,6 +66,58 @@ class TourCsvTest {
     }
 
     @Test
+    fun formulaTriggersArePrefixedWithApostrophe() {
+        assertEquals("'=HYPERLINK(\"x\")", neutralizeFormula("=HYPERLINK(\"x\")"))
+        assertEquals("'+49 Platz", neutralizeFormula("+49 Platz"))
+        assertEquals("'-2+3", neutralizeFormula("-2+3"))
+        assertEquals("'@SUM(A1)", neutralizeFormula("@SUM(A1)"))
+        assertEquals("'\t=1", neutralizeFormula("\t=1"))
+        assertEquals("'\r=1", neutralizeFormula("\r=1"))
+        assertEquals("'  =1+1", neutralizeFormula("  =1+1"))
+    }
+
+    @Test
+    fun harmlessTextIsNotChanged() {
+        assertEquals("", neutralizeFormula(""))
+        assertEquals("Gardasee", neutralizeFormula("Gardasee"))
+        assertEquals("Ä-Ö = schön", neutralizeFormula("Ä-Ö = schön"))
+        assertEquals("https://example.org/?a=1", neutralizeFormula("https://example.org/?a=1"))
+    }
+
+    @Test
+    fun exportNeutralizesFreeTextButKeepsNumbersAndDates() {
+        val tour = Tour(
+            id = 1,
+            startDate = LocalDate.of(2026, 7, 10),
+            endDate = LocalDate.of(2026, 7, 10),
+            destination = "=cmd|' /C calc'!A0",
+            tourType = TourType.DAY_TRIP,
+            travelDays = 1,
+            overnightStays = 0,
+            distanceKm = 80,
+            costCents = 0,
+            pitchAssigned = false,
+            electricityFlatRate = ElectricityFlatRate.NO,
+            lteQuality = LteQuality.OK,
+            pitchSlope = PitchSlope.SLOPED,
+            levelingBlocksUsed = true,
+            notes = "@Kontakt, bitte",
+            mapLink = null,
+            createdAt = Instant.parse("2026-07-10T08:00:00Z"),
+            updatedAt = Instant.parse("2026-07-10T08:00:00Z"),
+        )
+
+        val row = toursToCsv(listOf(tour)).split("\r\n")[1]
+
+        assertEquals(
+            "1,2026-07-10,2026-07-10,'=cmd|' /C calc'!A0,${TourType.DAY_TRIP.label},1,0,80,0.00,nein," +
+                "${ElectricityFlatRate.NO.label},${LteQuality.OK.label},${PitchSlope.SLOPED.label},ja," +
+                "\"'@Kontakt, bitte\",,2026-07-10T08:00:00Z,2026-07-10T08:00:00Z",
+            row,
+        )
+    }
+
+    @Test
     fun emptyExportContainsOnlyHeader() {
         assertEquals(CSV_HEADER.joinToString(",") + "\r\n", toursToCsv(emptyList()))
     }
