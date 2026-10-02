@@ -1,12 +1,16 @@
 package de.hannes.camperlog.ui
 
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
@@ -18,9 +22,13 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.pressKey
+import androidx.compose.ui.test.requestFocus
 import de.hannes.camperlog.domain.ElectricityFlatRate
 import de.hannes.camperlog.domain.LteQuality
 import de.hannes.camperlog.domain.PitchSlope
@@ -171,6 +179,46 @@ class TourFlowTest {
         destinationField().assertIsFocused().assertIsDisplayed()
         compose.onNodeWithText("Bitte die markierten Felder prüfen.")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+    }
+
+    @Test
+    fun dateField_opensPickerViaScreenReaderClick() {
+        start()
+        compose.onNodeWithText("Neue Tour").performClick()
+
+        val field = compose.onNode(hasText("Startdatum") and hasClickAction())
+        field.assert(
+            SemanticsMatcher("OnClick-Label") {
+                it.config.getOrNull(SemanticsActions.OnClick)?.label == "Startdatum wählen"
+            },
+        )
+        field.performSemanticsAction(SemanticsActions.OnClick)
+
+        compose.onNodeWithText("OK").assertExists()
+    }
+
+    @Test
+    fun dateField_opensPickerViaEnterKey() {
+        start()
+        compose.onNodeWithText("Neue Tour").performClick()
+
+        val field = compose.onNode(hasText("Startdatum") and hasClickAction())
+        field.requestFocus()
+        field.performKeyInput { pressKey(Key.Enter) }
+
+        compose.onNodeWithText("OK").assertExists()
+    }
+
+    @Test
+    fun endDatePicker_disablesDaysBeforeStart() {
+        start()
+        compose.onNodeWithText("Neue Tour").performClick()
+        pickDay("Startdatum", 10)
+
+        compose.onNodeWithContentDescription("Enddatum wählen").performClick()
+        compose.onNode(hasText(" 9, ", substring = true) and hasClickAction()).assertIsNotEnabled()
+        compose.onNode(hasText(" 10, ", substring = true) and hasClickAction()).assertIsEnabled()
+        compose.onNode(hasText(" 11, ", substring = true) and hasClickAction()).assertIsEnabled()
     }
 
     @Test

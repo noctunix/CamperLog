@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -27,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -45,10 +47,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -169,6 +177,7 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 errors[TourField.END_DATE],
                 viewModel::onEndDateChange,
                 initialDate = input.startDate,
+                minDate = input.startDate,
                 modifier = focusOf(TourField.END_DATE),
             )
             FormTextField(
@@ -325,6 +334,7 @@ private fun DateField(
     onDateSelected: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     initialDate: LocalDate? = null,
+    minDate: LocalDate? = null,
 ) {
     var showPicker by rememberSaveable { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
@@ -336,7 +346,21 @@ private fun DateField(
         value = date?.let(::formatDate).orEmpty(),
         onValueChange = {},
         readOnly = true,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            // Tastatur: Enter/Leertaste öffnen den Kalender wie ein Tippen.
+            .onPreviewKeyEvent { event ->
+                val opens = event.key == Key.Enter || event.key == Key.NumPadEnter || event.key == Key.Spacebar
+                if (opens && event.type == KeyEventType.KeyUp) showPicker = true
+                opens
+            }
+            // Screenreader: Doppeltippen öffnet den Kalender statt nur den Fokus zu setzen.
+            .semantics {
+                onClick(label = "$label wählen") {
+                    showPicker = true
+                    true
+                }
+            },
         label = { Text(label) },
         isError = error != null,
         supportingText = error?.let { { Text(it) } },
@@ -353,6 +377,7 @@ private fun DateField(
     if (showPicker) {
         val pickerState = rememberDatePickerState(
             initialSelectedDateMillis = (date ?: initialDate)?.let { it.toEpochDay() * MILLIS_PER_DAY },
+            selectableDates = minDate?.let(::notBefore) ?: DatePickerDefaults.AllDates,
         )
         DatePickerDialog(
             onDismissRequest = { showPicker = false },
@@ -371,6 +396,15 @@ private fun DateField(
             DatePicker(state = pickerState)
         }
     }
+}
+
+/** Sperrt im Kalender alle Tage vor [minDate], z. B. Enddaten vor dem Start. */
+@OptIn(ExperimentalMaterial3Api::class)
+private fun notBefore(minDate: LocalDate) = object : SelectableDates {
+    override fun isSelectableDate(utcTimeMillis: Long) =
+        Math.floorDiv(utcTimeMillis, MILLIS_PER_DAY) >= minDate.toEpochDay()
+
+    override fun isSelectableYear(year: Int) = year >= minDate.year
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
