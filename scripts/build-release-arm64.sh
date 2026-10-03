@@ -28,7 +28,15 @@ fi
 
 apk=app/build/outputs/apk/release/app-release.apk
 size_mb=$(awk -v b="$(wc -c < "$apk")" 'BEGIN { printf "%.1f", b / 1048576 }')
-printf '\nRelease-APK (arm64-v8a): %s  %s MB\n' "$apk" "$size_mb"
+version=$(sed -n 's/^val appVersion = "\(.*\)"$/\1/p' app/build.gradle.kts)
+printf '\nRelease-APK %s (arm64-v8a): %s  %s MB\n' "$version" "$apk" "$size_mb"
+
+# Eine Version soll genau einem Stand entsprechen: getaggter Commit ohne lokale Änderungen.
+if ! git describe --exact-match --tags --match "v$version" HEAD > /dev/null 2>&1; then
+    echo "Hinweis: Commit ist nicht als v$version getaggt – Version bumpen und taggen?"
+elif [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+    echo "Hinweis: Lokale Änderungen – die APK entspricht nicht genau v$version."
+fi
 
 [[ "$install" == true ]] || exit 0
 
@@ -80,6 +88,10 @@ if ! output=$("$adb" -s "$serial" install -r "$apk" 2>&1); then
         echo "Auf dem Gerät ist CamperLog mit einem anderen Schlüssel installiert (z. B. ein" >&2
         echo "Debug-Build aus Android Studio). Ein Update ist so nicht möglich. Erst Touren" >&2
         echo "exportieren, dann die App deinstallieren und das Skript erneut starten." >&2
+    elif [[ "$output" == *INSTALL_FAILED_VERSION_DOWNGRADE* ]]; then
+        echo >&2
+        echo "Auf dem Gerät ist eine neuere Version installiert. Version $version in" >&2
+        echo "app/build.gradle.kts (appVersion) höher setzen." >&2
     fi
     exit 1
 fi

@@ -8,6 +8,17 @@ plugins {
     alias(libs.plugins.room)
 }
 
+// App-Version nach SemVer (MAJOR.MINOR.PATCH), einzige Stelle zum Bumpen; Tag dazu: v<Version>.
+// versionCode wird abgeleitet (1.2.3 -> 10203) und steigt so mit jedem Bump, was
+// Android für Updates verlangt.
+val appVersion = "1.0.0"
+val appVersionCode = appVersion.split(".").map(String::toInt).also {
+    require(it.size == 3) { "appVersion muss MAJOR.MINOR.PATCH sein: $appVersion" }
+}.let { (major, minor, patch) ->
+    require(minor < 100 && patch < 100) { "MINOR und PATCH müssen kleiner als 100 sein: $appVersion" }
+    major * 10_000 + minor * 100 + patch
+}
+
 // Signaturdaten für Release-Builds; die Datei liegt nur lokal und wird nicht eingecheckt.
 val releaseSigningFile = rootProject.file("keystore.properties")
 val releaseSigning = Properties().apply {
@@ -22,8 +33,8 @@ android {
         applicationId = "app.restvolt.camperlog"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersion
     }
 
     signingConfigs {
