@@ -1,9 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+}
+
+// Signaturdaten für Release-Builds; die Datei liegt nur lokal und wird nicht eingecheckt.
+val releaseSigningFile = rootProject.file("keystore.properties")
+val releaseSigning = Properties().apply {
+    if (releaseSigningFile.exists()) releaseSigningFile.inputStream().use(::load)
 }
 
 android {
@@ -18,8 +26,22 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        if (releaseSigningFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(releaseSigning.getProperty("storeFile"))
+                storePassword = releaseSigning.getProperty("storePassword")
+                keyAlias = releaseSigning.getProperty("keyAlias")
+                keyPassword = releaseSigning.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
+            // Zielgeräte sind ausschließlich arm64; andere ABIs landen nicht in der Release-APK.
+            ndk { abiFilters += "arm64-v8a" }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
@@ -42,6 +64,8 @@ android {
     lint {
         abortOnError = true
         warningsAsErrors = true
+        // Release-APK ist bewusst nur arm64 (siehe buildTypes); ChromeOS/x86_64 ist kein Ziel.
+        disable += "ChromeOsAbiSupport"
     }
 
     // Der Kalender läuft immer auf Deutsch (DATE_LOCALE); ohne Sprach-Split bleiben die deutschen
@@ -78,4 +102,17 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+// Ohne Signatur entstünde still eine nicht installierbare APK; daher lieber klar abbrechen.
+val checkReleaseSigning by tasks.registering {
+    val hasSigning = releaseSigningFile.exists()
+    doLast {
+        check(hasSigning) {
+            "keystore.properties fehlt im Projektordner (siehe keystore.properties.example)."
+        }
+    }
+}
+tasks.named { it == "assembleRelease" || it == "bundleRelease" }.configureEach {
+    dependsOn(checkReleaseSigning)
 }
