@@ -61,13 +61,13 @@ class RatesViewModel(private val rates: ExchangeRateRepository, tours: TourRepos
         events.update { it.copy(deleted = rate) }
     }
 
-    fun undoDelete() {
-        val rate = events.value.deleted ?: return
+    fun undoDelete(rate: ExchangeRate) {
+        if (events.value.deleted != rate) return
         events.update { it.copy(deleted = null) }
         write { rates.saveRate(rate) }
     }
 
-    fun onDeletedShown() = events.update { it.copy(deleted = null) }
+    fun onDeletedShown(rate: ExchangeRate) = events.update { if (it.deleted == rate) it.copy(deleted = null) else it }
 
     fun onWriteFailureShown() = events.update { it.copy(writeFailed = false) }
 

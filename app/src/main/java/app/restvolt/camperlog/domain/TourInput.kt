@@ -55,25 +55,36 @@ enum class TourError {
  * @param locale bestimmt, wie mehrdeutige Beträge wie `1.234` gelesen werden
  * @return Fehlergrund je fehlerhaftem Feld; leer, wenn die Eingabe gültig ist
  */
-fun TourInput.validate(locale: Locale): Map<TourField, TourError> = buildMap {
-    if (startDate == null) put(TourField.START_DATE, TourError.REQUIRED)
-    when {
-        endDate == null -> put(TourField.END_DATE, TourError.REQUIRED)
-        startDate != null && endDate < startDate -> put(TourField.END_DATE, TourError.END_BEFORE_START)
+fun TourInput.validate(locale: Locale): Map<TourField, TourError> = validation(locale).errors
+
+internal data class TourValidation(
+    val errors: Map<TourField, TourError>,
+    val costErrors: Map<Int, TourError>,
+)
+
+internal fun TourInput.validation(locale: Locale): TourValidation {
+    val costErrors = costErrors(locale)
+    val errors = buildMap {
+        if (startDate == null) put(TourField.START_DATE, TourError.REQUIRED)
+        when {
+            endDate == null -> put(TourField.END_DATE, TourError.REQUIRED)
+            startDate != null && endDate < startDate -> put(TourField.END_DATE, TourError.END_BEFORE_START)
+        }
+        if (destination.isBlank()) put(TourField.DESTINATION, TourError.REQUIRED)
+        countError(travelDays)?.let { put(TourField.TRAVEL_DAYS, it) }
+        countError(overnightStays)?.let { put(TourField.OVERNIGHT_STAYS, it) }
+        countError(distanceKm)?.let { put(TourField.DISTANCE_KM, it) }
+        if (costErrors.isNotEmpty()) put(TourField.COST, TourError.INVALID_AMOUNT)
+        val days = parseCount(travelDays)
+        val nights = parseCount(overnightStays)
+        if (days != null && nights != null && nights > days) {
+            put(TourField.OVERNIGHT_STAYS, TourError.MORE_NIGHTS_THAN_DAYS)
+        }
+        if (mapLink.isNotBlank() && !isWebUrl(mapLink.trim())) {
+            put(TourField.MAP_LINK, TourError.NOT_A_WEB_LINK)
+        }
     }
-    if (destination.isBlank()) put(TourField.DESTINATION, TourError.REQUIRED)
-    countError(travelDays)?.let { put(TourField.TRAVEL_DAYS, it) }
-    countError(overnightStays)?.let { put(TourField.OVERNIGHT_STAYS, it) }
-    countError(distanceKm)?.let { put(TourField.DISTANCE_KM, it) }
-    if (costErrors(locale).isNotEmpty()) put(TourField.COST, TourError.INVALID_AMOUNT)
-    val days = parseCount(travelDays)
-    val nights = parseCount(overnightStays)
-    if (days != null && nights != null && nights > days) {
-        put(TourField.OVERNIGHT_STAYS, TourError.MORE_NIGHTS_THAN_DAYS)
-    }
-    if (mapLink.isNotBlank() && !isWebUrl(mapLink.trim())) {
-        put(TourField.MAP_LINK, TourError.NOT_A_WEB_LINK)
-    }
+    return TourValidation(errors, costErrors)
 }
 
 /** Fehler je Kostenzeile, Schlüssel ist der Index in [TourInput.costs]; leere Zeilen sind gültig. */

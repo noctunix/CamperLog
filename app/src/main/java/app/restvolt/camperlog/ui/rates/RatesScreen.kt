@@ -140,7 +140,7 @@ fun RatesScreen(
             withDismissAction = true,
             duration = SnackbarDuration.Long,
         )
-        if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete() else viewModel.onDeletedShown()
+        if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete(deleted) else viewModel.onDeletedShown(deleted)
     }
     LaunchedEffect(state.writeFailed) {
         if (state.writeFailed) {

@@ -15,11 +15,10 @@ import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourInput
 import app.restvolt.camperlog.domain.TourRepository
-import app.restvolt.camperlog.domain.costErrors
 import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toTour
 import app.restvolt.camperlog.domain.travelDaysBetween
-import app.restvolt.camperlog.domain.validate
+import app.restvolt.camperlog.domain.validation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -146,12 +145,12 @@ class EditTourViewModel(
         val state = _uiState.value
         if (state.isSaving || state.isLoading || state.notFound) return
         val locale = locale()
-        val errors = state.input.validate(locale)
-        if (errors.isNotEmpty()) {
+        val validation = state.input.validation(locale)
+        if (validation.errors.isNotEmpty()) {
             showErrors = true
             saveDraft()
             _uiState.update {
-                it.copy(errors = errors, costErrors = state.input.costErrors(locale), rejectedSaves = it.rejectedSaves + 1)
+                it.copy(errors = validation.errors, costErrors = validation.costErrors, rejectedSaves = it.rejectedSaves + 1)
             }
             return
         }
@@ -174,10 +173,11 @@ class EditTourViewModel(
         _uiState.update { it.copy(saveFailed = false) }
     }
 
-    private fun EditUiState.withErrors(): EditUiState = copy(
-        errors = if (showErrors) input.validate(locale()) else emptyMap(),
-        costErrors = if (showErrors) input.costErrors(locale()) else emptyMap(),
-    )
+    private fun EditUiState.withErrors(): EditUiState {
+        if (!showErrors) return copy(errors = emptyMap(), costErrors = emptyMap())
+        val validation = input.validation(locale())
+        return copy(errors = validation.errors, costErrors = validation.costErrors)
+    }
 
     private fun saveDraft() {
         val input = _uiState.value.input

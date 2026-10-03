@@ -178,8 +178,10 @@ class DraftRestorationTest {
         assertEquals(nok, state.currency)
         assertEquals("abc", state.rate)
         assertEquals(setOf(RateError.RATE_INVALID), state.errors)
+        after.onRateChange("12.5")
         after.save()
-        assertEquals(BigDecimal("11.5"), repository.rates.single().perEuro)
+        assertEquals(BigDecimal("12.5"), repository.rates.single().perEuro)
+        assertTrue(after.uiState.value.isSaved)
     }
 
     @Test

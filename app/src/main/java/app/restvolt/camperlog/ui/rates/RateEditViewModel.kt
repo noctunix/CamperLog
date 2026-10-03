@@ -108,8 +108,8 @@ class RateEditViewModel(
         val state = _uiState.value
         if (state.isLoading || state.isSaving || state.isSaved) return
         showErrors = true
-        val errors = validate(state)
         val perEuro = parseRate(state.rate, locale())
+        val errors = validate(state, perEuro != null)
         val currency = state.currency
         if (errors.isNotEmpty() || perEuro == null || currency == null) {
             _uiState.update { it.copy(errors = errors, rejectedSaves = it.rejectedSaves + 1) }
@@ -157,9 +157,9 @@ class RateEditViewModel(
             encodeToSavedState(RateDraft(state.currency, state.rate, state.date, state.source, showErrors))
     }
 
-    private fun validate(state: RateEditUiState): Set<RateError> = buildSet {
+    private fun validate(state: RateEditUiState, validRate: Boolean = parseRate(state.rate, locale()) != null): Set<RateError> = buildSet {
         if (state.currency == null) add(RateError.CURRENCY_REQUIRED)
-        if (parseRate(state.rate, locale()) == null) add(RateError.RATE_INVALID)
+        if (!validRate) add(RateError.RATE_INVALID)
     }
 }
 

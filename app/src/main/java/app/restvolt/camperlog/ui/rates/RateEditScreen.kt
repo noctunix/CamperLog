@@ -13,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +51,7 @@ import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CurrencyPicker
 import app.restvolt.camperlog.ui.DateField
+import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.currentLocale
 import java.util.Currency
 import java.util.Locale
@@ -106,18 +106,11 @@ fun RateEditScreen(viewModel: RateEditViewModel, onDone: () -> Unit) {
     }
 
     if (confirmDiscard) {
-        AlertDialog(
-            onDismissRequest = { confirmDiscard = false },
-            title = { Text(stringResource(R.string.edit_discard_title)) },
-            text = { Text(stringResource(R.string.edit_discard_text)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmDiscard = false
-                    onDone()
-                }) { Text(stringResource(R.string.edit_discard_confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDiscard = false }) { Text(stringResource(R.string.edit_discard_keep)) }
+        DiscardChangesDialog(
+            onKeep = { confirmDiscard = false },
+            onDiscard = {
+                confirmDiscard = false
+                onDone()
             },
         )
     }

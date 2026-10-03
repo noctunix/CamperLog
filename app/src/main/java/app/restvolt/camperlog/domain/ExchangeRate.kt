@@ -55,7 +55,7 @@ fun convert(amounts: List<Money>, target: Currency, rates: List<ExchangeRate>): 
     val perEuro = rates.associate { it.currency to it.perEuro } + (EUR to BigDecimal.ONE)
     val foreign = amounts.map(Money::currency).filter { it != target }.distinct()
     val needed = if (foreign.isEmpty()) foreign else foreign + target
-    val missing = needed.filter { it !in perEuro }.distinct().sortedBy(Currency::getCurrencyCode)
+    val missing = needed.filter { it !in perEuro }.sortedBy(Currency::getCurrencyCode)
     if (missing.isNotEmpty()) return Conversion(total = null, missing = missing)
 
     val sum = amounts.fold(BigDecimal.ZERO) { acc, money ->

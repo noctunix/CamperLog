@@ -14,7 +14,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +61,7 @@ import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.DateField
+import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.labelRes
@@ -119,18 +119,11 @@ fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: ()
     }
 
     if (confirmDiscard) {
-        AlertDialog(
-            onDismissRequest = { confirmDiscard = false },
-            title = { Text(stringResource(R.string.edit_discard_title)) },
-            text = { Text(stringResource(R.string.edit_discard_text)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmDiscard = false
-                    onDone()
-                }) { Text(stringResource(R.string.edit_discard_confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDiscard = false }) { Text(stringResource(R.string.edit_discard_keep)) }
+        DiscardChangesDialog(
+            onKeep = { confirmDiscard = false },
+            onDiscard = {
+                confirmDiscard = false
+                onDone()
             },
         )
     }

@@ -189,6 +189,19 @@ class RatesFlowTest {
     }
 
     @Test
+    fun successiveDeletions_undoRestoresDisplayedRate() {
+        val rates = startOnRates(FakeExchangeRateRepository(listOf(rate(nok, "11.485"), rate(dkk, "7.5"))))
+
+        compose.onNodeWithContentDescription("Kurs für NOK löschen").performClick()
+        compose.onNodeWithContentDescription("Kurs für DKK löschen").performClick()
+        compose.onNodeWithText("Kurs für DKK gelöscht").assertExists()
+        compose.onNodeWithText("Rückgängig").performClick()
+
+        assertEquals(listOf(dkk), rates.rates.map(ExchangeRate::currency))
+        compose.onNodeWithText("1 € = 7.5 DKK").assertExists()
+    }
+
+    @Test
     fun changeMainCurrency_convertsIntoIt() {
         val rates = startOnRates(FakeExchangeRateRepository(listOf(rate(nok, "10"), rate(dkk, "7.5"))))
 
