@@ -118,7 +118,7 @@
     <string name="overview_tours">Touren</string>
     <string name="overview_converted">≈ Summe in %1$s</string>
     <string name="overview_missing_rates">Kurs fehlt: %1$s</string>
-    <string name="overview_conversion_too_large">Summe zu groß für die Umrechnung</string>
+    <string name="overview_conversion_too_large">Summe zu groß für die Umrechnung. Bitte prüfe die Wechselkurse.</string>
 
     <!-- Exchange rates -->
     <string name="rates_title">Wechselkurse</string>
@@ -198,18 +198,24 @@
     <string name="import_mode_merge">Zusammenführen</string>
     <string name="import_mode_merge_hint">Ergänzt neue Touren und übernimmt neuere Fassungen vorhandener. Deine Hauptwährung bleibt.</string>
     <string name="import_mode_replace">Alles ersetzen</string>
-    <string name="import_mode_replace_hint">Löscht alle gespeicherten Touren und Wechselkurse und stellt stattdessen die Sicherung her.</string>
+    <string name="import_mode_replace_hint">Löscht alle gespeicherten Touren, Wechselkurse und die Hauptwährung und stellt stattdessen die Sicherung her.</string>
     <string name="import_start">Einspielen</string>
     <string name="import_replace_title">Alle Daten ersetzen?</string>
     <plurals name="import_replace_text">
-        <item quantity="one">Deine gespeicherte Tour und alle Wechselkurse werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen.</item>
-        <item quantity="other">Deine %1$d gespeicherten Touren und alle Wechselkurse werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen.</item>
+        <item quantity="one">Deine gespeicherte Tour, alle Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen. Erstelle vorher eine Sicherung, falls du die aktuellen Daten behalten willst.</item>
+        <item quantity="other">Deine %1$d gespeicherten Touren, alle Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen. Erstelle vorher eine Sicherung, falls du die aktuellen Daten behalten willst.</item>
     </plurals>
-    <string name="import_replace_text_no_tours">Alle gespeicherten Wechselkurse werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen.</string>
-    <string name="import_replace_confirm">Ersetzen</string>
-    <string name="import_done">Import abgeschlossen: %1$d neu, %2$d aktualisiert, %3$d unverändert, %4$d Wechselkurse übernommen.</string>
-    <string name="import_failed">Import fehlgeschlagen. Es wurde nichts geändert.</string>
-    <string name="import_unreadable">Die Datei konnte nicht gelesen werden.</string>
+    <string name="import_replace_text_no_tours">Alle gespeicherten Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen.</string>
+    <string name="import_replace_confirm">Alles ersetzen</string>
+    <string name="import_done">Sicherung eingespielt: %1$d neu, %2$d aktualisiert, %3$d unverändert, %4$s.</string>
+    <plurals name="import_done_rates">
+        <item quantity="one">%1$d Wechselkurs übernommen</item>
+        <item quantity="other">%1$d Wechselkurse übernommen</item>
+    </plurals>
+    <string name="import_running">Sicherung wird eingespielt …</string>
+    <string name="data_working">Wird verarbeitet …</string>
+    <string name="import_failed">Einspielen fehlgeschlagen. Es wurde nichts geändert.</string>
+    <string name="import_unreadable">Die Datei konnte nicht gelesen werden. Speichere sie zuerst auf dem Gerät und wähle sie dann erneut.</string>
     <string name="import_error_too_large">Die Datei ist zu groß für eine CamperLog-Sicherung.</string>
     <string name="import_error_not_backup">Diese Datei ist keine CamperLog-Sicherung.</string>
     <string name="import_error_newer_version">Diese Sicherung stammt aus einer neueren CamperLog-Version. Bitte aktualisiere die App.</string>

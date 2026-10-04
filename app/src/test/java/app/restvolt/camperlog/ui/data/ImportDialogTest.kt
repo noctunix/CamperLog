@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui.data
 
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -26,11 +27,11 @@ class ImportDialogTest {
     private val chosen = mutableListOf<ImportMode>()
     private var cancelled = false
 
-    private fun show(existingTours: Int = 3) {
+    private fun show(existingTours: Int = 3, running: Boolean = false, failed: Boolean = false) {
         val backup = Backup(Instant.parse("2026-10-04T12:00:00Z"), Currency.getInstance("NOK"), emptyList(), emptyList())
         compose.setContent {
             CamperLogTheme {
-                ImportDialog(PendingImport(backup, existingTours), onImport = { chosen += it }, onCancel = { cancelled = true })
+                ImportDialog(PendingImport(backup, existingTours, running, failed), onImport = { chosen += it }, onCancel = { cancelled = true })
             }
         }
     }
@@ -38,7 +39,8 @@ class ImportDialogTest {
     @Test
     fun preview_showsContents_andMergesByDefault() {
         show()
-        compose.onNodeWithText("Sicherung vom 04.10.2026 mit 0 Touren und 0 Wechselkursen. Hauptwährung: NOK.").assertExists()
+        compose.onNodeWithText("Sicherung vom 04.10.2026, ", substring = true).assertExists()
+        compose.onNodeWithText("mit 0 Touren und 0 Wechselkursen. Hauptwährung: NOK.", substring = true).assertExists()
 
         compose.onNodeWithText("Einspielen").performClick()
 
@@ -54,7 +56,7 @@ class ImportDialogTest {
         assertTrue(chosen.isEmpty())
         compose.onNodeWithText("Deine 3 gespeicherten Touren", substring = true).assertExists()
 
-        compose.onNodeWithText("Ersetzen").performClick()
+        compose.onNodeWithText("Alles ersetzen").performClick()
 
         assertEquals(listOf(ImportMode.REPLACE), chosen)
     }
@@ -70,5 +72,24 @@ class ImportDialogTest {
         compose.onNodeWithText("Sicherung einspielen?").assertExists()
         assertTrue(chosen.isEmpty())
         assertTrue(!cancelled)
+    }
+
+    @Test
+    fun running_locksDialogAndShowsProgress() {
+        show(running = true)
+
+        compose.onNodeWithText("Sicherung wird eingespielt …").assertExists()
+        compose.onNodeWithText("Einspielen").assertIsNotEnabled()
+        compose.onNodeWithText("Abbrechen").assertIsNotEnabled()
+    }
+
+    @Test
+    fun failed_showsErrorAndAllowsRetry() {
+        show(failed = true)
+
+        compose.onNodeWithText("Einspielen fehlgeschlagen. Es wurde nichts geändert.").assertExists()
+        compose.onNodeWithText("Einspielen").performClick()
+
+        assertEquals(listOf(ImportMode.MERGE), chosen)
     }
 }

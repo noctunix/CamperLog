@@ -118,7 +118,7 @@
     <string name="overview_tours">Tours</string>
     <string name="overview_converted">≈ Total in %1$s</string>
     <string name="overview_missing_rates">Missing rate: %1$s</string>
-    <string name="overview_conversion_too_large">Total too large to convert</string>
+    <string name="overview_conversion_too_large">Total too large to convert. Please check the exchange rates.</string>
 
     <!-- Exchange rates -->
     <string name="rates_title">Exchange rates</string>
@@ -198,18 +198,24 @@
     <string name="import_mode_merge">Merge</string>
     <string name="import_mode_merge_hint">Adds new tours and takes over newer versions of existing ones. Your main currency stays.</string>
     <string name="import_mode_replace">Replace everything</string>
-    <string name="import_mode_replace_hint">Deletes all saved tours and exchange rates and restores the backup instead.</string>
-    <string name="import_start">Import</string>
+    <string name="import_mode_replace_hint">Deletes all saved tours, exchange rates and the main currency and restores the backup instead.</string>
+    <string name="import_start">Restore</string>
     <string name="import_replace_title">Replace all data?</string>
     <plurals name="import_replace_text">
-        <item quantity="one">Your saved tour and all exchange rates will be deleted and replaced by the backup. This cannot be undone.</item>
-        <item quantity="other">Your %1$d saved tours and all exchange rates will be deleted and replaced by the backup. This cannot be undone.</item>
+        <item quantity="one">Your saved tour, all exchange rates and the main currency will be deleted and replaced by the backup. This cannot be undone. Create a backup first if you want to keep your current data.</item>
+        <item quantity="other">Your %1$d saved tours, all exchange rates and the main currency will be deleted and replaced by the backup. This cannot be undone. Create a backup first if you want to keep your current data.</item>
     </plurals>
-    <string name="import_replace_text_no_tours">All saved exchange rates will be deleted and replaced by the backup. This cannot be undone.</string>
-    <string name="import_replace_confirm">Replace</string>
-    <string name="import_done">Import finished: %1$d new, %2$d updated, %3$d unchanged, %4$d exchange rates taken over.</string>
-    <string name="import_failed">Import failed. Nothing was changed.</string>
-    <string name="import_unreadable">The file could not be read.</string>
+    <string name="import_replace_text_no_tours">All saved exchange rates and the main currency will be deleted and replaced by the backup. This cannot be undone.</string>
+    <string name="import_replace_confirm">Replace everything</string>
+    <string name="import_done">Backup restored: %1$d new, %2$d updated, %3$d unchanged, %4$s.</string>
+    <plurals name="import_done_rates">
+        <item quantity="one">%1$d exchange rate imported</item>
+        <item quantity="other">%1$d exchange rates imported</item>
+    </plurals>
+    <string name="import_running">Restoring backup…</string>
+    <string name="data_working">Working…</string>
+    <string name="import_failed">Restore failed. Nothing was changed.</string>
+    <string name="import_unreadable">The file could not be read. Save it to your device first, then choose it again.</string>
     <string name="import_error_too_large">The file is too large for a CamperLog backup.</string>
     <string name="import_error_not_backup">This file is not a CamperLog backup.</string>
     <string name="import_error_newer_version">This backup was created by a newer version of CamperLog. Please update the app.</string>

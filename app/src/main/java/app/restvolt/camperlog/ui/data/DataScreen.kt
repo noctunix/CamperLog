@@ -7,11 +7,13 @@ import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -19,6 +21,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,7 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -113,22 +119,34 @@ fun DataScreen(viewModel: DataViewModel, onBack: () -> Unit) {
     }
     val pendingImport by viewModel.pendingImport.collectAsStateWithLifecycle()
     pendingImport?.let { pending ->
-        ImportDialog(
-            pending = pending,
-            onImport = { mode ->
-                // Doppeltipps ignorieren: Der Dialog bleibt sichtbar, bis der Import fertig ist.
-                if (!busy) run(R.string.import_failed) {
-                    viewModel.importPending(mode)?.let {
-                        resources.getString(R.string.import_done, it.addedTours, it.updatedTours, it.unchangedTours, it.importedRates)
-                    }
-                }
-            },
-            onCancel = viewModel::cancelImport,
-        )
+        ImportDialog(pending = pending, onImport = viewModel::startImport, onCancel = viewModel::cancelImport)
+    }
+    val importResult by viewModel.importResult.collectAsStateWithLifecycle()
+    LaunchedEffect(importResult) {
+        val result = importResult ?: return@LaunchedEffect
+        val rates = resources.getQuantityString(R.plurals.import_done_rates, result.importedRates, result.importedRates)
+        val message = resources.getString(R.string.import_done, result.addedTours, result.updatedTours, result.unchangedTours, rates)
+        viewModel.importResultShown()
+        snackbar.showSnackbar(message, withDismissAction = true)
     }
 
     Scaffold(
-        topBar = { BackTopBar(title = stringResource(R.string.data_title), onBack = onBack) },
+        topBar = {
+            Column {
+                BackTopBar(title = stringResource(R.string.data_title), onBack = onBack)
+                if (busy || pendingImport?.running == true) {
+                    val working = stringResource(R.string.data_working)
+                    LinearProgressIndicator(
+                        Modifier
+                            .fillMaxWidth()
+                            .semantics {
+                                contentDescription = working
+                                liveRegion = LiveRegionMode.Polite
+                            },
+                    )
+                }
+            }
+        },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         LazyColumn(

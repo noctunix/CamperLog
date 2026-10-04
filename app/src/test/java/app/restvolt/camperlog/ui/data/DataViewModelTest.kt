@@ -16,10 +16,18 @@ import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.FakeBackupImporter
 import app.restvolt.camperlog.ui.FakeExchangeRateRepository
 import app.restvolt.camperlog.ui.FakeTourRepository
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import java.io.IOException
 import java.math.BigDecimal
@@ -27,7 +35,14 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.Currency
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DataViewModelTest {
+    @Before
+    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
+
+    @After
+    fun tearDown() = Dispatchers.resetMain()
+
 
     private val nok = Currency.getInstance("NOK")
 
@@ -106,17 +121,52 @@ class DataViewModelTest {
     }
 
     @Test
-    fun importPending_usesChosenModeAndClearsPending() = runBlocking {
+    fun startImport_usesChosenModeAndPublishesResult() = runBlocking {
         val importer = FakeBackupImporter()
         val viewModel = viewModel(importer)
         viewModel.loadBackup { backupText.byteInputStream() }
 
-        val result = viewModel.importPending(ImportMode.REPLACE)
+        viewModel.startImport(ImportMode.REPLACE)
 
-        assertEquals(1, result?.addedTours)
+        assertEquals(1, viewModel.importResult.value?.addedTours)
         assertEquals(listOf(ImportMode.REPLACE), importer.calls.map { it.second })
         assertNull(viewModel.pendingImport.value)
-        assertNull(viewModel.importPending(ImportMode.MERGE))
+        viewModel.importResultShown()
+        assertNull(viewModel.importResult.value)
+        viewModel.startImport(ImportMode.MERGE)
+        assertEquals(1, importer.calls.size)
+    }
+
+    @Test
+    fun startImport_whileRunning_ignoresRepeatAndCancel() = runBlocking {
+        val gate = CompletableDeferred<Unit>()
+        val importer = FakeBackupImporter().apply { this.gate = gate }
+        val viewModel = viewModel(importer)
+        viewModel.loadBackup { backupText.byteInputStream() }
+
+        viewModel.startImport(ImportMode.MERGE)
+        viewModel.startImport(ImportMode.MERGE)
+        viewModel.cancelImport()
+
+        assertTrue(viewModel.pendingImport.value!!.running)
+        assertEquals(1, importer.calls.size)
+        gate.complete(Unit)
+        assertNull(viewModel.pendingImport.value)
+        assertEquals(1, viewModel.importResult.value?.addedTours)
+    }
+
+    @Test
+    fun startImport_failure_keepsBackupForRetry() = runBlocking {
+        val importer = FakeBackupImporter().apply { failure = IOException("disk") }
+        val viewModel = viewModel(importer)
+        viewModel.loadBackup { backupText.byteInputStream() }
+
+        viewModel.startImport(ImportMode.MERGE)
+
+        val pending = viewModel.pendingImport.value!!
+        assertTrue(pending.failed)
+        assertEquals(false, pending.running)
+        assertNull(viewModel.importResult.value)
     }
 
     @Test
