@@ -68,7 +68,7 @@ class EditTourViewModel(
     private val repository: TourRepository,
     tourId: Long,
     private val savedStateHandle: SavedStateHandle,
-    private val locale: () -> Locale = Locale::getDefault,
+    private val locale: () -> Locale = { app.restvolt.camperlog.domain.supportedLocale(Locale.getDefault()) },
 ) : ViewModel() {
 
     private val draft: TourDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)?.let { decodeFromSavedState(it) }

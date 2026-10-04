@@ -23,6 +23,8 @@ import app.restvolt.camperlog.ui.rates.RateEditScreen
 import app.restvolt.camperlog.ui.rates.RateEditViewModel
 import app.restvolt.camperlog.ui.rates.RatesScreen
 import app.restvolt.camperlog.ui.rates.RatesViewModel
+import app.restvolt.camperlog.ui.settings.SettingsScreen
+import app.restvolt.camperlog.ui.theme.ThemeMode
 import app.restvolt.camperlog.ui.tours.ToursScreen
 import app.restvolt.camperlog.ui.tours.ToursViewModel
 import kotlinx.serialization.Serializable
@@ -42,13 +44,21 @@ internal object OverviewRoute
 @Serializable
 internal object RatesRoute
 
+@Serializable
+internal object SettingsRoute
+
 /** Kursformular; ohne [currencyCode] wird ein neuer Kurs mit frei wählbarer Währung angelegt. */
 @Serializable
 internal data class RateEditRoute(val currencyCode: String? = null)
 
 /** Navigationsgraph der App mit Start auf der Tourenliste. */
 @Composable
-fun CamperLogNavHost(repository: TourRepository, exchangeRates: ExchangeRateRepository) {
+fun CamperLogNavHost(
+    repository: TourRepository,
+    exchangeRates: ExchangeRateRepository,
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
+) {
     val navController = rememberNavController()
     NavHost(navController, startDestination = ToursRoute) {
         composable<ToursRoute> {
@@ -56,6 +66,7 @@ fun CamperLogNavHost(repository: TourRepository, exchangeRates: ExchangeRateRepo
                 viewModel = viewModel { ToursViewModel(repository) },
                 onAddTour = { navController.navigate(EditRoute()) },
                 onOpenOverview = { navController.navigate(OverviewRoute) },
+                onOpenSettings = { navController.navigate(SettingsRoute) },
                 onOpenTour = { navController.navigate(DetailRoute(it)) },
             )
         }
@@ -98,6 +109,15 @@ fun CamperLogNavHost(repository: TourRepository, exchangeRates: ExchangeRateRepo
                 viewModel = viewModel { RatesViewModel(exchangeRates, repository) },
                 onBack = { navController.popFrom(entry) },
                 onEditRate = { navController.navigate(RateEditRoute(it)) },
+            )
+        }
+        composable<SettingsRoute> { entry ->
+            SettingsScreen(
+                viewModel = viewModel { RatesViewModel(exchangeRates, repository) },
+                themeMode = themeMode,
+                onThemeModeChange = onThemeModeChange,
+                onBack = { navController.popFrom(entry) },
+                onOpenRates = { navController.navigate(RatesRoute) },
             )
         }
         composable<RateEditRoute> { entry ->

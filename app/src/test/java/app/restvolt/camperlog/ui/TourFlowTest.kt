@@ -44,6 +44,7 @@ import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
+import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -57,7 +58,7 @@ import java.util.Currency
 
 /** End-to-end-Abläufe durch Navigation, Screens und ViewModels gegen ein Fake-Repository. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
 class TourFlowTest {
 
     @get:Rule
@@ -65,7 +66,11 @@ class TourFlowTest {
 
     private fun start(vararg tours: Tour): FakeTourRepository {
         val repository = FakeTourRepository(tours.toList())
-        compose.setContent { CamperLogTheme { CamperLogNavHost(repository, FakeExchangeRateRepository()) } }
+        compose.setContent {
+            CamperLogTheme {
+                CamperLogNavHost(repository, FakeExchangeRateRepository(), ThemeMode.SYSTEM) { }
+            }
+        }
         return repository
     }
 
@@ -148,7 +153,7 @@ class TourFlowTest {
         compose.onNodeWithText("Gardasee").performClick()
         compose.onNodeWithContentDescription("Tour löschen").performClick()
 
-        compose.onNodeWithText("Touren").assertExists()
+        compose.onNodeWithText("Tourenlog").assertExists()
         compose.onNodeWithText("„Gardasee“ gelöscht").assertExists()
         compose.onNodeWithText("Noch keine Touren. Lege mit „Neue Tour“ die erste Fahrt an.").assertExists()
         assertEquals(0, repository.tours.size)
@@ -215,7 +220,7 @@ class TourFlowTest {
     @Test
     fun screenTitlesAndSections_areHeadings() {
         start(tour(id = 1, destination = "Gardasee").copy(notes = "Ruhiger Platz", mapLink = "https://example.org/karte"))
-        compose.onNodeWithText("Touren").assert(isHeading())
+        compose.onNodeWithText("Tourenlog").assert(isHeading())
 
         compose.onNodeWithText("Gardasee").performClick()
         compose.onNode(hasText("Gardasee") and isHeading()).assertExists()
@@ -229,13 +234,24 @@ class TourFlowTest {
     }
 
     @Test
-    fun datePicker_isGermanOnEnglishDevice() {
+    fun datePicker_usesGermanOnGermanDevice() {
         start()
         compose.onNodeWithText("Neue Tour").performClick()
         compose.onNodeWithContentDescription("Startdatum wählen").performClick()
 
         compose.onAllNodes(hasText("Montag", substring = true) and hasAnyAncestor(isDialog())).onFirst().assertExists()
         compose.onAllNodes(hasText("Monday", substring = true)).assertCountEquals(0)
+    }
+
+    @Test
+    @Config(qualifiers = "en-rUS-w411dp-h891dp-xxhdpi")
+    fun englishDevice_usesEnglishLabelsAndCalendar() {
+        start()
+        compose.onNodeWithText("Tour log").assertExists()
+        compose.onNodeWithText("New tour").performClick()
+        compose.onNodeWithContentDescription("Choose Start date").performClick()
+        compose.onAllNodes(hasText("Monday", substring = true) and hasAnyAncestor(isDialog())).onFirst().assertExists()
+        compose.onAllNodes(hasText("Montag", substring = true)).assertCountEquals(0)
     }
 
     @Test
@@ -385,7 +401,7 @@ class TourFlowTest {
 
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Verwerfen").performClick()
-        compose.onNodeWithText("Touren").assertExists()
+        compose.onNodeWithText("Tourenlog").assertExists()
         assertEquals(0, repository.tours.size)
     }
 
@@ -400,10 +416,10 @@ class TourFlowTest {
         compose.onNodeWithContentDescription("Betrag in EUR entfernen").assertDoesNotExist()
 
         compose.onNodeWithText("Weitere Währung").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Währung: Danish Krone").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Währung: Dänische Krone").performScrollTo().performClick()
         compose.onNodeWithText("EUR · Euro").assertDoesNotExist()
-        compose.onNode(hasText("NOK · Norwegian Krone") and isSelectable()).performClick()
-        compose.onNode(hasSetTextAction() and hasText("Kosten (NOK)")).performScrollTo().performTextInput("1,450")
+        compose.onNode(hasText("NOK · Norwegische Krone") and isSelectable()).performClick()
+        compose.onNode(hasSetTextAction() and hasText("Kosten (NOK)")).performScrollTo().performTextInput("1.450")
         compose.onNodeWithContentDescription("Betrag in NOK entfernen").assertExists()
         clickSave()
 

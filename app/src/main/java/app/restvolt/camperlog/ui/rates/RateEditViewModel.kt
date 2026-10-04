@@ -67,7 +67,7 @@ class RateEditViewModel(
     currencyCode: String?,
     private val savedStateHandle: SavedStateHandle,
     private val today: () -> LocalDate = LocalDate::now,
-    private val locale: () -> Locale = Locale::getDefault,
+    private val locale: () -> Locale = { app.restvolt.camperlog.domain.supportedLocale(Locale.getDefault()) },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RateEditUiState())

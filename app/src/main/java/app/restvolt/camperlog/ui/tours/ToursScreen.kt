@@ -58,6 +58,7 @@ import app.restvolt.camperlog.domain.period
 import app.restvolt.camperlog.share.shareCsv
 import app.restvolt.camperlog.share.writeCsvExport
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -69,6 +70,7 @@ fun ToursScreen(
     viewModel: ToursViewModel,
     onAddTour: () -> Unit,
     onOpenOverview: () -> Unit,
+    onOpenSettings: () -> Unit,
     onOpenTour: (Long) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -109,6 +111,7 @@ fun ToursScreen(
             ToursTopBar(
                 scrollBehavior = scrollBehavior,
                 onOpenOverview = onOpenOverview,
+                onOpenSettings = onOpenSettings,
                 onExport = exportCsv,
                 exportEnabled = !exporting,
             )
@@ -135,13 +138,6 @@ fun ToursScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                Text(
-                    stringResource(R.string.tours_subtitle),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             if (state.hasAnyTour) {
                 item {
                     SearchField(state.query, viewModel::onQueryChange)
@@ -187,6 +183,7 @@ fun ToursScreen(
 private fun ToursTopBar(
     scrollBehavior: TopAppBarScrollBehavior,
     onOpenOverview: () -> Unit,
+    onOpenSettings: () -> Unit,
     onExport: () -> Unit,
     exportEnabled: Boolean,
 ) {
@@ -198,6 +195,9 @@ private fun ToursTopBar(
             }
             IconButton(onClick = onExport, enabled = exportEnabled) {
                 Icon(painterResource(R.drawable.ic_download), contentDescription = stringResource(R.string.tours_export_csv))
+            }
+            IconButton(onClick = onOpenSettings) {
+                Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.settings_title))
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -256,7 +256,7 @@ private fun TourCard(tour: Tour, onClick: () -> Unit) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(tour.destination, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    tour.period(),
+                    tour.period(currentLocale()),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

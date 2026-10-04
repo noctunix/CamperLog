@@ -5,20 +5,18 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
 
-/**
- * Sprache aller Datumsangaben. Die App hat nur deutsche Texte, daher folgen Datum und Kalender
- * nicht der Gerätesprache, sonst stünde z. B. `May 3, 2026` neben deutschen Beschriftungen.
- */
-val DATE_LOCALE: Locale = Locale.GERMANY
+/** Use English for unsupported device languages, matching the default Android resources. */
+fun supportedLocale(locale: Locale): Locale =
+    if (locale.language == "de" || locale.language == "en") locale else Locale.US
 
-/** Formatiert [date] im mittleren deutschen Datumsformat, z. B. `03.05.2026`. */
-fun formatDate(date: LocalDate): String =
-    DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(DATE_LOCALE).format(date)
+/** Format dates in the language of the UI. */
+fun formatDate(date: LocalDate, locale: Locale = Locale.getDefault()): String =
+    DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(supportedLocale(locale)).format(date)
 
-/** Zeitraum der Tour, z. B. `03.05.2026 – 05.05.2026` oder nur ein Datum bei Tagestouren. */
-fun Tour.period(): String =
+/** Display a range or just one date for a day trip. */
+fun Tour.period(locale: Locale = Locale.getDefault()): String =
     if (startDate == endDate) {
-        formatDate(startDate)
+        formatDate(startDate, locale)
     } else {
-        "${formatDate(startDate)} – ${formatDate(endDate)}"
+        "${formatDate(startDate, locale)} – ${formatDate(endDate, locale)}"
     }

@@ -16,7 +16,7 @@ import java.util.Locale
 /** Aktuelle Sprache der App für Datums- und Zahlenformate; ein Sprachwechsel löst Neukomposition aus. */
 @Composable
 @ReadOnlyComposable
-fun currentLocale(): Locale = LocalConfiguration.current.locales[0]
+fun currentLocale(): Locale = app.restvolt.camperlog.domain.supportedLocale(LocalConfiguration.current.locales[0])
 
 /** Anzeigetext der Tourart. */
 @get:StringRes

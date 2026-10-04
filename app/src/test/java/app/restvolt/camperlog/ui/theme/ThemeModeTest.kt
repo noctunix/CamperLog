@@ -1,8 +1,11 @@
 package app.restvolt.camperlog.ui.theme
 
+import android.content.Context
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.test.core.app.ApplicationProvider
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Rule
 import org.junit.Test
@@ -31,4 +34,21 @@ class ThemeModeTest {
     @Test
     @Config(qualifiers = "+night")
     fun nightMode_usesDarkColors() = assertSame(DarkColors, appliedScheme())
+
+    @Test
+    fun chosenThemeSurvivesNewSettingsInstance() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val preferences = context.getSharedPreferences("appearance", Context.MODE_PRIVATE)
+        preferences.edit().clear().commit()
+        try {
+            assertEquals(ThemeMode.SYSTEM, ThemeSettings(context).mode)
+            ThemeSettings(context).mode = ThemeMode.DARK
+            assertEquals(ThemeMode.DARK, ThemeSettings(context).mode)
+            assertEquals(true, ThemeSettings(context).mode.isDark(systemDark = false))
+            ThemeSettings(context).mode = ThemeMode.LIGHT
+            assertEquals(false, ThemeSettings(context).mode.isDark(systemDark = true))
+        } finally {
+            preferences.edit().clear().commit()
+        }
+    }
 }

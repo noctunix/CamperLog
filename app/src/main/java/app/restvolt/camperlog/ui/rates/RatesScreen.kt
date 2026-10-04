@@ -151,7 +151,7 @@ fun RatesScreen(
 }
 
 @Composable
-private fun MainCurrencyCard(currency: Currency, locale: Locale, onChange: () -> Unit) {
+internal fun MainCurrencyCard(currency: Currency, locale: Locale, onChange: () -> Unit) {
     val name = currency.getDisplayName(locale)
     val description = stringResource(R.string.rates_change_main_currency, name)
     SectionCard {
@@ -200,7 +200,7 @@ private fun MissingRatesCard(missing: List<Currency>, onAdd: (Currency) -> Unit)
 private fun RateCard(rate: ExchangeRate, locale: Locale, onEdit: () -> Unit, onDelete: () -> Unit) {
     val code = rate.currency.currencyCode
     val editLabel = stringResource(R.string.rates_edit, code)
-    val date = formatDate(rate.date)
+    val date = formatDate(rate.date, locale)
     SectionCard(
         Modifier
             .clip(MaterialTheme.shapes.large)

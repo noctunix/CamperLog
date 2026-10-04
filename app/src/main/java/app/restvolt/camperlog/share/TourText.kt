@@ -5,14 +5,15 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.domain.period
+import app.restvolt.camperlog.domain.supportedLocale
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.yesNoRes
 
 /** Lesbare Zusammenfassung einer Tour zum Teilen per Messenger oder E-Mail, in der Sprache von [res]. */
 fun tourShareText(res: Resources, tour: Tour): String = buildString {
-    val locale = res.configuration.locales[0]
+    val locale = supportedLocale(res.configuration.locales[0])
     appendLine(res.getString(R.string.share_subject, tour.destination))
-    appendLine(res.getString(R.string.share_period, tour.period(), res.getString(tour.tourType.labelRes)))
+    appendLine(res.getString(R.string.share_period, tour.period(locale), res.getString(tour.tourType.labelRes)))
     appendLine(
         res.getString(
             R.string.share_trip_stats,

@@ -1,9 +1,15 @@
 package app.restvolt.camperlog.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
@@ -27,6 +33,7 @@ import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
+import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -41,7 +48,7 @@ import java.util.Currency
 
 /** Abläufe rund um Wechselkurse: Übersicht, Kursliste, Kursformular und Hauptwährung. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
 class RatesFlowTest {
 
     @get:Rule
@@ -53,7 +60,12 @@ class RatesFlowTest {
     /** Startet auf der Übersicht mit einer Tour über 89,90 € und 500 NOK. */
     private fun startOnOverview(rates: FakeExchangeRateRepository): FakeExchangeRateRepository {
         val tours = FakeTourRepository(listOf(tour(listOf(Money(8_990, EUR), Money(50_000, nok)))))
-        compose.setContent { CamperLogTheme { CamperLogNavHost(tours, rates) } }
+        compose.setContent {
+            var mode by remember { mutableStateOf(ThemeMode.SYSTEM) }
+            CamperLogTheme(darkTheme = mode.isDark(isSystemInDarkTheme())) {
+                CamperLogNavHost(tours, rates, mode) { mode = it }
+            }
+        }
         compose.onNodeWithContentDescription("Übersicht").performClick()
         return rates
     }
@@ -85,7 +97,7 @@ class RatesFlowTest {
         val rates = startOnRates()
 
         compose.onNodeWithContentDescription("Kurs für NOK hinzufügen").performClick()
-        compose.onNodeWithContentDescription("Währung: NOK · Norwegian Krone").assertExists()
+        compose.onNodeWithContentDescription("Währung: NOK · Norwegische Krone").assertExists()
         rateField().performTextInput("10")
         compose.onNode(hasSetTextAction() and hasText("Quelle (optional)")).performTextInput("Bank")
         clickSave()
@@ -98,7 +110,7 @@ class RatesFlowTest {
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onAllNodesWithText("≈ Summe in EUR").onFirst().assertExists()
         // 89,90 € + 500 NOK / 10 = 139,90 €
-        compose.onAllNodesWithText("139.90", substring = true).onFirst().assertExists()
+        compose.onAllNodesWithText("139,90", substring = true).onFirst().assertExists()
     }
 
     @Test
@@ -123,23 +135,23 @@ class RatesFlowTest {
         compose.onNodeWithText("Kurs hinzufügen").performClick()
         compose.onNodeWithContentDescription("Währung: Währung wählen").performClick()
 
-        compose.onNode(hasText("NOK · Norwegian Krone") and hasAnyAncestor(isDialog())).assertDoesNotExist()
-        compose.onNode(hasText("DKK · Danish Krone") and hasAnyAncestor(isDialog())).performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Währung: DKK · Danish Krone").assertExists()
+        compose.onNode(hasText("NOK · Norwegische Krone") and hasAnyAncestor(isDialog())).assertDoesNotExist()
+        compose.onNode(hasText("DKK · Dänische Krone") and hasAnyAncestor(isDialog())).performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Währung: DKK · Dänische Krone").assertExists()
     }
 
     @Test
     fun editRate_prefillsAndKeepsCurrency() {
         val rates = startOnRates(FakeExchangeRateRepository(listOf(rate(nok, "11.4850", "EZB"))))
 
-        compose.onNodeWithText("1 € = 11.4850 NOK").performClick()
+        compose.onNodeWithText("1 € = 11,4850 NOK").performClick()
         compose.onNodeWithText("Kurs für NOK").assertExists()
         compose.onNodeWithContentDescription("Währung", substring = true).assertDoesNotExist()
-        rateField().assert(hasText("11.4850"))
+        rateField().assert(hasText("11,4850"))
         rateField().performTextReplacement("11.6")
         clickSave()
 
-        compose.onNodeWithText("1 € = 11.6 NOK").assertExists()
+        compose.onNodeWithText("1 € = 11,6 NOK").assertExists()
         assertEquals(BigDecimal("11.6"), rates.rates.single().perEuro)
         assertEquals("EZB", rates.rates.single().source)
     }
@@ -184,7 +196,7 @@ class RatesFlowTest {
         assertTrue(rates.rates.isEmpty())
 
         compose.onNodeWithText("Rückgängig").performClick()
-        compose.onNodeWithText("1 € = 11.485 NOK").assertExists()
+        compose.onNodeWithText("1 € = 11,485 NOK").assertExists()
         assertEquals(1, rates.rates.size)
     }
 
@@ -198,7 +210,7 @@ class RatesFlowTest {
         compose.onNodeWithText("Rückgängig").performClick()
 
         assertEquals(listOf(dkk), rates.rates.map(ExchangeRate::currency))
-        compose.onNodeWithText("1 € = 7.5 DKK").assertExists()
+        compose.onNodeWithText("1 € = 7,5 DKK").assertExists()
     }
 
     @Test
@@ -206,15 +218,36 @@ class RatesFlowTest {
         val rates = startOnRates(FakeExchangeRateRepository(listOf(rate(nok, "10"), rate(dkk, "7.5"))))
 
         compose.onNodeWithContentDescription("Hauptwährung ändern, aktuell Euro").performClick()
-        compose.onNode(hasText("NOK · Norwegian Krone") and hasAnyAncestor(isDialog())).performScrollTo().performClick()
+        compose.onNode(hasText("NOK · Norwegische Krone") and hasAnyAncestor(isDialog())).performScrollTo().performClick()
 
-        compose.onNodeWithText("NOK · Norwegian Krone").assertExists()
+        compose.onNodeWithText("NOK · Norwegische Krone").assertExists()
         assertEquals(nok, rates.mainCurrency)
 
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onAllNodesWithText("≈ Summe in NOK").onFirst().assertExists()
         // 89,90 € * 10 + 500 NOK = 1.399 NOK
-        compose.onAllNodesWithText("1,399.00", substring = true).onFirst().assertExists()
+        compose.onAllNodesWithText("1.399,00", substring = true).onFirst().assertExists()
+    }
+
+    @Test
+    fun settings_changeThemeAndMainCurrency_andOpenRates() {
+        val rates = startOnOverview(FakeExchangeRateRepository(listOf(rate(nok, "10"), rate(dkk, "7.5"))))
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithContentDescription("Einstellungen").performClick()
+
+        compose.onNodeWithText("Dunkel").performClick()
+        compose.onNodeWithText("Dunkel").assertIsSelected()
+        compose.onNodeWithContentDescription("Hauptwährung ändern, aktuell Euro").performClick()
+        compose.onNode(hasText("DKK · Dänische Krone") and hasAnyAncestor(isDialog())).performScrollTo().performClick()
+        assertEquals(dkk, rates.mainCurrency)
+
+        compose.onNodeWithText("Wechselkurse verwalten").performClick()
+        compose.onNodeWithText("Kurse zum Euro").assertExists()
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Dunkel").assertIsSelected()
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithContentDescription("Übersicht").performClick()
+        compose.onAllNodesWithText("≈ Summe in DKK").onFirst().assertExists()
     }
 
     @Test

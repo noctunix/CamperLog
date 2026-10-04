@@ -1,165 +1,172 @@
 <resources>
     <string name="app_name">CamperLog</string>
 
-    <!-- Allgemein -->
-    <string name="action_back">Zurück</string>
-    <string name="action_save">Speichern</string>
-    <string name="action_cancel">Abbrechen</string>
+    <!-- General -->
+    <string name="action_back">Back</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
     <string name="action_ok">OK</string>
-    <string name="yes">ja</string>
-    <string name="no">nein</string>
-    <string name="tour_not_found">Diese Tour gibt es nicht mehr.</string>
-    <string name="no_share_app">Keine App zum Teilen gefunden</string>
+    <string name="yes">yes</string>
+    <string name="no">no</string>
+    <string name="tour_not_found">This tour no longer exists.</string>
+    <string name="no_share_app">No app available for sharing</string>
     <string name="distance_km">%1$d km</string>
 
-    <!-- Feldbezeichnungen -->
-    <string name="field_start_date">Startdatum</string>
-    <string name="field_end_date">Enddatum</string>
-    <string name="field_destination">Ziel</string>
-    <string name="field_tour_type">Tourart</string>
-    <string name="field_travel_days">Reisetage</string>
-    <string name="field_overnight_stays">Übernachtungen</string>
-    <string name="field_distance">Kilometer</string>
-    <string name="field_cost">Kosten</string>
-    <string name="field_pitch_assigned">Stellplatz zugewiesen</string>
-    <string name="field_electricity">Strompauschale</string>
+    <!-- Field labels -->
+    <string name="field_start_date">Start date</string>
+    <string name="field_end_date">End date</string>
+    <string name="field_destination">Destination</string>
+    <string name="field_tour_type">Trip type</string>
+    <string name="field_travel_days">Travel days</string>
+    <string name="field_overnight_stays">Overnight stays</string>
+    <string name="field_distance">Distance (km)</string>
+    <string name="field_cost">Costs</string>
+    <string name="field_pitch_assigned">Pitch assigned</string>
+    <string name="field_electricity">Electricity flat rate</string>
     <string name="field_lte">LTE</string>
-    <string name="field_pitch">Stellplatz</string>
-    <string name="field_leveling_blocks">Keile genutzt</string>
-    <string name="field_notes">Notizen</string>
-    <string name="field_map_link">Kartenlink</string>
+    <string name="field_pitch">Pitch</string>
+    <string name="field_leveling_blocks">Leveling blocks used</string>
+    <string name="field_notes">Notes</string>
+    <string name="field_map_link">Map link</string>
 
-    <!-- Auswahlwerte -->
-    <string name="tour_type_day_trip">Tagestour</string>
-    <string name="tour_type_weekend">Wochenende</string>
-    <string name="tour_type_vacation">Urlaub</string>
-    <string name="electricity_yes">ja</string>
-    <string name="electricity_no">nein</string>
-    <string name="electricity_not_used">nicht genutzt</string>
-    <string name="lte_good">gut</string>
-    <string name="lte_ok">geht so</string>
-    <string name="lte_bad">schlecht</string>
-    <string name="pitch_level">gerade</string>
-    <string name="pitch_sloped">abschüssig</string>
+    <!-- Choices -->
+    <string name="tour_type_day_trip">Day trip</string>
+    <string name="tour_type_weekend">Weekend</string>
+    <string name="tour_type_vacation">Vacation</string>
+    <string name="electricity_yes">yes</string>
+    <string name="electricity_no">no</string>
+    <string name="electricity_not_used">not used</string>
+    <string name="lte_good">good</string>
+    <string name="lte_ok">fair</string>
+    <string name="lte_bad">poor</string>
+    <string name="pitch_level">level</string>
+    <string name="pitch_sloped">sloped</string>
 
-    <!-- Validierung -->
-    <string name="error_start_date_required">Startdatum erforderlich</string>
-    <string name="error_end_date_required">Enddatum erforderlich</string>
-    <string name="error_destination_required">Ziel erforderlich</string>
-    <string name="error_end_before_start">Enddatum liegt vor dem Startdatum</string>
-    <string name="error_negative_number">Keine negativen Zahlen</string>
-    <string name="error_invalid_number">Ungültige Zahl</string>
-    <string name="error_invalid_amount">Ungültiger Betrag, z. B. 49,90</string>
-    <string name="error_more_nights_than_days">Mehr Übernachtungen als Reisetage</string>
-    <string name="error_not_a_web_link">Nur http- oder https-Links</string>
+    <!-- Validation -->
+    <string name="error_start_date_required">Start date required</string>
+    <string name="error_end_date_required">End date required</string>
+    <string name="error_destination_required">Destination required</string>
+    <string name="error_end_before_start">End date is before start date</string>
+    <string name="error_negative_number">Negative numbers are not allowed</string>
+    <string name="error_invalid_number">Invalid number</string>
+    <string name="error_invalid_amount">Invalid amount, e.g. 49.90</string>
+    <string name="error_more_nights_than_days">More overnight stays than travel days</string>
+    <string name="error_not_a_web_link">Only http or https links</string>
 
-    <!-- Tourenliste -->
-    <string name="tours_title">Touren</string>
-    <string name="tours_subtitle">Logbuch Hannes – unsere Wohnmobil-Fahrten</string>
-    <string name="tours_new">Neue Tour</string>
-    <string name="tours_overview">Übersicht</string>
-    <string name="tours_export_csv">Als CSV exportieren</string>
-    <string name="tours_search">Ziel suchen</string>
-    <string name="tours_all_years">Alle Jahre</string>
-    <string name="tours_open_details">Details öffnen</string>
-    <string name="tours_row_meta">Jahr %1$d · %2$s</string>
-    <string name="tours_empty">Noch keine Touren. Lege mit „Neue Tour“ die erste Fahrt an.</string>
-    <string name="tours_no_match">Keine Tour passt zu Suche und Filter.</string>
-    <string name="tours_deleted">„%1$s“ gelöscht</string>
-    <string name="tours_undo">Rückgängig</string>
-    <string name="tours_saved">Tour gespeichert</string>
-    <string name="tours_delete_failed">Tour konnte nicht gelöscht werden.</string>
-    <string name="tours_restore_failed">Tour konnte nicht wiederhergestellt werden.</string>
-    <string name="export_nothing">Noch keine Touren zum Exportieren</string>
-    <string name="export_failed">CSV-Export fehlgeschlagen</string>
-    <string name="export_subject">CamperLog Touren</string>
-    <string name="export_chooser">Touren exportieren</string>
+    <!-- Tour list -->
+    <string name="tours_title">Tour log</string>
+    <string name="tours_new">New tour</string>
+    <string name="tours_overview">Overview</string>
+    <string name="tours_export_csv">Export as CSV</string>
+    <string name="tours_search">Search destinations</string>
+    <string name="tours_all_years">All years</string>
+    <string name="tours_open_details">Open details</string>
+    <string name="tours_row_meta">Year %1$d · %2$s</string>
+    <string name="tours_empty">No tours yet. Tap “New tour” to add your first trip.</string>
+    <string name="tours_no_match">No tours match your search and filters.</string>
+    <string name="tours_deleted">“%1$s” deleted</string>
+    <string name="tours_undo">Undo</string>
+    <string name="tours_saved">Tour saved</string>
+    <string name="tours_delete_failed">Could not delete tour.</string>
+    <string name="tours_restore_failed">Could not restore tour.</string>
+    <string name="export_nothing">No tours to export yet</string>
+    <string name="export_failed">CSV export failed</string>
+    <string name="export_subject">CamperLog tours</string>
+    <string name="export_chooser">Export tours</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme_system">System default</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_open_rates">Manage exchange rates</string>
 
     <!-- Detail -->
     <string name="detail_fallback_title">Tour</string>
-    <string name="detail_delete">Tour löschen</string>
-    <string name="detail_edit">Bearbeiten</string>
-    <string name="detail_share">Tour teilen</string>
-    <string name="detail_open_maps">In Maps öffnen</string>
-    <string name="detail_no_maps_app">Keine Karten-App gefunden</string>
+    <string name="detail_delete">Delete tour</string>
+    <string name="detail_edit">Edit</string>
+    <string name="detail_share">Share tour</string>
+    <string name="detail_open_maps">Open in Maps</string>
+    <string name="detail_no_maps_app">No maps app found</string>
 
-    <!-- Bearbeiten -->
-    <string name="edit_title_new">Neue Tour</string>
-    <string name="edit_title_existing">Tour bearbeiten</string>
-    <string name="edit_save_failed">Tour konnte nicht gespeichert werden.</string>
-    <string name="edit_discard_title">Änderungen verwerfen?</string>
-    <string name="edit_discard_text">Deine Eingaben gehen verloren.</string>
-    <string name="edit_discard_confirm">Verwerfen</string>
-    <string name="edit_discard_keep">Weiter bearbeiten</string>
-    <string name="edit_check_fields">Bitte diese Felder prüfen: %1$s</string>
-    <string name="edit_required">Pflichtfeld</string>
-    <string name="edit_cost_placeholder">z. B. %1$s</string>
-    <string name="edit_cost_amount">Kosten (%1$s)</string>
-    <string name="edit_cost_currency">Währung: %1$s</string>
-    <string name="edit_cost_pick_currency">Währung wählen</string>
-    <string name="edit_cost_add">Weitere Währung</string>
-    <string name="edit_cost_remove">Betrag in %1$s entfernen</string>
+    <!-- Edit -->
+    <string name="edit_title_new">New tour</string>
+    <string name="edit_title_existing">Edit tour</string>
+    <string name="edit_save_failed">Could not save tour.</string>
+    <string name="edit_discard_title">Discard changes?</string>
+    <string name="edit_discard_text">Your changes will be lost.</string>
+    <string name="edit_discard_confirm">Discard</string>
+    <string name="edit_discard_keep">Keep editing</string>
+    <string name="edit_check_fields">Check these fields: %1$s</string>
+    <string name="edit_required">Required</string>
+    <string name="edit_cost_placeholder">e.g. %1$s</string>
+    <string name="edit_cost_amount">Cost (%1$s)</string>
+    <string name="edit_cost_currency">Currency: %1$s</string>
+    <string name="edit_cost_pick_currency">Choose currency</string>
+    <string name="edit_cost_add">Add another currency</string>
+    <string name="edit_cost_remove">Remove amount in %1$s</string>
     <string name="edit_map_link_placeholder">https://…</string>
-    <string name="edit_pick_date">%1$s wählen</string>
+    <string name="edit_pick_date">Choose %1$s</string>
     <string name="edit_choice_option">%1$s: %2$s</string>
 
-    <!-- Übersicht -->
-    <string name="overview_title">Übersicht</string>
-    <string name="overview_empty">Noch keine Touren erfasst.</string>
-    <string name="overview_total">Gesamt</string>
-    <string name="overview_tours">Touren</string>
-    <string name="overview_converted">≈ Summe in %1$s</string>
-    <string name="overview_missing_rates">Kurs fehlt: %1$s</string>
+    <!-- Overview -->
+    <string name="overview_title">Overview</string>
+    <string name="overview_empty">No tours recorded yet.</string>
+    <string name="overview_total">Total</string>
+    <string name="overview_tours">Tours</string>
+    <string name="overview_converted">≈ Total in %1$s</string>
+    <string name="overview_missing_rates">Missing rate: %1$s</string>
 
-    <!-- Wechselkurse -->
-    <string name="rates_title">Wechselkurse</string>
-    <string name="rates_main_currency">Hauptwährung</string>
-    <string name="rates_main_currency_hint">Die Übersicht rechnet alle Kosten zusätzlich in diese Währung um.</string>
-    <string name="rates_change_main_currency">Hauptwährung ändern, aktuell %1$s</string>
+    <!-- Exchange rates -->
+    <string name="rates_title">Exchange rates</string>
+    <string name="rates_main_currency">Main currency</string>
+    <string name="rates_main_currency_hint">The overview also converts all costs into this currency.</string>
+    <string name="rates_change_main_currency">Change main currency, currently %1$s</string>
     <string name="rates_currency_option">%1$s · %2$s</string>
-    <string name="rates_list">Kurse zum Euro</string>
-    <string name="rates_empty">Noch keine Kurse erfasst.</string>
-    <string name="rates_missing">Für diese Währungen fehlt ein Kurs:</string>
-    <string name="rates_add">Kurs hinzufügen</string>
-    <string name="rates_add_for">Kurs für %1$s hinzufügen</string>
+    <string name="rates_list">Rates against the euro</string>
+    <string name="rates_empty">No exchange rates recorded yet.</string>
+    <string name="rates_missing">Rates are missing for these currencies:</string>
+    <string name="rates_add">Add rate</string>
+    <string name="rates_add_for">Add rate for %1$s</string>
     <string name="rates_value">1 € = %1$s %2$s</string>
-    <string name="rates_as_of">Stand %1$s</string>
-    <string name="rates_as_of_source">Stand %1$s · %2$s</string>
-    <string name="rates_edit">Kurs für %1$s bearbeiten</string>
-    <string name="rates_delete">Kurs für %1$s löschen</string>
-    <string name="rates_deleted">Kurs für %1$s gelöscht</string>
-    <string name="rates_write_failed">Änderung konnte nicht gespeichert werden.</string>
-    <string name="rate_edit_title">Kurs für %1$s</string>
-    <string name="rate_field_currency">Währung</string>
-    <string name="rate_field_rate">%1$s pro Euro</string>
-    <string name="rate_field_rate_unknown">Betrag pro Euro</string>
-    <string name="rate_field_rate_hint">Wie viel %1$s du für 1 € bekommst.</string>
-    <string name="rate_field_date">Stand</string>
-    <string name="rate_field_source">Quelle (optional)</string>
-    <string name="rate_field_source_hint">z. B. EZB, Bank oder Wechselstube</string>
-    <string name="rate_error_currency">Bitte eine Währung wählen.</string>
-    <string name="rate_error_rate">Bitte einen Kurs größer 0 mit höchstens 6 Nachkommastellen eingeben.</string>
-    <string name="rate_save_failed">Kurs konnte nicht gespeichert werden.</string>
+    <string name="rates_as_of">As of %1$s</string>
+    <string name="rates_as_of_source">As of %1$s · %2$s</string>
+    <string name="rates_edit">Edit rate for %1$s</string>
+    <string name="rates_delete">Delete rate for %1$s</string>
+    <string name="rates_deleted">Rate for %1$s deleted</string>
+    <string name="rates_write_failed">Could not save changes.</string>
+    <string name="rate_edit_title">Rate for %1$s</string>
+    <string name="rate_field_currency">Currency</string>
+    <string name="rate_field_rate">%1$s per euro</string>
+    <string name="rate_field_rate_unknown">Amount per euro</string>
+    <string name="rate_field_rate_hint">How much %1$s you get for €1.</string>
+    <string name="rate_field_date">As of</string>
+    <string name="rate_field_source">Source (optional)</string>
+    <string name="rate_field_source_hint">e.g. ECB, bank or exchange office</string>
+    <string name="rate_error_currency">Choose a currency.</string>
+    <string name="rate_error_rate">Enter a rate above 0 with at most 6 decimal places.</string>
+    <string name="rate_save_failed">Could not save rate.</string>
 
-    <!-- Teilen -->
-    <string name="share_subject">Tour nach %1$s</string>
+    <!-- Sharing -->
+    <string name="share_subject">Tour to %1$s</string>
     <string name="share_period">%1$s (%2$s)</string>
     <plurals name="share_travel_days">
-        <item quantity="one">%1$d Reisetag</item>
-        <item quantity="other">%1$d Reisetage</item>
+        <item quantity="one">%1$d travel day</item>
+        <item quantity="other">%1$d travel days</item>
     </plurals>
     <plurals name="share_overnight_stays">
-        <item quantity="one">%1$d Übernachtung</item>
-        <item quantity="other">%1$d Übernachtungen</item>
+        <item quantity="one">%1$d overnight stay</item>
+        <item quantity="other">%1$d overnight stays</item>
     </plurals>
     <string name="share_trip_stats">%1$s, %2$s, %3$s</string>
-    <string name="share_cost">Kosten: %1$s</string>
-    <string name="share_pitch_assigned">Stellplatz zugewiesen: %1$s</string>
-    <string name="share_electricity">Strompauschale: %1$s</string>
+    <string name="share_cost">Costs: %1$s</string>
+    <string name="share_pitch_assigned">Pitch assigned: %1$s</string>
+    <string name="share_electricity">Electricity flat rate: %1$s</string>
     <string name="share_lte">LTE: %1$s</string>
-    <string name="share_pitch">Stellplatz: %1$s, %2$s</string>
-    <string name="share_blocks_used">Keile genutzt</string>
-    <string name="share_blocks_not_used">Keile nicht genutzt</string>
-    <string name="share_notes">Notizen: %1$s</string>
-    <string name="share_map">Karte: %1$s</string>
+    <string name="share_pitch">Pitch: %1$s, %2$s</string>
+    <string name="share_blocks_used">Leveling blocks used</string>
+    <string name="share_blocks_not_used">Leveling blocks not used</string>
+    <string name="share_notes">Notes: %1$s</string>
+    <string name="share_map">Map: %1$s</string>
 </resources>

@@ -96,11 +96,11 @@ class TourTextTest {
 
     @Test
     @Config(qualifiers = "en-rUS")
-    fun datesStayGermanWhileAmountsFollowSystemLocale() {
+    fun englishSystemUsesEnglishDatesLabelsAndAmounts() {
         val lines = tourShareText(resources, tour).lines()
 
-        assertEquals("10.07.2026 – 12.07.2026 (Wochenende)", lines[1])
-        assertEquals("Kosten: €89.50", lines[3])
+        assertEquals("Jul 10, 2026 – Jul 12, 2026 (Weekend)", lines[1])
+        assertEquals("Costs: €89.50", lines[3])
     }
 }
 
