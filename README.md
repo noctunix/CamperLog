@@ -18,8 +18,8 @@ Die einzige Versionsangabe steht als `appVersion` in `app/build.gradle.kts`. And
 
 ```sh
 git push github master
-git tag -a v1.0.1 -m 'CamperLog 1.0.1' # Beispiel: nur wenn noch kein Tag existiert
-git push github v1.0.1
+git tag -a v1.0.2 -m 'CamperLog 1.0.2' # Beispiel: nur wenn noch kein Tag existiert
+git push github v1.0.2
 ```
 
 [Der Release-Workflow](.github/workflows/release.yml) prüft Version, Tag und Branch, führt Tests und Lint aus und erstellt erst danach den GitHub-Release. Ohne Signing-Secrets enthält er ausschließlich die automatisch bereitgestellten Quellcode-Archive. Ein Tag ist unveränderlich zu behandeln: Für Korrekturen die Version erhöhen, keinen veröffentlichten Tag verschieben.
