@@ -45,6 +45,12 @@ interface ExchangeRateDao {
     @Query("DELETE FROM exchange_rates WHERE currency = :currency")
     suspend fun deleteRate(currency: String)
 
+    @Query("SELECT * FROM exchange_rates")
+    suspend fun getRates(): List<ExchangeRateEntity>
+
+    @Query("DELETE FROM exchange_rates")
+    suspend fun deleteAllRates()
+
     @Query("SELECT main_currency FROM settings WHERE id = $SETTINGS_ID")
     fun observeMainCurrency(): Flow<String?>
 

@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
@@ -63,6 +64,14 @@ interface TourDao {
     @Query("DELETE FROM tours WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    /** id und Änderungszeit aller Touren nach UUID, für den Abgleich beim Import. */
+    @Query("SELECT uuid, id, updated_at FROM tours")
+    suspend fun getVersions(): List<TourVersionRow>
+
+    /** Löscht alle Touren; die Kosten folgen über den Fremdschlüssel. */
+    @Query("DELETE FROM tours")
+    suspend fun deleteAll()
+
     @Query(
         "SELECT c.currency FROM tour_costs c JOIN tours t ON t.id = c.tour_id " +
             "ORDER BY t.updated_at DESC, t.id DESC, c.position DESC LIMIT 1",
@@ -84,3 +93,10 @@ interface TourDao {
     )
     fun observeYearCostSums(): Flow<List<YearCostSumRow>>
 }
+
+/** Stand einer gespeicherten Tour für den Import-Abgleich. */
+data class TourVersionRow(
+    val uuid: String,
+    val id: Long,
+    @ColumnInfo(name = "updated_at") val updatedAtMillis: Long,
+)
