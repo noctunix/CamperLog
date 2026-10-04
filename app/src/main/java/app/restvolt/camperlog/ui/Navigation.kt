@@ -119,7 +119,7 @@ fun CamperLogNavHost(
         }
         composable<DataRoute> { entry ->
             DataScreen(
-                viewModel = viewModel { DataViewModel(repository) },
+                viewModel = viewModel { DataViewModel(repository, exchangeRates) },
                 onBack = { navController.popFrom(entry) },
             )
         }

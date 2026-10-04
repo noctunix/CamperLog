@@ -13,10 +13,15 @@ import app.restvolt.camperlog.domain.isWebUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 private const val CSV_MIME = "text/csv"
+
+/** MIME-Typ einer Sicherungsdatei. */
+const val BACKUP_MIME = "application/json"
 private const val UTF8_BOM = "\uFEFF"
 private const val EXPORT_DIR = "exports"
 
@@ -38,6 +43,35 @@ suspend fun writeCsvExport(context: Context, tours: List<Tour>): Uri = withConte
     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 }
 
+/**
+ * Schreibt die Sicherung [json] in den Cache-Ordner `exports/` und liefert eine teilbare Content-URI.
+ * Ältere Exporte werden dabei wie bei [writeCsvExport] aufgeräumt.
+ */
+suspend fun writeBackupExport(context: Context, json: String): Uri = withContext(Dispatchers.IO) {
+    val dir = File(context.cacheDir, EXPORT_DIR).apply { mkdirs() }
+    deleteOldExports(dir, System.currentTimeMillis())
+    val file = uniqueFile(dir, "camperlog-sicherung-${LocalDateTime.now().format(exportStamp)}", extension = "json")
+    file.writeText(json, Charsets.UTF_8)
+    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
+/**
+ * Schreibt die Sicherung [json] in die vom Nutzer gewählte Datei [target] und überschreibt deren Inhalt.
+ *
+ * @throws IOException wenn die Datei nicht geschrieben werden kann
+ */
+suspend fun writeBackupTo(context: Context, target: Uri, json: String) = withContext(Dispatchers.IO) {
+    val output = try {
+        context.contentResolver.openOutputStream(target, "wt")
+    } catch (e: SecurityException) {
+        throw IOException(e)
+    } ?: throw IOException("Kein Ausgabestrom für $target")
+    output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+}
+
+/** Vorgeschlagener Dateiname für eine Sicherung, z. B. `camperlog-sicherung-2026-10-04.json`. */
+fun backupFileName(date: LocalDate = LocalDate.now()): String = "camperlog-sicherung-$date.json"
+
 /** Löscht Export-Dateien, die älter als eine Stunde sind; für den App-Start gedacht. */
 suspend fun cleanUpExports(context: Context) = withContext(Dispatchers.IO) {
     deleteOldExports(File(context.cacheDir, EXPORT_DIR), System.currentTimeMillis())
@@ -51,9 +85,9 @@ internal fun deleteOldExports(dir: File, now: Long) {
 }
 
 /** Liefert eine noch nicht existierende Datei `base.csv`, `base-2.csv`, … in [dir]. */
-internal fun uniqueFile(dir: File, base: String): File =
+internal fun uniqueFile(dir: File, base: String, extension: String = "csv"): File =
     generateSequence(1) { it + 1 }
-        .map { n -> File(dir, if (n == 1) "$base.csv" else "$base-$n.csv") }
+        .map { n -> File(dir, if (n == 1) "$base.$extension" else "$base-$n.$extension") }
         .first { !it.exists() }
 
 /**
@@ -66,6 +100,22 @@ fun Context.shareCsv(uri: Uri): Boolean {
         type = CSV_MIME
         putExtra(Intent.EXTRA_STREAM, uri)
         putExtra(Intent.EXTRA_SUBJECT, getString(R.string.export_subject))
+        clipData = ClipData.newRawUri(null, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    return startChooser(send, getString(R.string.export_chooser))
+}
+
+/**
+ * Öffnet das Sharesheet für eine Sicherungsdatei unter [uri].
+ *
+ * @return `false`, wenn kein Sharesheet geöffnet werden konnte
+ */
+fun Context.shareBackup(uri: Uri): Boolean {
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = BACKUP_MIME
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_SUBJECT, getString(R.string.backup_subject))
         clipData = ClipData.newRawUri(null, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }

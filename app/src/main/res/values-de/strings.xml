@@ -173,4 +173,11 @@
     <string name="data_title">Daten</string>
     <string name="data_csv_title">Tabelle (CSV)</string>
     <string name="data_csv_description">Alle Touren als Tabelle für Tabellenkalkulationen. Nicht zur Wiederherstellung geeignet.</string>
+    <string name="data_backup_title">Sicherung (JSON)</string>
+    <string name="data_backup_description">Alle Touren, Wechselkurse und die Hauptwährung. Damit lassen sich die Daten auf diesem oder einem anderen Gerät wiederherstellen.</string>
+    <string name="data_backup_save">Als Datei speichern</string>
+    <string name="data_backup_share">Sicherung teilen</string>
+    <string name="backup_saved">Sicherung gespeichert</string>
+    <string name="backup_failed">Sicherung fehlgeschlagen</string>
+    <string name="backup_subject">CamperLog-Sicherung</string>
 </resources>

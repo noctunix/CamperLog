@@ -173,4 +173,11 @@
     <string name="data_title">Data</string>
     <string name="data_csv_title">Spreadsheet (CSV)</string>
     <string name="data_csv_description">All tours as a table for spreadsheet apps. Not suitable for restoring.</string>
+    <string name="data_backup_title">Backup (JSON)</string>
+    <string name="data_backup_description">All tours, exchange rates and the main currency. Use it to restore your data on this or another device.</string>
+    <string name="data_backup_save">Save as file</string>
+    <string name="data_backup_share">Share backup</string>
+    <string name="backup_saved">Backup saved</string>
+    <string name="backup_failed">Backup failed</string>
+    <string name="backup_subject">CamperLog backup</string>
 </resources>
