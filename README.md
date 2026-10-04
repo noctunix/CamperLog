@@ -1,40 +1,40 @@
 # CamperLog
 
-CamperLog ist eine Android-App für Touren, Kosten und Währungen. Entwickelt mit Kotlin, Jetpack Compose und Room.
+CamperLog is an Android app for recording trips, expenses, and currencies. It is built with Kotlin, Jetpack Compose, and Room. The app uses English by default and German on devices configured for German. CSV export keeps its existing column names and values for compatibility with earlier exports.
 
-## Entwicklung
+## Development
 
-Voraussetzungen: JDK 17, Android SDK (Plattform 37) und ein Android-Gerät oder Emulator für die App. Der Gradle Wrapper ist im Repository enthalten.
+Requirements: JDK 17, Android SDK (platform 37), and an Android device or emulator to run the app. The Gradle wrapper is included.
 
 ```sh
 ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
-Pull Requests und Pushes auf `master` durchlaufen diese Prüfungen in [GitHub Actions](.github/workflows/ci.yml). Der Debug-Build ist keine veröffentlichte Release-Version.
+Pushes to `master` and pull requests run these checks in [GitHub Actions](.github/workflows/ci.yml). Debug APKs are not published as releases.
 
-## Versionen und Releases
+## Versions and releases
 
-Die einzige Versionsangabe steht als `appVersion` in `app/build.gradle.kts`. Androids `versionCode` wird daraus abgeleitet. Für jedes neue Release die Version erhöhen (SemVer, `MINOR` und `PATCH` jeweils kleiner als 100), die Änderungen committen und den **Commit auf `master`** mit `v<Version>` taggen. Danach den Branch und das Tag nach GitHub pushen:
+The sole version declaration is `appVersion` in `app/build.gradle.kts`; Android's `versionCode` is derived from it. For each release, increment the version (SemVer; `MINOR` and `PATCH` must each be below 100), commit the changes, and tag the **commit on `master`** with `v<version>`. Push the branch before the tag:
 
 ```sh
 git push github master
-git tag -a v1.0.2 -m 'CamperLog 1.0.2' # Beispiel: nur wenn noch kein Tag existiert
-git push github v1.0.2
+git tag -a v1.0.4 -m 'CamperLog 1.0.4' # Example: after bumping to the next unused version
+git push github v1.0.4
 ```
 
-[Der Release-Workflow](.github/workflows/release.yml) prüft Version, Tag und Branch, führt Tests und Lint aus und erstellt erst danach den GitHub-Release. Ohne Signing-Secrets enthält er ausschließlich die automatisch bereitgestellten Quellcode-Archive. Ein Tag ist unveränderlich zu behandeln: Für Korrekturen die Version erhöhen, keinen veröffentlichten Tag verschieben.
+The [release workflow](.github/workflows/release.yml) verifies the version, tag, and branch, runs tests and lint, builds a signed arm64 APK, verifies its signature, and publishes it with a SHA-256 checksum. A release fails if signing secrets are missing or invalid. Treat published tags as immutable: increment the version for fixes rather than moving a tag.
 
-### Signierte APK (arm64)
+### Signed APK (arm64)
 
-Für lokale Builds `keystore.properties.example` lesen und den Keystore **dauerhaft und sicher sichern**. `scripts/build-release-arm64.sh --no-install` baut ohne Geräteinstallation eine signierte APK. Ein Schlüsselwechsel verhindert Updates bereits installierter Apps mit erhaltenen Daten.
+For local builds, follow `keystore.properties.example` and **keep a permanent, secure backup of the keystore**. `scripts/build-release-arm64.sh --no-install` builds a signed APK without installing it. Replacing the signing key prevents updating existing installations while retaining their data.
 
-Um bei künftigen GitHub-Releases eine installierbare APK zu veröffentlichen, in den Repository-Secrets unter **Settings → Secrets and variables → Actions** beide Werte hinterlegen:
+To publish an installable APK, configure both repository secrets under **Settings → Secrets and variables → Actions**:
 
-- `RELEASE_KEYSTORE_BASE64`: Base64-Inhalt des dauerhaft gesicherten Release-Keystores.
-- `RELEASE_PROPERTIES_BASE64`: Base64-Inhalt einer `keystore.properties` mit `storeFile=release.jks`, `storePassword`, `keyAlias` und `keyPassword` für genau diesen Keystore.
+- `RELEASE_KEYSTORE_BASE64`: Base64-encoded content of the permanently backed-up release keystore.
+- `RELEASE_PROPERTIES_BASE64`: Base64-encoded `keystore.properties` with `storeFile=release.jks`, `storePassword`, `keyAlias`, and `keyPassword` for that keystore.
 
-Beispiel auf Linux: `base64 -w0 camperlog-release.jks` bzw. `base64 -w0 keystore.properties` ausführen und die Ausgabe jeweils direkt als Secret hinterlegen. Die Properties-Datei muss für den GitHub-Build `storeFile=release.jks` enthalten. **Weder Keystore noch Passwörter einchecken.** Sind nur eines der Secrets oder ungültige Signing-Daten vorhanden, schlägt der Release-Workflow fehl, statt eine unsignierte APK zu veröffentlichen.
+On Linux, use `base64 -w0 camperlog-release.jks` and `base64 -w0 keystore.properties`, then enter the respective outputs directly as secrets. The properties file encoded for GitHub **must** contain `storeFile=release.jks`. Never commit the keystore or passwords.
 
-## Lizenz
+## License
 
-Apache License 2.0, siehe [LICENSE](LICENSE).
+Apache License 2.0; see [LICENSE](LICENSE).
