@@ -8,18 +8,17 @@ plugins {
     alias(libs.plugins.room)
 }
 
-// App-Version nach SemVer (MAJOR.MINOR.PATCH), einzige Stelle zum Bumpen; Tag dazu: v<Version>.
-// versionCode wird abgeleitet (1.2.3 -> 10203) und steigt so mit jedem Bump, was
-// Android für Updates verlangt.
-val appVersion = "1.0.2"
+// Single SemVer version declaration (MAJOR.MINOR.PATCH); release tag: v<version>.
+// The derived versionCode (1.2.3 -> 10203) increases with each version for Android updates.
+val appVersion = "1.0.3"
 val appVersionCode = appVersion.split(".").map(String::toInt).also {
-    require(it.size == 3) { "appVersion muss MAJOR.MINOR.PATCH sein: $appVersion" }
+    require(it.size == 3) { "appVersion must be MAJOR.MINOR.PATCH: $appVersion" }
 }.let { (major, minor, patch) ->
-    require(minor < 100 && patch < 100) { "MINOR und PATCH müssen kleiner als 100 sein: $appVersion" }
+    require(minor < 100 && patch < 100) { "MINOR and PATCH must be below 100: $appVersion" }
     major * 10_000 + minor * 100 + patch
 }
 
-// Signaturdaten für Release-Builds; die Datei liegt nur lokal und wird nicht eingecheckt.
+// Release signing configuration is stored locally and never committed.
 val releaseSigningFile = rootProject.file("keystore.properties")
 val releaseSigning = Properties().apply {
     if (releaseSigningFile.exists()) releaseSigningFile.inputStream().use(::load)
@@ -51,7 +50,7 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.findByName("release")
-            // Zielgeräte sind ausschließlich arm64; andere ABIs landen nicht in der Release-APK.
+            // Release builds target arm64 devices only.
             ndk { abiFilters += "arm64-v8a" }
             isMinifyEnabled = true
             isShrinkResources = true
@@ -75,12 +74,11 @@ android {
     lint {
         abortOnError = true
         warningsAsErrors = true
-        // Release-APK ist bewusst nur arm64 (siehe buildTypes); ChromeOS/x86_64 ist kein Ziel.
+        // Release APKs target arm64 only; ChromeOS/x86_64 is not supported.
         disable += "ChromeOsAbiSupport"
     }
 
-    // Der Kalender läuft immer auf Deutsch (DATE_LOCALE); ohne Sprach-Split bleiben die deutschen
-    // Material-Texte auch auf anderssprachigen Geräten im Bundle.
+    // Keep both English and German Material calendar resources in the app bundle.
     bundle {
         language {
             enableSplit = false
@@ -115,12 +113,12 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
-// Ohne Signatur entstünde still eine nicht installierbare APK; daher lieber klar abbrechen.
+// Fail clearly instead of silently creating an unsigned release APK.
 val checkReleaseSigning by tasks.registering {
     val hasSigning = releaseSigningFile.exists()
     doLast {
         check(hasSigning) {
-            "keystore.properties fehlt im Projektordner (siehe keystore.properties.example)."
+            "keystore.properties is missing (see keystore.properties.example)."
         }
     }
 }
