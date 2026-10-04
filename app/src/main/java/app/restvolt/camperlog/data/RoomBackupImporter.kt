@@ -6,12 +6,28 @@ import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.Tour
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 
-/** Spielt Sicherungen in einer einzigen Datenbank-Transaktion ein: Bei einem Fehler bleibt alles beim Alten. */
-class RoomBackupImporter(private val database: CamperLogDatabase) : BackupImporter {
+/**
+ * Spielt Sicherungen in einer einzigen Datenbank-Transaktion ein: Bei einem Fehler bleibt alles beim Alten.
+ *
+ * Zeitstempel und Kursdaten aus der Zukunft – etwa von einem Gerät mit falsch gestellter Uhr – werden
+ * auf den Importzeitpunkt begrenzt. Sonst würden solche Einträge bei jedem Zusammenführen gegen
+ * spätere lokale Änderungen gewinnen.
+ */
+class RoomBackupImporter(
+    private val database: CamperLogDatabase,
+    private val clock: Clock = Clock.systemDefaultZone(),
+) : BackupImporter {
 
     override suspend fun import(backup: Backup, mode: ImportMode): ImportResult = database.withTransaction {
+        val now = clock.instant()
+        val today = LocalDate.now(clock)
+        val importedTours = backup.tours.map { it.notAfter(now) }
+        val importedRates = backup.rates.map { if (it.date > today) it.copy(date = today) else it }
         val tours = database.tourDao()
         val rates = database.exchangeRateDao()
         if (mode == ImportMode.REPLACE) {
@@ -23,7 +39,7 @@ class RoomBackupImporter(private val database: CamperLogDatabase) : BackupImport
         val stored = tours.getVersions().associateBy(TourVersionRow::uuid)
         var added = 0
         var updated = 0
-        for (tour in backup.tours) {
+        for (tour in importedTours) {
             val existing = stored[tour.uuid]
             when {
                 existing == null -> {
@@ -39,7 +55,7 @@ class RoomBackupImporter(private val database: CamperLogDatabase) : BackupImport
         }
 
         val storedRateDates = rates.getRates().associate { it.currency to LocalDate.parse(it.rateDate) }
-        val newerRates = backup.rates.filter { rate -> storedRateDates[rate.currency.currencyCode]?.let { rate.date > it } ?: true }
+        val newerRates = importedRates.filter { rate -> storedRateDates[rate.currency.currencyCode]?.let { rate.date > it } ?: true }
         newerRates.map(ExchangeRate::toEntity).forEach { rates.upsertRate(it) }
 
         // Kostensummen, die nicht mehr in 64 Bit passen, würden jede spätere Übersicht scheitern lassen.
@@ -54,3 +70,8 @@ class RoomBackupImporter(private val database: CamperLogDatabase) : BackupImport
         )
     }
 }
+
+private fun Tour.notAfter(now: Instant): Tour = copy(
+    createdAt = minOf(createdAt, now),
+    updatedAt = minOf(updatedAt, now),
+)

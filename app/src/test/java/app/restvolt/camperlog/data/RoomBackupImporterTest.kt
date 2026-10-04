@@ -26,7 +26,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.math.BigDecimal
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDate
 import java.util.Currency
 
@@ -49,7 +51,7 @@ class RoomBackupImporterTest {
             .build()
         tours = RoomTourRepository(db.tourDao())
         rates = RoomExchangeRateRepository(db.exchangeRateDao())
-        importer = RoomBackupImporter(db)
+        importer = RoomBackupImporter(db, Clock.fixed(Instant.parse("2026-10-04T12:00:00Z"), ZoneOffset.UTC))
     }
 
     @After
@@ -177,6 +179,25 @@ class RoomBackupImporterTest {
         assertTrue(failed.isFailure)
         assertEquals(listOf("Lokal"), storedTours().map { it.destination })
         assertEquals(listOf(nok), rates.observeRates().first().map { it.currency })
+    }
+
+    @Test
+    fun futureTimestampsAndRateDates_areCappedAtImportTime() = runTest {
+        val future = tour(1, "Zukunft", updatedAt = "2150-01-01T00:00:00Z").copy(createdAt = Instant.parse("2150-01-01T00:00:00Z"))
+
+        importer.import(backup(listOf(future), rates = listOf(rate(nok, "11.5", "2150-01-01"))), ImportMode.MERGE)
+
+        val stored = storedTours().single()
+        assertEquals(Instant.parse("2026-10-04T12:00:00Z"), stored.updatedAt)
+        assertEquals(Instant.parse("2026-10-04T12:00:00Z"), stored.createdAt)
+        assertEquals(LocalDate.of(2026, 10, 4), rates.observeRates().first().single().date)
+
+        // Eine spätere lokale Änderung gewinnt beim erneuten Zusammenführen.
+        val local = tours.allTours().single()
+        tours.delete(local.id)
+        tours.restore(local.copy(destination = "Lokal", updatedAt = Instant.parse("2026-10-05T00:00:00Z")))
+        importer.import(backup(listOf(future)), ImportMode.MERGE)
+        assertEquals(listOf("Lokal"), storedTours().map { it.destination })
     }
 
     @Test
