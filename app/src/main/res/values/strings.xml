@@ -180,4 +180,37 @@
     <string name="backup_saved">Backup saved</string>
     <string name="backup_failed">Backup failed</string>
     <string name="backup_subject">CamperLog backup</string>
+    <string name="data_import_title">Restore backup</string>
+    <string name="data_import_description">Reads a CamperLog backup file. You will see what it contains before anything is changed.</string>
+    <string name="data_import_choose">Choose backup file</string>
+    <string name="import_preview_title">Restore backup?</string>
+    <string name="import_preview_summary">Backup from %1$s with %2$s and %3$s. Main currency: %4$s.</string>
+    <plurals name="import_tours">
+        <item quantity="one">%1$d tour</item>
+        <item quantity="other">%1$d tours</item>
+    </plurals>
+    <plurals name="import_rates">
+        <item quantity="one">%1$d exchange rate</item>
+        <item quantity="other">%1$d exchange rates</item>
+    </plurals>
+    <string name="import_mode_merge">Merge</string>
+    <string name="import_mode_merge_hint">Adds new tours and takes over newer versions of existing ones. Your main currency stays.</string>
+    <string name="import_mode_replace">Replace everything</string>
+    <string name="import_mode_replace_hint">Deletes all saved tours and exchange rates and restores the backup instead.</string>
+    <string name="import_start">Import</string>
+    <string name="import_replace_title">Replace all data?</string>
+    <plurals name="import_replace_text">
+        <item quantity="one">Your saved tour and all exchange rates will be deleted and replaced by the backup. This cannot be undone.</item>
+        <item quantity="other">Your %1$d saved tours and all exchange rates will be deleted and replaced by the backup. This cannot be undone.</item>
+    </plurals>
+    <string name="import_replace_text_no_tours">All saved exchange rates will be deleted and replaced by the backup. This cannot be undone.</string>
+    <string name="import_replace_confirm">Replace</string>
+    <string name="import_done">Import finished: %1$d new, %2$d updated, %3$d unchanged, %4$d exchange rates taken over.</string>
+    <string name="import_failed">Import failed. Nothing was changed.</string>
+    <string name="import_unreadable">The file could not be read.</string>
+    <string name="import_error_too_large">The file is too large for a CamperLog backup.</string>
+    <string name="import_error_not_backup">This file is not a CamperLog backup.</string>
+    <string name="import_error_newer_version">This backup was created by a newer version of CamperLog. Please update the app.</string>
+    <string name="import_error_invalid">The backup contains invalid data. Nothing was changed.</string>
+    <string name="import_error_invalid_tour">Tour %1$d in the backup contains invalid data. Nothing was changed.</string>
 </resources>

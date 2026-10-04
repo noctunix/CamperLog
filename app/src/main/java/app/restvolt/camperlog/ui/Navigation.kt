@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.ui.data.DataScreen
@@ -61,6 +62,7 @@ internal data class RateEditRoute(val currencyCode: String? = null)
 fun CamperLogNavHost(
     repository: TourRepository,
     exchangeRates: ExchangeRateRepository,
+    backupImporter: BackupImporter,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
@@ -119,7 +121,7 @@ fun CamperLogNavHost(
         }
         composable<DataRoute> { entry ->
             DataScreen(
-                viewModel = viewModel { DataViewModel(repository, exchangeRates) },
+                viewModel = viewModel { DataViewModel(repository, exchangeRates, backupImporter) },
                 onBack = { navController.popFrom(entry) },
             )
         }
