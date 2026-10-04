@@ -50,7 +50,7 @@
     <string name="error_negative_number">Keine negativen Zahlen</string>
     <string name="error_invalid_number">Ungültige Zahl</string>
     <string name="error_invalid_amount">Ungültiger Betrag, z. B. 49,90</string>
-    <string name="error_amount_too_large">Betrag zu groß</string>
+    <string name="error_amount_too_large">Betrag zu groß, höchstens %1$s</string>
     <string name="error_more_nights_than_days">Mehr Übernachtungen als Reisetage</string>
     <string name="error_not_a_web_link">Nur http- oder https-Links</string>
 

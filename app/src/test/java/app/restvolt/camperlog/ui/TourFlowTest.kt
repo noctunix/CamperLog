@@ -430,6 +430,20 @@ class TourFlowTest {
     }
 
     @Test
+    fun createTour_amountTooLarge_showsMaximum() {
+        val repository = start()
+        compose.onNodeWithText("Neue Tour").performClick()
+        pickDay("Startdatum", 10)
+        pickDay("Enddatum", 12)
+        destinationField().performTextInput("Lofoten")
+        compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performScrollTo().performTextInput("100000000000,01")
+        clickSave()
+
+        compose.onNodeWithText("Betrag zu groß, höchstens 100.000.000.000,00", substring = true).assertExists()
+        assertEquals(0, repository.tours.size)
+    }
+
+    @Test
     fun newTour_startsWithLastUsedCurrency() {
         start(tour(id = 1, destination = "Lofoten").copy(costs = listOf(Money(10_000, Currency.getInstance("NOK")))))
         compose.onNodeWithText("Neue Tour").performClick()

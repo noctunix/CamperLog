@@ -32,9 +32,11 @@ import androidx.compose.ui.unit.dp
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.ALL_CURRENCIES
 import app.restvolt.camperlog.domain.CostInput
+import app.restvolt.camperlog.domain.MAX_AMOUNT_MINOR
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.amountToInput
+import app.restvolt.camperlog.domain.formatAmount
 import app.restvolt.camperlog.domain.fractionDigits
 import app.restvolt.camperlog.ui.CurrencyPicker
 import app.restvolt.camperlog.ui.currentLocale
@@ -66,7 +68,7 @@ internal fun CostFields(
         costs.forEachIndexed { index, cost ->
             CostRow(
                 cost = cost,
-                error = errors[index]?.let { stringResource(it.messageRes(TourField.COST)) },
+                error = errors[index]?.let { costErrorText(it, cost.currency, locale) },
                 locale = locale,
                 removable = costs.size > 1,
                 onAmountChange = { onAmountChange(index, it) },
@@ -147,3 +149,12 @@ private fun CostRow(
 /** Beispielbetrag 49,90 mit den Nachkommastellen von [currency], z. B. `49` für ISK. */
 private fun exampleAmount(currency: Currency, locale: Locale): String =
     amountToInput(BigDecimal("49.90").movePointRight(currency.fractionDigits).toLong(), currency, locale)
+
+/** Fehlertext einer Kostenzeile; bei zu großen Beträgen mit dem Höchstwert in [currency]. */
+@Composable
+private fun costErrorText(error: TourError, currency: Currency, locale: Locale): String =
+    if (error == TourError.AMOUNT_TOO_LARGE) {
+        stringResource(R.string.error_amount_too_large, formatAmount(MAX_AMOUNT_MINOR, currency, locale))
+    } else {
+        stringResource(error.messageRes(TourField.COST))
+    }
