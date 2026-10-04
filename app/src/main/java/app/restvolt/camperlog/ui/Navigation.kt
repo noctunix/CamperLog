@@ -2,6 +2,7 @@ package app.restvolt.camperlog.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -14,6 +15,7 @@ import androidx.navigation.toRoute
 import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.TourRepository
+import app.restvolt.camperlog.ui.data.AndroidDataFiles
 import app.restvolt.camperlog.ui.data.DataScreen
 import app.restvolt.camperlog.ui.data.DataViewModel
 import app.restvolt.camperlog.ui.detail.TourDetailScreen
@@ -120,8 +122,9 @@ fun CamperLogNavHost(
             )
         }
         composable<DataRoute> { entry ->
+            val context = LocalContext.current
             DataScreen(
-                viewModel = viewModel { DataViewModel(repository, exchangeRates, backupImporter) },
+                viewModel = viewModel { DataViewModel(repository, exchangeRates, backupImporter, AndroidDataFiles(context)) },
                 onBack = { navController.popFrom(entry) },
             )
         }

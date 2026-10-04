@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui.data
 
+import app.restvolt.camperlog.R
 import app.restvolt.camperlog.backup.Backup
 import app.restvolt.camperlog.backup.BackupError
 import app.restvolt.camperlog.backup.BackupReadResult
@@ -30,6 +31,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
+import java.io.InputStream
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -37,8 +39,11 @@ import java.util.Currency
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DataViewModelTest {
+    private val dispatcher = UnconfinedTestDispatcher()
+    private val files = FakeDataFiles()
+
     @Before
-    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
+    fun setUp() = Dispatchers.setMain(dispatcher)
 
     @After
     fun tearDown() = Dispatchers.resetMain()
@@ -75,7 +80,9 @@ class DataViewModelTest {
             FakeTourRepository(listOf(tour)),
             FakeExchangeRateRepository(listOf(rate), mainCurrency = nok),
             FakeBackupImporter(),
+            files,
             clock = { exportedAt },
+            background = dispatcher,
         )
 
         val backup = (decodeBackup(viewModel.backupJson()) as BackupReadResult.Success).backup
@@ -90,15 +97,17 @@ class DataViewModelTest {
     private val backupText = Backup(Instant.parse("2026-10-04T12:00:00Z"), nok, emptyList(), listOf(tour)).let(::encodeBackup)
 
     private fun viewModel(importer: FakeBackupImporter = FakeBackupImporter(), tours: List<Tour> = emptyList()) =
-        DataViewModel(FakeTourRepository(tours), FakeExchangeRateRepository(), importer)
+        DataViewModel(FakeTourRepository(tours), FakeExchangeRateRepository(), importer, files, background = dispatcher)
+            .also { files.sources["backup"] = backupText; files.sources["empty"] = "{}" }
 
     @Test
     fun loadBackup_validFile_isPendingWithExistingTourCount() = runBlocking {
         val viewModel = viewModel(tours = listOf(tour.copy(id = 1), tour.copy(id = 2)))
 
-        val failure = viewModel.loadBackup { backupText.byteInputStream() }
+        viewModel.loadBackup("backup")
 
-        assertNull(failure)
+        assertNull(viewModel.message.value)
+        assertEquals(false, viewModel.busy.value)
         val pending = viewModel.pendingImport.value!!
         assertEquals(listOf(tour), pending.backup.tours)
         assertEquals(2, pending.existingTours)
@@ -107,32 +116,103 @@ class DataViewModelTest {
     @Test
     fun loadBackup_invalidFile_reportsErrorAndClearsPending() = runBlocking {
         val viewModel = viewModel()
-        viewModel.loadBackup { backupText.byteInputStream() }
+        viewModel.loadBackup("backup")
 
-        val failure = viewModel.loadBackup { "{}".byteInputStream() }
+        viewModel.loadBackup("empty")
 
-        assertEquals(BackupError.NOT_A_BACKUP, failure?.error)
+        val message = viewModel.message.value as DataMessage.LoadFailed
+        assertEquals(BackupError.NOT_A_BACKUP, message.failure.error)
         assertNull(viewModel.pendingImport.value)
     }
 
-    @Test(expected = IOException::class)
-    fun loadBackup_missingStream_throwsIOException(): Unit = runBlocking {
-        viewModel().loadBackup { null }
+    @Test
+    fun loadBackup_missingStream_reportsUnreadable() {
+        val viewModel = viewModel()
+
+        viewModel.loadBackup("missing")
+
+        assertEquals(DataMessage.Text(R.string.import_unreadable), viewModel.message.value)
+        assertNull(viewModel.pendingImport.value)
+        assertEquals(false, viewModel.busy.value)
+    }
+
+    @Test
+    fun exportCsv_withTours_requestsShareAndReportsMissingApp() {
+        val viewModel = viewModel(tours = listOf(tour))
+
+        viewModel.exportCsv()
+
+        assertEquals(ShareRequest.Csv("csv:1"), viewModel.share.value)
+        assertEquals(listOf(listOf(tour)), files.csvExports)
+        viewModel.shareHandled(started = false)
+        assertNull(viewModel.share.value)
+        assertEquals(DataMessage.Text(R.string.no_share_app), viewModel.message.value)
+        viewModel.messageShown()
+        assertNull(viewModel.message.value)
+    }
+
+    @Test
+    fun exportCsv_withoutTours_reportsNothingToExport() {
+        val viewModel = viewModel()
+
+        viewModel.exportCsv()
+
+        assertNull(viewModel.share.value)
+        assertEquals(DataMessage.Text(R.string.export_nothing), viewModel.message.value)
+        assertTrue(files.csvExports.isEmpty())
+    }
+
+    @Test
+    fun saveBackup_writesTargetAndReportsSuccess() {
+        val viewModel = viewModel(tours = listOf(tour))
+
+        viewModel.saveBackup("content://target")
+
+        val json = files.written.getValue("content://target")
+        assertEquals(listOf(tour), (decodeBackup(json) as BackupReadResult.Success).backup.tours)
+        assertEquals(DataMessage.Text(R.string.backup_saved), viewModel.message.value)
+    }
+
+    @Test
+    fun saveBackup_writeFailure_reportsBackupFailed() {
+        files.failure = IOException("voll")
+        val viewModel = viewModel()
+
+        viewModel.saveBackup("content://target")
+
+        assertEquals(DataMessage.Text(R.string.backup_failed), viewModel.message.value)
+        assertEquals(false, viewModel.busy.value)
+    }
+
+    @Test
+    fun shareBackup_whileBusy_isIgnored() {
+        val gate = CompletableDeferred<Unit>()
+        files.gate = gate
+        val viewModel = viewModel()
+
+        viewModel.shareBackup()
+        viewModel.exportCsv()
+
+        assertTrue(viewModel.busy.value)
+        gate.complete(Unit)
+        assertEquals(ShareRequest.Backup("backup:1"), viewModel.share.value)
+        assertNull(viewModel.message.value)
+        assertEquals(false, viewModel.busy.value)
     }
 
     @Test
     fun startImport_usesChosenModeAndPublishesResult() = runBlocking {
         val importer = FakeBackupImporter()
         val viewModel = viewModel(importer)
-        viewModel.loadBackup { backupText.byteInputStream() }
+        viewModel.loadBackup("backup")
 
         viewModel.startImport(ImportMode.REPLACE)
 
-        assertEquals(1, viewModel.importResult.value?.addedTours)
+        assertEquals(1, (viewModel.message.value as DataMessage.Imported).result.addedTours)
         assertEquals(listOf(ImportMode.REPLACE), importer.calls.map { it.second })
         assertNull(viewModel.pendingImport.value)
-        viewModel.importResultShown()
-        assertNull(viewModel.importResult.value)
+        viewModel.messageShown()
+        assertNull(viewModel.message.value)
         viewModel.startImport(ImportMode.MERGE)
         assertEquals(1, importer.calls.size)
     }
@@ -142,7 +222,7 @@ class DataViewModelTest {
         val gate = CompletableDeferred<Unit>()
         val importer = FakeBackupImporter().apply { this.gate = gate }
         val viewModel = viewModel(importer)
-        viewModel.loadBackup { backupText.byteInputStream() }
+        viewModel.loadBackup("backup")
 
         viewModel.startImport(ImportMode.MERGE)
         viewModel.startImport(ImportMode.MERGE)
@@ -152,32 +232,62 @@ class DataViewModelTest {
         assertEquals(1, importer.calls.size)
         gate.complete(Unit)
         assertNull(viewModel.pendingImport.value)
-        assertEquals(1, viewModel.importResult.value?.addedTours)
+        assertEquals(1, (viewModel.message.value as DataMessage.Imported).result.addedTours)
     }
 
     @Test
     fun startImport_failure_keepsBackupForRetry() = runBlocking {
         val importer = FakeBackupImporter().apply { failure = IOException("disk") }
         val viewModel = viewModel(importer)
-        viewModel.loadBackup { backupText.byteInputStream() }
+        viewModel.loadBackup("backup")
 
         viewModel.startImport(ImportMode.MERGE)
 
         val pending = viewModel.pendingImport.value!!
         assertTrue(pending.failed)
         assertEquals(false, pending.running)
-        assertNull(viewModel.importResult.value)
+        assertNull(viewModel.message.value)
     }
 
     @Test
     fun cancelImport_discardsWithoutImporting() = runBlocking {
         val importer = FakeBackupImporter()
         val viewModel = viewModel(importer)
-        viewModel.loadBackup { backupText.byteInputStream() }
+        viewModel.loadBackup("backup")
 
         viewModel.cancelImport()
 
         assertNull(viewModel.pendingImport.value)
         assertTrue(importer.calls.isEmpty())
     }
+}
+
+/** Speichert Exporte im Speicher; [gate] hält Exporte an, [failure] lässt Schreibzugriffe scheitern. */
+private class FakeDataFiles : DataFiles {
+    val sources = mutableMapOf<String, String>()
+    val written = mutableMapOf<String, String>()
+    val csvExports = mutableListOf<List<Tour>>()
+    var gate: CompletableDeferred<Unit>? = null
+    var failure: IOException? = null
+    private var backups = 0
+
+    override suspend fun writeCsvExport(tours: List<Tour>): String {
+        gate?.await()
+        failure?.let { throw it }
+        csvExports += tours
+        return "csv:${csvExports.size}"
+    }
+
+    override suspend fun writeBackupExport(json: String): String {
+        gate?.await()
+        failure?.let { throw it }
+        return "backup:${++backups}"
+    }
+
+    override suspend fun writeBackup(target: String, json: String) {
+        failure?.let { throw it }
+        written[target] = json
+    }
+
+    override fun open(source: String): InputStream? = sources[source]?.byteInputStream()
 }
