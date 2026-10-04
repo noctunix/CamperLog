@@ -18,6 +18,7 @@ internal fun TourWithCosts.toDomain(): Tour = tour.toDomain(
 
 private fun TourEntity.toDomain(costs: List<Money>): Tour = Tour(
     id = id,
+    uuid = uuid,
     startDate = LocalDate.parse(startDate),
     endDate = LocalDate.parse(endDate),
     destination = destination,
@@ -39,6 +40,7 @@ private fun TourEntity.toDomain(costs: List<Money>): Tour = Tour(
 
 internal fun Tour.toEntity(): TourEntity = TourEntity(
     id = id,
+    uuid = uuid,
     startDate = startDate.toString(),
     endDate = endDate.toString(),
     destination = destination,

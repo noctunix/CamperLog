@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -25,6 +26,7 @@ import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
 import java.util.Currency
+import java.util.UUID
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -52,7 +54,11 @@ class RoomTourRepositoryTest {
         assertEquals("Gardasee", stored.destination)
         assertEquals(now, stored.createdAt)
         assertEquals(now, stored.updatedAt)
-        assertEquals(tour(start = "2026-05-01", destination = "Gardasee").copy(id = id, createdAt = now, updatedAt = now), stored)
+        assertEquals(4, UUID.fromString(stored.uuid).version())
+        assertEquals(
+            tour(start = "2026-05-01", destination = "Gardasee").copy(id = id, uuid = stored.uuid, createdAt = now, updatedAt = now),
+            stored,
+        )
 
         val created = now
         now = Instant.parse("2026-02-01T12:00:00Z")
@@ -63,10 +69,21 @@ class RoomTourRepositoryTest {
         assertEquals(true, updated.levelingBlocksUsed)
         assertEquals(created, updated.createdAt)
         assertEquals(now, updated.updatedAt)
+        assertEquals(stored.uuid, updated.uuid)
 
         repository.delete(id)
         assertNull(repository.observeTour(id).first())
         assertEquals(emptyList<Tour>(), repository.observeTours().first())
+    }
+
+    @Test
+    fun keepsGivenUuidAndGeneratesDistinctOnes() = runTest {
+        val given = repository.save(tour(start = "2026-05-01", destination = "A").copy(uuid = "fixed-uuid"))
+        val first = repository.save(tour(start = "2026-05-02", destination = "B"))
+        val second = repository.save(tour(start = "2026-05-03", destination = "C"))
+
+        assertEquals("fixed-uuid", repository.observeTour(given).first()?.uuid)
+        assertNotEquals(repository.observeTour(first).first()?.uuid, repository.observeTour(second).first()?.uuid)
     }
 
     @Test

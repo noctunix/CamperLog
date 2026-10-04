@@ -17,6 +17,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.util.Currency
+import java.util.UUID
 
 /**
  * Prüft die Migration auf Version 2 mit einer Datenbank, die exakt nach `schemas/…/1.json` angelegt
@@ -87,6 +88,55 @@ class MigrationTest {
             db.close()
         }
     }
+
+    @Test
+    fun migration3To4GivesEveryTourADistinctUuidAndKeepsData() = runTest {
+        createVersion3(
+            "INSERT INTO tours VALUES (1, '2026-06-01', '2026-06-14', 'Lofoten', 'VACATION', 14, 13, 4200, 1, " +
+                "'YES', 'GOOD', 'LEVEL', 0, '', NULL, 1000, 2000)",
+            "INSERT INTO tours VALUES (2, '2026-07-01', '2026-07-01', 'Ostsee', 'DAY_TRIP', 1, 0, 120, 0, " +
+                "'NO', 'OK', 'SLOPED', 1, '', NULL, 3000, 4000)",
+            "INSERT INTO tour_costs VALUES (1, 'NOK', 1250000, 0)",
+            "INSERT INTO exchange_rates VALUES ('NOK', '11.4850', '2026-10-01', 'EZB')",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val tours = RoomTourRepository(db.tourDao()) { Instant.EPOCH }.allTours()
+
+            assertEquals(listOf(1L, 2L), tours.map { it.id })
+            assertEquals(listOf(Money(1_250_000, Currency.getInstance("NOK"))), tours[0].costs)
+            tours.forEach { assertEquals(4, UUID.fromString(it.uuid).version()) }
+            assertEquals(2, tours.map { it.uuid }.distinct().size)
+            assertEquals(1, RoomExchangeRateRepository(db.exchangeRateDao()).observeRates().first().size)
+        } finally {
+            db.close()
+        }
+    }
+
+    /** Legt `camperlog.db` im Stand von Version 3 nach `schemas/…/3.json` an und füllt sie mit [inserts]. */
+    private fun createVersion3(vararg inserts: String) = createDatabase(
+        version = 3,
+        identityHash = "555e3d29145874d0c0f6c05a51c649ba",
+        schema = listOf(
+            "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, " +
+                "`tour_type` TEXT NOT NULL, `travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, " +
+                "`distance_km` INTEGER NOT NULL, `pitch_assigned` INTEGER NOT NULL, " +
+                "`electricity_flat_rate` TEXT NOT NULL, `lte_quality` TEXT NOT NULL, `pitch_slope` TEXT NOT NULL, " +
+                "`leveling_blocks_used` INTEGER NOT NULL, `notes` TEXT NOT NULL, `map_link` TEXT, " +
+                "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+            "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)",
+            "CREATE TABLE IF NOT EXISTS `tour_costs` (`tour_id` INTEGER NOT NULL, `currency` TEXT NOT NULL, " +
+                "`amount_minor` INTEGER NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`tour_id`, `currency`), " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE TABLE IF NOT EXISTS `exchange_rates` (`currency` TEXT NOT NULL, `per_euro` TEXT NOT NULL, " +
+                "`rate_date` TEXT NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`currency`))",
+            "CREATE TABLE IF NOT EXISTS `settings` (`id` INTEGER NOT NULL, `main_currency` TEXT NOT NULL, " +
+                "PRIMARY KEY(`id`))",
+        ),
+        inserts = inserts.toList(),
+    )
 
     /** Legt `camperlog.db` im Stand von Version 2 nach `schemas/…/2.json` an und füllt sie mit [inserts]. */
     private fun createVersion2(vararg inserts: String) = createDatabase(

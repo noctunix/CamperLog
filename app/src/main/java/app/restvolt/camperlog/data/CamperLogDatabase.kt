@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 /** Lokale Room-Datenbank der App. */
 @Database(
     entities = [TourEntity::class, TourCostEntity::class, ExchangeRateEntity::class, SettingsEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -23,7 +23,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
         /** Öffnet die Datenbankdatei der App. Nur einmal pro Prozess aufrufen. */
         fun open(context: Context): CamperLogDatabase =
             Room.databaseBuilder(context.applicationContext, CamperLogDatabase::class.java, "camperlog.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
     }
 }
@@ -70,6 +70,22 @@ internal val MIGRATION_2_3 = object : Migration(2, 3) {
         db.execSQL(
             "CREATE TABLE `settings` (`id` INTEGER NOT NULL, `main_currency` TEXT NOT NULL, PRIMARY KEY(`id`))",
         )
+    }
+}
+
+/**
+ * Version 4: jede Tour bekommt eine eindeutige UUID für Import und Abgleich. Bestehende Touren
+ * erhalten eine zufällige UUID (Version 4) direkt in SQL, damit die Migration ohne Kotlin-Schleife auskommt.
+ */
+internal val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `tours` ADD COLUMN `uuid` TEXT NOT NULL DEFAULT ''")
+        db.execSQL(
+            "UPDATE `tours` SET `uuid` = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || " +
+                "substr(hex(randomblob(2)), 2) || '-' || substr('89ab', 1 + (abs(random()) % 4), 1) || " +
+                "substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))",
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_tours_uuid` ON `tours` (`uuid`)")
     }
 }
 

@@ -11,10 +11,15 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.util.Currency
+import java.util.UUID
 
-/** [TourRepository] auf Basis von Room. [clock] liefert die Zeitstempel für Anlage und Änderung. */
+/**
+ * [TourRepository] auf Basis von Room. [clock] liefert die Zeitstempel für Anlage und Änderung,
+ * [newUuid] die Kennung neuer Touren ohne eigene UUID.
+ */
 class RoomTourRepository(
     private val dao: TourDao,
+    private val newUuid: () -> String = { UUID.randomUUID().toString() },
     private val clock: () -> Instant = Instant::now,
 ) : TourRepository {
 
@@ -29,7 +34,8 @@ class RoomTourRepository(
     override suspend fun save(tour: Tour): Long {
         val now = clock()
         return if (tour.id == 0L) {
-            dao.insertWithCosts(tour.copy(createdAt = now, updatedAt = now).toEntity(), tour.toCostEntities())
+            val uuid = tour.uuid.ifEmpty { newUuid() }
+            dao.insertWithCosts(tour.copy(uuid = uuid, createdAt = now, updatedAt = now).toEntity(), tour.toCostEntities())
         } else {
             dao.updateWithCosts(tour.copy(updatedAt = now).toEntity(), tour.toCostEntities())
             tour.id

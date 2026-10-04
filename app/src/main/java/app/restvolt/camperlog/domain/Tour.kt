@@ -5,10 +5,12 @@ import java.time.LocalDate
 
 /**
  * Eine Wohnmobil-Tour. [costs] enthält höchstens einen Betrag je Währung.
- * Eine Tour mit [id] 0 ist noch nicht gespeichert.
+ * Eine Tour mit [id] 0 ist noch nicht gespeichert. [uuid] identifiziert die Tour geräteübergreifend
+ * (z. B. beim Import); leer bedeutet „noch nicht vergeben“, das Repository vergibt sie beim Anlegen.
  */
 data class Tour(
     val id: Long = 0,
+    val uuid: String = "",
     val startDate: LocalDate,
     val endDate: LocalDate,
     val destination: String,

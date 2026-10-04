@@ -104,6 +104,7 @@ fun TourInput.costErrors(locale: Locale): Map<Int, TourError> = buildMap {
  */
 fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
     id = original?.id ?: 0,
+    uuid = original?.uuid.orEmpty(),
     startDate = checkNotNull(startDate),
     endDate = checkNotNull(endDate),
     destination = destination.trim(),
