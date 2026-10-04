@@ -103,7 +103,4 @@ class ToursViewModel(private val repository: TourRepository) : ViewModel() {
     fun onMessageShown(shown: ToursMessage) {
         _message.compareAndSet(shown, null)
     }
-
-    /** Alle Touren in chronologischer Reihenfolge für den CSV-Export. */
-    suspend fun toursForExport(): List<Tour> = repository.allTours()
 }

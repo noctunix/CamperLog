@@ -13,6 +13,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.TourRepository
+import app.restvolt.camperlog.ui.data.DataScreen
+import app.restvolt.camperlog.ui.data.DataViewModel
 import app.restvolt.camperlog.ui.detail.TourDetailScreen
 import app.restvolt.camperlog.ui.detail.TourDetailViewModel
 import app.restvolt.camperlog.ui.edit.EditTourScreen
@@ -47,6 +49,9 @@ internal object RatesRoute
 @Serializable
 internal object SettingsRoute
 
+@Serializable
+internal object DataRoute
+
 /** Kursformular; ohne [currencyCode] wird ein neuer Kurs mit frei wählbarer Währung angelegt. */
 @Serializable
 internal data class RateEditRoute(val currencyCode: String? = null)
@@ -66,6 +71,7 @@ fun CamperLogNavHost(
                 viewModel = viewModel { ToursViewModel(repository) },
                 onAddTour = { navController.navigate(EditRoute()) },
                 onOpenOverview = { navController.navigate(OverviewRoute) },
+                onOpenData = { navController.navigate(DataRoute) },
                 onOpenSettings = { navController.navigate(SettingsRoute) },
                 onOpenTour = { navController.navigate(DetailRoute(it)) },
             )
@@ -109,6 +115,12 @@ fun CamperLogNavHost(
                 viewModel = viewModel { RatesViewModel(exchangeRates, repository) },
                 onBack = { navController.popFrom(entry) },
                 onEditRate = { navController.navigate(RateEditRoute(it)) },
+            )
+        }
+        composable<DataRoute> { entry ->
+            DataScreen(
+                viewModel = viewModel { DataViewModel(repository) },
+                onBack = { navController.popFrom(entry) },
             )
         }
         composable<SettingsRoute> { entry ->

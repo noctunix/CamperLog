@@ -1,6 +1,5 @@
 package app.restvolt.camperlog.ui.tours
 
-import android.database.SQLException
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,14 +35,10 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -55,54 +50,25 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.period
-import app.restvolt.camperlog.share.shareCsv
-import app.restvolt.camperlog.share.writeCsvExport
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
-import kotlinx.coroutines.launch
-import java.io.IOException
 
-/** Startseite: Tourenliste mit Suche, Jahresfilter und Einstieg in Eingabe, Übersicht und CSV-Export. */
+/** Startseite: Tourenliste mit Suche, Jahresfilter und Einstieg in Eingabe, Übersicht und Datenverwaltung. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ToursScreen(
     viewModel: ToursViewModel,
     onAddTour: () -> Unit,
     onOpenOverview: () -> Unit,
+    onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenTour: (Long) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     val resources = LocalResources.current
-    val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val message by viewModel.message.collectAsStateWithLifecycle()
-    var exporting by remember { mutableStateOf(false) }
-
-    val exportCsv: () -> Unit = {
-        exporting = true
-        scope.launch {
-            val problem = try {
-                val tours = viewModel.toursForExport()
-                when {
-                    tours.isEmpty() -> R.string.export_nothing
-                    !context.shareCsv(writeCsvExport(context, tours)) -> R.string.no_share_app
-                    else -> null
-                }
-            } catch (_: IOException) {
-                R.string.export_failed
-            } catch (_: SQLException) {
-                R.string.export_failed
-            } finally {
-                // Vor der Snackbar freigeben: showSnackbar wartet, bis die Meldung verschwindet.
-                exporting = false
-            }
-            problem?.let { snackbar.showSnackbar(resources.getString(it), withDismissAction = true) }
-        }
-    }
-
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     Scaffold(
@@ -111,9 +77,8 @@ fun ToursScreen(
             ToursTopBar(
                 scrollBehavior = scrollBehavior,
                 onOpenOverview = onOpenOverview,
+                onOpenData = onOpenData,
                 onOpenSettings = onOpenSettings,
-                onExport = exportCsv,
-                exportEnabled = !exporting,
             )
         },
         floatingActionButton = {
@@ -183,9 +148,8 @@ fun ToursScreen(
 private fun ToursTopBar(
     scrollBehavior: TopAppBarScrollBehavior,
     onOpenOverview: () -> Unit,
+    onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
-    onExport: () -> Unit,
-    exportEnabled: Boolean,
 ) {
     TopAppBar(
         title = { Text(stringResource(R.string.tours_title), modifier = Modifier.semantics { heading() }) },
@@ -193,8 +157,8 @@ private fun ToursTopBar(
             IconButton(onClick = onOpenOverview) {
                 Icon(painterResource(R.drawable.ic_bar_chart), contentDescription = stringResource(R.string.tours_overview))
             }
-            IconButton(onClick = onExport, enabled = exportEnabled) {
-                Icon(painterResource(R.drawable.ic_download), contentDescription = stringResource(R.string.tours_export_csv))
+            IconButton(onClick = onOpenData) {
+                Icon(painterResource(R.drawable.ic_import_export), contentDescription = stringResource(R.string.data_title))
             }
             IconButton(onClick = onOpenSettings) {
                 Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.settings_title))

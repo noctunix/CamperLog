@@ -169,4 +169,8 @@
     <string name="share_blocks_not_used">Keile nicht genutzt</string>
     <string name="share_notes">Notizen: %1$s</string>
     <string name="share_map">Karte: %1$s</string>
+    <!-- Daten -->
+    <string name="data_title">Daten</string>
+    <string name="data_csv_title">Tabelle (CSV)</string>
+    <string name="data_csv_description">Alle Touren als Tabelle für Tabellenkalkulationen. Nicht zur Wiederherstellung geeignet.</string>
 </resources>

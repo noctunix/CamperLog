@@ -169,4 +169,8 @@
     <string name="share_blocks_not_used">Leveling blocks not used</string>
     <string name="share_notes">Notes: %1$s</string>
     <string name="share_map">Map: %1$s</string>
+    <!-- Data -->
+    <string name="data_title">Data</string>
+    <string name="data_csv_title">Spreadsheet (CSV)</string>
+    <string name="data_csv_description">All tours as a table for spreadsheet apps. Not suitable for restoring.</string>
 </resources>
