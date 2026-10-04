@@ -1,9 +1,9 @@
 package app.restvolt.camperlog.share
 
 import app.restvolt.camperlog.domain.EUR
-import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.amountToDecimal
+import app.restvolt.camperlog.domain.sumMinor
 
 /** Spaltenreihenfolge des CSV-Exports. Neue Spalten nur am Ende anfügen. */
 val CSV_HEADER = listOf(
@@ -77,7 +77,7 @@ private fun Tour.csvFields(): List<String> = listOf(
     travelDays.toString(),
     overnightStays.toString(),
     distanceKm.toString(),
-    amountToDecimal(costs.filter { it.currency == EUR }.sumOf(Money::minor), EUR),
+    amountToDecimal(costs.filter { it.currency == EUR }.sumMinor(), EUR),
     yesNo(pitchAssigned),
     electricityFlatRate.csvValue,
     lteQuality.csvValue,

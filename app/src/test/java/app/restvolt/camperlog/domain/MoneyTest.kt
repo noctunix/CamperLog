@@ -3,6 +3,7 @@ package app.restvolt.camperlog.domain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Currency
@@ -110,6 +111,14 @@ class MoneyTest {
         val sums = listOf(Money(100, nok), Money(250, EUR), Money(-100, nok), Money(50, EUR), Money(7, isk)).sumByCurrency()
         assertEquals(listOf(Money(300, EUR), Money(7, isk)), sums)
         assertEquals(emptyList<Money>(), emptyList<Money>().sumByCurrency())
+    }
+
+    @Test
+    fun sumMinor_addsAndRejectsOverflow() {
+        assertEquals(Long.MAX_VALUE, listOf(Money(Long.MAX_VALUE - 1, EUR), Money(1, EUR)).sumMinor())
+        assertThrows(ArithmeticException::class.java) {
+            listOf(Money(Long.MAX_VALUE, EUR), Money(1, EUR)).sumByCurrency()
+        }
     }
 
     @Test

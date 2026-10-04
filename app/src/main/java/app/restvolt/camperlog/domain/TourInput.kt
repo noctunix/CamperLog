@@ -121,7 +121,7 @@ fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
     costs = costs
         .map { Money(checkNotNull(parseCost(it.amount, it.currency, locale)), it.currency) }
         .groupBy(Money::currency)
-        .map { (currency, amounts) -> Money(amounts.sumOf(Money::minor), currency) }
+        .map { (currency, amounts) -> Money(amounts.sumMinor(), currency) }
         .filter { it.minor != 0L },
     pitchAssigned = pitchAssigned,
     electricityFlatRate = electricityFlatRate,

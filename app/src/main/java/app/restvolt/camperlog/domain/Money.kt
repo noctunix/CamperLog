@@ -24,9 +24,16 @@ data class Money(val minor: Long, val currency: Currency)
 /** Summiert Beträge je Währung, sortiert nach Währungscode. Summen von 0 fallen weg. */
 fun Iterable<Money>.sumByCurrency(): List<Money> =
     groupBy(Money::currency)
-        .map { (currency, amounts) -> Money(amounts.sumOf(Money::minor), currency) }
+        .map { (currency, amounts) -> Money(amounts.sumMinor(), currency) }
         .filter { it.minor != 0L }
         .sortedBy { it.currency.currencyCode }
+
+/**
+ * Summiert die Beträge in der kleinsten Einheit, ohne auf die Währung zu achten.
+ *
+ * @throws ArithmeticException statt still überzulaufen, wenn die Summe nicht in [Long] passt
+ */
+fun Iterable<Money>.sumMinor(): Long = fold(0L) { sum, money -> Math.addExact(sum, money.minor) }
 
 /** Formatiert Beträge mehrerer Währungen, z. B. `1.234,56 € · 3.200,00 NOK`; ohne Beträge `0,00 €`. */
 fun formatAmounts(amounts: List<Money>, locale: Locale): String =
