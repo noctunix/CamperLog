@@ -11,7 +11,7 @@ plugins {
 // App-Version nach SemVer (MAJOR.MINOR.PATCH), einzige Stelle zum Bumpen; Tag dazu: v<Version>.
 // versionCode wird abgeleitet (1.2.3 -> 10203) und steigt so mit jedem Bump, was
 // Android für Updates verlangt.
-val appVersion = "1.0.0"
+val appVersion = "1.0.1"
 val appVersionCode = appVersion.split(".").map(String::toInt).also {
     require(it.size == 3) { "appVersion muss MAJOR.MINOR.PATCH sein: $appVersion" }
 }.let { (major, minor, patch) ->
