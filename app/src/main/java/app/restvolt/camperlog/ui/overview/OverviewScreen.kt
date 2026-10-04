@@ -87,10 +87,14 @@ private fun TotalsCard(title: String, row: TotalsRow) {
             )
         } else {
             Text(
-                stringResource(
-                    R.string.overview_missing_rates,
-                    conversion.missing.joinToString(", ") { it.currencyCode },
-                ),
+                if (conversion.tooLarge) {
+                    stringResource(R.string.overview_conversion_too_large)
+                } else {
+                    stringResource(
+                        R.string.overview_missing_rates,
+                        conversion.missing.joinToString(", ") { it.currencyCode },
+                    )
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -59,6 +59,16 @@ class MoneyTest {
     }
 
     @Test
+    fun limitsAmountToMaxMinorUnits() {
+        val de = Locale.GERMANY
+        assertEquals(AmountReading.Valid(MAX_AMOUNT_MINOR), readAmount("100.000.000.000,00", EUR, de))
+        assertEquals(AmountReading.TooLarge, readAmount("100.000.000.000,01", EUR, de))
+        assertEquals(AmountReading.TooLarge, readAmount("99999999999999999999", EUR, de))
+        assertEquals(AmountReading.Invalid, readAmount("12,5x", EUR, de))
+        assertNull(parseAmount("100000000001", EUR, de))
+    }
+
+    @Test
     fun respectsFractionDigitsOfCurrency() {
         assertEquals(1_500L, parseAmount("1.500", isk, de))
         assertNull(parseAmount("15,5", isk, de))

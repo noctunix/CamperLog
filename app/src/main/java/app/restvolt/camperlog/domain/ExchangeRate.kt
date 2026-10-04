@@ -40,9 +40,9 @@ interface ExchangeRateRepository {
 
 /**
  * Ergebnis von [convert]: [total] ist die gerundete Summe in der Zielwährung oder `null`, wenn
- * für eine der Währungen in [missing] kein Kurs vorliegt.
+ * für eine der Währungen in [missing] kein Kurs vorliegt oder die Summe [tooLarge] ist.
  */
-data class Conversion(val total: Money?, val missing: List<Currency>)
+data class Conversion(val total: Money?, val missing: List<Currency>, val tooLarge: Boolean = false)
 
 /**
  * Rechnet [amounts] über den Euro in [target] um und summiert sie. Gerechnet wird mit BigDecimal,
@@ -66,8 +66,10 @@ fun convert(amounts: List<Money>, target: Currency, rates: List<ExchangeRate>): 
             value.multiply(perEuro.getValue(target)).divide(perEuro.getValue(money.currency), MathContext.DECIMAL128)
         }
     }
-    val minor = sum.setScale(target.fractionDigits, RoundingMode.HALF_UP).unscaledValue().toLong()
-    return Conversion(total = Money(minor, target), missing = emptyList())
+    val minor = sum.setScale(target.fractionDigits, RoundingMode.HALF_UP).unscaledValue()
+    // Bei extremen Kursverhältnissen passt das Ergebnis nicht mehr in Long; dann lieber keine Summe.
+    if (minor.bitLength() >= Long.SIZE_BITS) return Conversion(total = null, missing = emptyList(), tooLarge = true)
+    return Conversion(total = Money(minor.toLong(), target), missing = emptyList())
 }
 
 /**

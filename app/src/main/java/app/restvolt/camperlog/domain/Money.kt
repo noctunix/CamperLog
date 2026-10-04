@@ -52,15 +52,36 @@ val Currency.fractionDigits: Int
  * @return Betrag in der kleinsten Einheit oder `null`, wenn die Eingabe kein gültiger, nicht
  *   negativer Betrag ist
  */
-fun parseAmount(input: String, currency: Currency, locale: Locale): Long? {
+fun parseAmount(input: String, currency: Currency, locale: Locale): Long? =
+    (readAmount(input, currency, locale) as? AmountReading.Valid)?.minor
+
+/**
+ * Höchstbetrag eines Kostenpostens in der kleinsten Einheit: 100 Mrd. €, 10 Mrd. KWD, 10 Billionen ¥.
+ * So bleibt jede Summe einer Währung bis rund 900.000 Posten im Wertebereich von [Long].
+ */
+const val MAX_AMOUNT_MINOR = 10_000_000_000_000L
+
+/** Ergebnis von [readAmount]: gültig, zu groß oder kein Betrag. */
+sealed interface AmountReading {
+    data class Valid(val minor: Long) : AmountReading
+    data object TooLarge : AmountReading
+    data object Invalid : AmountReading
+}
+
+/** Wie [parseAmount], unterscheidet aber zu große von ungültigen Eingaben. */
+fun readAmount(input: String, currency: Currency, locale: Locale): AmountReading {
     val text = input
         .replace(currency.currencyCode, "", ignoreCase = true)
         .replace(currency.getSymbol(locale), "")
         .replace("€", "")
     val digits = currency.fractionDigits
-    val value = parseDecimal(text, locale, maxFractionDigits = digits) ?: return null
-    return runCatching { value.movePointRight(digits).longValueExact() }.getOrNull()
+    val value = parseDecimal(text, locale, maxFractionDigits = digits) ?: return AmountReading.Invalid
+    return amountReading(value.movePointRight(digits))
 }
+
+/** Prüft einen Betrag in der kleinsten Einheit gegen [MAX_AMOUNT_MINOR]. */
+internal fun amountReading(minor: BigDecimal): AmountReading =
+    if (minor > BigDecimal.valueOf(MAX_AMOUNT_MINOR)) AmountReading.TooLarge else AmountReading.Valid(minor.longValueExact())
 
 /**
  * Liest eine nicht negative Dezimalzahl nach den Trennzeichen-Regeln von [parseAmount].

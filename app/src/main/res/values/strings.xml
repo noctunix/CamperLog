@@ -50,6 +50,7 @@
     <string name="error_negative_number">Negative numbers are not allowed</string>
     <string name="error_invalid_number">Invalid number</string>
     <string name="error_invalid_amount">Invalid amount, e.g. 49.90</string>
+    <string name="error_amount_too_large">Amount too large</string>
     <string name="error_more_nights_than_days">More overnight stays than travel days</string>
     <string name="error_not_a_web_link">Only http or https links</string>
 
@@ -117,6 +118,7 @@
     <string name="overview_tours">Tours</string>
     <string name="overview_converted">≈ Total in %1$s</string>
     <string name="overview_missing_rates">Missing rate: %1$s</string>
+    <string name="overview_conversion_too_large">Total too large to convert</string>
 
     <!-- Exchange rates -->
     <string name="rates_title">Exchange rates</string>

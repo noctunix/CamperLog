@@ -120,6 +120,13 @@ class TourInputTest {
     }
 
     @Test
+    fun tooLargeCostHasOwnError() {
+        val input = valid.copy(costs = listOf(CostInput("100.000.000.001")))
+        assertEquals(mapOf(0 to TourError.AMOUNT_TOO_LARGE), input.costErrors(de))
+        assertEquals(TourError.AMOUNT_TOO_LARGE, input.validate(de)[TourField.COST])
+    }
+
+    @Test
     fun blankAndZeroRowsAreDroppedAndDuplicatesSummed() {
         val input = valid.copy(
             costs = listOf(CostInput("10", EUR), CostInput("", NOK), CostInput("0", ISK), CostInput("2,50", EUR)),

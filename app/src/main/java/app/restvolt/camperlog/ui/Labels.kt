@@ -83,6 +83,7 @@ fun TourError.messageRes(field: TourField): Int = when (this) {
     TourError.NEGATIVE_NUMBER -> R.string.error_negative_number
     TourError.INVALID_NUMBER -> R.string.error_invalid_number
     TourError.INVALID_AMOUNT -> R.string.error_invalid_amount
+    TourError.AMOUNT_TOO_LARGE -> R.string.error_amount_too_large
     TourError.MORE_NIGHTS_THAN_DAYS -> R.string.error_more_nights_than_days
     TourError.NOT_A_WEB_LINK -> R.string.error_not_a_web_link
 }

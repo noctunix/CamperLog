@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.backup
 
 import app.restvolt.camperlog.domain.ALL_CURRENCIES
+import app.restvolt.camperlog.domain.AmountReading
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.ExchangeRate
@@ -10,6 +11,7 @@ import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.RATE_FRACTION_DIGITS
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.amountReading
 import app.restvolt.camperlog.domain.fractionDigits
 import app.restvolt.camperlog.domain.isWebUrl
 import kotlinx.serialization.SerializationException
@@ -44,7 +46,6 @@ internal const val MAX_DESTINATION_LENGTH = 500
 internal const val MAX_NOTES_LENGTH = 20_000
 internal const val MAX_LINK_LENGTH = 4_000
 internal const val MAX_SOURCE_LENGTH = 500
-private val MAX_AMOUNT = BigDecimal("1000000000000")
 private val MAX_RATE = BigDecimal("1000000000")
 
 /**
@@ -255,8 +256,9 @@ private fun TourDto.toTour(): Tour? {
 
 private fun CostDto.toMoney(): Money? {
     val currency = parseCurrency(currency) ?: return null
-    val value = parseDecimal(amount, currency.fractionDigits)?.takeIf { it <= MAX_AMOUNT } ?: return null
-    return Money(value.movePointRight(currency.fractionDigits).longValueExact(), currency)
+    val value = parseDecimal(amount, currency.fractionDigits) ?: return null
+    val reading = amountReading(value.movePointRight(currency.fractionDigits)) as? AmountReading.Valid ?: return null
+    return Money(reading.minor, currency)
 }
 
 private fun ExchangeRate.toDto() = RateDto(

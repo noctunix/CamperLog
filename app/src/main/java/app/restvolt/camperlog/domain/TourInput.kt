@@ -45,6 +45,7 @@ enum class TourError {
     NEGATIVE_NUMBER,
     INVALID_NUMBER,
     INVALID_AMOUNT,
+    AMOUNT_TOO_LARGE,
     MORE_NIGHTS_THAN_DAYS,
     NOT_A_WEB_LINK,
 }
@@ -74,7 +75,7 @@ internal fun TourInput.validation(locale: Locale): TourValidation {
         countError(travelDays)?.let { put(TourField.TRAVEL_DAYS, it) }
         countError(overnightStays)?.let { put(TourField.OVERNIGHT_STAYS, it) }
         countError(distanceKm)?.let { put(TourField.DISTANCE_KM, it) }
-        if (costErrors.isNotEmpty()) put(TourField.COST, TourError.INVALID_AMOUNT)
+        costErrors.values.firstOrNull()?.let { put(TourField.COST, it) }
         val days = parseCount(travelDays)
         val nights = parseCount(overnightStays)
         if (days != null && nights != null && nights > days) {
@@ -90,7 +91,12 @@ internal fun TourInput.validation(locale: Locale): TourValidation {
 /** Fehler je Kostenzeile, Schlüssel ist der Index in [TourInput.costs]; leere Zeilen sind gültig. */
 fun TourInput.costErrors(locale: Locale): Map<Int, TourError> = buildMap {
     costs.forEachIndexed { index, cost ->
-        if (parseCost(cost.amount, cost.currency, locale) == null) put(index, TourError.INVALID_AMOUNT)
+        if (cost.amount.isBlank()) return@forEachIndexed
+        when (readAmount(cost.amount, cost.currency, locale)) {
+            is AmountReading.Valid -> Unit
+            AmountReading.TooLarge -> put(index, TourError.AMOUNT_TOO_LARGE)
+            AmountReading.Invalid -> put(index, TourError.INVALID_AMOUNT)
+        }
     }
 }
 

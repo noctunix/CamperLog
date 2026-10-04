@@ -36,6 +36,15 @@ class ExchangeRateTest {
     }
 
     @Test
+    fun overflowingConversionGivesNoTotal() {
+        val tiny = Currency.getInstance("KWD")
+        val huge = rate(isk, "1000000000")
+        val result = convert(listOf(Money(MAX_AMOUNT_MINOR, tiny)), isk, listOf(rate(tiny, "0.000001"), huge))
+
+        assertEquals(Conversion(total = null, missing = emptyList(), tooLarge = true), result)
+    }
+
+    @Test
     fun roundsHalfUpToTargetFractionDigits() {
         // 1 € = 145 ISK: 0,05 € = 7,25 ISK → 7 ISK, 0,01 € = 1,45 ISK → 1 ISK
         assertEquals(Money(7, isk), convert(listOf(Money(5, EUR)), isk, rates).total)

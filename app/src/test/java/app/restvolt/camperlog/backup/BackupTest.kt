@@ -174,6 +174,7 @@ class BackupTest {
             "\"mapLink\": \"https://maps.example.org/?q=1\"" to "\"mapLink\": \"javascript:alert(1)\"",
             "\"amount\": \"1234.56\"" to "\"amount\": \"1234.567\"",
             "\"amount\": \"1234.56\"" to "\"amount\": \"-1\"",
+            "\"amount\": \"1234.56\"" to "\"amount\": \"100000000000.01\"",
             "\"amount\": \"1234.56\"" to "\"amount\": \"1,5\"",
             "\"amount\": \"1500\"" to "\"amount\": \"1500.5\"",
             "\"currency\": \"JPY\"" to "\"currency\": \"NOK\"",
