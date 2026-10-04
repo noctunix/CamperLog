@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Version und Release-Commit prüfen
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=$(sed -n 's/^val appVersion = "\([0-9]*\.[0-9]*\.[0-9]*\)"$/\1/p' app/build.gradle.kts)
+          test -n "$version"
+          test "$TAG" = "v$version"
+          git merge-base --is-ancestor HEAD origin/master
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Tests, Lint und Debug-Build
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+      - name: Signierte APK bauen und GitHub-Release erstellen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_PROPERTIES_BASE64: ${{ secrets.RELEASE_PROPERTIES_BASE64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          assets=()
+          notes='Quellcode-Release. Eine installierbare APK ist erst verfügbar, wenn der dauerhafte Release-Schlüssel als GitHub-Secrets hinterlegt ist.'
+          if [[ -n "$RELEASE_KEYSTORE_BASE64" || -n "$RELEASE_PROPERTIES_BASE64" ]]; then
+            if [[ -z "$RELEASE_KEYSTORE_BASE64" || -z "$RELEASE_PROPERTIES_BASE64" ]]; then
+              echo 'Beide Signing-Secrets müssen zusammen gesetzt sein.' >&2
+              exit 1
+            fi
+            trap 'rm -f release.jks keystore.properties' EXIT
+            printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > release.jks
+            printf '%s' "$RELEASE_PROPERTIES_BASE64" | base64 --decode > keystore.properties
+            chmod 600 release.jks keystore.properties
+            ./gradlew --no-daemon :app:assembleRelease
+            apk="CamperLog-${TAG}-arm64.apk"
+            cp app/build/outputs/apk/release/app-release.apk "$apk"
+            sha256sum "$apk" > "$apk.sha256"
+            assets=("$apk" "$apk.sha256")
+            notes='Signierte Release-APK für arm64-v8a (Android 8.0+). SHA-256-Prüfsumme liegt bei.'
+          fi
+          gh release create "$TAG" --verify-tag --generate-notes --notes "$notes" "${assets[@]}"
