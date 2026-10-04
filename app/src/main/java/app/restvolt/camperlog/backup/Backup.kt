@@ -48,6 +48,15 @@ private val MAX_AMOUNT = BigDecimal("1000000000000")
 private val MAX_RATE = BigDecimal("1000000000")
 
 /**
+ * Plausibler Datumsbereich. Extreme Werte würden sonst später beim Umrechnen in Epoch-Millis,
+ * in Zeitzonen oder im DatePicker Ausnahmen werfen.
+ */
+private val MIN_DATE = LocalDate.of(1900, 1, 1)
+private val MAX_DATE = LocalDate.of(2199, 12, 31)
+private val MIN_INSTANT = Instant.parse("1900-01-01T00:00:00Z")
+private val MAX_INSTANT = Instant.parse("2199-12-31T00:00:00Z")
+
+/**
  * Vollständige Sicherung: alle [tours], alle [rates] und die [mainCurrency].
  * Datenbank-ids sind nicht enthalten; Touren werden über [Tour.uuid] wiedererkannt.
  */
@@ -105,20 +114,32 @@ fun encodeBackup(backup: Backup): String = json.encodeToString(
  * Liest höchstens [MAX_BACKUP_BYTES] aus [input] als UTF-8 und prüft den Inhalt mit [decodeBackup].
  * Der Stream wird nicht geschlossen.
  */
-fun readBackup(input: InputStream): BackupReadResult {
-    val buffer = ByteArrayOutputStream()
+fun readBackup(input: InputStream): BackupReadResult = try {
+    val buffer = BoundedBuffer()
     val chunk = ByteArray(64 * 1024)
+    var tooLarge = false
     while (true) {
         val read = input.read(chunk)
         if (read < 0) break
-        if (buffer.size() + read > MAX_BACKUP_BYTES) return BackupReadResult.Failure(BackupError.TOO_LARGE)
+        if (buffer.size() + read > MAX_BACKUP_BYTES) {
+            tooLarge = true
+            break
+        }
         buffer.write(chunk, 0, read)
     }
+    if (tooLarge) BackupReadResult.Failure(BackupError.TOO_LARGE) else decodeUtf8(buffer.bytes())
+} catch (_: OutOfMemoryError) {
+    // Ein bösartig verschachteltes Dokument kann trotz Größenlimit sehr viele JSON-Knoten erzeugen.
+    // Die angelegten Objekte sind danach nicht mehr erreichbar, die App kann also weiterlaufen.
+    BackupReadResult.Failure(BackupError.TOO_LARGE)
+}
+
+private fun decodeUtf8(bytes: ByteBuffer): BackupReadResult {
     val text = try {
         Charsets.UTF_8.newDecoder()
             .onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT)
-            .decode(ByteBuffer.wrap(buffer.toByteArray()))
+            .decode(bytes)
             .toString()
     } catch (_: CharacterCodingException) {
         return BackupReadResult.Failure(BackupError.NOT_A_BACKUP)
@@ -126,11 +147,17 @@ fun readBackup(input: InputStream): BackupReadResult {
     return decodeBackup(text.removePrefix("\uFEFF"))
 }
 
+/** Gibt den internen Puffer ohne Kopie frei, damit große Dateien nur einmal im Speicher liegen. */
+private class BoundedBuffer : ByteArrayOutputStream() {
+    fun bytes(): ByteBuffer = ByteBuffer.wrap(buf, 0, count)
+}
+
 /**
  * Prüft [text] vollständig und liefert die Sicherung nur, wenn alle Werte gültig sind.
  * Es gibt kein teilweises Ergebnis: Eine einzige fehlerhafte Tour lässt das Lesen scheitern.
  */
 fun decodeBackup(text: String): BackupReadResult {
+    // Jedes Zeichen braucht in UTF-8 mindestens ein Byte; die Byte-Grenze prüft readBackup genauer.
     if (text.length > MAX_BACKUP_BYTES) return BackupReadResult.Failure(BackupError.TOO_LARGE)
     val root = try {
         json.parseToJsonElement(text) as? JsonObject
@@ -278,8 +305,10 @@ private fun parseUuid(text: String): String? =
 
 private fun parseCurrency(code: String): Currency? = ALL_CURRENCIES.firstOrNull { it.currencyCode == code }
 
-private fun parseDate(text: String): LocalDate? = runCatching { LocalDate.parse(text) }.getOrNull()
+private fun parseDate(text: String): LocalDate? =
+    runCatching { LocalDate.parse(text) }.getOrNull()?.takeIf { it in MIN_DATE..MAX_DATE }
 
-private fun parseInstant(text: String): Instant? = runCatching { Instant.parse(text) }.getOrNull()
+private fun parseInstant(text: String): Instant? =
+    runCatching { Instant.parse(text) }.getOrNull()?.takeIf { it in MIN_INSTANT..MAX_INSTANT }
 
 private inline fun <reified E : Enum<E>> enumOrNull(name: String): E? = enumValues<E>().firstOrNull { it.name == name }

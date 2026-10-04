@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.data
 
 import android.content.Context
+import android.database.SQLException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.backup.Backup
@@ -176,5 +177,17 @@ class RoomBackupImporterTest {
         assertTrue(failed.isFailure)
         assertEquals(listOf("Lokal"), storedTours().map { it.destination })
         assertEquals(listOf(nok), rates.observeRates().first().map { it.currency })
+    }
+
+    @Test
+    fun overflowingCostSum_isRejectedAndRolledBack() = runTest {
+        seed(tour(1, "Lokal").copy(costs = listOf(Money(Long.MAX_VALUE - 10, sek))))
+
+        val failed = runCatching {
+            importer.import(backup(listOf(tour(2).copy(costs = listOf(Money(100, sek))))), ImportMode.MERGE)
+        }
+
+        assertTrue(failed.exceptionOrNull() is SQLException)
+        assertEquals(listOf("Lokal"), storedTours().map { it.destination })
     }
 }

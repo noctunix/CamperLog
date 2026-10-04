@@ -129,6 +129,7 @@ class BackupTest {
         listOf(
             "\"mainCurrency\": \"NOK\"" to "\"mainCurrency\": \"XXX1\"",
             "\"exportedAt\": \"2026-10-04T12:00:00Z\"" to "\"exportedAt\": \"gestern\"",
+            "\"exportedAt\": \"2026-10-04T12:00:00Z\"" to "\"exportedAt\": \"+999999999-12-31T23:30:00Z\"",
             "\"currency\": \"NOK\",\n            \"perEuro\": \"11.485\"" to "\"currency\": \"EUR\",\n            \"perEuro\": \"11.485\"",
             "\"perEuro\": \"11.485\"" to "\"perEuro\": \"0\"",
             "\"perEuro\": \"11.485\"" to "\"perEuro\": \"1.1234567\"",
@@ -177,6 +178,9 @@ class BackupTest {
             "\"amount\": \"1500\"" to "\"amount\": \"1500.5\"",
             "\"currency\": \"JPY\"" to "\"currency\": \"NOK\"",
             "\"createdAt\": \"2026-07-15T08:00:00Z\"" to "\"createdAt\": \"2026-07-15\"",
+            "\"createdAt\": \"2026-07-15T08:00:00Z\"" to "\"createdAt\": \"+999999999-12-31T23:30:00Z\"",
+            "\"startDate\": \"2026-07-01\"" to "\"startDate\": \"1899-12-31\"",
+            "\"endDate\": \"2026-07-14\"" to "\"endDate\": \"+10000-01-01\"",
         ).forEach { (old, new) ->
             assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = 1), failure(encodedWith(old, new)))
         }

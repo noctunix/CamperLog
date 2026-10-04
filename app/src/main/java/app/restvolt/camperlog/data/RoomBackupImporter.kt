@@ -42,6 +42,10 @@ class RoomBackupImporter(private val database: CamperLogDatabase) : BackupImport
         val newerRates = backup.rates.filter { rate -> storedRateDates[rate.currency.currencyCode]?.let { rate.date > it } ?: true }
         newerRates.map(ExchangeRate::toEntity).forEach { rates.upsertRate(it) }
 
+        // Kostensummen, die nicht mehr in 64 Bit passen, würden jede spätere Übersicht scheitern lassen.
+        // SQLite wirft dann hier, und die Transaktion wird vollständig zurückgerollt.
+        tours.getCostSums()
+
         ImportResult(
             addedTours = added,
             updatedTours = updated,

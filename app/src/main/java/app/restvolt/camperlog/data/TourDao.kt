@@ -84,6 +84,10 @@ interface TourDao {
     @Query("SELECT currency, SUM(amount_minor) AS amount_minor FROM tour_costs GROUP BY currency ORDER BY currency")
     fun observeCostSums(): Flow<List<CostSumRow>>
 
+    /** Wie [observeCostSums], aber einmalig; SQLite wirft bei einem 64-Bit-Überlauf der Summe. */
+    @Query("SELECT currency, SUM(amount_minor) AS amount_minor FROM tour_costs GROUP BY currency ORDER BY currency")
+    suspend fun getCostSums(): List<CostSumRow>
+
     @Query("SELECT $YEAR AS year, $SUMS FROM tours GROUP BY year ORDER BY year DESC")
     fun observeYearTotals(): Flow<List<YearTotalsRow>>
 
