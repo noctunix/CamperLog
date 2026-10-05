@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Regenerate the README screenshots in docs/screenshots/ from sample data (Robolectric).
+# Regenerate the fastlane screenshots in fastlane/metadata/android/en-US/images/phoneScreenshots/
+# from sample data (Robolectric).
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
-out="$root/docs/screenshots"
+out="$root/fastlane/metadata/android/en-US/images/phoneScreenshots"
 mkdir -p "$out"
 
 cd "$root"

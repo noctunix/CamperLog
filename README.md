@@ -1,14 +1,14 @@
-<p align="center"><img src="docs/icon.png" width="96" alt="CamperLog app icon"></p>
+<p align="center"><img src="fastlane/metadata/android/en-US/images/icon.png" width="96" alt="CamperLog app icon"></p>
 
 # CamperLog
 
 CamperLog is an Android app for recording camper trips, their costs, and the currencies they were paid in. It is built with Kotlin, Jetpack Compose, and Room. The app uses English by default and German on devices configured for German. CSV export keeps its existing column names and values for compatibility with earlier exports.
 
 <p align="center">
-  <img src="docs/screenshots/tours.png" width="200" alt="Tour list">
-  <img src="docs/screenshots/detail.png" width="200" alt="Tour details">
-  <img src="docs/screenshots/overview.png" width="200" alt="Cost overview">
-  <img src="docs/screenshots/data.png" width="200" alt="Export and backup">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_tours.png" width="200" alt="Tour list">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_detail.png" width="200" alt="Tour details">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_overview.png" width="200" alt="Cost overview">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_data.png" width="200" alt="Export and backup">
 </p>
 
 ## Features
@@ -38,7 +38,7 @@ Requirements: JDK 17, Android SDK (platform 37), and an Android device or emulat
 
 Pushes to `master` and pull requests run these checks in [GitHub Actions](.github/workflows/ci.yml). Debug APKs are not published as releases.
 
-`scripts/update-screenshots.sh` regenerates the README screenshots in `docs/screenshots/` from sample data (Robolectric, no device needed). Run it after visible UI changes; the screenshot test is skipped in normal test runs.
+`scripts/update-screenshots.sh` regenerates the README and F-Droid screenshots in `fastlane/metadata/android/en-US/images/phoneScreenshots/` from sample data (Robolectric, no device needed). Run it after visible UI changes; the screenshot test is skipped in normal test runs.
 
 ## Versions and releases
 

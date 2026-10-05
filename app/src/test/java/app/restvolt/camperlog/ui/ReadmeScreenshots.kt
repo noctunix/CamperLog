@@ -62,15 +62,15 @@ class ReadmeScreenshots {
 
     @Test
     fun captureScreens() {
-        capture("tours")
+        capture("1_tours")
         compose.onNodeWithText("Lofoten").performClick()
-        capture("detail")
+        capture("2_detail")
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithContentDescription("Overview").performClick()
-        capture("overview")
+        capture("3_overview")
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithContentDescription("Data").performClick()
-        capture("data")
+        capture("4_data")
     }
 
     private fun capture(name: String) {
