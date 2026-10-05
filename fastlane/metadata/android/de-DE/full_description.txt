@@ -2,7 +2,7 @@
 <p><b>Funktionen:</b></p>
 <ul>
 <li>Tourenlog: Ziel, Datum, Tourart (Tagestour, Wochenende, Urlaub), Kilometer, Übernachtungen und Kosten; durchsuchbar und nach Jahr filterbar.</li>
-<li>Mehrere Fahrzeuge: ein Datenblatt pro Fahrzeug (allgemeine Daten, Kauf &amp; Verkauf, Versicherung &amp; Steuer, Maße &amp; Gewicht, Motor, Reifen, Tanks, Energie, Notizen); wechsle zwischen Fahrzeugen oder sieh dir Touren und die Übersicht für alle zusammen an.</li>
+<li>Mehrere Fahrzeuge: ein Datenblatt pro Fahrzeug (allgemeine Daten, Kauf &amp; Verkauf, Versicherung &amp; Steuer, Maße &amp; Gewicht, Motor, Reifen, Tanks, Energie, Notizen), eine Karte „Panne &amp; Unfall“ mit Nummern zum Antippen und die verbleibende Zuladung aus dem gewogenen Leergewicht; wechsle zwischen Fahrzeugen oder sieh dir Touren und die Übersicht für alle zusammen an.</li>
 <li>Bordbuch: Ein Tipp auf „Heute" trägt das Leeren von Kassette und Grauwasser oder den Lauf von Diesel- oder Gasheizung ein, mit Verlauf und Rückgängig.</li>
 <li>Wartung und Reparaturen: nächste Hauptuntersuchung und Gasprüfung, letzter Ölwechsel mit Kilometerstand, sowie ein Reparaturverzeichnis mit Datum, Beschreibung, Kilometerstand und Kosten.</li>
 <li>Erinnerungen in der App: Karten im Fahrzeug-Tab weisen auf anstehende Wartung hin; Vorlaufzeit und Ölwechsel-Intervall lassen sich in den Einstellungen anpassen. Keine Benachrichtigungen, keine Berechtigungen.</li>

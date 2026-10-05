@@ -16,7 +16,7 @@ CamperLog is an Android app for recording camper trips, their costs, and the cur
 CamperLog is organized into three tabs: **Tours**, **Logbook**, and **Vehicle**.
 
 - **Tour log:** destination, dates, tour type (day trip, weekend, vacation), vehicle, distance, overnight stays, and costs; searchable and filterable by year.
-- **Multiple vehicles:** a data sheet per vehicle (general data, purchase & sale, insurance & tax, dimensions & weight, engine, tyres, tanks, energy, notes); a current vehicle is used for new tours and logbook entries, a switcher appears once you have more than one, and an "All vehicles" view covers tours and the overview.
+- **Multiple vehicles:** a data sheet per vehicle (general data, purchase & sale, insurance & tax, dimensions & weight, engine, tyres, tanks, energy, notes), a "Breakdown & accident" card with tap-to-dial numbers for breakdown assistance, travel protection and the insurer, and the remaining payload from a measured empty weight; a current vehicle is used for new tours and logbook entries, a switcher appears once you have more than one, and an "All vehicles" view covers tours and the overview.
 - **Logbook:** one tap for "Today" records the current vehicle's cassette and grey water emptying or diesel/gas heater run; other dates can be logged too, with history and undo.
 - **Maintenance and repairs:** next inspection (MOT/TÜV) and gas check dates, last oil change with its odometer reading, and a repair log with date, description, mileage, and cost.
 - **In-app reminders:** cards on the Vehicle tab and a badge flag upcoming maintenance; lead time and the oil-change interval are configurable in Settings. No notifications, no permissions.
