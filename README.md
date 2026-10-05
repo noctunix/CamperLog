@@ -2,29 +2,38 @@
 
 # CamperLog
 
-CamperLog is an Android app for recording camper trips, their costs, and the currencies they were paid in. It is built with Kotlin, Jetpack Compose, and Room. The app uses English by default and German on devices configured for German. CSV export keeps its existing column names and values for compatibility with earlier exports.
+CamperLog is an Android app for recording camper trips, their costs, and the currencies they were paid in, alongside a vehicle data sheet, maintenance, and a logbook. It is built with Kotlin, Jetpack Compose, and Room. The app uses English by default and German on devices configured for German. CSV export keeps its existing column names and values for compatibility with earlier exports, plus a new trailing vehicle column.
 
 <p align="center">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_tours.png" width="200" alt="Tour list">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_detail.png" width="200" alt="Tour details">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5_vehicle.png" width="200" alt="Vehicle data sheet">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6_logbook.png" width="200" alt="Logbook">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_overview.png" width="200" alt="Cost overview">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_data.png" width="200" alt="Export and backup">
 </p>
 
 ## Features
 
-- **Tour log:** destination, dates, tour type (day trip, weekend, vacation), distance, overnight stays, and costs; searchable and filterable by year.
+CamperLog is organized into three tabs: **Tours**, **Logbook**, and **Vehicle**.
+
+- **Tour log:** destination, dates, tour type (day trip, weekend, vacation), vehicle, distance, overnight stays, and costs; searchable and filterable by year.
+- **Multiple vehicles:** a data sheet per vehicle (general data, purchase & sale, insurance & tax, dimensions & weight, engine, tyres, tanks, energy, notes); a current vehicle is used for new tours and logbook entries, a switcher appears once you have more than one, and an "All vehicles" view covers tours and the overview.
+- **Logbook:** one tap for "Today" records the current vehicle's cassette and grey water emptying or diesel/gas heater run; other dates can be logged too, with history and undo.
+- **Maintenance and repairs:** next inspection (MOT/TÜV) and gas check dates, last oil change with its odometer reading, and a repair log with date, description, mileage, and cost.
+- **In-app reminders:** cards on the Vehicle tab and a badge flag upcoming maintenance; lead time and the oil-change interval are configurable in Settings. No notifications, no permissions.
 - **Multiple currencies:** costs keep their original currency and precision (e.g. `1450.00 NOK`, `3500 ISK`); amounts are entered in your device's number format.
-- **Overview:** tours, distance, travel days, overnight stays, and costs per currency, in total and per year; optionally converted into a main currency using exchange rates you maintain yourself.
-- **Export:** all tours as CSV for spreadsheet apps, protected against formula injection.
-- **Backup and restore:** a JSON file with all tours, exchange rates, and the main currency; the import shows a preview before changing anything.
+- **Overview:** tours, distance, travel days, overnight stays, and costs per currency, in total and per year, for one vehicle or all of them; optionally converted into a main currency using exchange rates you maintain yourself.
+- **Export:** all tours as CSV for spreadsheet apps, including the vehicle, protected against formula injection.
+- **Backup and restore:** a JSON file with all tours, vehicles, repairs, logbook entries, exchange rates, and the main currency; the import shows a preview before changing anything, and older backups stay importable.
+- **About:** feedback and support links, source code and licenses, and a replayable introduction tour.
 - **Light and dark theme**, following the system by default.
 
 ## Getting started
 
 1. Download the latest `CamperLog-*.apk` from [Releases](https://github.com/noctunix/CamperLog/releases) and optionally compare it with the published SHA-256 checksum. Release APKs are built for **arm64** devices running **Android 8.0 or newer**.
 2. Open the APK on your phone and allow installing apps from this source when Android asks. Later releases install as updates and keep your data.
-3. Tap **New tour** to record your first trip. Under **Settings → Manage exchange rates**, choose a main currency and enter rates if you want converted totals.
+3. In the **Vehicle** tab, name your camper (or add more vehicles) and fill in its data sheet and maintenance dates if you like; the **Logbook** tab records cassette, grey water, and heater use with one tap. Tap **New tour** in **Tours** to log your first trip, and set a main currency with exchange rates under **Settings → Manage exchange rates** if you want converted totals.
+
+**Updating from an earlier install:** 1.2.0 is the first release published from this repository and is signed with a new key, so Android cannot install it as an update over a version installed from elsewhere. If that applies to you, back up your data first (**Data → Backup**), uninstall the old app, install 1.2.0, then restore the backup (**Data → Restore**).
 
 **Privacy:** CamperLog requests no permissions and has no network access. All data stays on your device until you export or share it yourself. Uninstalling the app deletes its data, so save a backup regularly (**Data → Backup**), for example before switching phones.
 
@@ -62,6 +71,10 @@ To publish an installable APK, configure both repository secrets under **Setting
 - `RELEASE_PROPERTIES_BASE64`: Base64-encoded `keystore.properties` with `storeFile=release.jks`, `storePassword`, `keyAlias`, and `keyPassword` for that keystore.
 
 On Linux, use `base64 -w0 camperlog-release.jks` and `base64 -w0 keystore.properties`, then enter the respective outputs directly as secrets. The properties file encoded for GitHub **must** contain `storeFile=release.jks`. Never commit the keystore or passwords.
+
+## Support
+
+Feedback and bug reports: **camperlog@restvolt.app**. To support development, there's a [Liberapay](https://liberapay.com/noctunix/donate) page. Both links are also in the app's **About** screen.
 
 ## License
 
