@@ -1,0 +1,121 @@
+package app.restvolt.camperlog.domain
+
+import kotlinx.coroutines.flow.Flow
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
+
+/** Art einer Station; die Reihenfolge ist die Reihenfolge in der Auswahl. */
+enum class StationType { OVERNIGHT, SUPPLY, FUEL, SIGHT, FOOD, FERRY, OTHER }
+
+/**
+ * Vor Ort genutzte Versorgung. Die "Ver-/Entsorgung"-Gruppe ist auf [StationType.OVERNIGHT],
+ * [StationType.SUPPLY] und [StationType.FUEL] erlaubt, die "Tanken"-Gruppe nur auf [StationType.FUEL]
+ * (siehe [StationType.allowedServices]).
+ */
+enum class StationService { FRESH_WATER, GREY_WATER, CASSETTE, GAS, DIESEL, PETROL, ADBLUE, LPG, ELECTRICITY }
+
+private val SUPPLY_SERVICES = setOf(StationService.FRESH_WATER, StationService.GREY_WATER, StationService.CASSETTE, StationService.GAS)
+private val FUEL_SERVICES = setOf(StationService.DIESEL, StationService.PETROL, StationService.ADBLUE, StationService.LPG, StationService.ELECTRICITY)
+
+/** An diesem [StationType] erlaubte [StationService]-Werte; leer, wenn der Typ keine Versorgung kennt. */
+val StationType.allowedServices: Set<StationService>
+    get() = when (this) {
+        StationType.OVERNIGHT, StationType.SUPPLY -> SUPPLY_SERVICES
+        StationType.FUEL -> SUPPLY_SERVICES + FUEL_SERVICES
+        StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> emptySet()
+    }
+
+/** Art des Platzes einer Übernachtungs-Station. */
+enum class SiteKind { CAMPSITE, MOTORHOME_AREA, WILD }
+
+/** Herkunft gespeicherter Koordinaten. */
+enum class CoordinateSource { GPS, ENTERED }
+
+/**
+ * Einmalige Wetterabfrage zu einer Station (Open-Meteo); [observedAt] ist der einzige Zeitpunktwert,
+ * [temperatureDeciC] die Temperatur in Zehntelgrad (14,3 °C -> 143).
+ */
+data class WeatherSnapshot(
+    val temperatureDeciC: Int,
+    val weatherCode: Int,
+    val windKmh: Int,
+    val gustKmh: Int? = null,
+    val windDirectionDeg: Int? = null,
+    val observedAt: Instant,
+)
+
+/**
+ * Eine Station einer Tour oder eine eigenständige Station ohne Tour ([tourId] `null`).
+ * [date] und [time] sind Wanduhrzeiten am Ort; nur [WeatherSnapshot.observedAt] ist ein [Instant].
+ * Die typspezifischen Felder ([nights] bis [levelingBlocksUsed]) sind nur bei [StationType.OVERNIGHT]
+ * gesetzt, `null` bedeutet dort "nicht angegeben". [favorite] markiert "gerne wieder".
+ */
+data class Station(
+    val id: Long = 0,
+    val uuid: String = "",
+    val vehicleId: Long,
+    val tourId: Long? = null,
+    val type: StationType,
+    val date: LocalDate,
+    val time: LocalTime? = null,
+    val name: String = "",
+    val place: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val coordinateSource: CoordinateSource? = null,
+    val accuracyM: Int? = null,
+    val mapLink: String? = null,
+    val notes: String = "",
+    val nights: Int? = null,
+    val siteKind: SiteKind? = null,
+    val pitchAssigned: Boolean? = null,
+    val electricityFlatRate: ElectricityFlatRate? = null,
+    val lteQuality: LteQuality? = null,
+    val pitchSlope: PitchSlope? = null,
+    val levelingBlocksUsed: Boolean? = null,
+    val services: Set<StationService> = emptySet(),
+    val weather: WeatherSnapshot? = null,
+    val favorite: Boolean = false,
+    val createdAt: Instant,
+    val updatedAt: Instant,
+)
+
+/** Zugriff auf alle gespeicherten Stationen. */
+interface StationRepository {
+
+    /** Liefert die Stationen einer Tour, aufsteigend nach `(date, time NULLS LAST, createdAt)`. */
+    fun observeForTour(tourId: Long): Flow<List<Station>>
+
+    /**
+     * Liefert Stationen neuester zuerst; [vehicleId] `null` liefert die aller Fahrzeuge
+     * ("Alle Fahrzeuge"), sonst nur die von [vehicleId].
+     */
+    fun observeForVehicle(vehicleId: Long?): Flow<List<Station>>
+
+    /** Liefert die Station mit [id] oder `null`, falls sie nicht (mehr) existiert. */
+    fun observeStation(id: Long): Flow<Station?>
+
+    /** Liefert alle Stationen für den Sicherungs-Export, ohne festgelegte Reihenfolge. */
+    suspend fun allStations(): List<Station>
+
+    /**
+     * Legt [station] an, wenn ihre id 0 ist, sonst wird sie aktualisiert.
+     * Zeitstempel werden dabei vom Repository gesetzt.
+     *
+     * @return die id der gespeicherten Station
+     */
+    suspend fun save(station: Station): Long
+
+    /** Löscht die Station mit [id]. */
+    suspend fun delete(id: Long)
+
+    /** Legt eine zuvor gelöschte [station] mit ihrer bisherigen id und ihren Zeitstempeln wieder an. */
+    suspend fun restore(station: Station)
+
+    /**
+     * Löst die Tour für eine neue Station nach 3.3 auf: die Tour von [vehicleId], deren Zeitraum
+     * [date] enthält, bei mehreren Treffern die mit dem spätesten Start; `null`, wenn keine passt.
+     */
+    suspend fun defaultTourId(vehicleId: Long, date: LocalDate): Long?
+}
