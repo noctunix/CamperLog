@@ -62,6 +62,8 @@ import app.restvolt.camperlog.ui.logbook.LogHistoryScreen
 import app.restvolt.camperlog.ui.logbook.LogHistoryViewModel
 import app.restvolt.camperlog.ui.logbook.LogbookScreen
 import app.restvolt.camperlog.ui.logbook.LogbookViewModel
+import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
+import app.restvolt.camperlog.ui.onboarding.IntroductionTourScreen
 import app.restvolt.camperlog.ui.overview.OverviewScreen
 import app.restvolt.camperlog.ui.overview.OverviewViewModel
 import app.restvolt.camperlog.ui.rates.RateEditScreen
@@ -160,14 +162,35 @@ fun CamperLogNavHost(
     } ?: 0
     val bottomBar: @Composable () -> Unit = { CamperLogBottomBar(navController, currentDestination, reminderCount) }
 
+    val introductionSettings = remember { IntroductionSettings(context) }
+    var showIntroductionTour by rememberSaveable { mutableStateOf(false) }
+
     val keepAndroidOpenSettings = remember { KeepAndroidOpenSettings(context) }
     var showStartupKeepAndroidOpen by rememberSaveable { mutableStateOf(false) }
     if (canShowStartDialogs) {
         LaunchedEffect(Unit) {
             keepAndroidOpenSettings.recordFirstLaunchIfNeeded()
-            val hasData = repository.hasTours() || logbook.hasEntries()
-            showStartupKeepAndroidOpen = shouldShowKeepAndroidOpen(keepAndroidOpenSettings.state, hasData, Instant.now())
+            if (!introductionSettings.seen) {
+                // Die Einführungstour hat Vorrang: der Hinweis erscheint nie zusammen mit ihr.
+                showIntroductionTour = true
+            } else {
+                val hasData = repository.hasTours() || logbook.hasEntries()
+                showStartupKeepAndroidOpen = shouldShowKeepAndroidOpen(keepAndroidOpenSettings.state, hasData, Instant.now())
+            }
         }
+    }
+
+    if (showIntroductionTour) {
+        IntroductionTourScreen(
+            themeMode = themeMode,
+            onThemeModeChange = onThemeModeChange,
+            reminderSettings = reminderSettings,
+            onFinished = {
+                introductionSettings.seen = true
+                showIntroductionTour = false
+            },
+        )
+        return
     }
 
     NavHost(navController, startDestination = ToursRoute) {
@@ -310,8 +333,7 @@ fun CamperLogNavHost(
         composable<AboutRoute> { entry ->
             AboutScreen(
                 onBack = { navController.popFrom(entry) },
-                // Einführungstour folgt in einer späteren Phase.
-                onShowIntroductionAgain = {},
+                onShowIntroductionAgain = { showIntroductionTour = true },
             )
         }
         composable<RateEditRoute> { entry ->

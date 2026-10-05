@@ -65,8 +65,8 @@ import java.io.IOException
 
 /**
  * Über-Bildschirm: Version, Kontakt- und Unterstützungsaktionen sowie aufklappbare Abschnitte zu
- * Quellcode, Lizenz, Drittanbieter-Bibliotheken und Datenschutz. [onShowIntroductionAgain] ist der
- * Einstiegspunkt für die Einführungstour, die in einer späteren Phase angebunden wird.
+ * Quellcode, Lizenz, Drittanbieter-Bibliotheken und Datenschutz. [onShowIntroductionAgain] zeigt
+ * die Einführungstour erneut an.
  */
 @Composable
 fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {

@@ -460,4 +460,23 @@
     <string name="btn_keep_android_open_supported">I supported the petition</string>
     <string name="btn_remind_later">Remind me later</string>
     <string name="keep_android_open_uri" translatable="false">https://keepandroidopen.org/</string>
+
+    <!-- Introduction tour -->
+    <string name="title_intro_welcome">Welcome to CamperLog</string>
+    <string name="body_intro_welcome">Log your tours and their costs – in any currency. CamperLog keeps track of where you went and what it cost.</string>
+    <string name="title_intro_logbook">Logbook</string>
+    <string name="body_intro_logbook">One tap on \"Today\" records the cassette, grey water or heater – right when you empty or run it.</string>
+    <string name="title_intro_vehicle">Vehicle</string>
+    <string name="body_intro_vehicle">Keep a data sheet and maintenance dates, with in-app reminders when something is due. CamperLog also handles several vehicles.</string>
+    <string name="title_intro_data">Your data</string>
+    <string name="body_intro_data">No permissions, no network access – everything stays on this device. Make backups anytime via Data.</string>
+    <string name="title_intro_settings">Settings</string>
+    <string name="body_intro_settings">Pick an appearance and how early reminders should show up. You can change both later anytime in Settings.</string>
+    <string name="title_intro_finish">All set!</string>
+    <string name="body_intro_finish">Add your first tour or your vehicle\'s data to get started.</string>
+    <string name="btn_intro_skip">Skip</string>
+    <string name="btn_intro_back">Back</string>
+    <string name="btn_intro_next">Next</string>
+    <string name="btn_intro_get_started">Get started</string>
+    <string name="a11y_intro_step">Step %1$d of %2$d</string>
 </resources>
