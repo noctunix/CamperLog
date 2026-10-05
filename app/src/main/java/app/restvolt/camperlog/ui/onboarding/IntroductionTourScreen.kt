@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -85,6 +86,18 @@ fun IntroductionTourScreen(
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(24.dp),
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp),
+        ) {
+            if (pagerState.currentPage < PAGE_FINISH) {
+                TextButton(onClick = onFinished, modifier = Modifier.align(Alignment.CenterEnd)) {
+                    Text(stringResource(R.string.btn_intro_skip))
+                }
+            }
+        }
+
         HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
             when (page) {
                 0 -> TourPage(R.drawable.ic_map, R.string.title_intro_welcome, R.string.body_intro_welcome)
@@ -184,9 +197,12 @@ private fun TourControls(pagerState: PagerState, scope: CoroutineScope, onFinish
             .fillMaxWidth()
             .padding(top = 24.dp),
     ) {
-        if (pagerState.currentPage < PAGE_FINISH) {
-            TextButton(onClick = onFinished, modifier = Modifier.align(Alignment.CenterStart)) {
-                Text(stringResource(R.string.btn_intro_skip))
+        if (pagerState.currentPage > 0) {
+            TextButton(
+                onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
+                modifier = Modifier.align(Alignment.CenterStart),
+            ) {
+                Text(stringResource(R.string.btn_intro_back))
             }
         }
 
@@ -214,32 +230,21 @@ private fun TourControls(pagerState: PagerState, scope: CoroutineScope, onFinish
             }
         }
 
-        Row(
-            modifier = Modifier.align(Alignment.CenterEnd),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (pagerState.currentPage > 0) {
-                TextButton(onClick = {
-                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
-                }) {
-                    Text(stringResource(R.string.btn_intro_back))
-                }
-            }
-
-            Button(onClick = {
+        Button(
+            onClick = {
                 if (pagerState.currentPage < PAGE_FINISH) {
                     scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                 } else {
                     onFinished()
                 }
-            }) {
-                Text(
-                    stringResource(
-                        if (pagerState.currentPage < PAGE_FINISH) R.string.btn_intro_next else R.string.btn_intro_get_started,
-                    ),
-                )
-            }
+            },
+            modifier = Modifier.align(Alignment.CenterEnd),
+        ) {
+            Text(
+                stringResource(
+                    if (pagerState.currentPage < PAGE_FINISH) R.string.btn_intro_next else R.string.btn_intro_get_started,
+                ),
+            )
         }
     }
 }
