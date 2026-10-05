@@ -69,11 +69,16 @@ fun ImportDialog(pending: PendingImport, onImport: (ImportMode) -> Unit, onCance
         title = { Text(stringResource(R.string.import_preview_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                val repairCount = backup.vehicles.sumOf { it.repairs.size }
+                val logEntryCount = backup.vehicles.sumOf { it.logEntries.size }
                 Text(
                     stringResource(
                         R.string.import_preview_summary,
                         formatDateTime(backup.exportedAt),
                         pluralStringResource(R.plurals.import_tours, backup.tours.size, backup.tours.size),
+                        pluralStringResource(R.plurals.import_vehicles, backup.vehicles.size, backup.vehicles.size),
+                        pluralStringResource(R.plurals.import_repairs, repairCount, repairCount),
+                        pluralStringResource(R.plurals.import_log_entries, logEntryCount, logEntryCount),
                         pluralStringResource(R.plurals.import_rates, backup.rates.size, backup.rates.size),
                         backup.mainCurrency.currencyCode,
                     ),

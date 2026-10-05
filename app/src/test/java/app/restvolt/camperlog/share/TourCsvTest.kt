@@ -13,6 +13,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.Currency
 
+private const val DEFAULT_NAME = "Mein Wohnmobil"
+
 class TourCsvTest {
 
     @Test
@@ -41,6 +43,7 @@ class TourCsvTest {
     fun exportHasHeaderAndOneCrlfTerminatedRowPerTour() {
         val tour = Tour(
             id = 3,
+            vehicleId = 1,
             startDate = LocalDate.of(2026, 7, 10),
             endDate = LocalDate.of(2026, 7, 12),
             destination = "Bodensee, Nordufer",
@@ -60,14 +63,14 @@ class TourCsvTest {
             updatedAt = Instant.parse("2026-07-14T09:30:00Z"),
         )
 
-        val lines = toursToCsv(listOf(tour)).split("\r\n")
+        val lines = toursToCsv(listOf(tour), mapOf(1L to "Bulli"), DEFAULT_NAME).split("\r\n")
 
         assertEquals(3, lines.size)
         assertEquals(CSV_HEADER.joinToString(","), lines[0])
         assertEquals(
             "3,2026-07-10,2026-07-12,\"Bodensee, Nordufer\",${tour.tourType.csvValue},3,2,412,89.50,ja," +
                 "${ElectricityFlatRate.NOT_USED.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
-                "\"Sagte: \"\"toll\"\"\",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z,\"89.50 EUR; 1450.00 NOK\"",
+                "\"Sagte: \"\"toll\"\"\",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z,\"89.50 EUR; 1450.00 NOK\",Bulli",
             lines[1],
         )
         assertEquals("", lines[2])
@@ -115,12 +118,12 @@ class TourCsvTest {
             updatedAt = Instant.parse("2026-07-10T08:00:00Z"),
         )
 
-        val row = toursToCsv(listOf(tour)).split("\r\n")[1]
+        val row = toursToCsv(listOf(tour), emptyMap(), DEFAULT_NAME).split("\r\n")[1]
 
         assertEquals(
             "1,2026-07-10,2026-07-10,'=cmd|' /C calc'!A0,${TourType.DAY_TRIP.csvValue},1,0,80,0.00,nein," +
                 "${ElectricityFlatRate.NO.csvValue},${LteQuality.OK.csvValue},${PitchSlope.SLOPED.csvValue},ja," +
-                "\"'@Kontakt, bitte\",,2026-07-10T08:00:00Z,2026-07-10T08:00:00Z,",
+                "\"'@Kontakt, bitte\",,2026-07-10T08:00:00Z,2026-07-10T08:00:00Z,,$DEFAULT_NAME",
             row,
         )
     }
@@ -148,7 +151,7 @@ class TourCsvTest {
             updatedAt = Instant.EPOCH,
         )
 
-        val values = toursToCsv(listOf(tour)).split("\r\n")[1].split(",")
+        val values = toursToCsv(listOf(tour), emptyMap(), DEFAULT_NAME).split("\r\n")[1].split(",")
 
         assertEquals("0.00", values[CSV_HEADER.indexOf("kosten_eur")])
         assertEquals("\"3000.00 NOK; 350000 ISK\"", values[CSV_HEADER.indexOf("kosten")])
@@ -156,8 +159,55 @@ class TourCsvTest {
 
     @Test
     fun emptyExportContainsOnlyHeader() {
-        assertEquals(CSV_HEADER.joinToString(",") + "\r\n", toursToCsv(emptyList()))
+        assertEquals(CSV_HEADER.joinToString(",") + "\r\n", toursToCsv(emptyList(), emptyMap(), DEFAULT_NAME))
     }
+
+    @Test
+    fun headerEndsWithVehicleColumn() {
+        assertEquals("fahrzeug", CSV_HEADER.last())
+    }
+
+    @Test
+    fun vehicleColumnUsesMappedNameOrDefaultWhenBlankOrMissing() {
+        val named = tour(1, vehicleId = 10)
+        val blankName = tour(2, vehicleId = 20)
+        val unmapped = tour(3, vehicleId = 99)
+
+        val rows = toursToCsv(listOf(named, blankName, unmapped), mapOf(10L to "Bulli", 20L to ""), DEFAULT_NAME).split("\r\n")
+
+        assertEquals("Bulli", rows[1].split(",").last())
+        assertEquals(DEFAULT_NAME, rows[2].split(",").last())
+        assertEquals(DEFAULT_NAME, rows[3].split(",").last())
+    }
+
+    @Test
+    fun vehicleColumnIsProtectedAgainstFormulaInjection() {
+        val row = toursToCsv(listOf(tour(1, vehicleId = 1)), mapOf(1L to "=cmd|' /C calc'!A0"), DEFAULT_NAME).split("\r\n")[1]
+
+        assertEquals("'=cmd|' /C calc'!A0", row.substringAfterLast(","))
+    }
+
+    private fun tour(id: Long, vehicleId: Long) = Tour(
+        id = id,
+        vehicleId = vehicleId,
+        startDate = LocalDate.of(2026, 7, 1),
+        endDate = LocalDate.of(2026, 7, 1),
+        destination = "Ziel",
+        tourType = TourType.DAY_TRIP,
+        travelDays = 1,
+        overnightStays = 0,
+        distanceKm = 1,
+        costs = emptyList(),
+        pitchAssigned = false,
+        electricityFlatRate = ElectricityFlatRate.NO,
+        lteQuality = LteQuality.OK,
+        pitchSlope = PitchSlope.LEVEL,
+        levelingBlocksUsed = false,
+        notes = "",
+        mapLink = null,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
 }
 
 private val NOK: Currency = Currency.getInstance("NOK")

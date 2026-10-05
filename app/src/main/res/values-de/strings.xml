@@ -207,7 +207,7 @@
     <string name="data_csv_title">Tabelle (CSV)</string>
     <string name="data_csv_description">Alle Touren als Tabelle für Tabellenkalkulationen. Nicht zur Wiederherstellung geeignet.</string>
     <string name="data_backup_title">Sicherung (JSON)</string>
-    <string name="data_backup_description">Alle Touren, Wechselkurse und die Hauptwährung. Damit lassen sich die Daten auf diesem oder einem anderen Gerät wiederherstellen.</string>
+    <string name="data_backup_description">Alle Touren, Fahrzeuge, Bordbuch-Einträge, Wechselkurse und die Hauptwährung. Damit lassen sich die Daten auf diesem oder einem anderen Gerät wiederherstellen.</string>
     <string name="data_backup_save">Als Datei speichern</string>
     <string name="data_backup_share">Sicherung teilen</string>
     <string name="backup_saved">Sicherung gespeichert</string>
@@ -217,28 +217,44 @@
     <string name="data_import_description">Liest eine CamperLog-Sicherung ein. Bevor etwas geändert wird, siehst du, was sie enthält.</string>
     <string name="data_import_choose">Sicherungsdatei wählen</string>
     <string name="import_preview_title">Sicherung einspielen?</string>
-    <string name="import_preview_summary">Sicherung vom %1$s mit %2$s und %3$s. Hauptwährung: %4$s.</string>
+    <string name="import_preview_summary">Sicherung vom %1$s mit %2$s, %3$s, %4$s, %5$s und %6$s. Hauptwährung: %7$s.</string>
     <plurals name="import_tours">
         <item quantity="one">%1$d Tour</item>
         <item quantity="other">%1$d Touren</item>
+    </plurals>
+    <plurals name="import_vehicles">
+        <item quantity="one">%1$d Fahrzeug</item>
+        <item quantity="other">%1$d Fahrzeuge</item>
+    </plurals>
+    <plurals name="import_repairs">
+        <item quantity="one">%1$d Reparatur</item>
+        <item quantity="other">%1$d Reparaturen</item>
+    </plurals>
+    <plurals name="import_log_entries">
+        <item quantity="one">%1$d Bordbuch-Eintrag</item>
+        <item quantity="other">%1$d Bordbuch-Einträge</item>
     </plurals>
     <plurals name="import_rates">
         <item quantity="one">%1$d Wechselkurs</item>
         <item quantity="other">%1$d Wechselkursen</item>
     </plurals>
     <string name="import_mode_merge">Zusammenführen</string>
-    <string name="import_mode_merge_hint">Ergänzt neue Touren und übernimmt neuere Fassungen vorhandener. Deine Hauptwährung bleibt.</string>
+    <string name="import_mode_merge_hint">Ergänzt neue Touren, Fahrzeuge, Reparaturen und Bordbuch-Einträge und übernimmt neuere Fassungen vorhandener. Deine Hauptwährung und das aktuelle Fahrzeug bleiben.</string>
     <string name="import_mode_replace">Alles ersetzen</string>
-    <string name="import_mode_replace_hint">Löscht alle gespeicherten Touren, Wechselkurse und die Hauptwährung und stellt stattdessen die Sicherung her.</string>
+    <string name="import_mode_replace_hint">Löscht alle gespeicherten Touren, Fahrzeuge, Reparaturen, Bordbuch-Einträge, Wechselkurse und die Hauptwährung und stellt stattdessen die Sicherung her.</string>
     <string name="import_start">Einspielen</string>
     <string name="import_replace_title">Alle Daten ersetzen?</string>
     <plurals name="import_replace_text">
-        <item quantity="one">Deine gespeicherte Tour, alle Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen. Erstelle vorher eine Sicherung, falls du die aktuellen Daten behalten willst.</item>
-        <item quantity="other">Deine %1$d gespeicherten Touren, alle Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen. Erstelle vorher eine Sicherung, falls du die aktuellen Daten behalten willst.</item>
+        <item quantity="one">Deine gespeicherte Tour, alle Fahrzeuge, Reparaturen, Bordbuch-Einträge, Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen. Erstelle vorher eine Sicherung, falls du die aktuellen Daten behalten willst.</item>
+        <item quantity="other">Deine %1$d gespeicherten Touren, alle Fahrzeuge, Reparaturen, Bordbuch-Einträge, Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen. Erstelle vorher eine Sicherung, falls du die aktuellen Daten behalten willst.</item>
     </plurals>
-    <string name="import_replace_text_no_tours">Alle gespeicherten Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen.</string>
+    <string name="import_replace_text_no_tours">Alle gespeicherten Fahrzeuge, Reparaturen, Bordbuch-Einträge, Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen.</string>
     <string name="import_replace_confirm">Alles ersetzen</string>
-    <string name="import_done">Sicherung eingespielt. Touren neu: %1$d, aktualisiert: %2$d, unverändert: %3$d; %4$s.</string>
+    <string name="import_done">Sicherung eingespielt. Touren neu: %1$d, aktualisiert: %2$d, unverändert: %3$d. Fahrzeuge neu: %4$d, aktualisiert: %5$d. Reparaturen neu: %6$d, aktualisiert: %7$d. %8$s %9$s</string>
+    <plurals name="import_done_log_entries">
+        <item quantity="one">%1$d Bordbuch-Eintrag übernommen</item>
+        <item quantity="other">%1$d Bordbuch-Einträge übernommen</item>
+    </plurals>
     <plurals name="import_done_rates">
         <item quantity="one">%1$d Wechselkurs übernommen</item>
         <item quantity="other">%1$d Wechselkurse übernommen</item>
@@ -252,6 +268,9 @@
     <string name="import_error_newer_version">Diese Sicherung stammt aus einer neueren CamperLog-Version. Bitte aktualisiere die App.</string>
     <string name="import_error_invalid">Die Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
     <string name="import_error_invalid_tour">Tour %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
+    <string name="import_error_invalid_vehicle">Fahrzeug %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
+    <string name="import_error_invalid_vehicle_repair">Fahrzeug %1$d, Reparatur %2$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
+    <string name="import_error_invalid_vehicle_log_entry">Fahrzeug %1$d, Bordbuch-Eintrag %2$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
 
     <!-- Fahrzeugfelder -->
     <string name="field_name">Name</string>

@@ -16,7 +16,10 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.FakeBackupImporter
 import app.restvolt.camperlog.ui.FakeExchangeRateRepository
+import app.restvolt.camperlog.ui.FakeLogRepository
 import app.restvolt.camperlog.ui.FakeTourRepository
+import app.restvolt.camperlog.ui.FakeVehicleRepository
+import app.restvolt.camperlog.ui.defaultVehicle
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,6 +39,9 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.util.Currency
+
+private const val DEFAULT_VEHICLE_NAME = "Mein Wohnmobil"
+private const val VEHICLE_UUID = "11111111-1111-4111-8111-111111111111"
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DataViewModelTest {
@@ -73,12 +79,14 @@ class DataViewModelTest {
     )
 
     @Test
-    fun backupJson_containsToursRatesAndMainCurrency() = runBlocking {
+    fun backupJson_containsToursRatesMainCurrencyAndVehicle() = runBlocking {
         val rate = ExchangeRate(nok, BigDecimal("11.5"), LocalDate.of(2026, 10, 1), "EZB")
         val exportedAt = Instant.parse("2026-10-04T12:00:00Z")
         val viewModel = DataViewModel(
             FakeTourRepository(listOf(tour)),
             FakeExchangeRateRepository(listOf(rate), mainCurrency = nok),
+            FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1).copy(uuid = VEHICLE_UUID))),
+            FakeLogRepository(),
             FakeBackupImporter(),
             files,
             clock = { exportedAt },
@@ -92,13 +100,23 @@ class DataViewModelTest {
         assertEquals(listOf(rate.currency), backup.rates.map { it.currency })
         assertEquals(0, rate.perEuro.compareTo(backup.rates.single().perEuro))
         assertEquals(listOf(tour), backup.tours)
+        assertEquals(mapOf(tour.uuid to VEHICLE_UUID), backup.tourVehicleUuid)
+        assertEquals(listOf(VEHICLE_UUID), backup.vehicles.map { it.vehicle.uuid })
+        assertEquals(VEHICLE_UUID, backup.currentVehicleUuid)
     }
 
     private val backupText = Backup(Instant.parse("2026-10-04T12:00:00Z"), nok, emptyList(), listOf(tour)).let(::encodeBackup)
 
     private fun viewModel(importer: FakeBackupImporter = FakeBackupImporter(), tours: List<Tour> = emptyList()) =
-        DataViewModel(FakeTourRepository(tours), FakeExchangeRateRepository(), importer, files, background = dispatcher)
-            .also { files.sources["backup"] = backupText; files.sources["empty"] = "{}" }
+        DataViewModel(
+            FakeTourRepository(tours),
+            FakeExchangeRateRepository(),
+            FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1, name = "Standard").copy(uuid = VEHICLE_UUID))),
+            FakeLogRepository(),
+            importer,
+            files,
+            background = dispatcher,
+        ).also { files.sources["backup"] = backupText; files.sources["empty"] = "{}" }
 
     @Test
     fun loadBackup_validFile_isPendingWithExistingTourCount() = runBlocking {
@@ -140,10 +158,14 @@ class DataViewModelTest {
     fun exportCsv_withTours_requestsShareAndReportsMissingApp() {
         val viewModel = viewModel(tours = listOf(tour))
 
-        viewModel.exportCsv()
+        viewModel.exportCsv(DEFAULT_VEHICLE_NAME)
 
         assertEquals(ShareRequest.Csv("csv:1"), viewModel.share.value)
-        assertEquals(listOf(listOf(tour.copy(vehicleId = 1))), files.csvExports)
+        assertEquals(1, files.csvExports.size)
+        val (exportedTours, vehicleNames, defaultName) = files.csvExports.single()
+        assertEquals(listOf(tour.copy(vehicleId = 1)), exportedTours)
+        assertEquals(mapOf(1L to "Standard"), vehicleNames)
+        assertEquals(DEFAULT_VEHICLE_NAME, defaultName)
         viewModel.shareHandled(started = false)
         assertNull(viewModel.share.value)
         assertEquals(DataMessage.Text(R.string.no_share_app), viewModel.message.value)
@@ -155,7 +177,7 @@ class DataViewModelTest {
     fun exportCsv_withoutTours_reportsNothingToExport() {
         val viewModel = viewModel()
 
-        viewModel.exportCsv()
+        viewModel.exportCsv(DEFAULT_VEHICLE_NAME)
 
         assertNull(viewModel.share.value)
         assertEquals(DataMessage.Text(R.string.export_nothing), viewModel.message.value)
@@ -191,7 +213,7 @@ class DataViewModelTest {
         val viewModel = viewModel()
 
         viewModel.shareBackup()
-        viewModel.exportCsv()
+        viewModel.exportCsv(DEFAULT_VEHICLE_NAME)
 
         assertTrue(viewModel.busy.value)
         gate.complete(Unit)
@@ -266,15 +288,15 @@ class DataViewModelTest {
 private class FakeDataFiles : DataFiles {
     val sources = mutableMapOf<String, String>()
     val written = mutableMapOf<String, String>()
-    val csvExports = mutableListOf<List<Tour>>()
+    val csvExports = mutableListOf<Triple<List<Tour>, Map<Long, String>, String>>()
     var gate: CompletableDeferred<Unit>? = null
     var failure: IOException? = null
     private var backups = 0
 
-    override suspend fun writeCsvExport(tours: List<Tour>): String {
+    override suspend fun writeCsvExport(tours: List<Tour>, vehicleNames: Map<Long, String>, defaultVehicleName: String): String {
         gate?.await()
         failure?.let { throw it }
-        csvExports += tours
+        csvExports += Triple(tours, vehicleNames, defaultVehicleName)
         return "csv:${csvExports.size}"
     }
 

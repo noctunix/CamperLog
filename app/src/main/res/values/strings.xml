@@ -207,7 +207,7 @@
     <string name="data_csv_title">Spreadsheet (CSV)</string>
     <string name="data_csv_description">All tours as a table for spreadsheet apps. Not suitable for restoring.</string>
     <string name="data_backup_title">Backup (JSON)</string>
-    <string name="data_backup_description">All tours, exchange rates and the main currency. Use it to restore your data on this or another device.</string>
+    <string name="data_backup_description">All tours, vehicles, logbook entries, exchange rates and the main currency. Use it to restore your data on this or another device.</string>
     <string name="data_backup_save">Save as file</string>
     <string name="data_backup_share">Share backup</string>
     <string name="backup_saved">Backup saved</string>
@@ -217,28 +217,44 @@
     <string name="data_import_description">Reads a CamperLog backup file. You will see what it contains before anything is changed.</string>
     <string name="data_import_choose">Choose backup file</string>
     <string name="import_preview_title">Restore backup?</string>
-    <string name="import_preview_summary">Backup from %1$s with %2$s and %3$s. Main currency: %4$s.</string>
+    <string name="import_preview_summary">Backup from %1$s with %2$s, %3$s, %4$s, %5$s and %6$s. Main currency: %7$s.</string>
     <plurals name="import_tours">
         <item quantity="one">%1$d tour</item>
         <item quantity="other">%1$d tours</item>
+    </plurals>
+    <plurals name="import_vehicles">
+        <item quantity="one">%1$d vehicle</item>
+        <item quantity="other">%1$d vehicles</item>
+    </plurals>
+    <plurals name="import_repairs">
+        <item quantity="one">%1$d repair</item>
+        <item quantity="other">%1$d repairs</item>
+    </plurals>
+    <plurals name="import_log_entries">
+        <item quantity="one">%1$d logbook entry</item>
+        <item quantity="other">%1$d logbook entries</item>
     </plurals>
     <plurals name="import_rates">
         <item quantity="one">%1$d exchange rate</item>
         <item quantity="other">%1$d exchange rates</item>
     </plurals>
     <string name="import_mode_merge">Merge</string>
-    <string name="import_mode_merge_hint">Adds new tours and takes over newer versions of existing ones. Your main currency stays.</string>
+    <string name="import_mode_merge_hint">Adds new tours, vehicles, repairs and logbook entries and takes over newer versions of existing ones. Your main currency and current vehicle stay.</string>
     <string name="import_mode_replace">Replace everything</string>
-    <string name="import_mode_replace_hint">Deletes all saved tours, exchange rates and the main currency and restores the backup instead.</string>
+    <string name="import_mode_replace_hint">Deletes all saved tours, vehicles, repairs, logbook entries, exchange rates and the main currency and restores the backup instead.</string>
     <string name="import_start">Restore</string>
     <string name="import_replace_title">Replace all data?</string>
     <plurals name="import_replace_text">
-        <item quantity="one">Your saved tour, all exchange rates and the main currency will be deleted and replaced by the backup. This cannot be undone. Create a backup first if you want to keep your current data.</item>
-        <item quantity="other">Your %1$d saved tours, all exchange rates and the main currency will be deleted and replaced by the backup. This cannot be undone. Create a backup first if you want to keep your current data.</item>
+        <item quantity="one">Your saved tour, all vehicles, repairs, logbook entries, exchange rates and the main currency will be deleted and replaced by the backup. This cannot be undone. Create a backup first if you want to keep your current data.</item>
+        <item quantity="other">Your %1$d saved tours, all vehicles, repairs, logbook entries, exchange rates and the main currency will be deleted and replaced by the backup. This cannot be undone. Create a backup first if you want to keep your current data.</item>
     </plurals>
-    <string name="import_replace_text_no_tours">All saved exchange rates and the main currency will be deleted and replaced by the backup. This cannot be undone.</string>
+    <string name="import_replace_text_no_tours">All saved vehicles, repairs, logbook entries, exchange rates and the main currency will be deleted and replaced by the backup. This cannot be undone.</string>
     <string name="import_replace_confirm">Replace everything</string>
-    <string name="import_done">Backup restored. Tours new: %1$d, updated: %2$d, unchanged: %3$d; %4$s.</string>
+    <string name="import_done">Backup restored. Tours new: %1$d, updated: %2$d, unchanged: %3$d. Vehicles new: %4$d, updated: %5$d. Repairs new: %6$d, updated: %7$d. %8$s %9$s</string>
+    <plurals name="import_done_log_entries">
+        <item quantity="one">%1$d logbook entry imported</item>
+        <item quantity="other">%1$d logbook entries imported</item>
+    </plurals>
     <plurals name="import_done_rates">
         <item quantity="one">%1$d exchange rate imported</item>
         <item quantity="other">%1$d exchange rates imported</item>
@@ -252,6 +268,9 @@
     <string name="import_error_newer_version">This backup was created by a newer version of CamperLog. Please update the app.</string>
     <string name="import_error_invalid">The backup contains invalid data. Nothing was changed.</string>
     <string name="import_error_invalid_tour">Tour %1$d in the backup contains invalid data. Nothing was changed.</string>
+    <string name="import_error_invalid_vehicle">Vehicle %1$d in the backup contains invalid data. Nothing was changed.</string>
+    <string name="import_error_invalid_vehicle_repair">Vehicle %1$d, repair %2$d in the backup contains invalid data. Nothing was changed.</string>
+    <string name="import_error_invalid_vehicle_log_entry">Vehicle %1$d, logbook entry %2$d in the backup contains invalid data. Nothing was changed.</string>
 
     <!-- Vehicle fields -->
     <string name="field_name">Name</string>

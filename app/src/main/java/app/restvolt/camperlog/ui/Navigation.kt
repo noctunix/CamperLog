@@ -269,7 +269,7 @@ fun CamperLogNavHost(
         composable<DataRoute> { entry ->
             val context = LocalContext.current
             DataScreen(
-                viewModel = viewModel { DataViewModel(repository, exchangeRates, backupImporter, AndroidDataFiles(context)) },
+                viewModel = viewModel { DataViewModel(repository, exchangeRates, vehicles, logbook, backupImporter, AndroidDataFiles(context)) },
                 onBack = { navController.popFrom(entry) },
             )
         }

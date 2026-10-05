@@ -26,17 +26,20 @@ val CSV_HEADER = listOf(
     "angelegt",
     "geaendert",
     "kosten",
+    "fahrzeug",
 )
 
 /**
  * Erzeugt eine CSV-Datei nach RFC 4180 (Komma, CRLF) mit Kopfzeile.
  * Datumswerte sind ISO-8601, Kosten exakte Dezimalzahlen mit Punkt. `kosten_eur` enthält nur den
  * Euro-Anteil, `kosten` alle Beträge mit ISO-Code, z. B. `120.00 EUR; 1450.00 NOK; 3500 ISK`.
- * Freitextfelder werden per [neutralizeFormula] gegen Formel-Injection entschärft.
+ * `fahrzeug` enthält den Anzeigenamen des Fahrzeugs aus [vehicleNames]; ein leeres oder fehlendes
+ * Fahrzeug ergibt [defaultVehicleName]. Freitextfelder werden per [neutralizeFormula] gegen
+ * Formel-Injection entschärft.
  */
-fun toursToCsv(tours: List<Tour>): String = buildString {
+fun toursToCsv(tours: List<Tour>, vehicleNames: Map<Long, String>, defaultVehicleName: String): String = buildString {
     appendCsvRow(CSV_HEADER)
-    tours.forEach { appendCsvRow(it.csvFields()) }
+    tours.forEach { appendCsvRow(it.csvFields(vehicleNames, defaultVehicleName)) }
 }
 
 /**
@@ -68,7 +71,7 @@ private fun StringBuilder.appendCsvRow(fields: List<String>) {
     append("\r\n")
 }
 
-private fun Tour.csvFields(): List<String> = listOf(
+private fun Tour.csvFields(vehicleNames: Map<Long, String>, defaultVehicleName: String): List<String> = listOf(
     id.toString(),
     startDate.toString(),
     endDate.toString(),
@@ -88,6 +91,7 @@ private fun Tour.csvFields(): List<String> = listOf(
     createdAt.toString(),
     updatedAt.toString(),
     costs.joinToString("; ") { "${amountToDecimal(it.minor, it.currency)} ${it.currency.currencyCode}" },
+    neutralizeFormula(vehicleNames[vehicleId]?.takeIf(String::isNotBlank) ?: defaultVehicleName),
 )
 
 private fun yesNo(value: Boolean) = if (value) "ja" else "nein"

@@ -8,12 +8,15 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.backup.Backup
 import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.backup.BackupReadResult
+import app.restvolt.camperlog.backup.BackupVehicle
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.backup.encodeBackup
 import app.restvolt.camperlog.backup.readBackup
 import app.restvolt.camperlog.domain.ExchangeRateRepository
+import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.TourRepository
+import app.restvolt.camperlog.domain.VehicleRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,13 +61,16 @@ sealed interface ShareRequest {
 }
 
 /**
- * Datenverwaltung: Export und Import der gespeicherten Touren, Kurse und Hauptwährung.
- * Alle Vorgänge laufen im [viewModelScope] und überstehen so Konfigurationswechsel; Ergebnisse
- * erscheinen in [message] bzw. [share], bis der Screen sie quittiert.
+ * Datenverwaltung: Export und Import der gespeicherten Touren, Fahrzeuge, Reparaturen, des
+ * Bordbuchs, der Kurse und der Hauptwährung. Alle Vorgänge laufen im [viewModelScope] und
+ * überstehen so Konfigurationswechsel; Ergebnisse erscheinen in [message] bzw. [share], bis der
+ * Screen sie quittiert.
  */
 class DataViewModel(
     private val repository: TourRepository,
     private val exchangeRates: ExchangeRateRepository,
+    private val vehicles: VehicleRepository,
+    private val logs: LogRepository,
     private val importer: BackupImporter,
     private val files: DataFiles,
     private val clock: () -> Instant = Instant::now,
@@ -109,13 +115,17 @@ class DataViewModel(
         }
     }
 
-    /** Schreibt alle Touren als CSV und fordert das Teilen an; ohne Touren gibt es nur einen Hinweis. */
-    fun exportCsv() = launchTask(R.string.export_failed) {
+    /**
+     * Schreibt alle Touren als CSV und fordert das Teilen an; ohne Touren gibt es nur einen Hinweis.
+     * [defaultVehicleName] gilt für Touren eines Fahrzeugs mit leerem Namen.
+     */
+    fun exportCsv(defaultVehicleName: String) = launchTask(R.string.export_failed) {
         val tours = repository.allTours()
         if (tours.isEmpty()) {
             DataMessage.Text(R.string.export_nothing)
         } else {
-            _share.value = ShareRequest.Csv(files.writeCsvExport(tours))
+            val vehicleNames = vehicles.allVehicles().associate { it.id to it.name }
+            _share.value = ShareRequest.Csv(files.writeCsvExport(tours, vehicleNames, defaultVehicleName))
             null
         }
     }
@@ -145,11 +155,25 @@ class DataViewModel(
 
     /** Vollständige Sicherung des aktuellen Stands als JSON. */
     suspend fun backupJson(): String {
+        val tours = repository.allTours()
+        val allVehicles = vehicles.allVehicles()
+        val repairsByVehicle = vehicles.allRepairs().groupBy { it.vehicleId }
+        val logEntriesByVehicle = logs.allEntries().groupBy { it.vehicleId }
+        val vehicleUuidById = allVehicles.associate { it.id to it.uuid }
         val backup = Backup(
             exportedAt = clock(),
             mainCurrency = exchangeRates.observeMainCurrency().first(),
             rates = exchangeRates.observeRates().first(),
-            tours = repository.allTours(),
+            tours = tours,
+            tourVehicleUuid = tours.mapNotNull { tour -> vehicleUuidById[tour.vehicleId]?.let { tour.uuid to it } }.toMap(),
+            vehicles = allVehicles.map { vehicle ->
+                BackupVehicle(
+                    vehicle = vehicle,
+                    repairs = repairsByVehicle[vehicle.id].orEmpty(),
+                    logEntries = logEntriesByVehicle[vehicle.id].orEmpty(),
+                )
+            },
+            currentVehicleUuid = vehicles.observeCurrentVehicle().first().uuid,
         )
         return withContext(background) { encodeBackup(backup) }
     }

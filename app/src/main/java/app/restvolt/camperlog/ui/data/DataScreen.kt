@@ -118,7 +118,12 @@ fun DataScreen(viewModel: DataViewModel, onBack: () -> Unit) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    OutlinedButton(onClick = viewModel::exportCsv, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    val defaultVehicleName = stringResource(R.string.vehicle_default_name)
+                    OutlinedButton(
+                        onClick = { viewModel.exportCsv(defaultVehicleName) },
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(stringResource(R.string.tours_export_csv))
                     }
                 }
@@ -171,8 +176,20 @@ private fun Resources.dataMessageText(message: DataMessage): String = when (mess
     is DataMessage.Text -> getString(message.text)
     is DataMessage.LoadFailed -> backupErrorMessage(message.failure)
     is DataMessage.Imported -> message.result.let { result ->
+        val logEntries = getQuantityString(R.plurals.import_done_log_entries, result.addedLogEntries, result.addedLogEntries)
         val rates = getQuantityString(R.plurals.import_done_rates, result.importedRates, result.importedRates)
-        getString(R.string.import_done, result.addedTours, result.updatedTours, result.unchangedTours, rates)
+        getString(
+            R.string.import_done,
+            result.addedTours,
+            result.updatedTours,
+            result.unchangedTours,
+            result.addedVehicles,
+            result.updatedVehicles,
+            result.addedRepairs,
+            result.updatedRepairs,
+            logEntries,
+            rates,
+        )
     }
 }
 
@@ -180,9 +197,13 @@ private fun Resources.backupErrorMessage(failure: BackupReadResult.Failure): Str
     BackupError.TOO_LARGE -> getString(R.string.import_error_too_large)
     BackupError.NOT_A_BACKUP -> getString(R.string.import_error_not_backup)
     BackupError.NEWER_VERSION -> getString(R.string.import_error_newer_version)
-    BackupError.INVALID_DATA -> failure.tourNumber
-        ?.let { getString(R.string.import_error_invalid_tour, it) }
-        ?: getString(R.string.import_error_invalid)
+    BackupError.INVALID_DATA -> when {
+        failure.tourNumber != null -> getString(R.string.import_error_invalid_tour, failure.tourNumber)
+        failure.repairNumber != null -> getString(R.string.import_error_invalid_vehicle_repair, failure.vehicleNumber, failure.repairNumber)
+        failure.logEntryNumber != null -> getString(R.string.import_error_invalid_vehicle_log_entry, failure.vehicleNumber, failure.logEntryNumber)
+        failure.vehicleNumber != null -> getString(R.string.import_error_invalid_vehicle, failure.vehicleNumber)
+        else -> getString(R.string.import_error_invalid)
+    }
 }
 
 @Composable
