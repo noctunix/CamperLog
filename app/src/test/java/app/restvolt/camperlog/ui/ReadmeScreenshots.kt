@@ -11,6 +11,8 @@ import androidx.compose.ui.test.performClick
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.LogEntry
+import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
@@ -59,7 +61,7 @@ class ReadmeScreenshots {
                 CamperLogNavHost(
                 FakeTourRepository(sampleTours),
                 FakeVehicleRepository(listOf(sampleVehicle)),
-                FakeLogRepository(),
+                FakeLogRepository(sampleLogEntries()),
                 FakeExchangeRateRepository(rates),
                 FakeBackupImporter(),
                 ThemeMode.LIGHT,
@@ -82,6 +84,8 @@ class ReadmeScreenshots {
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithText("Vehicle").performClick()
         capture("5_vehicle")
+        compose.onNodeWithText("Logbook").performClick()
+        capture("6_logbook")
     }
 
     private fun capture(name: String) {
@@ -161,6 +165,26 @@ class ReadmeScreenshots {
             createdAt = Instant.parse("2023-03-01T10:00:00Z"),
             updatedAt = Instant.parse("2023-03-01T10:00:00Z"),
         )
+
+        /** Relativ zu heute, damit die Kacheln „vor x Tagen" stabil zeigen. */
+        fun sampleLogEntries(): List<LogEntry> {
+            val today = LocalDate.now()
+            return listOf(
+                LogType.CASSETTE_EMPTIED to 2L,
+                LogType.GREY_WATER_EMPTIED to 1L,
+                LogType.DIESEL_HEATER_RUN to 12L,
+                LogType.GAS_HEATER_RUN to 40L,
+            ).mapIndexed { index, (type, daysAgo) ->
+                LogEntry(
+                    id = index + 1L,
+                    uuid = "00000000-0000-4000-8000-0000000000b$index",
+                    vehicleId = 1,
+                    type = type,
+                    date = today.minusDays(daysAgo),
+                    createdAt = Instant.parse("2026-01-01T00:00:00Z"),
+                )
+            }
+        }
 
         val sampleTours = listOf(
             sample(
