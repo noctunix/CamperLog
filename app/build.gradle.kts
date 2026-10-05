@@ -55,7 +55,15 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            // The embedded commit hash depends on the checkout and breaks reproducible builds.
+            vcsInfo.include = false
         }
+    }
+
+    // F-Droid rejects this blob: it is encrypted with a Google key and unreadable for anyone else.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     compileOptions {
