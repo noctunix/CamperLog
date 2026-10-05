@@ -348,6 +348,32 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
             ) { value -> change { it.copy(solarPowerWp = value) } }
         }
         SectionCard {
+            SectionHeading(stringResource(R.string.section_maintenance))
+            DateField(
+                stringResource(R.string.field_next_inspection),
+                input.nextInspectionDate,
+                null,
+                { date -> change { it.copy(nextInspectionDate = date) } },
+            )
+            DateField(
+                stringResource(R.string.field_next_gas_check),
+                input.nextGasCheckDate,
+                null,
+                { date -> change { it.copy(nextGasCheckDate = date) } },
+            )
+            DateField(
+                stringResource(R.string.field_last_oil_change),
+                input.lastOilChangeDate,
+                errorOf(VehicleField.LAST_OIL_CHANGE_DATE),
+                { date -> change { it.copy(lastOilChangeDate = date) } },
+                modifier = focusOf(VehicleField.LAST_OIL_CHANGE_DATE),
+            )
+            UnitField(
+                stringResource(R.string.field_last_oil_change_odometer), input.lastOilChangeOdometerKm, "km", KeyboardType.Number,
+                errorOf(VehicleField.LAST_OIL_CHANGE_ODOMETER_KM), focusOf(VehicleField.LAST_OIL_CHANGE_ODOMETER_KM),
+            ) { value -> change { it.copy(lastOilChangeOdometerKm = value) } }
+        }
+        SectionCard {
             SectionHeading(stringResource(R.string.field_notes))
             FormTextField(
                 label = stringResource(R.string.field_notes),

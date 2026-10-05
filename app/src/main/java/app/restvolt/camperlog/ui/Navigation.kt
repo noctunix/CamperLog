@@ -1,15 +1,23 @@
 package app.restvolt.camperlog.ui
 
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -28,6 +36,7 @@ import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.domain.dueReminders
 import app.restvolt.camperlog.ui.data.AndroidDataFiles
 import app.restvolt.camperlog.ui.data.DataScreen
 import app.restvolt.camperlog.ui.data.DataViewModel
@@ -37,6 +46,8 @@ import app.restvolt.camperlog.ui.edit.EditTourScreen
 import app.restvolt.camperlog.ui.edit.EditTourViewModel
 import app.restvolt.camperlog.ui.edit.EditVehicleScreen
 import app.restvolt.camperlog.ui.edit.EditVehicleViewModel
+import app.restvolt.camperlog.ui.edit.RepairEditScreen
+import app.restvolt.camperlog.ui.edit.RepairEditViewModel
 import app.restvolt.camperlog.ui.logbook.LogbookScreen
 import app.restvolt.camperlog.ui.overview.OverviewScreen
 import app.restvolt.camperlog.ui.overview.OverviewViewModel
@@ -45,6 +56,7 @@ import app.restvolt.camperlog.ui.rates.RateEditViewModel
 import app.restvolt.camperlog.ui.rates.RatesScreen
 import app.restvolt.camperlog.ui.rates.RatesViewModel
 import app.restvolt.camperlog.ui.settings.SettingsScreen
+import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import app.restvolt.camperlog.ui.tours.ToursFilterSettings
 import app.restvolt.camperlog.ui.tours.ToursScreen
@@ -54,6 +66,7 @@ import app.restvolt.camperlog.ui.vehicle.VehicleViewModel
 import app.restvolt.camperlog.ui.vehicles.VehiclesScreen
 import app.restvolt.camperlog.ui.vehicles.VehiclesViewModel
 import kotlinx.serialization.Serializable
+import java.time.LocalDate
 
 @Serializable
 internal object ToursRoute
@@ -71,6 +84,10 @@ internal object VehiclesRoute
 /** Fahrzeugformular; [vehicleId] 0 legt ein neues Fahrzeug an. */
 @Serializable
 internal data class VehicleEditRoute(val vehicleId: Long = 0)
+
+/** Reparaturformular eines Fahrzeugs; [repairId] 0 legt eine neue Reparatur an. */
+@Serializable
+internal data class RepairEditRoute(val vehicleId: Long, val repairId: Long = 0)
 
 @Serializable
 internal data class EditRoute(val tourId: Long = 0)
@@ -107,7 +124,15 @@ fun CamperLogNavHost(
 ) {
     val navController = rememberNavController()
     val currentDestination = navController.currentBackStackEntryAsState().value?.destination
-    val bottomBar: @Composable () -> Unit = { CamperLogBottomBar(navController, currentDestination) }
+    val context = LocalContext.current
+    val reminderSettings = remember { ReminderSettings(context) }
+    // Liest die Einstellungen frisch bei jeder Navigation (z. B. zurück aus den Einstellungen),
+    // ohne eine eigene Reaktivität für SharedPreferences zu benötigen.
+    val currentVehicle by vehicles.observeCurrentVehicle().collectAsStateWithLifecycle(initialValue = null)
+    val reminderCount = currentVehicle?.let { vehicle ->
+        dueReminders(vehicle, LocalDate.now(), reminderSettings.reminderLeadDays, reminderSettings.oilChangeIntervalMonths).size
+    } ?: 0
+    val bottomBar: @Composable () -> Unit = { CamperLogBottomBar(navController, currentDestination, reminderCount) }
 
     NavHost(navController, startDestination = ToursRoute) {
         composable<ToursRoute> {
@@ -135,10 +160,13 @@ fun CamperLogNavHost(
         composable<VehicleRoute> {
             VehicleScreen(
                 viewModel = viewModel { VehicleViewModel(vehicles) },
+                reminderSettings = reminderSettings,
                 onOpenData = { navController.navigate(DataRoute) },
                 onOpenSettings = { navController.navigate(SettingsRoute) },
                 onOpenVehicles = { navController.navigate(VehiclesRoute) },
                 onEditVehicle = { id -> navController.navigate(VehicleEditRoute(id)) },
+                onAddRepair = { vehicleId -> navController.navigate(RepairEditRoute(vehicleId)) },
+                onOpenRepair = { vehicleId, repairId -> navController.navigate(RepairEditRoute(vehicleId, repairId)) },
                 bottomBar = bottomBar,
             )
         }
@@ -156,6 +184,23 @@ fun CamperLogNavHost(
                 viewModel = viewModel { EditVehicleViewModel(vehicles, vehicleId, createSavedStateHandle()) },
                 onDone = { navController.popFrom(entry) },
                 onSaved = { navController.popFrom(entry) },
+            )
+        }
+        composable<RepairEditRoute> { entry ->
+            val route = entry.toRoute<RepairEditRoute>()
+            val vehicleViewModel = navController.vehicleViewModel(entry, vehicles)
+            RepairEditScreen(
+                viewModel = viewModel {
+                    RepairEditViewModel(vehicles, exchangeRates, route.vehicleId, route.repairId, createSavedStateHandle())
+                },
+                onDone = { navController.popFrom(entry) },
+                onSaved = { navController.popFrom(entry) },
+                onDelete = { repair ->
+                    if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                        vehicleViewModel.deleteRepair(repair)
+                        navController.popBackStack()
+                    }
+                },
             )
         }
         composable<EditRoute> { entry ->
@@ -228,7 +273,7 @@ fun CamperLogNavHost(
 
 /** Untere Navigationsleiste der drei Hauptreiter; erneutes Tippen kehrt zur Wurzel des Reiters zurück. */
 @Composable
-private fun CamperLogBottomBar(navController: NavController, current: NavDestination?) {
+private fun CamperLogBottomBar(navController: NavController, current: NavDestination?, reminderCount: Int) {
     NavigationBar {
         NavigationBarItem(
             selected = current.isOnTab<ToursRoute>(),
@@ -242,11 +287,23 @@ private fun CamperLogBottomBar(navController: NavController, current: NavDestina
             icon = { Icon(painterResource(R.drawable.ic_book), contentDescription = null) },
             label = { Text(stringResource(R.string.nav_logbook)) },
         )
+        val vehicleLabel = stringResource(R.string.nav_vehicle)
+        val vehicleItemModifier = if (reminderCount > 0) {
+            val description = pluralStringResource(R.plurals.nav_vehicle_reminders, reminderCount, vehicleLabel, reminderCount)
+            Modifier.semantics(mergeDescendants = true) { contentDescription = description }
+        } else {
+            Modifier
+        }
         NavigationBarItem(
             selected = current.isOnTab<VehicleRoute>(),
             onClick = { navController.navigateToTab(VehicleRoute) },
-            icon = { Icon(painterResource(R.drawable.ic_directions_car), contentDescription = null) },
-            label = { Text(stringResource(R.string.nav_vehicle)) },
+            icon = {
+                BadgedBox(badge = { if (reminderCount > 0) Badge() }) {
+                    Icon(painterResource(R.drawable.ic_directions_car), contentDescription = null)
+                }
+            },
+            label = { Text(vehicleLabel) },
+            modifier = vehicleItemModifier,
         )
     }
 }
@@ -275,6 +332,16 @@ private fun NavController.toursViewModel(
     val toursEntry = remember(entry) { getBackStackEntry<ToursRoute>() }
     val context = LocalContext.current
     return viewModel(viewModelStoreOwner = toursEntry) { ToursViewModel(repository, vehicles, ToursFilterSettings(context)) }
+}
+
+/**
+ * Das [VehicleViewModel] des Fahrzeug-Reiters, damit das Reparaturformular dort die Löschmeldung
+ * auslöst. [RepairEditRoute] liegt immer über [VehicleRoute] im Stapel, da nur von dort erreichbar.
+ */
+@Composable
+private fun NavController.vehicleViewModel(entry: NavBackStackEntry, vehicles: VehicleRepository): VehicleViewModel {
+    val vehicleEntry = remember(entry) { getBackStackEntry<VehicleRoute>() }
+    return viewModel(viewModelStoreOwner = vehicleEntry) { VehicleViewModel(vehicles) }
 }
 
 /** Verlässt [entry] nur, solange er sichtbar ist; verhindert doppeltes Zurück bei schnellem Tippen. */

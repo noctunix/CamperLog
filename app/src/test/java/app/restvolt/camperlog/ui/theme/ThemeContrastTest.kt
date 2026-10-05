@@ -30,6 +30,9 @@ class ThemeContrastTest {
         assertContrast("Hinweistext auf Karte", scheme.onSurfaceVariant, scheme.surfaceContainerLowest, 4.5)
         assertContrast("Fehlertext auf Karte", scheme.error, scheme.surfaceContainerLowest, 4.5)
         assertContrast("Text auf Hintergrund", scheme.onBackground, scheme.background, 4.5)
+        // Erinnerungskarten im Fahrzeug-Reiter: überfällig in errorContainer, fällig in tertiaryContainer.
+        assertContrast("Text in überfälliger Erinnerung", scheme.onErrorContainer, scheme.errorContainer, 4.5)
+        assertContrast("Text in bald fälliger Erinnerung", scheme.onTertiaryContainer, scheme.tertiaryContainer, 4.5)
     }
 
     @Test

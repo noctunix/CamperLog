@@ -11,6 +11,7 @@
     <string name="tour_not_found">This tour no longer exists.</string>
     <string name="no_share_app">No app available for sharing</string>
     <string name="distance_km">%1$,d km</string>
+    <string name="action_undo">Undo</string>
 
     <!-- Bottom navigation -->
     <string name="nav_tours">Tours</string>
@@ -100,6 +101,18 @@
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_open_rates">Manage exchange rates</string>
+    <string name="settings_reminders">Reminders</string>
+    <string name="settings_reminders_hint">Reminders are only shown inside the app; CamperLog does not send notifications.</string>
+    <string name="settings_reminder_lead_days">Remind before due date</string>
+    <string name="settings_reminder_oil_interval">Oil change interval</string>
+    <plurals name="settings_reminder_lead_days_option">
+        <item quantity="one">%1$d day before</item>
+        <item quantity="other">%1$d days before</item>
+    </plurals>
+    <plurals name="settings_reminder_oil_interval_option">
+        <item quantity="one">%1$d month</item>
+        <item quantity="other">%1$d months</item>
+    </plurals>
 
     <!-- Detail -->
     <string name="detail_fallback_title">Tour</string>
@@ -273,6 +286,13 @@
     <string name="field_battery_capacity">Battery capacity</string>
     <string name="field_solar_power">Solar power</string>
     <string name="field_amount_with_currency">%1$s (%2$s)</string>
+    <string name="field_next_inspection">Next inspection (MOT)</string>
+    <string name="field_next_gas_check">Next gas check</string>
+    <string name="field_last_oil_change">Last oil change</string>
+    <string name="field_last_oil_change_odometer">Odometer at oil change</string>
+    <string name="field_date">Date</string>
+    <string name="field_description">Description</string>
+    <string name="field_odometer_km">Odometer</string>
 
     <!-- Vehicle form sections -->
     <string name="section_general">General</string>
@@ -283,13 +303,18 @@
     <string name="section_tires">Tyres</string>
     <string name="section_tanks">Tanks</string>
     <string name="section_energy">Energy</string>
+    <string name="section_maintenance">Maintenance</string>
+    <string name="section_repairs">Repairs</string>
 
     <!-- Vehicle validation -->
     <string name="error_vehicle_name_required">Name required</string>
     <string name="error_first_registration_future">First registration cannot be in the future</string>
+    <string name="error_last_oil_change_future">Last oil change cannot be in the future</string>
     <string name="error_sale_before_purchase">Sale date is before the purchase date</string>
     <string name="error_must_be_positive">Must be greater than 0 %1$s</string>
     <string name="error_value_too_large">Value too large, at most %1$s</string>
+    <string name="error_date_required">Date required</string>
+    <string name="error_description_required">Description required</string>
 
     <!-- Vehicle sheet -->
     <string name="vehicle_not_found">This vehicle no longer exists.</string>
@@ -297,11 +322,38 @@
     <string name="vehicle_sheet_empty_hint">No details recorded yet.</string>
     <string name="vehicle_sheet_add_details">Add details</string>
     <string name="vehicle_sold_on">Sold on %1$s</string>
+    <string name="vehicle_repairs_add">Add repair</string>
+    <string name="vehicle_repairs_empty">No repairs yet.</string>
+    <string name="vehicle_repair_edit_action">Edit repair</string>
+    <string name="vehicle_repair_delete_action">Delete repair</string>
+    <string name="vehicle_repair_deleted">Repair deleted</string>
+    <string name="vehicle_repair_delete_failed">Could not delete repair.</string>
+    <string name="vehicle_repair_restore_failed">Could not restore repair.</string>
 
     <!-- Vehicle form -->
     <string name="vehicle_edit_title_new">New vehicle</string>
     <string name="vehicle_edit_title_existing">Edit vehicle</string>
     <string name="vehicle_edit_save_failed">Could not save vehicle.</string>
+
+    <!-- Repair form -->
+    <string name="repair_edit_title_new">New repair</string>
+    <string name="repair_edit_title_existing">Edit repair</string>
+    <string name="repair_edit_save_failed">Could not save repair.</string>
+    <string name="repair_not_found">This repair no longer exists.</string>
+
+    <!-- Reminders -->
+    <string name="reminder_kind_inspection">Inspection</string>
+    <string name="reminder_kind_gas_check">Gas check</string>
+    <string name="reminder_kind_oil_change">Oil change</string>
+    <string name="reminder_overdue">%1$s overdue since %2$s</string>
+    <plurals name="reminder_due_soon">
+        <item quantity="one">%1$s due in %2$d day (%3$s)</item>
+        <item quantity="other">%1$s due in %2$d days (%3$s)</item>
+    </plurals>
+    <plurals name="nav_vehicle_reminders">
+        <item quantity="one">%1$s, %2$d reminder</item>
+        <item quantity="other">%1$s, %2$d reminders</item>
+    </plurals>
 
     <!-- Manage vehicles -->
     <string name="vehicles_add">Add vehicle</string>

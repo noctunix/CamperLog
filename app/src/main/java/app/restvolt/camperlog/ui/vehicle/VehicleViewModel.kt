@@ -1,31 +1,81 @@
 package app.restvolt.camperlog.ui.vehicle
 
+import android.database.SQLException
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Zustand des Fahrzeug-Reiters: Fahrzeugliste und -wechsler sowie das vollständige aktuelle Fahrzeug. */
+/** Zustand des Fahrzeug-Reiters: Fahrzeugliste und -wechsler, das aktuelle Fahrzeug und seine Reparaturen. */
 data class VehicleUiState(
     val vehicles: List<Vehicle> = emptyList(),
     val currentVehicleId: Long = 0,
     val currentVehicle: Vehicle? = null,
+    val repairs: List<Repair> = emptyList(),
 )
 
-/** Hält das Datenblatt des Fahrzeug-Reiters und seinen Fahrzeugwechsler aktuell. */
+/** Rückmeldungen, die der Fahrzeug-Reiter als Snackbar anzeigt. */
+sealed interface VehicleMessage {
+    data class RepairDeleted(val repair: Repair) : VehicleMessage
+    data class Failed(@StringRes val text: Int) : VehicleMessage
+}
+
+/** Hält das Datenblatt des Fahrzeug-Reiters und seinen Fahrzeugwechsler aktuell; löscht Reparaturen. */
 class VehicleViewModel(private val vehicles: VehicleRepository) : ViewModel() {
 
     val uiState: StateFlow<VehicleUiState> =
-        combine(vehicles.observeVehicles(), vehicles.observeCurrentVehicle()) { list, current ->
-            VehicleUiState(list, current.id, current)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), VehicleUiState())
+        combine(vehicles.observeVehicles(), vehicles.observeCurrentVehicle()) { list, current -> list to current }
+            .flatMapLatest { (list, current) ->
+                vehicles.observeRepairs(current.id).map { repairs -> VehicleUiState(list, current.id, current, repairs) }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), VehicleUiState())
 
     fun onSelectVehicle(id: Long) {
         viewModelScope.launch { vehicles.setCurrentVehicle(id) }
+    }
+
+    private val _message = MutableStateFlow<VehicleMessage?>(null)
+
+    /** Einmalige Rückmeldung für die Snackbar des Reiters; nach der Anzeige [onMessageShown] aufrufen. */
+    val message: StateFlow<VehicleMessage?> = _message.asStateFlow()
+
+    /** Löscht [repair] und bietet über [VehicleMessage.RepairDeleted] das Rückgängigmachen an. */
+    fun deleteRepair(repair: Repair) {
+        viewModelScope.launch {
+            _message.value = try {
+                vehicles.deleteRepair(repair.id)
+                VehicleMessage.RepairDeleted(repair)
+            } catch (_: SQLException) {
+                VehicleMessage.Failed(R.string.vehicle_repair_delete_failed)
+            }
+        }
+    }
+
+    /** Stellt eine über [deleteRepair] entfernte Reparatur unverändert wieder her. */
+    fun undoDeleteRepair(repair: Repair) {
+        viewModelScope.launch {
+            try {
+                vehicles.restoreRepair(repair)
+            } catch (_: SQLException) {
+                _message.value = VehicleMessage.Failed(R.string.vehicle_repair_restore_failed)
+            }
+        }
+    }
+
+    /** Verwirft [shown], sofern inzwischen keine neuere Meldung vorliegt. */
+    fun onMessageShown(shown: VehicleMessage) {
+        _message.compareAndSet(shown, null)
     }
 }

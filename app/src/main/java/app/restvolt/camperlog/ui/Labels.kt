@@ -16,13 +16,20 @@ import app.restvolt.camperlog.domain.MAX_SOLAR_WP
 import app.restvolt.camperlog.domain.MAX_TANK_L
 import app.restvolt.camperlog.domain.MAX_TIRE_PRESSURE_BAR
 import app.restvolt.camperlog.domain.MAX_WEIGHT_KG
+import androidx.compose.ui.res.pluralStringResource
 import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.Reminder
+import app.restvolt.camperlog.domain.ReminderKind
+import app.restvolt.camperlog.domain.RepairError
+import app.restvolt.camperlog.domain.RepairField
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleError
 import app.restvolt.camperlog.domain.VehicleField
+import app.restvolt.camperlog.domain.formatDate
+import java.time.LocalDate
 import java.util.Locale
 
 /** Aktuelle Sprache der App für Datums- und Zahlenformate; ein Sprachwechsel löst Neukomposition aus. */
@@ -139,6 +146,8 @@ val VehicleField.labelRes: Int
         VehicleField.CASSETTE -> R.string.field_cassette
         VehicleField.BATTERY_CAPACITY_AH -> R.string.field_battery_capacity
         VehicleField.SOLAR_POWER_WP -> R.string.field_solar_power
+        VehicleField.LAST_OIL_CHANGE_DATE -> R.string.field_last_oil_change
+        VehicleField.LAST_OIL_CHANGE_ODOMETER_KM -> R.string.field_last_oil_change_odometer
     }
 
 /** Höchstwert und Einheit eines Feldes mit Obergrenze, für die Fehlermeldung zu [VehicleError.TOO_LARGE]. */
@@ -152,7 +161,7 @@ private fun vehicleFieldBound(field: VehicleField): Pair<Double, String> = when 
     -> MAX_TANK_L to "l"
     VehicleField.BATTERY_CAPACITY_AH -> MAX_BATTERY_AH.toDouble() to "Ah"
     VehicleField.SOLAR_POWER_WP -> MAX_SOLAR_WP.toDouble() to "Wp"
-    VehicleField.PURCHASE_ODOMETER_KM -> MAX_ODOMETER_KM.toDouble() to "km"
+    VehicleField.PURCHASE_ODOMETER_KM, VehicleField.LAST_OIL_CHANGE_ODOMETER_KM -> MAX_ODOMETER_KM.toDouble() to "km"
     else -> 0.0 to ""
 }
 
@@ -165,7 +174,10 @@ fun VehicleError.messageRes(field: VehicleField): String {
     val locale = currentLocale()
     return when (this) {
         VehicleError.REQUIRED -> stringResource(R.string.error_vehicle_name_required)
-        VehicleError.DATE_IN_FUTURE -> stringResource(R.string.error_first_registration_future)
+        VehicleError.DATE_IN_FUTURE -> when (field) {
+            VehicleField.LAST_OIL_CHANGE_DATE -> stringResource(R.string.error_last_oil_change_future)
+            else -> stringResource(R.string.error_first_registration_future)
+        }
         VehicleError.SALE_BEFORE_PURCHASE -> stringResource(R.string.error_sale_before_purchase)
         VehicleError.NEGATIVE_NUMBER -> stringResource(R.string.error_negative_number)
         VehicleError.INVALID_NUMBER -> stringResource(R.string.error_invalid_number)
@@ -181,5 +193,57 @@ fun VehicleError.messageRes(field: VehicleField): String {
             }
             stringResource(R.string.error_value_too_large, "$number $unit")
         }
+    }
+}
+
+/** Bezeichnung eines Formularfelds des Reparaturformulars, z. B. für die Fehlerzusammenfassung. */
+@get:StringRes
+val RepairField.labelRes: Int
+    get() = when (this) {
+        RepairField.DATE -> R.string.field_date
+        RepairField.DESCRIPTION -> R.string.field_description
+        RepairField.ODOMETER_KM -> R.string.field_odometer_km
+        RepairField.COST -> R.string.field_cost
+    }
+
+/**
+ * Fehlertext zu [this] am Feld [field] des Reparaturformulars. Gilt nicht für Beträge: Deren
+ * Fehlertext braucht die Währung der Kostenzeile und wird dort gesondert gebildet.
+ */
+@Composable
+fun RepairError.messageRes(field: RepairField): String = when (this) {
+    RepairError.REQUIRED -> when (field) {
+        RepairField.DATE -> stringResource(R.string.error_date_required)
+        else -> stringResource(R.string.error_description_required)
+    }
+    RepairError.NEGATIVE_NUMBER -> stringResource(R.string.error_negative_number)
+    RepairError.INVALID_NUMBER -> stringResource(R.string.error_invalid_number)
+    RepairError.INVALID_AMOUNT -> stringResource(R.string.error_invalid_amount)
+    RepairError.AMOUNT_TOO_LARGE -> stringResource(R.string.error_amount_too_large, "")
+    RepairError.TOO_LARGE -> {
+        val max = java.text.NumberFormat.getIntegerInstance(currentLocale()).format(MAX_ODOMETER_KM)
+        stringResource(R.string.error_value_too_large, "$max km")
+    }
+}
+
+/** Anzeigename der Erinnerungsart. */
+@get:StringRes
+val ReminderKind.labelRes: Int
+    get() = when (this) {
+        ReminderKind.INSPECTION -> R.string.reminder_kind_inspection
+        ReminderKind.GAS_CHECK -> R.string.reminder_kind_gas_check
+        ReminderKind.OIL_CHANGE -> R.string.reminder_kind_oil_change
+    }
+
+/** Anzeigetext einer Erinnerung, z. B. „HU (TÜV) fällig in 12 Tagen (1. Nov. 2026)". */
+@Composable
+fun Reminder.text(today: LocalDate, locale: Locale): String {
+    val kindLabel = stringResource(kind.labelRes)
+    val date = formatDate(dueDate, locale)
+    return if (overdue) {
+        stringResource(R.string.reminder_overdue, kindLabel, date)
+    } else {
+        val days = java.time.temporal.ChronoUnit.DAYS.between(today, dueDate).toInt()
+        pluralStringResource(R.plurals.reminder_due_soon, days, kindLabel, days, date)
     }
 }

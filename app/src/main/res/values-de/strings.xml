@@ -11,6 +11,7 @@
     <string name="tour_not_found">Diese Tour gibt es nicht mehr.</string>
     <string name="no_share_app">Keine App zum Teilen gefunden</string>
     <string name="distance_km">%1$,d km</string>
+    <string name="action_undo">Rückgängig</string>
 
     <!-- Untere Navigation -->
     <string name="nav_tours">Touren</string>
@@ -100,6 +101,18 @@
     <string name="settings_theme_light">Hell</string>
     <string name="settings_theme_dark">Dunkel</string>
     <string name="settings_open_rates">Wechselkurse verwalten</string>
+    <string name="settings_reminders">Erinnerungen</string>
+    <string name="settings_reminders_hint">Erinnerungen werden nur in der App angezeigt; CamperLog versendet keine Benachrichtigungen.</string>
+    <string name="settings_reminder_lead_days">Vor Fälligkeit erinnern</string>
+    <string name="settings_reminder_oil_interval">Ölwechsel-Intervall</string>
+    <plurals name="settings_reminder_lead_days_option">
+        <item quantity="one">%1$d Tag vorher</item>
+        <item quantity="other">%1$d Tage vorher</item>
+    </plurals>
+    <plurals name="settings_reminder_oil_interval_option">
+        <item quantity="one">%1$d Monat</item>
+        <item quantity="other">%1$d Monate</item>
+    </plurals>
 
     <!-- Detail -->
     <string name="detail_fallback_title">Tour</string>
@@ -273,6 +286,13 @@
     <string name="field_battery_capacity">Batteriekapazität</string>
     <string name="field_solar_power">Solarleistung</string>
     <string name="field_amount_with_currency">%1$s (%2$s)</string>
+    <string name="field_next_inspection">Nächste HU (TÜV)</string>
+    <string name="field_next_gas_check">Nächste Gasprüfung</string>
+    <string name="field_last_oil_change">Letzter Ölwechsel</string>
+    <string name="field_last_oil_change_odometer">km-Stand beim Ölwechsel</string>
+    <string name="field_date">Datum</string>
+    <string name="field_description">Beschreibung</string>
+    <string name="field_odometer_km">km-Stand</string>
 
     <!-- Abschnitte des Fahrzeugformulars -->
     <string name="section_general">Allgemein</string>
@@ -283,13 +303,18 @@
     <string name="section_tires">Reifen</string>
     <string name="section_tanks">Tanks</string>
     <string name="section_energy">Energie</string>
+    <string name="section_maintenance">Wartung &amp; Service</string>
+    <string name="section_repairs">Reparaturen</string>
 
     <!-- Validierung Fahrzeug -->
     <string name="error_vehicle_name_required">Name erforderlich</string>
     <string name="error_first_registration_future">Erstzulassung darf nicht in der Zukunft liegen</string>
+    <string name="error_last_oil_change_future">Letzter Ölwechsel darf nicht in der Zukunft liegen</string>
     <string name="error_sale_before_purchase">Verkaufsdatum liegt vor dem Kaufdatum</string>
     <string name="error_must_be_positive">Muss größer als 0 %1$s sein</string>
     <string name="error_value_too_large">Wert zu groß, höchstens %1$s</string>
+    <string name="error_date_required">Datum erforderlich</string>
+    <string name="error_description_required">Beschreibung erforderlich</string>
 
     <!-- Datenblatt Fahrzeug -->
     <string name="vehicle_not_found">Dieses Fahrzeug existiert nicht mehr.</string>
@@ -297,11 +322,38 @@
     <string name="vehicle_sheet_empty_hint">Noch keine Angaben erfasst.</string>
     <string name="vehicle_sheet_add_details">Details hinzufügen</string>
     <string name="vehicle_sold_on">Verkauft am %1$s</string>
+    <string name="vehicle_repairs_add">Reparatur hinzufügen</string>
+    <string name="vehicle_repairs_empty">Noch keine Reparaturen.</string>
+    <string name="vehicle_repair_edit_action">Reparatur bearbeiten</string>
+    <string name="vehicle_repair_delete_action">Reparatur löschen</string>
+    <string name="vehicle_repair_deleted">Reparatur gelöscht</string>
+    <string name="vehicle_repair_delete_failed">Reparatur konnte nicht gelöscht werden.</string>
+    <string name="vehicle_repair_restore_failed">Reparatur konnte nicht wiederhergestellt werden.</string>
 
     <!-- Fahrzeugformular -->
     <string name="vehicle_edit_title_new">Neues Fahrzeug</string>
     <string name="vehicle_edit_title_existing">Fahrzeug bearbeiten</string>
     <string name="vehicle_edit_save_failed">Fahrzeug konnte nicht gespeichert werden.</string>
+
+    <!-- Reparaturformular -->
+    <string name="repair_edit_title_new">Neue Reparatur</string>
+    <string name="repair_edit_title_existing">Reparatur bearbeiten</string>
+    <string name="repair_edit_save_failed">Reparatur konnte nicht gespeichert werden.</string>
+    <string name="repair_not_found">Diese Reparatur existiert nicht mehr.</string>
+
+    <!-- Erinnerungen -->
+    <string name="reminder_kind_inspection">HU (TÜV)</string>
+    <string name="reminder_kind_gas_check">Gasprüfung</string>
+    <string name="reminder_kind_oil_change">Ölwechsel</string>
+    <string name="reminder_overdue">%1$s überfällig seit %2$s</string>
+    <plurals name="reminder_due_soon">
+        <item quantity="one">%1$s fällig in %2$d Tag (%3$s)</item>
+        <item quantity="other">%1$s fällig in %2$d Tagen (%3$s)</item>
+    </plurals>
+    <plurals name="nav_vehicle_reminders">
+        <item quantity="one">%1$s, %2$d Erinnerung</item>
+        <item quantity="other">%1$s, %2$d Erinnerungen</item>
+    </plurals>
 
     <!-- Fahrzeuge verwalten -->
     <string name="vehicles_add">Fahrzeug hinzufügen</string>

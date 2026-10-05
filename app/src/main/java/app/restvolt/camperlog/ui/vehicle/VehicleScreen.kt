@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui.vehicle
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -17,21 +20,32 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.Reminder
+import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.dueReminders
 import app.restvolt.camperlog.domain.formatAh
 import app.restvolt.camperlog.domain.formatAmount
 import app.restvolt.camperlog.domain.formatBar
@@ -47,22 +61,36 @@ import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.TabTopBar
 import app.restvolt.camperlog.ui.VehicleSwitcherTitle
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.text
+import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.vehicleDisplayName
+import java.time.LocalDate
 import java.util.Locale
 
-/** Fahrzeug-Reiter: Datenblatt des aktuellen Fahrzeugs. Erinnerungen und Reparaturen folgen in Phase 3b. */
+/** Fahrzeug-Reiter: Datenblatt des aktuellen Fahrzeugs mit Erinnerungen und Reparaturen. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VehicleScreen(
     viewModel: VehicleViewModel,
+    reminderSettings: ReminderSettings,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenVehicles: () -> Unit,
     onEditVehicle: (Long) -> Unit,
+    onAddRepair: (Long) -> Unit,
+    onOpenRepair: (Long, Long) -> Unit,
     bottomBar: @Composable () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val vehicle = state.currentVehicle
+    val today = LocalDate.now()
+    val reminders = vehicle?.let {
+        dueReminders(it, today, reminderSettings.reminderLeadDays, reminderSettings.oilChangeIntervalMonths)
+    }.orEmpty()
+
+    val snackbar = remember { SnackbarHostState() }
+    val resources = LocalResources.current
+    val message by viewModel.message.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -89,21 +117,55 @@ fun VehicleScreen(
             )
         },
         bottomBar = bottomBar,
+        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         if (vehicle != null) {
             VehicleSheet(
                 vehicle = vehicle,
+                reminders = reminders,
+                today = today,
+                repairs = state.repairs,
                 onAddDetails = { onEditVehicle(vehicle.id) },
+                onOpenReminder = { onEditVehicle(vehicle.id) },
+                onAddRepair = { onAddRepair(vehicle.id) },
+                onOpenRepair = { repair -> onOpenRepair(vehicle.id, repair.id) },
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize(),
             )
         }
     }
+
+    LaunchedEffect(message) {
+        val current = message ?: return@LaunchedEffect
+        when (current) {
+            is VehicleMessage.RepairDeleted -> {
+                val result = snackbar.showSnackbar(
+                    message = resources.getString(R.string.vehicle_repair_deleted),
+                    actionLabel = resources.getString(R.string.action_undo),
+                    withDismissAction = true,
+                    duration = SnackbarDuration.Long,
+                )
+                if (result == SnackbarResult.ActionPerformed) viewModel.undoDeleteRepair(current.repair)
+            }
+            is VehicleMessage.Failed -> snackbar.showSnackbar(resources.getString(current.text), withDismissAction = true)
+        }
+        viewModel.onMessageShown(current)
+    }
 }
 
 @Composable
-private fun VehicleSheet(vehicle: Vehicle, onAddDetails: () -> Unit, modifier: Modifier) {
+private fun VehicleSheet(
+    vehicle: Vehicle,
+    reminders: List<Reminder>,
+    today: LocalDate,
+    repairs: List<Repair>,
+    onAddDetails: () -> Unit,
+    onOpenReminder: () -> Unit,
+    onAddRepair: () -> Unit,
+    onOpenRepair: (Repair) -> Unit,
+    modifier: Modifier,
+) {
     val locale = currentLocale()
     val soldLine = vehicle.saleDate?.let { stringResource(R.string.vehicle_sold_on, formatDate(it, locale)) }
     val purchaseSale = purchaseSaleRows(vehicle, locale)
@@ -115,6 +177,7 @@ private fun VehicleSheet(vehicle: Vehicle, onAddDetails: () -> Unit, modifier: M
         stringResource(R.string.section_tires) to tireRows(vehicle, locale),
         stringResource(R.string.section_tanks) to tankRows(vehicle, locale),
         stringResource(R.string.section_energy) to energyRows(vehicle, locale),
+        stringResource(R.string.section_maintenance) to maintenanceRows(vehicle, locale),
     )
     val hasAnyValue = sections.any { it.second.isNotEmpty() } ||
         purchaseSale.isNotEmpty() || soldLine != null || vehicle.notes.isNotBlank()
@@ -125,6 +188,7 @@ private fun VehicleSheet(vehicle: Vehicle, onAddDetails: () -> Unit, modifier: M
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        reminders.forEach { reminder -> ReminderCard(reminder, today, onClick = onOpenReminder) }
         if (!hasAnyValue) {
             EmptyHint(stringResource(R.string.vehicle_sheet_empty_hint))
             Button(
@@ -161,6 +225,83 @@ private fun VehicleSheet(vehicle: Vehicle, onAddDetails: () -> Unit, modifier: M
                     Text(vehicle.notes, style = MaterialTheme.typography.bodyLarge)
                 }
             }
+        }
+        RepairsSection(repairs, onAddRepair, onOpenRepair)
+    }
+}
+
+@Composable
+private fun ReminderCard(reminder: Reminder, today: LocalDate, onClick: () -> Unit) {
+    val colors = if (reminder.overdue) {
+        CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        )
+    } else {
+        CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        )
+    }
+    val editLabel = stringResource(R.string.vehicle_edit_action)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = editLabel, onClick = onClick),
+        shape = MaterialTheme.shapes.large,
+        colors = colors,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Text(
+            reminder.text(today, currentLocale()),
+            modifier = Modifier.padding(16.dp),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+    }
+}
+
+@Composable
+private fun RepairsSection(repairs: List<Repair>, onAddRepair: () -> Unit, onOpenRepair: (Repair) -> Unit) {
+    val locale = currentLocale()
+    SectionCard {
+        SectionHeading(stringResource(R.string.section_repairs))
+        if (repairs.isEmpty()) {
+            Text(
+                stringResource(R.string.vehicle_repairs_empty),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            repairs.forEach { repair -> RepairRow(repair, locale, onClick = { onOpenRepair(repair) }) }
+        }
+        TextButton(onClick = onAddRepair) {
+            Icon(painterResource(R.drawable.ic_add), contentDescription = null)
+            Text(stringResource(R.string.vehicle_repairs_add), Modifier.padding(start = 8.dp))
+        }
+    }
+}
+
+@Composable
+private fun RepairRow(repair: Repair, locale: Locale, onClick: () -> Unit) {
+    val supportingParts = listOfNotNull(
+        repair.odometerKm?.let { stringResource(R.string.distance_km, it) },
+        repair.cost?.let { formatAmount(it.minor, it.currency, locale) },
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = stringResource(R.string.vehicle_repair_edit_action), onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(formatDate(repair.date, locale), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(repair.description, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        if (supportingParts.isNotEmpty()) {
+            Text(
+                supportingParts.joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -236,6 +377,14 @@ private fun tankRows(vehicle: Vehicle, locale: Locale): List<Pair<String, String
 private fun energyRows(vehicle: Vehicle, locale: Locale): List<Pair<String, String>> = buildList {
     vehicle.batteryCapacityAh?.let { add(stringResource(R.string.field_battery_capacity) to formatAh(it, locale)) }
     vehicle.solarPowerWp?.let { add(stringResource(R.string.field_solar_power) to formatWp(it, locale)) }
+}
+
+@Composable
+private fun maintenanceRows(vehicle: Vehicle, locale: Locale): List<Pair<String, String>> = buildList {
+    vehicle.nextInspectionDate?.let { add(stringResource(R.string.field_next_inspection) to formatDate(it, locale)) }
+    vehicle.nextGasCheckDate?.let { add(stringResource(R.string.field_next_gas_check) to formatDate(it, locale)) }
+    vehicle.lastOilChangeDate?.let { add(stringResource(R.string.field_last_oil_change) to formatDate(it, locale)) }
+    vehicle.lastOilChangeOdometerKm?.let { add(stringResource(R.string.field_last_oil_change_odometer) to stringResource(R.string.distance_km, it)) }
 }
 
 @Composable
