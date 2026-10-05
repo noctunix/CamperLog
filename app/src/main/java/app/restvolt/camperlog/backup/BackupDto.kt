@@ -19,6 +19,10 @@ internal data class BackupDto(
     val exchangeRates: List<RateDto>,
     /** Einzeln als [TourDto] gelesen, damit Fehler einer Tour zugeordnet werden können. */
     val tours: List<JsonElement>,
+    /** Einzeln als [VehicleDto] gelesen; fehlt in Sicherungen der Formatversion 1. */
+    val vehicles: List<JsonElement> = emptyList(),
+    /** uuid des aktuellen Fahrzeugs; fehlt in Sicherungen der Formatversion 1. */
+    val currentVehicle: String? = null,
 )
 
 @Serializable
@@ -55,4 +59,72 @@ internal data class TourDto(
     val mapLink: String? = null,
     val createdAt: String,
     val updatedAt: String,
+    /** uuid des Fahrzeugs dieser Tour; `null` bedeutet beim Import „aktuelles Fahrzeug" (Formatversion 1). */
+    val vehicleUuid: String? = null,
+)
+
+@Serializable
+internal data class VehicleDto(
+    val uuid: String,
+    val name: String = "",
+    val licensePlate: String = "",
+    val manufacturer: String = "",
+    val model: String = "",
+    val vin: String = "",
+    val firstRegistration: String? = null,
+    val notes: String = "",
+    val purchaseDate: String? = null,
+    val purchasePrice: CostDto? = null,
+    val purchaseOdometerKm: Int? = null,
+    val saleDate: String? = null,
+    val salePrice: CostDto? = null,
+    val insurer: String = "",
+    val insurancePolicyNumber: String = "",
+    val insurancePremiumPerYear: CostDto? = null,
+    val vehicleTaxPerYear: CostDto? = null,
+    val lengthCm: Int? = null,
+    val widthCm: Int? = null,
+    val heightCm: Int? = null,
+    val grossWeightKg: Int? = null,
+    val powerKw: Int? = null,
+    val tireSize: String = "",
+    val tirePressureFrontMbar: Int? = null,
+    val tirePressureRearMbar: Int? = null,
+    val fuelTankDl: Int? = null,
+    val adBlueTankDl: Int? = null,
+    val freshWaterTankDl: Int? = null,
+    val greyWaterTankDl: Int? = null,
+    val boilerDl: Int? = null,
+    val cassetteDl: Int? = null,
+    val batteryCapacityAh: Int? = null,
+    val solarPowerWp: Int? = null,
+    val nextInspectionDate: String? = null,
+    val nextGasCheckDate: String? = null,
+    val lastOilChangeDate: String? = null,
+    val lastOilChangeOdometerKm: Int? = null,
+    val createdAt: String,
+    val updatedAt: String,
+    /** Einzeln als [RepairDto] gelesen, damit Fehler einer Reparatur zugeordnet werden können. */
+    val repairs: List<JsonElement> = emptyList(),
+    /** Einzeln als [LogEntryDto] gelesen, damit Fehler eines Bordbuch-Eintrags zugeordnet werden können. */
+    val logEntries: List<JsonElement> = emptyList(),
+)
+
+@Serializable
+internal data class RepairDto(
+    val uuid: String,
+    val date: String,
+    val description: String,
+    val odometerKm: Int? = null,
+    val cost: CostDto? = null,
+    val createdAt: String,
+    val updatedAt: String,
+)
+
+@Serializable
+internal data class LogEntryDto(
+    val uuid: String,
+    val type: String,
+    val date: String,
+    val createdAt: String,
 )

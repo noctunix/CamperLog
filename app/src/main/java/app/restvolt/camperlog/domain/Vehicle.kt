@@ -85,6 +85,9 @@ interface VehicleRepository {
     /** Liefert alle Fahrzeuge, nicht verkaufte zuerst, dann nach Name. */
     fun observeVehicles(): Flow<List<Vehicle>>
 
+    /** Liefert alle Fahrzeuge für den Sicherungs-Export, ohne festgelegte Reihenfolge. */
+    suspend fun allVehicles(): List<Vehicle>
+
     /** Liefert das Fahrzeug mit [id] oder `null`, falls es nicht (mehr) existiert. */
     fun observeVehicle(id: Long): Flow<Vehicle?>
 
@@ -110,6 +113,9 @@ interface VehicleRepository {
 
     /** Liefert die Reparaturen eines Fahrzeugs, neueste zuerst. */
     fun observeRepairs(vehicleId: Long): Flow<List<Repair>>
+
+    /** Liefert alle Reparaturen aller Fahrzeuge für den Sicherungs-Export. */
+    suspend fun allRepairs(): List<Repair>
 
     /** Legt [repair] an, wenn ihre id 0 ist, sonst wird sie aktualisiert. */
     suspend fun saveRepair(repair: Repair): Long

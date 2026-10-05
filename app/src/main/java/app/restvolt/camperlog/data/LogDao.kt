@@ -16,11 +16,23 @@ interface LogDao {
     @Query("SELECT * FROM log_entries WHERE vehicle_id = :vehicleId AND type = :type ORDER BY date DESC, id DESC")
     fun observeEntries(vehicleId: Long, type: String): Flow<List<LogEntryEntity>>
 
+    /** Alle Bordbuch-Einträge aller Fahrzeuge für den Sicherungs-Export. */
+    @Query("SELECT * FROM log_entries ORDER BY vehicle_id ASC, date DESC, id DESC")
+    suspend fun getAll(): List<LogEntryEntity>
+
+    /** uuids aller gespeicherten Bordbuch-Einträge, für den Abgleich beim Import. */
+    @Query("SELECT uuid FROM log_entries")
+    suspend fun getUuids(): List<String>
+
     @Insert
     suspend fun insert(entry: LogEntryEntity): Long
 
     @Query("DELETE FROM log_entries WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    /** Löscht alle Bordbuch-Einträge; die Fahrzeuge bleiben erhalten. */
+    @Query("DELETE FROM log_entries")
+    suspend fun deleteAll()
 }
 
 /** Jüngstes Datum einer Art für [LogDao.observeLatest]. */

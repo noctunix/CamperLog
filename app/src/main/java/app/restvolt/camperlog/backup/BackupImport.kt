@@ -3,21 +3,35 @@ package app.restvolt.camperlog.backup
 /** Wie eine Sicherung mit den vorhandenen Daten verrechnet wird. */
 enum class ImportMode {
     /**
-     * Touren werden über ihre UUID abgeglichen: Neue werden angelegt, vorhandene nur ersetzt, wenn
-     * die Sicherung eine neuere Fassung enthält. Kurse ebenso nach Kursdatum. Die Hauptwährung bleibt.
+     * Touren, Fahrzeuge und Reparaturen werden über ihre UUID abgeglichen: Neue werden angelegt,
+     * vorhandene nur ersetzt, wenn die Sicherung eine neuere Fassung enthält. Bordbuch-Einträge
+     * sind unveränderlich und werden nur angelegt, wenn ihre UUID noch unbekannt ist. Kurse werden
+     * nach Kursdatum übernommen. Die Hauptwährung und das aktuelle Fahrzeug bleiben.
      */
     MERGE,
 
-    /** Alle Touren und Kurse werden gelöscht und durch die Sicherung samt Hauptwährung ersetzt. */
+    /**
+     * Alle Touren, Fahrzeuge, Reparaturen, Bordbuch-Einträge und Kurse werden gelöscht und durch
+     * die Sicherung samt Hauptwährung und aktuellem Fahrzeug ersetzt.
+     */
     REPLACE,
 }
 
-/** Ergebnis eines Imports; [unchangedTours] zählt Touren, deren gespeicherte Fassung neuer oder gleich alt war. */
+/**
+ * Ergebnis eines Imports; [unchangedTours] zählt Touren, deren gespeicherte Fassung neuer oder
+ * gleich alt war. Bordbuch-Einträge sind unveränderlich, daher gibt es für sie keine Zählung
+ * aktualisierter oder unveränderter Einträge.
+ */
 data class ImportResult(
     val addedTours: Int,
     val updatedTours: Int,
     val unchangedTours: Int,
     val importedRates: Int,
+    val addedVehicles: Int = 0,
+    val updatedVehicles: Int = 0,
+    val addedRepairs: Int = 0,
+    val updatedRepairs: Int = 0,
+    val addedLogEntries: Int = 0,
 )
 
 /** Spielt eine geprüfte Sicherung ein, vollständig oder gar nicht. */

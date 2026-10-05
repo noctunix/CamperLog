@@ -5,15 +5,28 @@ import app.restvolt.camperlog.domain.AmountReading
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.LogEntry
+import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.MAX_BATTERY_AH
+import app.restvolt.camperlog.domain.MAX_DIMENSION_M
+import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
+import app.restvolt.camperlog.domain.MAX_POWER_KW
+import app.restvolt.camperlog.domain.MAX_SOLAR_WP
+import app.restvolt.camperlog.domain.MAX_TANK_L
+import app.restvolt.camperlog.domain.MAX_TIRE_PRESSURE_BAR
+import app.restvolt.camperlog.domain.MAX_WEIGHT_KG
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.RATE_FRACTION_DIGITS
+import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.amountReading
 import app.restvolt.camperlog.domain.fractionDigits
 import app.restvolt.camperlog.domain.isWebUrl
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -35,18 +48,26 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 1
+const val BACKUP_SCHEMA_VERSION = 2
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
 
 internal const val MAX_TOURS = 50_000
 internal const val MAX_RATES = 500
+internal const val MAX_VEHICLES = 100
+internal const val MAX_REPAIRS_PER_VEHICLE = 5_000
+internal const val MAX_LOG_ENTRIES_PER_VEHICLE = 50_000
 internal const val MAX_DESTINATION_LENGTH = 500
 internal const val MAX_NOTES_LENGTH = 20_000
 internal const val MAX_LINK_LENGTH = 4_000
 internal const val MAX_SOURCE_LENGTH = 500
 private val MAX_RATE = BigDecimal("1000000000")
+
+/** Höchstwerte der Fahrzeugfelder in der gespeicherten Einheit, abgeleitet von den Formulargrenzen. */
+private val MAX_LENGTH_CM = (MAX_DIMENSION_M * 100).toInt()
+private val MAX_TIRE_PRESSURE_MBAR = (MAX_TIRE_PRESSURE_BAR * 1000).toInt()
+private val MAX_TANK_DL = (MAX_TANK_L * 10).toInt()
 
 /**
  * Plausibler Datumsbereich. Extreme Werte würden sonst später beim Umrechnen in Epoch-Millis,
@@ -58,14 +79,28 @@ private val MIN_INSTANT = Instant.parse("1900-01-01T00:00:00Z")
 private val MAX_INSTANT = Instant.parse("2199-12-31T00:00:00Z")
 
 /**
- * Vollständige Sicherung: alle [tours], alle [rates] und die [mainCurrency].
- * Datenbank-ids sind nicht enthalten; Touren werden über [Tour.uuid] wiedererkannt.
+ * Vollständige Sicherung: alle [tours], alle [rates], die [mainCurrency] und alle [vehicles] samt
+ * ihren Reparaturen und Bordbuch-Einträgen. Datenbank-ids sind nicht enthalten; alle Einträge
+ * werden über ihre UUID wiedererkannt. [tourVehicleUuid] ordnet einer Tour-UUID die UUID ihres
+ * Fahrzeugs zu; fehlt eine Tour hier, gehört sie keinem bestimmten Fahrzeug (Formatversion 1) und
+ * bekommt beim Import das aktuelle Fahrzeug zugewiesen. [currentVehicleUuid] nennt das beim Export
+ * aktuelle Fahrzeug.
  */
 data class Backup(
     val exportedAt: Instant,
     val mainCurrency: Currency,
     val rates: List<ExchangeRate>,
     val tours: List<Tour>,
+    val tourVehicleUuid: Map<String, String> = emptyMap(),
+    val vehicles: List<BackupVehicle> = emptyList(),
+    val currentVehicleUuid: String? = null,
+)
+
+/** Ein Fahrzeug einer Sicherung mit seinen Reparaturen und Bordbuch-Einträgen. */
+data class BackupVehicle(
+    val vehicle: Vehicle,
+    val repairs: List<Repair>,
+    val logEntries: List<LogEntry>,
 )
 
 /** Warum eine Datei nicht als Sicherung gelesen werden konnte. */
@@ -87,8 +122,17 @@ enum class BackupError {
 sealed interface BackupReadResult {
     data class Success(val backup: Backup) : BackupReadResult
 
-    /** [tourNumber] ist die 1-basierte Position einer fehlerhaften Tour in der Datei, sofern bekannt. */
-    data class Failure(val error: BackupError, val tourNumber: Int? = null) : BackupReadResult
+    /**
+     * Fundstelle einer fehlerhaften Tour, eines fehlerhaften Fahrzeugs oder dessen Reparatur bzw.
+     * Bordbuch-Eintrags, jeweils als 1-basierte Position in der Datei, sofern bekannt.
+     */
+    data class Failure(
+        val error: BackupError,
+        val tourNumber: Int? = null,
+        val vehicleNumber: Int? = null,
+        val repairNumber: Int? = null,
+        val logEntryNumber: Int? = null,
+    ) : BackupReadResult
 }
 
 private val json = Json {
@@ -107,7 +151,11 @@ fun encodeBackup(backup: Backup): String = json.encodeToString(
         exportedAt = backup.exportedAt.toString(),
         mainCurrency = backup.mainCurrency.currencyCode,
         exchangeRates = backup.rates.sortedBy { it.currency.currencyCode }.map { it.toDto() },
-        tours = backup.tours.map { json.encodeToJsonElement(TourDto.serializer(), it.toDto()) },
+        tours = backup.tours.map { tour ->
+            json.encodeToJsonElement(TourDto.serializer(), tour.toDto(backup.tourVehicleUuid[tour.uuid]))
+        },
+        vehicles = backup.vehicles.map { json.encodeToJsonElement(VehicleDto.serializer(), it.toDto()) },
+        currentVehicle = backup.currentVehicleUuid,
     ),
 )
 
@@ -145,7 +193,7 @@ private fun decodeUtf8(bytes: ByteBuffer): BackupReadResult {
     } catch (_: CharacterCodingException) {
         return BackupReadResult.Failure(BackupError.NOT_A_BACKUP)
     }
-    return decodeBackup(text.removePrefix("\uFEFF"))
+    return decodeBackup(text.removePrefix("﻿"))
 }
 
 /** Gibt den internen Puffer ohne Kopie frei, damit große Dateien nur einmal im Speicher liegen. */
@@ -155,7 +203,7 @@ private class BoundedBuffer : ByteArrayOutputStream() {
 
 /**
  * Prüft [text] vollständig und liefert die Sicherung nur, wenn alle Werte gültig sind.
- * Es gibt kein teilweises Ergebnis: Eine einzige fehlerhafte Tour lässt das Lesen scheitern.
+ * Es gibt kein teilweises Ergebnis: Ein einziger fehlerhafter Eintrag lässt das Lesen scheitern.
  */
 fun decodeBackup(text: String): BackupReadResult {
     // Jedes Zeichen braucht in UTF-8 mindestens ein Byte; die Byte-Grenze prüft readBackup genauer.
@@ -187,26 +235,77 @@ fun decodeBackup(text: String): BackupReadResult {
 
 private fun BackupDto.toBackup(): BackupReadResult {
     val invalid = BackupReadResult.Failure(BackupError.INVALID_DATA)
-    if (tours.size > MAX_TOURS || exchangeRates.size > MAX_RATES) return invalid
+    if (tours.size > MAX_TOURS || exchangeRates.size > MAX_RATES || vehicles.size > MAX_VEHICLES) return invalid
     val exportedAt = parseInstant(exportedAt) ?: return invalid
     val mainCurrency = parseCurrency(mainCurrency) ?: return invalid
 
     val rates = exchangeRates.map { it.toRate() ?: return invalid }
     if (rates.map { it.currency }.distinct().size != rates.size) return invalid
 
-    val seenUuids = HashSet<String>()
+    val seenVehicleUuids = HashSet<String>()
+    val seenRepairUuids = HashSet<String>()
+    val seenLogEntryUuids = HashSet<String>()
+    val backupVehicles = vehicles.mapIndexed { index, element ->
+        val vehicleNumber = index + 1
+        val dto = decodeJson(VehicleDto.serializer(), element) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+        if (dto.repairs.size > MAX_REPAIRS_PER_VEHICLE || dto.logEntries.size > MAX_LOG_ENTRIES_PER_VEHICLE) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+        }
+        val vehicle = dto.toVehicle() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+        if (!seenVehicleUuids.add(vehicle.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+
+        val repairs = dto.repairs.mapIndexed { repairIndex, repairElement ->
+            val repairNumber = repairIndex + 1
+            val repairDto = decodeJson(RepairDto.serializer(), repairElement)
+                ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber, repairNumber = repairNumber)
+            val repair = repairDto.toRepair()
+                ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber, repairNumber = repairNumber)
+            if (!seenRepairUuids.add(repair.uuid)) {
+                return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber, repairNumber = repairNumber)
+            }
+            repair
+        }
+        val logEntries = dto.logEntries.mapIndexed { logIndex, logElement ->
+            val logEntryNumber = logIndex + 1
+            val logDto = decodeJson(LogEntryDto.serializer(), logElement)
+                ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber, logEntryNumber = logEntryNumber)
+            val entry = logDto.toLogEntry()
+                ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber, logEntryNumber = logEntryNumber)
+            if (!seenLogEntryUuids.add(entry.uuid)) {
+                return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber, logEntryNumber = logEntryNumber)
+            }
+            entry
+        }
+        BackupVehicle(vehicle, repairs, logEntries)
+    }
+
+    val currentVehicleUuid = currentVehicle?.let { candidate ->
+        val normalized = parseUuid(candidate) ?: return invalid
+        if (backupVehicles.none { it.vehicle.uuid == normalized }) return invalid
+        normalized
+    }
+
+    val seenTourUuids = HashSet<String>()
+    val tourVehicleUuid = HashMap<String, String>()
     val tours = tours.mapIndexed { index, element ->
-        val tour = decodeTour(element)
-        if (tour == null || !seenUuids.add(tour.uuid)) {
-            return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = index + 1)
+        val tourNumber = index + 1
+        val dto = decodeJson(TourDto.serializer(), element) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
+        val tour = dto.toTour() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
+        if (!seenTourUuids.add(tour.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
+        dto.vehicleUuid?.let { candidate ->
+            val normalized = parseUuid(candidate) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
+            if (backupVehicles.none { it.vehicle.uuid == normalized }) {
+                return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
+            }
+            tourVehicleUuid[tour.uuid] = normalized
         }
         tour
     }
-    return BackupReadResult.Success(Backup(exportedAt, mainCurrency, rates, tours))
+    return BackupReadResult.Success(Backup(exportedAt, mainCurrency, rates, tours, tourVehicleUuid, backupVehicles, currentVehicleUuid))
 }
 
-private fun decodeTour(element: JsonElement): Tour? = try {
-    json.decodeFromJsonElement(TourDto.serializer(), element).toTour()
+private fun <T> decodeJson(serializer: KSerializer<T>, element: JsonElement): T? = try {
+    json.decodeFromJsonElement(serializer, element)
 } catch (_: SerializationException) {
     null
 } catch (_: IllegalArgumentException) {
@@ -254,12 +353,113 @@ private fun TourDto.toTour(): Tour? {
     )
 }
 
+private fun VehicleDto.toVehicle(): Vehicle? {
+    val uuid = parseUuid(uuid) ?: return null
+    if (
+        listOf(name, licensePlate, manufacturer, model, vin, insurer, insurancePolicyNumber, tireSize)
+            .any { it.length > MAX_DESTINATION_LENGTH }
+    ) {
+        return null
+    }
+    if (notes.length > MAX_NOTES_LENGTH) return null
+    val firstRegistration = firstRegistration?.let { parseDate(it) ?: return null }
+    val purchaseDate = purchaseDate?.let { parseDate(it) ?: return null }
+    val saleDate = saleDate?.let { parseDate(it) ?: return null }
+    val nextInspectionDate = nextInspectionDate?.let { parseDate(it) ?: return null }
+    val nextGasCheckDate = nextGasCheckDate?.let { parseDate(it) ?: return null }
+    val lastOilChangeDate = lastOilChangeDate?.let { parseDate(it) ?: return null }
+    val purchasePriceMoney = purchasePrice?.let { it.toMoney() ?: return null }
+    val salePriceMoney = salePrice?.let { it.toMoney() ?: return null }
+    val insurancePremium = insurancePremiumPerYear?.let { it.toMoney() ?: return null }
+    val vehicleTax = vehicleTaxPerYear?.let { it.toMoney() ?: return null }
+    if (!lengthCm.inBounds(MAX_LENGTH_CM) || !widthCm.inBounds(MAX_LENGTH_CM) || !heightCm.inBounds(MAX_LENGTH_CM)) return null
+    if (!grossWeightKg.inBounds(MAX_WEIGHT_KG) || !powerKw.inBounds(MAX_POWER_KW)) return null
+    if (!tirePressureFrontMbar.inBounds(MAX_TIRE_PRESSURE_MBAR) || !tirePressureRearMbar.inBounds(MAX_TIRE_PRESSURE_MBAR)) return null
+    val tanksInBounds = listOf(fuelTankDl, adBlueTankDl, freshWaterTankDl, greyWaterTankDl, boilerDl, cassetteDl)
+        .all { it.inBounds(MAX_TANK_DL) }
+    if (!tanksInBounds) return null
+    if (!batteryCapacityAh.inBounds(MAX_BATTERY_AH) || !solarPowerWp.inBounds(MAX_SOLAR_WP)) return null
+    if (!purchaseOdometerKm.inBounds(MAX_ODOMETER_KM) || !lastOilChangeOdometerKm.inBounds(MAX_ODOMETER_KM)) return null
+    val createdAtValue = parseInstant(createdAt) ?: return null
+    val updatedAtValue = parseInstant(updatedAt) ?: return null
+    return Vehicle(
+        uuid = uuid,
+        name = name,
+        licensePlate = licensePlate,
+        manufacturer = manufacturer,
+        model = model,
+        vin = vin,
+        firstRegistration = firstRegistration,
+        notes = notes,
+        purchaseDate = purchaseDate,
+        purchasePrice = purchasePriceMoney,
+        purchaseOdometerKm = purchaseOdometerKm,
+        saleDate = saleDate,
+        salePrice = salePriceMoney,
+        insurer = insurer,
+        insurancePolicyNumber = insurancePolicyNumber,
+        insurancePremiumPerYear = insurancePremium,
+        vehicleTaxPerYear = vehicleTax,
+        lengthCm = lengthCm,
+        widthCm = widthCm,
+        heightCm = heightCm,
+        grossWeightKg = grossWeightKg,
+        powerKw = powerKw,
+        tireSize = tireSize,
+        tirePressureFrontMbar = tirePressureFrontMbar,
+        tirePressureRearMbar = tirePressureRearMbar,
+        fuelTankDl = fuelTankDl,
+        adBlueTankDl = adBlueTankDl,
+        freshWaterTankDl = freshWaterTankDl,
+        greyWaterTankDl = greyWaterTankDl,
+        boilerDl = boilerDl,
+        cassetteDl = cassetteDl,
+        batteryCapacityAh = batteryCapacityAh,
+        solarPowerWp = solarPowerWp,
+        nextInspectionDate = nextInspectionDate,
+        nextGasCheckDate = nextGasCheckDate,
+        lastOilChangeDate = lastOilChangeDate,
+        lastOilChangeOdometerKm = lastOilChangeOdometerKm,
+        createdAt = createdAtValue,
+        updatedAt = updatedAtValue,
+    )
+}
+
+private fun RepairDto.toRepair(): Repair? {
+    val uuid = parseUuid(uuid) ?: return null
+    val date = parseDate(date) ?: return null
+    val description = description.trim().takeIf { it.isNotEmpty() && it.length <= MAX_DESTINATION_LENGTH } ?: return null
+    if (!odometerKm.inBounds(MAX_ODOMETER_KM)) return null
+    val money = cost?.let { it.toMoney() ?: return null }
+    return Repair(
+        uuid = uuid,
+        vehicleId = 0,
+        date = date,
+        description = description,
+        odometerKm = odometerKm,
+        cost = money,
+        createdAt = parseInstant(createdAt) ?: return null,
+        updatedAt = parseInstant(updatedAt) ?: return null,
+    )
+}
+
+private fun LogEntryDto.toLogEntry(): LogEntry? {
+    val uuid = parseUuid(uuid) ?: return null
+    val date = parseDate(date) ?: return null
+    val type = enumOrNull<LogType>(type) ?: return null
+    return LogEntry(uuid = uuid, vehicleId = 0, type = type, date = date, createdAt = parseInstant(createdAt) ?: return null)
+}
+
+private fun Int?.inBounds(max: Int): Boolean = this == null || this in 0..max
+
 private fun CostDto.toMoney(): Money? {
     val currency = parseCurrency(currency) ?: return null
     val value = parseDecimal(amount, currency.fractionDigits) ?: return null
     val reading = amountReading(value.movePointRight(currency.fractionDigits)) as? AmountReading.Valid ?: return null
     return Money(reading.minor, currency)
 }
+
+private fun Money.toCostDto() = CostDto(currency.currencyCode, BigDecimal.valueOf(minor, currency.fractionDigits).toPlainString())
 
 private fun ExchangeRate.toDto() = RateDto(
     currency = currency.currencyCode,
@@ -268,7 +468,7 @@ private fun ExchangeRate.toDto() = RateDto(
     source = source,
 )
 
-private fun Tour.toDto() = TourDto(
+private fun Tour.toDto(vehicleUuid: String?) = TourDto(
     uuid = uuid,
     startDate = startDate.toString(),
     endDate = endDate.toString(),
@@ -277,9 +477,7 @@ private fun Tour.toDto() = TourDto(
     travelDays = travelDays,
     overnightStays = overnightStays,
     distanceKm = distanceKm,
-    costs = costs.map {
-        CostDto(it.currency.currencyCode, BigDecimal.valueOf(it.minor, it.currency.fractionDigits).toPlainString())
-    },
+    costs = costs.map { it.toCostDto() },
     pitchAssigned = pitchAssigned,
     electricityFlatRate = electricityFlatRate.name,
     lteQuality = lteQuality.name,
@@ -289,7 +487,66 @@ private fun Tour.toDto() = TourDto(
     mapLink = mapLink,
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
+    vehicleUuid = vehicleUuid,
 )
+
+private fun BackupVehicle.toDto() = vehicle.let { v ->
+    VehicleDto(
+        uuid = v.uuid,
+        name = v.name,
+        licensePlate = v.licensePlate,
+        manufacturer = v.manufacturer,
+        model = v.model,
+        vin = v.vin,
+        firstRegistration = v.firstRegistration?.toString(),
+        notes = v.notes,
+        purchaseDate = v.purchaseDate?.toString(),
+        purchasePrice = v.purchasePrice?.toCostDto(),
+        purchaseOdometerKm = v.purchaseOdometerKm,
+        saleDate = v.saleDate?.toString(),
+        salePrice = v.salePrice?.toCostDto(),
+        insurer = v.insurer,
+        insurancePolicyNumber = v.insurancePolicyNumber,
+        insurancePremiumPerYear = v.insurancePremiumPerYear?.toCostDto(),
+        vehicleTaxPerYear = v.vehicleTaxPerYear?.toCostDto(),
+        lengthCm = v.lengthCm,
+        widthCm = v.widthCm,
+        heightCm = v.heightCm,
+        grossWeightKg = v.grossWeightKg,
+        powerKw = v.powerKw,
+        tireSize = v.tireSize,
+        tirePressureFrontMbar = v.tirePressureFrontMbar,
+        tirePressureRearMbar = v.tirePressureRearMbar,
+        fuelTankDl = v.fuelTankDl,
+        adBlueTankDl = v.adBlueTankDl,
+        freshWaterTankDl = v.freshWaterTankDl,
+        greyWaterTankDl = v.greyWaterTankDl,
+        boilerDl = v.boilerDl,
+        cassetteDl = v.cassetteDl,
+        batteryCapacityAh = v.batteryCapacityAh,
+        solarPowerWp = v.solarPowerWp,
+        nextInspectionDate = v.nextInspectionDate?.toString(),
+        nextGasCheckDate = v.nextGasCheckDate?.toString(),
+        lastOilChangeDate = v.lastOilChangeDate?.toString(),
+        lastOilChangeOdometerKm = v.lastOilChangeOdometerKm,
+        createdAt = v.createdAt.toString(),
+        updatedAt = v.updatedAt.toString(),
+        repairs = repairs.map { json.encodeToJsonElement(RepairDto.serializer(), it.toDto()) },
+        logEntries = logEntries.map { json.encodeToJsonElement(LogEntryDto.serializer(), it.toDto()) },
+    )
+}
+
+private fun Repair.toDto() = RepairDto(
+    uuid = uuid,
+    date = date.toString(),
+    description = description,
+    odometerKm = odometerKm,
+    cost = cost?.toCostDto(),
+    createdAt = createdAt.toString(),
+    updatedAt = updatedAt.toString(),
+)
+
+private fun LogEntry.toDto() = LogEntryDto(uuid = uuid, type = type.name, date = date.toString(), createdAt = createdAt.toString())
 
 private val DECIMAL = Regex("""\d{1,20}(\.\d{1,20})?""")
 private val UUID_PATTERN = Regex("""[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}""")

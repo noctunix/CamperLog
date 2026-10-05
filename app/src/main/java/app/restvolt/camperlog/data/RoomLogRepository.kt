@@ -22,6 +22,8 @@ class RoomLogRepository(
     override fun observeEntries(vehicleId: Long, type: LogType): Flow<List<LogEntry>> =
         dao.observeEntries(vehicleId, type.name).map { rows -> rows.map(LogEntryEntity::toDomain) }
 
+    override suspend fun allEntries(): List<LogEntry> = dao.getAll().map(LogEntryEntity::toDomain)
+
     override suspend fun add(vehicleId: Long, type: LogType, date: LocalDate): LogEntry {
         val entry = LogEntry(uuid = newUuid(), vehicleId = vehicleId, type = type, date = date, createdAt = clock())
         val id = dao.insert(entry.toEntity())

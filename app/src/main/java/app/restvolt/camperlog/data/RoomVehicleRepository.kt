@@ -27,6 +27,8 @@ class RoomVehicleRepository(
     override fun observeVehicles(): Flow<List<Vehicle>> =
         dao.observeAll().map { rows -> rows.map(VehicleEntity::toDomain) }
 
+    override suspend fun allVehicles(): List<Vehicle> = dao.getAll().map(VehicleEntity::toDomain)
+
     override fun observeVehicle(id: Long): Flow<Vehicle?> =
         dao.observeById(id).distinctUntilChanged().map { it?.toDomain() }
 
@@ -62,6 +64,8 @@ class RoomVehicleRepository(
 
     override fun observeRepairs(vehicleId: Long): Flow<List<Repair>> =
         dao.observeRepairs(vehicleId).map { rows -> rows.map(RepairEntity::toDomain) }
+
+    override suspend fun allRepairs(): List<Repair> = dao.getAllRepairs().map(RepairEntity::toDomain)
 
     override suspend fun saveRepair(repair: Repair): Long {
         require(repair.description.isNotBlank()) { "Beschreibung darf nicht leer sein" }

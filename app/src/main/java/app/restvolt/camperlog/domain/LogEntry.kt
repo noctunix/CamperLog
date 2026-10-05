@@ -26,6 +26,9 @@ interface LogRepository {
     /** Liefert die Einträge eines Fahrzeugs und einer Art, neueste zuerst. */
     fun observeEntries(vehicleId: Long, type: LogType): Flow<List<LogEntry>>
 
+    /** Liefert alle Einträge aller Fahrzeuge für den Sicherungs-Export. */
+    suspend fun allEntries(): List<LogEntry>
+
     /** Legt einen neuen Eintrag an. */
     suspend fun add(vehicleId: Long, type: LogType, date: LocalDate): LogEntry
 

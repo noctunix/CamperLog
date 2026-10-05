@@ -2,11 +2,23 @@ package app.restvolt.camperlog.backup
 
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.LogEntry
+import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.MAX_BATTERY_AH
+import app.restvolt.camperlog.domain.MAX_DIMENSION_M
+import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
+import app.restvolt.camperlog.domain.MAX_POWER_KW
+import app.restvolt.camperlog.domain.MAX_SOLAR_WP
+import app.restvolt.camperlog.domain.MAX_TANK_L
+import app.restvolt.camperlog.domain.MAX_TIRE_PRESSURE_BAR
+import app.restvolt.camperlog.domain.MAX_WEIGHT_KG
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.Vehicle
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.ByteArrayInputStream
@@ -49,6 +61,78 @@ class BackupTest {
         tours = listOf(tour(), tour(uuid = "1b6f5e2a-6c1d-4e8a-9f3b-2d7c1a4e5f60", destination = "Ostsee").copy(mapLink = null)),
     )
 
+    private val vehicleUuid = "2b6f5e2a-6c1d-4e8a-9f3b-2d7c1a4e5f60"
+    private val repairUuid = "3b6f5e2a-6c1d-4e8a-9f3b-2d7c1a4e5f60"
+    private val logEntryUuid = "4b6f5e2a-6c1d-4e8a-9f3b-2d7c1a4e5f60"
+
+    private fun fullVehicle(uuid: String = vehicleUuid) = Vehicle(
+        uuid = uuid,
+        name = "Bulli",
+        licensePlate = "KS-AB 123",
+        manufacturer = "Volkswagen",
+        model = "California",
+        vin = "WV1ZZZ7HZ8H123456",
+        firstRegistration = LocalDate.of(2018, 4, 1),
+        notes = "Zweitfahrzeug",
+        purchaseDate = LocalDate.of(2018, 5, 1),
+        purchasePrice = Money(4500000, eur),
+        purchaseOdometerKm = 500,
+        saleDate = LocalDate.of(2026, 1, 1),
+        salePrice = Money(3200000, eur),
+        insurer = "HUK24",
+        insurancePolicyNumber = "POL-123",
+        insurancePremiumPerYear = Money(80000, eur),
+        vehicleTaxPerYear = Money(30000, eur),
+        lengthCm = 500,
+        widthCm = 250,
+        heightCm = 295,
+        grossWeightKg = 3500,
+        powerKw = 130,
+        tireSize = "225/75 R16 C",
+        tirePressureFrontMbar = 2500,
+        tirePressureRearMbar = 2800,
+        fuelTankDl = 900,
+        adBlueTankDl = 150,
+        freshWaterTankDl = 1000,
+        greyWaterTankDl = 900,
+        boilerDl = 100,
+        cassetteDl = 200,
+        batteryCapacityAh = 200,
+        solarPowerWp = 400,
+        nextInspectionDate = LocalDate.of(2027, 4, 1),
+        nextGasCheckDate = LocalDate.of(2027, 5, 1),
+        lastOilChangeDate = LocalDate.of(2026, 1, 1),
+        lastOilChangeOdometerKm = 12000,
+        createdAt = Instant.parse("2018-05-01T08:00:00Z"),
+        updatedAt = Instant.parse("2026-01-01T09:30:00Z"),
+    )
+
+    private fun repair(uuid: String = repairUuid) = Repair(
+        uuid = uuid,
+        vehicleId = 0,
+        date = LocalDate.of(2025, 6, 1),
+        description = "Bremsen erneuert",
+        odometerKm = 60000,
+        cost = Money(45000, eur),
+        createdAt = Instant.parse("2025-06-02T08:00:00Z"),
+        updatedAt = Instant.parse("2025-06-02T08:00:00Z"),
+    )
+
+    private fun logEntry(uuid: String = logEntryUuid) = LogEntry(
+        uuid = uuid,
+        vehicleId = 0,
+        type = LogType.CASSETTE_EMPTIED,
+        date = LocalDate.of(2026, 9, 1),
+        createdAt = Instant.parse("2026-09-01T08:00:00Z"),
+    )
+
+    private val vehicleBackup = backup.copy(
+        tours = listOf(tour()),
+        tourVehicleUuid = mapOf(tour().uuid to vehicleUuid),
+        vehicles = listOf(BackupVehicle(fullVehicle(), listOf(repair()), listOf(logEntry()))),
+        currentVehicleUuid = vehicleUuid,
+    )
+
     private fun success(text: String) = (decodeBackup(text) as BackupReadResult.Success).backup
 
     private fun failure(text: String) = decodeBackup(text) as? BackupReadResult.Failure
@@ -56,6 +140,12 @@ class BackupTest {
     /** Ersetzt in der Sicherung [backup] einen Teiltext, um gezielt ungültige Dateien zu bauen. */
     private fun encodedWith(old: String, new: String): String {
         val text = encodeBackup(backup)
+        check(old in text) { "$old nicht in der Sicherung" }
+        return text.replaceFirst(old, new)
+    }
+
+    private fun vehicleEncodedWith(old: String, new: String): String {
+        val text = encodeBackup(vehicleBackup)
         check(old in text) { "$old nicht in der Sicherung" }
         return text.replaceFirst(old, new)
     }
@@ -70,6 +160,22 @@ class BackupTest {
         assertEquals(0, BigDecimal("11.485").compareTo(decoded.rates.single().perEuro))
         assertEquals(backup.rates.single().copy(perEuro = decoded.rates.single().perEuro), decoded.rates.single())
         assertEquals(backup.tours, decoded.tours)
+        assertEquals(emptyMap<String, String>(), decoded.tourVehicleUuid)
+        assertEquals(emptyList<BackupVehicle>(), decoded.vehicles)
+        assertEquals(null, decoded.currentVehicleUuid)
+    }
+
+    @Test
+    fun roundTrip_keepsFullVehicleWithRepairsLogEntriesAndCurrentVehicle() {
+        val decoded = success(encodeBackup(vehicleBackup))
+
+        assertEquals(1, decoded.vehicles.size)
+        val vehicle = decoded.vehicles.single()
+        assertEquals(fullVehicle(), vehicle.vehicle)
+        assertEquals(listOf(repair()), vehicle.repairs)
+        assertEquals(listOf(logEntry()), vehicle.logEntries)
+        assertEquals(vehicleUuid, decoded.currentVehicleUuid)
+        assertEquals(mapOf(tour().uuid to vehicleUuid), decoded.tourVehicleUuid)
     }
 
     @Test
@@ -79,13 +185,13 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 1" in text)
+        assert("\"schemaVersion\": 2" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
     @Test
     fun read_acceptsBomAndIgnoresUnknownFields() {
-        val text = "\uFEFF" + encodedWith("\"mainCurrency\"", "\"futureField\": {\"a\": 1}, \"mainCurrency\"")
+        val text = "﻿" + encodedWith("\"mainCurrency\"", "\"futureField\": {\"a\": 1}, \"mainCurrency\"")
 
         val result = readBackup(ByteArrayInputStream(text.toByteArray()))
 
@@ -114,14 +220,57 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 1", "\"schemaVersion\": 2"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 2", "\"schemaVersion\": 3"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 1", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 2", it))?.error)
         }
+    }
+
+    @Test
+    fun decode_acceptsVersion1Backup() {
+        val text = """
+            {
+              "format": "camperlog-backup",
+              "schemaVersion": 1,
+              "exportedAt": "2026-10-04T12:00:00Z",
+              "mainCurrency": "NOK",
+              "exchangeRates": [],
+              "tours": [
+                {
+                  "uuid": "0b6f5e2a-6c1d-4e8a-9f3b-2d7c1a4e5f60",
+                  "startDate": "2026-07-01",
+                  "endDate": "2026-07-14",
+                  "destination": "Lofoten",
+                  "tourType": "VACATION",
+                  "travelDays": 14,
+                  "overnightStays": 13,
+                  "distanceKm": 4210,
+                  "costs": [],
+                  "pitchAssigned": true,
+                  "electricityFlatRate": "NOT_USED",
+                  "lteQuality": "OK",
+                  "pitchSlope": "SLOPED",
+                  "levelingBlocksUsed": true,
+                  "notes": "",
+                  "mapLink": null,
+                  "createdAt": "2026-07-15T08:00:00Z",
+                  "updatedAt": "2026-07-16T09:30:00.123Z"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val decoded = success(text)
+
+        assertEquals(1, decoded.tours.size)
+        assertEquals("0b6f5e2a-6c1d-4e8a-9f3b-2d7c1a4e5f60", decoded.tours.single().uuid)
+        assertEquals(emptyMap<String, String>(), decoded.tourVehicleUuid)
+        assertEquals(emptyList<BackupVehicle>(), decoded.vehicles)
+        assertEquals(null, decoded.currentVehicleUuid)
     }
 
     @Test
@@ -217,5 +366,97 @@ class BackupTest {
         val first = success(encodedWith("\"amount\": \"1500\"", "\"amount\": \"1500.00\"")).tours.first()
 
         assertEquals(Money(1500, jpy), first.costs.last())
+    }
+
+    @Test
+    fun decode_rejectsDanglingTourVehicleUuid() {
+        val result = failure(vehicleEncodedWith("\"vehicleUuid\": \"$vehicleUuid\"", "\"vehicleUuid\": \"00000000-0000-4000-8000-000000000099\""))
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = 1), result)
+    }
+
+    @Test
+    fun decode_rejectsDanglingCurrentVehicleUuid() {
+        val result = failure(vehicleEncodedWith("\"currentVehicle\": \"$vehicleUuid\"", "\"currentVehicle\": \"00000000-0000-4000-8000-000000000099\""))
+
+        assertEquals(BackupError.INVALID_DATA, result?.error)
+    }
+
+    @Test
+    fun decode_rejectsDuplicateVehicleUuid() {
+        val twice = vehicleBackup.copy(vehicles = vehicleBackup.vehicles + vehicleBackup.vehicles)
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 2), failure(encodeBackup(twice)))
+    }
+
+    @Test
+    fun decode_rejectsDuplicateRepairUuid() {
+        val twice = vehicleBackup.copy(
+            vehicles = listOf(vehicleBackup.vehicles.single().let { it.copy(repairs = it.repairs + it.repairs) }),
+        )
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1, repairNumber = 2), failure(encodeBackup(twice)))
+    }
+
+    @Test
+    fun decode_rejectsDuplicateLogEntryUuid() {
+        val twice = vehicleBackup.copy(
+            vehicles = listOf(vehicleBackup.vehicles.single().let { it.copy(logEntries = it.logEntries + it.logEntries) }),
+        )
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1, logEntryNumber = 2), failure(encodeBackup(twice)))
+    }
+
+    @Test
+    fun decode_reportsNumberOfInvalidVehicle() {
+        listOf(
+            "\"uuid\": \"$vehicleUuid\"" to "\"uuid\": \"keine-uuid\"",
+            "\"createdAt\": \"2018-05-01T08:00:00Z\"" to "\"createdAt\": \"gestern\"",
+        ).forEach { (old, new) ->
+            assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1), failure(vehicleEncodedWith(old, new)))
+        }
+    }
+
+    @Test
+    fun decode_rejectsVehicleFieldsOutOfBounds() {
+        val maxLengthCm = (MAX_DIMENSION_M * 100).toInt()
+        val maxTireMbar = (MAX_TIRE_PRESSURE_BAR * 1000).toInt()
+        val maxTankDl = (MAX_TANK_L * 10).toInt()
+        listOf(
+            "\"lengthCm\": 500" to "\"lengthCm\": ${maxLengthCm + 1}",
+            "\"lengthCm\": 500" to "\"lengthCm\": -1",
+            "\"grossWeightKg\": 3500" to "\"grossWeightKg\": ${MAX_WEIGHT_KG + 1}",
+            "\"powerKw\": 130" to "\"powerKw\": ${MAX_POWER_KW + 1}",
+            "\"tirePressureFrontMbar\": 2500" to "\"tirePressureFrontMbar\": ${maxTireMbar + 1}",
+            "\"fuelTankDl\": 900" to "\"fuelTankDl\": ${maxTankDl + 1}",
+            "\"batteryCapacityAh\": 200" to "\"batteryCapacityAh\": ${MAX_BATTERY_AH + 1}",
+            "\"solarPowerWp\": 400" to "\"solarPowerWp\": ${MAX_SOLAR_WP + 1}",
+            "\"purchaseOdometerKm\": 500" to "\"purchaseOdometerKm\": ${MAX_ODOMETER_KM + 1}",
+            "\"lastOilChangeOdometerKm\": 12000" to "\"lastOilChangeOdometerKm\": ${MAX_ODOMETER_KM + 1}",
+        ).forEach { (old, new) ->
+            assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1), failure(vehicleEncodedWith(old, new)))
+        }
+    }
+
+    @Test
+    fun decode_rejectsInvalidRepairValues() {
+        listOf(
+            "\"description\": \"Bremsen erneuert\"" to "\"description\": \"   \"",
+            "\"odometerKm\": 60000" to "\"odometerKm\": ${MAX_ODOMETER_KM + 1}",
+            "\"odometerKm\": 60000" to "\"odometerKm\": -1",
+            "\"date\": \"2025-06-01\"" to "\"date\": \"keingueltigesdatum\"",
+        ).forEach { (old, new) ->
+            assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1, repairNumber = 1), failure(vehicleEncodedWith(old, new)))
+        }
+    }
+
+    @Test
+    fun decode_rejectsInvalidLogEntryValues() {
+        listOf(
+            "\"type\": \"CASSETTE_EMPTIED\"" to "\"type\": \"UNKNOWN\"",
+            "\"date\": \"2026-09-01\"" to "\"date\": \"keingueltigesdatum\"",
+        ).forEach { (old, new) ->
+            assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1, logEntryNumber = 1), failure(vehicleEncodedWith(old, new)))
+        }
     }
 }

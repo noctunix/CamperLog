@@ -33,6 +33,8 @@ class FakeVehicleRepository(
     override fun observeVehicles(): Flow<List<Vehicle>> =
         state.map { list -> list.sortedWith(compareBy<Vehicle> { it.isSold }.thenBy { it.name }.thenBy { it.id }) }
 
+    override suspend fun allVehicles(): List<Vehicle> = state.value
+
     override fun observeVehicle(id: Long): Flow<Vehicle?> = state.map { list -> list.firstOrNull { it.id == id } }
 
     override fun observeCurrentVehicle(): Flow<Vehicle> =
@@ -63,6 +65,8 @@ class FakeVehicleRepository(
 
     override fun observeRepairs(vehicleId: Long): Flow<List<Repair>> =
         repairs.map { list -> list.filter { it.vehicleId == vehicleId }.sortedByDescending { it.date } }
+
+    override suspend fun allRepairs(): List<Repair> = repairs.value
 
     override suspend fun saveRepair(repair: Repair): Long = if (repair.id == 0L) {
         val id = nextRepairId++
