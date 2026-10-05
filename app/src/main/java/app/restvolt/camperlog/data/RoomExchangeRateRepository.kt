@@ -25,6 +25,5 @@ class RoomExchangeRateRepository(private val dao: ExchangeRateDao) : ExchangeRat
     override fun observeMainCurrency(): Flow<Currency> =
         dao.observeMainCurrency().map { code -> code?.let(Currency::getInstance) ?: EUR }.distinctUntilChanged()
 
-    override suspend fun setMainCurrency(currency: Currency) =
-        dao.upsertSettings(SettingsEntity(mainCurrency = currency.currencyCode))
+    override suspend fun setMainCurrency(currency: Currency) = dao.setMainCurrency(currency.currencyCode)
 }

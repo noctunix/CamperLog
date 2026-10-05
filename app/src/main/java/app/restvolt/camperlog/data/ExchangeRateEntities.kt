@@ -5,6 +5,7 @@ import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 import app.restvolt.camperlog.domain.ExchangeRate
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +30,7 @@ data class ExchangeRateEntity(
 data class SettingsEntity(
     @PrimaryKey val id: Int = SETTINGS_ID,
     @ColumnInfo(name = "main_currency") val mainCurrency: String,
+    @ColumnInfo(name = "current_vehicle_id") val currentVehicleId: Long? = null,
 )
 
 internal const val SETTINGS_ID = 1
@@ -54,8 +56,21 @@ interface ExchangeRateDao {
     @Query("SELECT main_currency FROM settings WHERE id = $SETTINGS_ID")
     fun observeMainCurrency(): Flow<String?>
 
-    @Upsert
-    suspend fun upsertSettings(settings: SettingsEntity)
+    @Query("INSERT OR IGNORE INTO settings (id, main_currency) VALUES ($SETTINGS_ID, 'EUR')")
+    suspend fun ensureSettingsRow()
+
+    @Query("UPDATE settings SET main_currency = :currency WHERE id = $SETTINGS_ID")
+    suspend fun updateMainCurrency(currency: String)
+
+    /**
+     * Setzt die Hauptwährung spaltenweise, ohne das aktuelle Fahrzeug anzutasten. Ein `UPSERT` in
+     * SQL-Syntax steht auf API 26 noch nicht zur Verfügung.
+     */
+    @Transaction
+    suspend fun setMainCurrency(currency: String) {
+        ensureSettingsRow()
+        updateMainCurrency(currency)
+    }
 }
 
 internal fun ExchangeRateEntity.toDomain() = ExchangeRate(
