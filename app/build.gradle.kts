@@ -84,7 +84,7 @@ android {
     }
 
     sourceSets.getByName("main") {
-        assets.srcDir(layout.buildDirectory.dir("generated/licenseAsset").get().asFile)
+        assets.directories.add(layout.buildDirectory.dir("generated/licenseAsset").get().asFile.path)
     }
 
     lint {
@@ -144,7 +144,7 @@ dependencies {
 
 // Fail clearly instead of silently creating an unsigned release APK. Builders that sign
 // separately (F-Droid) opt out with -PunsignedRelease.
-val checkReleaseSigning by tasks.registering {
+val checkReleaseSigning = tasks.register("checkReleaseSigning") {
     val hasSigning = releaseSigningFile.exists()
     val unsignedAllowed = providers.gradleProperty("unsignedRelease").isPresent
     doLast {
