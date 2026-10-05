@@ -8,14 +8,17 @@ plugins {
     alias(libs.plugins.room)
 }
 
-// Single SemVer version declaration (MAJOR.MINOR.PATCH); release tag: v<version>.
-// The derived versionCode (1.2.3 -> 10203) increases with each version for Android updates.
+// SemVer version (MAJOR.MINOR.PATCH); release tag: v<appVersion>.
+// appVersionCode must be MAJOR * 10000 + MINOR * 100 + PATCH (1.2.3 -> 10203). It is a literal
+// rather than computed because F-Droid's update check reads both values from this file.
 val appVersion = "1.1.1"
-val appVersionCode = appVersion.split(".").map(String::toInt).also {
+val appVersionCode = 10101
+appVersion.split(".").map(String::toInt).also {
     require(it.size == 3) { "appVersion must be MAJOR.MINOR.PATCH: $appVersion" }
 }.let { (major, minor, patch) ->
     require(minor < 100 && patch < 100) { "MINOR and PATCH must be below 100: $appVersion" }
-    major * 10_000 + minor * 100 + patch
+    val expected = major * 10_000 + minor * 100 + patch
+    require(appVersionCode == expected) { "appVersionCode must be $expected for $appVersion" }
 }
 
 // Release signing configuration is stored locally and never committed.
