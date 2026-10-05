@@ -11,6 +11,8 @@ import java.time.LocalDate
 data class Tour(
     val id: Long = 0,
     val uuid: String = "",
+    /** 0 bedeutet beim Speichern „aktuelles Fahrzeug" (das Repository löst das auf). */
+    val vehicleId: Long = 0,
     val startDate: LocalDate,
     val endDate: LocalDate,
     val destination: String,
