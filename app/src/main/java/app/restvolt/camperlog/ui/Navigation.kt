@@ -81,7 +81,10 @@ internal object LogbookRoute
 
 /** Verlauf einer Bordbuch-Art eines Fahrzeugs. */
 @Serializable
-internal data class LogHistoryRoute(val vehicleId: Long, val type: LogType)
+internal data class LogHistoryRoute(val vehicleId: Long, val typeName: String) {
+    /** Enums als Routenargument bräuchten Keep-Regeln gegen R8; daher wird der Name übergeben. */
+    val type: LogType get() = LogType.valueOf(typeName)
+}
 
 @Serializable
 internal object VehicleRoute
@@ -161,7 +164,7 @@ fun CamperLogNavHost(
         composable<LogbookRoute> {
             LogbookScreen(
                 viewModel = viewModel { LogbookViewModel(logbook, vehicles) },
-                onOpenHistory = { vehicleId, type -> navController.navigate(LogHistoryRoute(vehicleId, type)) },
+                onOpenHistory = { vehicleId, type -> navController.navigate(LogHistoryRoute(vehicleId, type.name)) },
                 onOpenData = { navController.navigate(DataRoute) },
                 onOpenSettings = { navController.navigate(SettingsRoute) },
                 onOpenVehicles = { navController.navigate(VehiclesRoute) },
