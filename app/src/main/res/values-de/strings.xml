@@ -5,6 +5,7 @@
     <string name="action_back">Zurück</string>
     <string name="action_save">Speichern</string>
     <string name="action_cancel">Abbrechen</string>
+    <string name="action_close">Schließen</string>
     <string name="action_ok">OK</string>
     <string name="yes">ja</string>
     <string name="no">nein</string>
@@ -113,6 +114,7 @@
         <item quantity="one">%1$d Monat</item>
         <item quantity="other">%1$d Monate</item>
     </plurals>
+    <string name="settings_open_about">Über CamperLog</string>
 
     <!-- Detail -->
     <string name="detail_fallback_title">Tour</string>
@@ -413,4 +415,49 @@
     <string name="logbook_delete_failed">Eintrag konnte nicht gelöscht werden.</string>
     <string name="logbook_restore_failed">Eintrag konnte nicht wiederhergestellt werden.</string>
     <string name="logbook_history_empty">Noch keine Einträge.</string>
+
+    <!-- Über -->
+    <string name="about_title">Über CamperLog</string>
+    <string name="about_version">Version %1$s (%2$d)</string>
+    <string name="about_claim">Dein Wohnmobil-Logbuch – privat, offline, Open Source.</string>
+    <string name="about_action_feedback">Feedback senden</string>
+    <string name="about_feedback_subject" translatable="false">CamperLog %1$s</string>
+    <string name="about_feedback_address" translatable="false">camperlog@restvolt.app</string>
+    <string name="about_no_mail_app">Keine E-Mail-App verfügbar</string>
+    <string name="about_copy_address">Adresse kopieren</string>
+    <string name="about_action_support">Entwicklung unterstützen</string>
+    <string name="about_donate_uri" translatable="false">https://liberapay.com/noctunix/donate</string>
+    <string name="about_action_keep_android_open">Keep Android Open</string>
+    <string name="about_action_show_intro">Einführung erneut anzeigen</string>
+    <string name="about_no_app_available">Keine passende App verfügbar</string>
+    <string name="about_section_source">Quellcode</string>
+    <string name="about_source_body">CamperLog ist freie Software: Jede Zeile Code ist einsehbar und überprüfbar. Beiträge, Fehlermeldungen und Vorschläge sind jederzeit willkommen.</string>
+    <string name="about_link_repo">Repository öffnen</string>
+    <string name="about_link_issues">Fehler melden</string>
+    <string name="about_repo_uri" translatable="false">https://github.com/noctunix/CamperLog</string>
+    <string name="about_issues_uri" translatable="false">https://github.com/noctunix/CamperLog/issues</string>
+    <string name="about_section_license">Lizenz</string>
+    <string name="about_license_body">CamperLog steht unter der Apache License 2.0.</string>
+    <string name="about_link_license_text">Lizenztext anzeigen</string>
+    <string name="about_link_license_github">LICENSE auf GitHub öffnen</string>
+    <string name="about_license_github_uri" translatable="false">https://github.com/noctunix/CamperLog/blob/main/LICENSE</string>
+    <string name="info_license_loading">Lizenztext wird geladen…</string>
+    <string name="err_license_load_failed">Lizenztext konnte nicht geladen werden.</string>
+    <string name="about_section_third_party">Drittanbieter-Bibliotheken</string>
+    <string name="about_section_privacy">Datenschutz</string>
+    <string name="about_privacy_bullet_no_permissions">Keine Berechtigungen erforderlich.</string>
+    <string name="about_privacy_bullet_no_network">Kein Netzwerkzugriff.</string>
+    <string name="about_privacy_bullet_local">Alle Daten bleiben auf diesem Gerät.</string>
+    <string name="about_privacy_bullet_backup">Sicherungen entstehen nur, wenn du sie exportierst.</string>
+    <string name="about_privacy_bullet_uninstall">Beim Deinstallieren werden alle Daten gelöscht.</string>
+    <string name="cd_expand_about_section">Abschnitt \"%1$s\" anzeigen</string>
+    <string name="cd_collapse_about_section">Abschnitt \"%1$s\" ausblenden</string>
+
+    <!-- Keep Android Open -->
+    <string name="title_keep_android_open">Android droht die Abschottung</string>
+    <string name="body_keep_android_open">Google plant, ab 2026 für jede Android-App eine verifizierte Entwickler-Identität zu verlangen – auch für Apps außerhalb des Play Store, wie diese hier. Ohne diese Verifizierung lassen sich Apps auf zertifizierten Geräten künftig gar nicht mehr installieren.\n\nDas trifft F-Droid besonders hart: Ein unabhängiger, quelloffener App-Store wie F-Droid könnte in seiner heutigen Form nicht mehr existieren – und die Weiterentwicklung von CamperLog außerhalb von Googles Kontrolle wäre ernsthaft gefährdet.\n\nDie Initiative „Keep Android Open“ setzt sich gegen diese Pläne ein.</string>
+    <string name="btn_keep_android_open_link">keepandroidopen.org öffnen</string>
+    <string name="btn_keep_android_open_supported">Ich habe die Petition unterstützt</string>
+    <string name="btn_remind_later">Später erinnern</string>
+    <string name="keep_android_open_uri" translatable="false">https://keepandroidopen.org/</string>
 </resources>
