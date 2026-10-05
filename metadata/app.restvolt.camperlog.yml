@@ -1,0 +1,32 @@
+Categories:
+  - Money
+License: Apache-2.0
+AuthorName: noctunix
+AuthorEmail: camperlog@restvolt.app
+WebSite: https://github.com/noctunix/CamperLog
+SourceCode: https://github.com/noctunix/CamperLog
+IssueTracker: https://github.com/noctunix/CamperLog/issues
+Changelog: https://github.com/noctunix/CamperLog/releases
+Liberapay: noctunix
+
+AutoName: CamperLog
+
+RepoType: git
+Repo: https://github.com/noctunix/CamperLog.git
+Binaries: https://github.com/noctunix/CamperLog/releases/download/v%v/CamperLog-v%v-arm64.apk
+
+Builds:
+  - versionName: 1.2.0
+    versionCode: 10200
+    commit: v1.2.0
+    subdir: app
+    gradle:
+      - yes
+    gradleprops:
+      - unsignedRelease
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
+UpdateCheckData: app/build.gradle.kts|val appVersionCode = (\d+)|.|val appVersion = "(.+)"
+CurrentVersion: 1.2.0
+CurrentVersionCode: 10200
