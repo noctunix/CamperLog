@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
+import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.VehicleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +17,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Zustand der Tourenliste. [tours] ist bereits nach Suche und Jahr gefiltert. */
+/** Zustand der Tourenliste. [tours] ist bereits nach Fahrzeug, Suche und Jahr gefiltert. */
 data class ToursUiState(
     val isLoading: Boolean = true,
     val hasAnyTour: Boolean = false,
@@ -23,6 +25,19 @@ data class ToursUiState(
     val years: List<Int> = emptyList(),
     val query: String = "",
     val selectedYear: Int? = null,
+    /** Alle Fahrzeuge für den Wechsler; die Tourenliste zeigt den Wechsler nur ab zwei Einträgen. */
+    val vehicles: List<Vehicle> = emptyList(),
+    val currentVehicleId: Long = 0,
+    /** Ob gerade die Touren aller Fahrzeuge angezeigt werden statt nur die des aktuellen. */
+    val showAllVehicles: Boolean = false,
+)
+
+/** Zwischenergebnis der Fahrzeugfilterung, bevor Suche und Jahr angewendet werden. */
+private data class VehicleFilter(
+    val tours: List<Tour>,
+    val vehicles: List<Vehicle>,
+    val currentVehicleId: Long,
+    val allVehicles: Boolean,
 )
 
 /** Rückmeldungen, die die Tourenliste als Snackbar anzeigt. */
@@ -33,27 +48,47 @@ sealed interface ToursMessage {
 }
 
 /** Liefert die gefilterte Tourenliste und löscht Touren. */
-class ToursViewModel(private val repository: TourRepository) : ViewModel() {
+class ToursViewModel(
+    private val repository: TourRepository,
+    private val vehicles: VehicleRepository,
+    private val filterSettings: ToursFilterSettings,
+) : ViewModel() {
 
     private val query = MutableStateFlow("")
     private val selectedYear = MutableStateFlow<Int?>(null)
+    private val showAllVehicles = MutableStateFlow(filterSettings.allVehicles)
 
-    val uiState: StateFlow<ToursUiState> =
-        combine(repository.observeTours(), query, selectedYear) { tours, query, year ->
-            val years = tours.map(Tour::year).distinct().sortedDescending()
-            val activeYear = year?.takeIf { it in years }
-            ToursUiState(
-                isLoading = false,
-                hasAnyTour = tours.isNotEmpty(),
-                tours = tours.filter { tour ->
-                    tour.destination.contains(query.trim(), ignoreCase = true) &&
-                        (activeYear == null || tour.year == activeYear)
-                },
-                years = years,
-                query = query,
-                selectedYear = activeYear,
-            )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ToursUiState())
+    val uiState: StateFlow<ToursUiState> = combine(
+        combine(
+            repository.observeTours(),
+            vehicles.observeVehicles(),
+            vehicles.observeCurrentVehicle(),
+            showAllVehicles,
+        ) { tours, vehicleList, current, allVehicles -> VehicleFilter(tours, vehicleList, current.id, allVehicles) },
+        query,
+        selectedYear,
+    ) { filter, query, year ->
+        // vehicleId 0 heißt noch kein aufgelöstes Fahrzeug (siehe Tour.vehicleId) und bleibt daher immer sichtbar.
+        val visible = filter.tours.filter {
+            filter.allVehicles || it.vehicleId == 0L || it.vehicleId == filter.currentVehicleId
+        }
+        val years = visible.map(Tour::year).distinct().sortedDescending()
+        val activeYear = year?.takeIf { it in years }
+        ToursUiState(
+            isLoading = false,
+            hasAnyTour = visible.isNotEmpty(),
+            tours = visible.filter { tour ->
+                tour.destination.contains(query.trim(), ignoreCase = true) &&
+                    (activeYear == null || tour.year == activeYear)
+            },
+            years = years,
+            query = query,
+            selectedYear = activeYear,
+            vehicles = filter.vehicles,
+            currentVehicleId = filter.currentVehicleId,
+            showAllVehicles = filter.allVehicles,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ToursUiState())
 
     fun onQueryChange(value: String) {
         query.value = value
@@ -62,6 +97,19 @@ class ToursViewModel(private val repository: TourRepository) : ViewModel() {
     /** Setzt den Jahresfilter; `null` zeigt alle Jahre. */
     fun onYearSelected(year: Int?) {
         selectedYear.value = year
+    }
+
+    /** Macht [id] zum aktuellen Fahrzeug und verlässt dabei die Ansicht „Alle Fahrzeuge". */
+    fun onSelectVehicle(id: Long) {
+        showAllVehicles.value = false
+        filterSettings.allVehicles = false
+        viewModelScope.launch { vehicles.setCurrentVehicle(id) }
+    }
+
+    /** Zeigt die Touren aller Fahrzeuge, ohne das aktuelle Fahrzeug zu ändern. */
+    fun onSelectAllVehicles() {
+        showAllVehicles.value = true
+        filterSettings.allVehicles = true
     }
 
     private val _message = MutableStateFlow<ToursMessage?>(null)

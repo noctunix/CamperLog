@@ -1,20 +1,33 @@
 package app.restvolt.camperlog.ui
 
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import app.restvolt.camperlog.R
 import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.TourRepository
+import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.ui.data.AndroidDataFiles
 import app.restvolt.camperlog.ui.data.DataScreen
 import app.restvolt.camperlog.ui.data.DataViewModel
@@ -22,6 +35,7 @@ import app.restvolt.camperlog.ui.detail.TourDetailScreen
 import app.restvolt.camperlog.ui.detail.TourDetailViewModel
 import app.restvolt.camperlog.ui.edit.EditTourScreen
 import app.restvolt.camperlog.ui.edit.EditTourViewModel
+import app.restvolt.camperlog.ui.logbook.LogbookScreen
 import app.restvolt.camperlog.ui.overview.OverviewScreen
 import app.restvolt.camperlog.ui.overview.OverviewViewModel
 import app.restvolt.camperlog.ui.rates.RateEditScreen
@@ -30,12 +44,25 @@ import app.restvolt.camperlog.ui.rates.RatesScreen
 import app.restvolt.camperlog.ui.rates.RatesViewModel
 import app.restvolt.camperlog.ui.settings.SettingsScreen
 import app.restvolt.camperlog.ui.theme.ThemeMode
+import app.restvolt.camperlog.ui.tours.ToursFilterSettings
 import app.restvolt.camperlog.ui.tours.ToursScreen
 import app.restvolt.camperlog.ui.tours.ToursViewModel
+import app.restvolt.camperlog.ui.vehicle.VehicleScreen
+import app.restvolt.camperlog.ui.vehicles.VehiclesScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
 internal object ToursRoute
+
+@Serializable
+internal object LogbookRoute
+
+@Serializable
+internal object VehicleRoute
+
+/** Fahrzeugverwaltung; in Phase 3 wird sie mit Liste, Anlegen und Löschen gefüllt. */
+@Serializable
+internal object VehiclesRoute
 
 @Serializable
 internal data class EditRoute(val tourId: Long = 0)
@@ -43,8 +70,9 @@ internal data class EditRoute(val tourId: Long = 0)
 @Serializable
 internal data class DetailRoute(val tourId: Long)
 
+/** [vehicleId] `null` zeigt die Kennzahlen aller Fahrzeuge, sonst nur die von [vehicleId]. */
 @Serializable
-internal object OverviewRoute
+internal data class OverviewRoute(val vehicleId: Long? = null)
 
 @Serializable
 internal object RatesRoute
@@ -63,28 +91,56 @@ internal data class RateEditRoute(val currencyCode: String? = null)
 @Composable
 fun CamperLogNavHost(
     repository: TourRepository,
+    vehicles: VehicleRepository,
     exchangeRates: ExchangeRateRepository,
     backupImporter: BackupImporter,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
     val navController = rememberNavController()
+    val currentDestination = navController.currentBackStackEntryAsState().value?.destination
+    val bottomBar: @Composable () -> Unit = { CamperLogBottomBar(navController, currentDestination) }
+
     NavHost(navController, startDestination = ToursRoute) {
         composable<ToursRoute> {
+            val context = LocalContext.current
             ToursScreen(
-                viewModel = viewModel { ToursViewModel(repository) },
+                viewModel = viewModel { ToursViewModel(repository, vehicles, ToursFilterSettings(context)) },
                 onAddTour = { navController.navigate(EditRoute()) },
-                onOpenOverview = { navController.navigate(OverviewRoute) },
+                onOpenOverview = { vehicleId -> navController.navigate(OverviewRoute(vehicleId)) },
                 onOpenData = { navController.navigate(DataRoute) },
                 onOpenSettings = { navController.navigate(SettingsRoute) },
                 onOpenTour = { navController.navigate(DetailRoute(it)) },
+                onOpenVehicles = { navController.navigate(VehiclesRoute) },
+                bottomBar = bottomBar,
             )
+        }
+        composable<LogbookRoute> {
+            LogbookScreen(
+                viewModel = viewModel { VehicleSwitcherViewModel(vehicles) },
+                onOpenData = { navController.navigate(DataRoute) },
+                onOpenSettings = { navController.navigate(SettingsRoute) },
+                onOpenVehicles = { navController.navigate(VehiclesRoute) },
+                bottomBar = bottomBar,
+            )
+        }
+        composable<VehicleRoute> {
+            VehicleScreen(
+                viewModel = viewModel { VehicleSwitcherViewModel(vehicles) },
+                onOpenData = { navController.navigate(DataRoute) },
+                onOpenSettings = { navController.navigate(SettingsRoute) },
+                onOpenVehicles = { navController.navigate(VehiclesRoute) },
+                bottomBar = bottomBar,
+            )
+        }
+        composable<VehiclesRoute> { entry ->
+            VehiclesScreen(onBack = { navController.popFrom(entry) })
         }
         composable<EditRoute> { entry ->
             val tourId = entry.toRoute<EditRoute>().tourId
-            val toursViewModel = navController.toursViewModel(entry, repository)
+            val toursViewModel = navController.toursViewModel(entry, repository, vehicles)
             EditTourScreen(
-                viewModel = viewModel { EditTourViewModel(repository, tourId, createSavedStateHandle()) },
+                viewModel = viewModel { EditTourViewModel(repository, vehicles, tourId, createSavedStateHandle()) },
                 onDone = { navController.popFrom(entry) },
                 onSaved = {
                     if (tourId == 0L) toursViewModel.onTourCreated()
@@ -94,9 +150,9 @@ fun CamperLogNavHost(
         }
         composable<DetailRoute> { entry ->
             val tourId = entry.toRoute<DetailRoute>().tourId
-            val toursViewModel = navController.toursViewModel(entry, repository)
+            val toursViewModel = navController.toursViewModel(entry, repository, vehicles)
             TourDetailScreen(
-                viewModel = viewModel { TourDetailViewModel(repository, tourId) },
+                viewModel = viewModel { TourDetailViewModel(repository, vehicles, tourId) },
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(EditRoute(tourId)) },
                 onDelete = { tour ->
@@ -108,8 +164,9 @@ fun CamperLogNavHost(
             )
         }
         composable<OverviewRoute> { entry ->
+            val vehicleId = entry.toRoute<OverviewRoute>().vehicleId
             OverviewScreen(
-                viewModel = viewModel { OverviewViewModel(repository, exchangeRates) },
+                viewModel = viewModel { OverviewViewModel(repository, exchangeRates, vehicleId) },
                 onBack = { navController.popFrom(entry) },
                 onOpenRates = { navController.navigate(RatesRoute) },
             )
@@ -147,14 +204,55 @@ fun CamperLogNavHost(
     }
 }
 
+/** Untere Navigationsleiste der drei Hauptreiter; erneutes Tippen kehrt zur Wurzel des Reiters zurück. */
+@Composable
+private fun CamperLogBottomBar(navController: NavController, current: NavDestination?) {
+    NavigationBar {
+        NavigationBarItem(
+            selected = current.isOnTab<ToursRoute>(),
+            onClick = { navController.navigateToTab(ToursRoute) },
+            icon = { Icon(painterResource(R.drawable.ic_map), contentDescription = null) },
+            label = { Text(stringResource(R.string.nav_tours)) },
+        )
+        NavigationBarItem(
+            selected = current.isOnTab<LogbookRoute>(),
+            onClick = { navController.navigateToTab(LogbookRoute) },
+            icon = { Icon(painterResource(R.drawable.ic_book), contentDescription = null) },
+            label = { Text(stringResource(R.string.nav_logbook)) },
+        )
+        NavigationBarItem(
+            selected = current.isOnTab<VehicleRoute>(),
+            onClick = { navController.navigateToTab(VehicleRoute) },
+            icon = { Icon(painterResource(R.drawable.ic_directions_car), contentDescription = null) },
+            label = { Text(stringResource(R.string.nav_vehicle)) },
+        )
+    }
+}
+
+private inline fun <reified T : Any> NavDestination?.isOnTab(): Boolean = this?.hierarchy?.any { it.hasRoute<T>() } == true
+
+/** Navigiert zu einem Hauptreiter nach dem üblichen Material-Muster für Bottom-Navigation. */
+private inline fun <reified T : Any> NavController.navigateToTab(route: T) {
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
 /**
  * Das [ToursViewModel] der Startseite, damit Detail und Formular dort Snackbar-Meldungen auslösen.
  * Die Startseite liegt als Startziel immer unten im Back Stack.
  */
 @Composable
-private fun NavController.toursViewModel(entry: NavBackStackEntry, repository: TourRepository): ToursViewModel {
+private fun NavController.toursViewModel(
+    entry: NavBackStackEntry,
+    repository: TourRepository,
+    vehicles: VehicleRepository,
+): ToursViewModel {
     val toursEntry = remember(entry) { getBackStackEntry<ToursRoute>() }
-    return viewModel(viewModelStoreOwner = toursEntry) { ToursViewModel(repository) }
+    val context = LocalContext.current
+    return viewModel(viewModelStoreOwner = toursEntry) { ToursViewModel(repository, vehicles, ToursFilterSettings(context)) }
 }
 
 /** Verlässt [entry] nur, solange er sichtbar ist; verhindert doppeltes Zurück bei schnellem Tippen. */

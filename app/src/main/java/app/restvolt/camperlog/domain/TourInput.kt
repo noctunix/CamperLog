@@ -11,6 +11,8 @@ import java.util.Locale
 /** Unvalidierte Eingaben des Tour-Formulars. Zahlen und Beträge liegen als Text vor. */
 @Serializable
 data class TourInput(
+    /** 0 bedeutet beim Speichern „aktuelles Fahrzeug" (das Repository löst das auf). */
+    val vehicleId: Long = 0,
     @Serializable(with = LocalDateSerializer::class) val startDate: LocalDate? = null,
     @Serializable(with = LocalDateSerializer::class) val endDate: LocalDate? = null,
     val destination: String = "",
@@ -111,7 +113,7 @@ fun TourInput.costErrors(locale: Locale): Map<Int, TourError> = buildMap {
 fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
     id = original?.id ?: 0,
     uuid = original?.uuid.orEmpty(),
-    vehicleId = original?.vehicleId ?: 0,
+    vehicleId = vehicleId,
     startDate = checkNotNull(startDate),
     endDate = checkNotNull(endDate),
     destination = destination.trim(),
@@ -140,6 +142,7 @@ fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
  * Ohne Kosten gibt es eine leere Zeile in Euro.
  */
 fun Tour.toInput(locale: Locale): TourInput = TourInput(
+    vehicleId = vehicleId,
     startDate = startDate,
     endDate = endDate,
     destination = destination,

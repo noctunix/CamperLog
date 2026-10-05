@@ -15,7 +15,10 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -59,6 +62,7 @@ import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
@@ -66,6 +70,8 @@ import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.messageRes
+import app.restvolt.camperlog.ui.vehicleDisplayName
+import app.restvolt.camperlog.ui.vehicleMenuLabel
 
 /** Formular zum Anlegen und Bearbeiten einer Tour. [onDone] verlässt es ohne, [onSaved] nach dem Speichern. */
 @Composable
@@ -152,6 +158,9 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionCard {
+            if (state.vehicles.size > 1) {
+                VehicleField(state.vehicles, input.vehicleId, viewModel::onVehicleChange)
+            }
             DateField(
                 stringResource(R.string.field_start_date),
                 input.startDate,
@@ -299,6 +308,39 @@ private fun FormTextField(
         keyboardOptions = keyboardOptions,
         shape = MaterialTheme.shapes.medium,
     )
+}
+
+/** Fahrzeugauswahl des Formulars; wird nur bei mehr als einem Fahrzeug angezeigt. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VehicleField(vehicles: List<Vehicle>, selectedId: Long, onSelect: (Long) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val selected = vehicles.firstOrNull { it.id == selectedId } ?: vehicles.first()
+
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = vehicleDisplayName(selected),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.field_vehicle)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            vehicles.forEach { vehicle ->
+                DropdownMenuItem(
+                    text = { Text(vehicleMenuLabel(vehicle)) },
+                    onClick = {
+                        expanded = false
+                        onSelect(vehicle.id)
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable

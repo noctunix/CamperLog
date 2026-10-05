@@ -15,6 +15,8 @@ import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourInput
 import app.restvolt.camperlog.domain.TourRepository
+import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toTour
 import app.restvolt.camperlog.domain.travelDaysBetween
@@ -36,6 +38,8 @@ data class EditUiState(
     val isLoading: Boolean = false,
     val notFound: Boolean = false,
     val input: TourInput = TourInput(),
+    /** Fahrzeuge für das Auswahlfeld; die Oberfläche zeigt es nur ab zwei Einträgen. */
+    val vehicles: List<Vehicle> = emptyList(),
     val errors: Map<TourField, TourError> = emptyMap(),
     /** Fehler je Kostenzeile, Schlüssel ist der Index in [TourInput.costs]. */
     val costErrors: Map<Int, TourError> = emptyMap(),
@@ -66,6 +70,7 @@ internal data class TourDraft(
  */
 class EditTourViewModel(
     private val repository: TourRepository,
+    private val vehicles: VehicleRepository,
     tourId: Long,
     private val savedStateHandle: SavedStateHandle,
     private val locale: () -> Locale = { app.restvolt.camperlog.domain.supportedLocale(Locale.getDefault()) },
@@ -86,12 +91,22 @@ class EditTourViewModel(
 
     init {
         if (showErrors) _uiState.update { it.withErrors() }
+        viewModelScope.launch {
+            vehicles.observeVehicles().collect { list -> _uiState.update { it.copy(vehicles = list) } }
+        }
         if (tourId == 0L) {
             viewModelScope.launch {
                 val currency = repository.lastUsedCurrency() ?: return@launch
                 // Nur vorbelegen, solange der Nutzer noch nichts eingegeben hat.
                 _uiState.update {
                     if (it.isDirty) it else it.copy(input = it.input.copy(costs = listOf(CostInput(currency = currency))))
+                }
+            }
+            viewModelScope.launch {
+                val currentVehicleId = vehicles.observeCurrentVehicle().first().id
+                // Nur vorbelegen, solange der Nutzer noch nichts eingegeben hat.
+                _uiState.update {
+                    if (it.isDirty) it else it.copy(input = it.input.copy(vehicleId = currentVehicleId))
                 }
             }
         } else {
@@ -135,6 +150,8 @@ class EditTourViewModel(
     private fun onCostChange(index: Int, transform: (CostInput) -> CostInput) = onInputChange { input ->
         input.copy(costs = input.costs.mapIndexed { i, cost -> if (i == index) transform(cost) else cost })
     }
+
+    fun onVehicleChange(vehicleId: Long) = onInputChange { it.copy(vehicleId = vehicleId) }
 
     fun onStartDateChange(date: LocalDate) = onInputChange { prefillTravelDays(it.copy(startDate = date)) }
 

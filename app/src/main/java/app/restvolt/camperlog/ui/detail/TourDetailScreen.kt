@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.share.openInMaps
@@ -46,6 +47,7 @@ import app.restvolt.camperlog.ui.LabeledValue
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
+import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.yesNoRes
 import kotlinx.coroutines.launch
 
@@ -84,6 +86,7 @@ fun TourDetailScreen(
             DetailUiState.NotFound -> EmptyHint(stringResource(R.string.tour_not_found), Modifier.padding(padding))
             is DetailUiState.Loaded -> TourDetails(
                 tour = current.tour,
+                vehicle = current.vehicle,
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize(),
@@ -106,6 +109,7 @@ fun TourDetailScreen(
 @Composable
 private fun TourDetails(
     tour: Tour,
+    vehicle: Vehicle?,
     modifier: Modifier,
     onEdit: () -> Unit,
     onShare: () -> Unit,
@@ -119,6 +123,9 @@ private fun TourDetails(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionCard {
+            if (vehicle != null) {
+                LabeledValue(stringResource(R.string.field_vehicle), vehicleDisplayName(vehicle))
+            }
             LabeledValue(stringResource(R.string.field_start_date), formatDate(tour.startDate, locale))
             LabeledValue(stringResource(R.string.field_end_date), formatDate(tour.endDate, locale))
             LabeledValue(stringResource(R.string.field_destination), tour.destination)

@@ -20,7 +20,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -29,7 +28,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
@@ -42,17 +40,19 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.period
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.TabTopBar
+import app.restvolt.camperlog.ui.VehicleSwitcherTitle
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
+import app.restvolt.camperlog.ui.vehicleDisplayName
 
 /** Startseite: Tourenliste mit Suche, Jahresfilter und Einstieg in Eingabe, Übersicht und Datenverwaltung. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,10 +60,12 @@ import app.restvolt.camperlog.ui.labelRes
 fun ToursScreen(
     viewModel: ToursViewModel,
     onAddTour: () -> Unit,
-    onOpenOverview: () -> Unit,
+    onOpenOverview: (Long?) -> Unit,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenTour: (Long) -> Unit,
+    onOpenVehicles: () -> Unit,
+    bottomBar: @Composable () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val resources = LocalResources.current
@@ -76,11 +78,18 @@ fun ToursScreen(
         topBar = {
             ToursTopBar(
                 scrollBehavior = scrollBehavior,
-                onOpenOverview = onOpenOverview,
+                vehicles = state.vehicles,
+                currentVehicleId = state.currentVehicleId,
+                showAllVehicles = state.showAllVehicles,
+                onSelectVehicle = viewModel::onSelectVehicle,
+                onSelectAllVehicles = viewModel::onSelectAllVehicles,
+                onOpenVehicles = onOpenVehicles,
+                onOpenOverview = { onOpenOverview(if (state.showAllVehicles) null else state.currentVehicleId) },
                 onOpenData = onOpenData,
                 onOpenSettings = onOpenSettings,
             )
         },
+        bottomBar = bottomBar,
         floatingActionButton = {
             // Content-Überladung statt text/icon: Letztere blendet den Text per
             // clearAndSetSemantics aus, dann hätte der FAB für TalkBack keinen Namen.
@@ -116,7 +125,12 @@ fun ToursScreen(
                 !state.hasAnyTour -> item { EmptyHint(stringResource(R.string.tours_empty)) }
                 state.tours.isEmpty() -> item { EmptyHint(stringResource(R.string.tours_no_match)) }
                 else -> items(state.tours, key = Tour::id) { tour ->
-                    TourCard(tour = tour, onClick = { onOpenTour(tour.id) })
+                    val vehicleName = if (state.showAllVehicles) {
+                        vehicleDisplayName(state.vehicles.firstOrNull { it.id == tour.vehicleId })
+                    } else {
+                        null
+                    }
+                    TourCard(tour = tour, vehicleName = vehicleName, onClick = { onOpenTour(tour.id) })
                 }
             }
         }
@@ -147,27 +161,32 @@ fun ToursScreen(
 @Composable
 private fun ToursTopBar(
     scrollBehavior: TopAppBarScrollBehavior,
+    vehicles: List<Vehicle>,
+    currentVehicleId: Long,
+    showAllVehicles: Boolean,
+    onSelectVehicle: (Long) -> Unit,
+    onSelectAllVehicles: () -> Unit,
+    onOpenVehicles: () -> Unit,
     onOpenOverview: () -> Unit,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    TopAppBar(
-        title = { Text(stringResource(R.string.tours_title), modifier = Modifier.semantics { heading() }) },
-        actions = {
-            IconButton(onClick = onOpenOverview) {
-                Icon(painterResource(R.drawable.ic_bar_chart), contentDescription = stringResource(R.string.tours_overview))
-            }
-            IconButton(onClick = onOpenData) {
-                Icon(painterResource(R.drawable.ic_import_export), contentDescription = stringResource(R.string.data_title))
-            }
-            IconButton(onClick = onOpenSettings) {
-                Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.settings_title))
-            }
+    TabTopBar(
+        titleContent = {
+            VehicleSwitcherTitle(
+                vehicles = vehicles,
+                currentVehicleId = currentVehicleId,
+                title = stringResource(R.string.tours_title),
+                showAllVehiclesOption = true,
+                allVehiclesSelected = showAllVehicles,
+                onSelectVehicle = onSelectVehicle,
+                onSelectAllVehicles = onSelectAllVehicles,
+                onManageVehicles = onOpenVehicles,
+            )
         },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.background,
-            titleContentColor = MaterialTheme.colorScheme.primary,
-        ),
+        onOpenOverview = onOpenOverview,
+        onOpenData = onOpenData,
+        onOpenSettings = onOpenSettings,
         scrollBehavior = scrollBehavior,
     )
 }
@@ -203,7 +222,7 @@ private fun YearFilter(years: List<Int>, selected: Int?, onSelect: (Int?) -> Uni
 }
 
 @Composable
-private fun TourCard(tour: Tour, onClick: () -> Unit) {
+private fun TourCard(tour: Tour, vehicleName: String?, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -224,11 +243,12 @@ private fun TourCard(tour: Tour, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    stringResource(R.string.tours_row_meta, tour.year, stringResource(tour.tourType.labelRes)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                val meta = if (vehicleName != null) {
+                    stringResource(R.string.tours_row_meta_vehicle, tour.year, stringResource(tour.tourType.labelRes), vehicleName)
+                } else {
+                    stringResource(R.string.tours_row_meta, tour.year, stringResource(tour.tourType.labelRes))
+                }
+                Text(meta, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

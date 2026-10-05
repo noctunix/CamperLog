@@ -27,12 +27,19 @@ data class OverviewUiState(
     val years: List<Pair<Int, TotalsRow>> = emptyList(),
 )
 
-/** Stellt die per SQL aggregierten Kennzahlen samt Umrechnung in die Hauptwährung bereit. */
-class OverviewViewModel(repository: TourRepository, exchangeRates: ExchangeRateRepository) : ViewModel() {
+/**
+ * Stellt die per SQL aggregierten Kennzahlen samt Umrechnung in die Hauptwährung bereit.
+ * [vehicleId] beschränkt sie auf ein Fahrzeug; `null` zeigt die Kennzahlen aller Fahrzeuge.
+ */
+class OverviewViewModel(
+    repository: TourRepository,
+    exchangeRates: ExchangeRateRepository,
+    vehicleId: Long? = null,
+) : ViewModel() {
 
     val uiState: StateFlow<OverviewUiState> = combine(
-        repository.observeTotals(),
-        repository.observeYearTotals(),
+        repository.observeTotals(vehicleId),
+        repository.observeYearTotals(vehicleId),
         exchangeRates.observeMainCurrency(),
         exchangeRates.observeRates(),
     ) { total, years, main, rates ->
