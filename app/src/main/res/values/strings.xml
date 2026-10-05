@@ -370,4 +370,28 @@
     <string name="vehicles_delete_refused_last_text">This is the last remaining vehicle. CamperLog needs at least one.</string>
     <string name="vehicles_deleted">%1$s deleted</string>
     <string name="vehicles_delete_failed">Could not delete vehicle.</string>
+
+    <!-- Logbook -->
+    <string name="log_type_cassette_emptied">Cassette emptied</string>
+    <string name="log_type_grey_water_emptied">Grey water emptied</string>
+    <string name="log_type_diesel_heater_run">Diesel heater run</string>
+    <string name="log_type_gas_heater_run">Gas heater run</string>
+    <string name="logbook_today">Today</string>
+    <string name="logbook_yesterday">Yesterday</string>
+    <plurals name="logbook_days_ago">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
+    <string name="logbook_not_recorded">Not recorded yet</string>
+    <string name="logbook_other_date">Other date…</string>
+    <string name="logbook_open_history">History</string>
+    <string name="logbook_recorded_today">%1$s recorded for today</string>
+    <string name="logbook_recorded_on">%1$s recorded for %2$s</string>
+    <string name="logbook_record_failed">Could not save the entry.</string>
+    <string name="logbook_record_undo_failed">Could not undo the entry.</string>
+    <string name="logbook_delete_entry">Delete entry from %1$s</string>
+    <string name="logbook_entry_deleted">Entry deleted</string>
+    <string name="logbook_delete_failed">Could not delete entry.</string>
+    <string name="logbook_restore_failed">Could not restore entry.</string>
+    <string name="logbook_history_empty">No entries yet.</string>
 </resources>

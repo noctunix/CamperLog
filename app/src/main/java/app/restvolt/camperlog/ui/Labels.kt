@@ -7,6 +7,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.LogRecency
+import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.MAX_BATTERY_AH
 import app.restvolt.camperlog.domain.MAX_DIMENSION_M
@@ -105,6 +107,32 @@ fun TourError.messageRes(field: TourField): Int = when (this) {
     TourError.AMOUNT_TOO_LARGE -> R.string.error_amount_too_large
     TourError.MORE_NIGHTS_THAN_DAYS -> R.string.error_more_nights_than_days
     TourError.NOT_A_WEB_LINK -> R.string.error_not_a_web_link
+}
+
+/** Anzeigename der Bordbuch-Art. */
+@get:StringRes
+val LogType.labelRes: Int
+    get() = when (this) {
+        LogType.CASSETTE_EMPTIED -> R.string.log_type_cassette_emptied
+        LogType.GREY_WATER_EMPTIED -> R.string.log_type_grey_water_emptied
+        LogType.DIESEL_HEATER_RUN -> R.string.log_type_diesel_heater_run
+        LogType.GAS_HEATER_RUN -> R.string.log_type_gas_heater_run
+    }
+
+/** Anzeigetext der zeitlichen Einordnung, z. B. „Heute" oder „vor 3 Tagen". */
+@Composable
+fun LogRecency.text(): String = when (this) {
+    LogRecency.Today -> stringResource(R.string.logbook_today)
+    LogRecency.Yesterday -> stringResource(R.string.logbook_yesterday)
+    is LogRecency.DaysAgo -> pluralStringResource(R.plurals.logbook_days_ago, days, days)
+}
+
+/** Datum eines Bordbuch-Eintrags als „Heute"/„Gestern" oder „vor x Tagen · <Datum>". */
+@Composable
+fun logDateText(date: LocalDate, today: LocalDate, locale: Locale): String {
+    val recency = app.restvolt.camperlog.domain.logRecency(date, today)
+    val recencyText = recency.text()
+    return if (recency is LogRecency.DaysAgo) "$recencyText · ${formatDate(date, locale)}" else recencyText
 }
 
 /** Anzeigename eines Fahrzeugs; ein leerer Name wird als „Mein Wohnmobil" angezeigt. */

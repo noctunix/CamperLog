@@ -34,6 +34,8 @@ import androidx.navigation.toRoute
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.domain.ExchangeRateRepository
+import app.restvolt.camperlog.domain.LogRepository
+import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.dueReminders
@@ -48,7 +50,10 @@ import app.restvolt.camperlog.ui.edit.EditVehicleScreen
 import app.restvolt.camperlog.ui.edit.EditVehicleViewModel
 import app.restvolt.camperlog.ui.edit.RepairEditScreen
 import app.restvolt.camperlog.ui.edit.RepairEditViewModel
+import app.restvolt.camperlog.ui.logbook.LogHistoryScreen
+import app.restvolt.camperlog.ui.logbook.LogHistoryViewModel
 import app.restvolt.camperlog.ui.logbook.LogbookScreen
+import app.restvolt.camperlog.ui.logbook.LogbookViewModel
 import app.restvolt.camperlog.ui.overview.OverviewScreen
 import app.restvolt.camperlog.ui.overview.OverviewViewModel
 import app.restvolt.camperlog.ui.rates.RateEditScreen
@@ -73,6 +78,10 @@ internal object ToursRoute
 
 @Serializable
 internal object LogbookRoute
+
+/** Verlauf einer Bordbuch-Art eines Fahrzeugs. */
+@Serializable
+internal data class LogHistoryRoute(val vehicleId: Long, val type: LogType)
 
 @Serializable
 internal object VehicleRoute
@@ -117,6 +126,7 @@ internal data class RateEditRoute(val currencyCode: String? = null)
 fun CamperLogNavHost(
     repository: TourRepository,
     vehicles: VehicleRepository,
+    logbook: LogRepository,
     exchangeRates: ExchangeRateRepository,
     backupImporter: BackupImporter,
     themeMode: ThemeMode,
@@ -150,11 +160,19 @@ fun CamperLogNavHost(
         }
         composable<LogbookRoute> {
             LogbookScreen(
-                viewModel = viewModel { VehicleSwitcherViewModel(vehicles) },
+                viewModel = viewModel { LogbookViewModel(logbook, vehicles) },
+                onOpenHistory = { vehicleId, type -> navController.navigate(LogHistoryRoute(vehicleId, type)) },
                 onOpenData = { navController.navigate(DataRoute) },
                 onOpenSettings = { navController.navigate(SettingsRoute) },
                 onOpenVehicles = { navController.navigate(VehiclesRoute) },
                 bottomBar = bottomBar,
+            )
+        }
+        composable<LogHistoryRoute> { entry ->
+            val route = entry.toRoute<LogHistoryRoute>()
+            LogHistoryScreen(
+                viewModel = viewModel { LogHistoryViewModel(logbook, route.vehicleId, route.type) },
+                onBack = { navController.popFrom(entry) },
             )
         }
         composable<VehicleRoute> {

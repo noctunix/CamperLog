@@ -370,4 +370,28 @@
     <string name="vehicles_delete_refused_last_text">Das ist das letzte verbleibende Fahrzeug. CamperLog benötigt mindestens eines.</string>
     <string name="vehicles_deleted">%1$s gelöscht</string>
     <string name="vehicles_delete_failed">Fahrzeug konnte nicht gelöscht werden.</string>
+
+    <!-- Bordbuch -->
+    <string name="log_type_cassette_emptied">Kassette geleert</string>
+    <string name="log_type_grey_water_emptied">Grauwasser abgelassen</string>
+    <string name="log_type_diesel_heater_run">Dieselheizung betrieben</string>
+    <string name="log_type_gas_heater_run">Gasheizung betrieben</string>
+    <string name="logbook_today">Heute</string>
+    <string name="logbook_yesterday">Gestern</string>
+    <plurals name="logbook_days_ago">
+        <item quantity="one">vor %1$d Tag</item>
+        <item quantity="other">vor %1$d Tagen</item>
+    </plurals>
+    <string name="logbook_not_recorded">Noch nicht erfasst</string>
+    <string name="logbook_other_date">Anderes Datum…</string>
+    <string name="logbook_open_history">Verlauf</string>
+    <string name="logbook_recorded_today">%1$s für heute erfasst</string>
+    <string name="logbook_recorded_on">%1$s für %2$s erfasst</string>
+    <string name="logbook_record_failed">Eintrag konnte nicht gespeichert werden.</string>
+    <string name="logbook_record_undo_failed">Eintrag konnte nicht rückgängig gemacht werden.</string>
+    <string name="logbook_delete_entry">Eintrag vom %1$s löschen</string>
+    <string name="logbook_entry_deleted">Eintrag gelöscht</string>
+    <string name="logbook_delete_failed">Eintrag konnte nicht gelöscht werden.</string>
+    <string name="logbook_restore_failed">Eintrag konnte nicht wiederhergestellt werden.</string>
+    <string name="logbook_history_empty">Noch keine Einträge.</string>
 </resources>
