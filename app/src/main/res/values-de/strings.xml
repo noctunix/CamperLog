@@ -238,4 +238,83 @@
     <string name="import_error_newer_version">Diese Sicherung stammt aus einer neueren CamperLog-Version. Bitte aktualisiere die App.</string>
     <string name="import_error_invalid">Die Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
     <string name="import_error_invalid_tour">Tour %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
+
+    <!-- Fahrzeugfelder -->
+    <string name="field_name">Name</string>
+    <string name="field_license_plate">Kennzeichen</string>
+    <string name="field_manufacturer">Hersteller</string>
+    <string name="field_model">Modell</string>
+    <string name="field_vin">Fahrgestellnummer (FIN)</string>
+    <string name="field_first_registration">Erstzulassung</string>
+    <string name="field_purchase_date">Kaufdatum</string>
+    <string name="field_purchase_price">Kaufpreis</string>
+    <string name="field_purchase_odometer">km-Stand bei Kauf</string>
+    <string name="field_sale_date">Verkaufsdatum</string>
+    <string name="field_sale_price">Verkaufspreis</string>
+    <string name="field_insurer">Versicherer</string>
+    <string name="field_insurance_policy_number">Versicherungsnummer</string>
+    <string name="field_insurance_premium">Jahresbeitrag</string>
+    <string name="field_vehicle_tax">Kfz-Steuer pro Jahr</string>
+    <string name="field_length">Länge</string>
+    <string name="field_width">Breite</string>
+    <string name="field_height">Höhe</string>
+    <string name="field_gross_weight">zul. Gesamtgewicht</string>
+    <string name="field_power">Leistung</string>
+    <string name="field_tire_size">Reifengröße</string>
+    <string name="field_tire_pressure_front">Reifendruck vorne</string>
+    <string name="field_tire_pressure_rear">Reifendruck hinten</string>
+    <string name="field_fuel_tank">Diesel</string>
+    <string name="field_ad_blue_tank">AdBlue</string>
+    <string name="field_fresh_water_tank">Frischwasser</string>
+    <string name="field_grey_water_tank">Grauwasser</string>
+    <string name="field_boiler">Boiler</string>
+    <string name="field_cassette">Kassette</string>
+    <string name="field_battery_capacity">Batteriekapazität</string>
+    <string name="field_solar_power">Solarleistung</string>
+    <string name="field_amount_with_currency">%1$s (%2$s)</string>
+
+    <!-- Abschnitte des Fahrzeugformulars -->
+    <string name="section_general">Allgemein</string>
+    <string name="section_purchase_sale">Kauf &amp; Verkauf</string>
+    <string name="section_insurance_tax">Versicherung &amp; Steuer</string>
+    <string name="section_dimensions_weight">Abmessungen &amp; Gewicht</string>
+    <string name="section_engine">Motor</string>
+    <string name="section_tires">Reifen</string>
+    <string name="section_tanks">Tanks</string>
+    <string name="section_energy">Energie</string>
+
+    <!-- Validierung Fahrzeug -->
+    <string name="error_vehicle_name_required">Name erforderlich</string>
+    <string name="error_first_registration_future">Erstzulassung darf nicht in der Zukunft liegen</string>
+    <string name="error_sale_before_purchase">Verkaufsdatum liegt vor dem Kaufdatum</string>
+    <string name="error_must_be_positive">Muss größer als 0 %1$s sein</string>
+    <string name="error_value_too_large">Wert zu groß, höchstens %1$s</string>
+
+    <!-- Datenblatt Fahrzeug -->
+    <string name="vehicle_not_found">Dieses Fahrzeug existiert nicht mehr.</string>
+    <string name="vehicle_edit_action">Fahrzeug bearbeiten</string>
+    <string name="vehicle_sheet_empty_hint">Noch keine Angaben erfasst.</string>
+    <string name="vehicle_sheet_add_details">Details hinzufügen</string>
+    <string name="vehicle_sold_on">Verkauft am %1$s</string>
+
+    <!-- Fahrzeugformular -->
+    <string name="vehicle_edit_title_new">Neues Fahrzeug</string>
+    <string name="vehicle_edit_title_existing">Fahrzeug bearbeiten</string>
+    <string name="vehicle_edit_save_failed">Fahrzeug konnte nicht gespeichert werden.</string>
+
+    <!-- Fahrzeuge verwalten -->
+    <string name="vehicles_add">Fahrzeug hinzufügen</string>
+    <string name="vehicles_empty">Noch keine Fahrzeuge.</string>
+    <string name="vehicles_row_actions">Weitere Aktionen für %1$s</string>
+    <string name="vehicles_set_current">Als aktuell festlegen</string>
+    <string name="vehicles_delete">Löschen</string>
+    <string name="vehicles_current_label">Aktuell</string>
+    <string name="vehicles_sold_label">Verkauft</string>
+    <string name="vehicles_delete_confirm_title">Fahrzeug löschen?</string>
+    <string name="vehicles_delete_confirm_text">%1$s wird mit allen Daten unwiderruflich gelöscht.</string>
+    <string name="vehicles_delete_refused_title">Fahrzeug kann nicht gelöscht werden</string>
+    <string name="vehicles_delete_refused_tours_text">%1$s hat noch zugeordnete Touren. Verschiebe oder lösche sie zuerst.</string>
+    <string name="vehicles_delete_refused_last_text">Das ist das letzte verbleibende Fahrzeug. CamperLog benötigt mindestens eines.</string>
+    <string name="vehicles_deleted">%1$s gelöscht</string>
+    <string name="vehicles_delete_failed">Fahrzeug konnte nicht gelöscht werden.</string>
 </resources>

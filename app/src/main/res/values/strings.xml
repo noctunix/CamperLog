@@ -238,4 +238,83 @@
     <string name="import_error_newer_version">This backup was created by a newer version of CamperLog. Please update the app.</string>
     <string name="import_error_invalid">The backup contains invalid data. Nothing was changed.</string>
     <string name="import_error_invalid_tour">Tour %1$d in the backup contains invalid data. Nothing was changed.</string>
+
+    <!-- Vehicle fields -->
+    <string name="field_name">Name</string>
+    <string name="field_license_plate">License plate</string>
+    <string name="field_manufacturer">Manufacturer</string>
+    <string name="field_model">Model</string>
+    <string name="field_vin">VIN</string>
+    <string name="field_first_registration">First registration</string>
+    <string name="field_purchase_date">Purchase date</string>
+    <string name="field_purchase_price">Purchase price</string>
+    <string name="field_purchase_odometer">Odometer at purchase</string>
+    <string name="field_sale_date">Sale date</string>
+    <string name="field_sale_price">Sale price</string>
+    <string name="field_insurer">Insurer</string>
+    <string name="field_insurance_policy_number">Policy number</string>
+    <string name="field_insurance_premium">Annual premium</string>
+    <string name="field_vehicle_tax">Annual vehicle tax</string>
+    <string name="field_length">Length</string>
+    <string name="field_width">Width</string>
+    <string name="field_height">Height</string>
+    <string name="field_gross_weight">Gross weight</string>
+    <string name="field_power">Power</string>
+    <string name="field_tire_size">Tyre size</string>
+    <string name="field_tire_pressure_front">Tyre pressure front</string>
+    <string name="field_tire_pressure_rear">Tyre pressure rear</string>
+    <string name="field_fuel_tank">Diesel tank</string>
+    <string name="field_ad_blue_tank">AdBlue tank</string>
+    <string name="field_fresh_water_tank">Fresh water</string>
+    <string name="field_grey_water_tank">Grey water</string>
+    <string name="field_boiler">Boiler</string>
+    <string name="field_cassette">Cassette</string>
+    <string name="field_battery_capacity">Battery capacity</string>
+    <string name="field_solar_power">Solar power</string>
+    <string name="field_amount_with_currency">%1$s (%2$s)</string>
+
+    <!-- Vehicle form sections -->
+    <string name="section_general">General</string>
+    <string name="section_purchase_sale">Purchase &amp; sale</string>
+    <string name="section_insurance_tax">Insurance &amp; tax</string>
+    <string name="section_dimensions_weight">Dimensions &amp; weight</string>
+    <string name="section_engine">Engine</string>
+    <string name="section_tires">Tyres</string>
+    <string name="section_tanks">Tanks</string>
+    <string name="section_energy">Energy</string>
+
+    <!-- Vehicle validation -->
+    <string name="error_vehicle_name_required">Name required</string>
+    <string name="error_first_registration_future">First registration cannot be in the future</string>
+    <string name="error_sale_before_purchase">Sale date is before the purchase date</string>
+    <string name="error_must_be_positive">Must be greater than 0 %1$s</string>
+    <string name="error_value_too_large">Value too large, at most %1$s</string>
+
+    <!-- Vehicle sheet -->
+    <string name="vehicle_not_found">This vehicle no longer exists.</string>
+    <string name="vehicle_edit_action">Edit vehicle</string>
+    <string name="vehicle_sheet_empty_hint">No details recorded yet.</string>
+    <string name="vehicle_sheet_add_details">Add details</string>
+    <string name="vehicle_sold_on">Sold on %1$s</string>
+
+    <!-- Vehicle form -->
+    <string name="vehicle_edit_title_new">New vehicle</string>
+    <string name="vehicle_edit_title_existing">Edit vehicle</string>
+    <string name="vehicle_edit_save_failed">Could not save vehicle.</string>
+
+    <!-- Manage vehicles -->
+    <string name="vehicles_add">Add vehicle</string>
+    <string name="vehicles_empty">No vehicles yet.</string>
+    <string name="vehicles_row_actions">More actions for %1$s</string>
+    <string name="vehicles_set_current">Set as current</string>
+    <string name="vehicles_delete">Delete</string>
+    <string name="vehicles_current_label">Current</string>
+    <string name="vehicles_sold_label">Sold</string>
+    <string name="vehicles_delete_confirm_title">Delete vehicle?</string>
+    <string name="vehicles_delete_confirm_text">%1$s and all its data will be deleted permanently.</string>
+    <string name="vehicles_delete_refused_title">Cannot delete vehicle</string>
+    <string name="vehicles_delete_refused_tours_text">%1$s still has tours assigned. Move or delete them first.</string>
+    <string name="vehicles_delete_refused_last_text">This is the last remaining vehicle. CamperLog needs at least one.</string>
+    <string name="vehicles_deleted">%1$s deleted</string>
+    <string name="vehicles_delete_failed">Could not delete vehicle.</string>
 </resources>
