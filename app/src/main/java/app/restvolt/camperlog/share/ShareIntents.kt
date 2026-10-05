@@ -159,7 +159,7 @@ internal fun mapIntents(tour: Tour): List<Intent> = buildList {
 private fun browsable(uri: Uri) = Intent(Intent.ACTION_VIEW, uri).addCategory(Intent.CATEGORY_BROWSABLE)
 
 /** Startet [intent]; fehlende Ziel-App oder verweigerte Berechtigung ergeben `false` statt Absturz. */
-private fun Context.tryStart(intent: Intent): Boolean = try {
+internal fun Context.tryStart(intent: Intent): Boolean = try {
     startActivity(intent)
     true
 } catch (_: ActivityNotFoundException) {
