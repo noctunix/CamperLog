@@ -193,7 +193,7 @@ private fun decodeUtf8(bytes: ByteBuffer): BackupReadResult {
     } catch (_: CharacterCodingException) {
         return BackupReadResult.Failure(BackupError.NOT_A_BACKUP)
     }
-    return decodeBackup(text.removePrefix("﻿"))
+    return decodeBackup(text.removePrefix("\uFEFF"))
 }
 
 /** Gibt den internen Puffer ohne Kopie frei, damit große Dateien nur einmal im Speicher liegen. */
