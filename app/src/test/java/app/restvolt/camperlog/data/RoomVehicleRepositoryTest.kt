@@ -10,8 +10,12 @@ import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleDeleteResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -51,6 +55,16 @@ class RoomVehicleRepositoryTest {
         assertEquals("", current.name)
         assertEquals(4, UUID.fromString(current.uuid).version())
         assertEquals(listOf(current), repository.observeVehicles().first())
+    }
+
+    @Test
+    fun concurrentFirstAccessCreatesOnlyOneVehicle() = runTest {
+        val currents = withContext(Dispatchers.Default) {
+            List(8) { async { repository.observeCurrentVehicle().first() } }.awaitAll()
+        }
+
+        assertEquals(1, repository.observeVehicles().first().size)
+        assertEquals(1, currents.map { it.id }.distinct().size)
     }
 
     @Test

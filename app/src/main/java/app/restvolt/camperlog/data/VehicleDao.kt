@@ -42,6 +42,18 @@ interface VehicleDao {
     @Query("SELECT id FROM vehicles ORDER BY id ASC LIMIT 1")
     suspend fun lowestVehicleId(): Long?
 
+    /**
+     * Legt ein Fahrzeug mit leerem Namen an, falls es noch keines gibt. Eine einzige Anweisung,
+     * damit gleichzeitige Aufrufe (mehrere Screens beim ersten Start) nicht mehrere Fahrzeuge anlegen.
+     */
+    @Query(
+        "INSERT INTO vehicles (uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
+            "insurance_policy_number, tire_size, created_at, updated_at) " +
+            "SELECT :uuid, '', '', '', '', '', '', '', '', '', :nowMillis, :nowMillis " +
+            "WHERE NOT EXISTS (SELECT 1 FROM vehicles)",
+    )
+    suspend fun insertDefaultIfNone(uuid: String, nowMillis: Long)
+
     @Query("SELECT current_vehicle_id FROM settings WHERE id = $SETTINGS_ID")
     fun observeCurrentVehicleId(): Flow<Long?>
 
@@ -82,5 +94,6 @@ internal suspend fun VehicleDao.resolveCurrentVehicleId(now: Instant, newUuid: (
     val currentId = getCurrentVehicleId()
     if (currentId != null && vehicleExists(currentId)) return currentId
     lowestVehicleId()?.let { return it }
-    return insert(VehicleEntity(uuid = newUuid(), createdAtMillis = now.toEpochMilli(), updatedAtMillis = now.toEpochMilli()))
+    insertDefaultIfNone(newUuid(), now.toEpochMilli())
+    return checkNotNull(lowestVehicleId())
 }
