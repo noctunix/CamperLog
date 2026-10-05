@@ -3,4 +3,4 @@
 • Bordbuch-Tab: Kassette, Grauwasser und Heizung mit einem Tipp erfassen
 • Erinnerungen für TÜV, Gasprüfung und Ölwechsel
 • Reparaturverzeichnis mit Kosten und Kilometerstand
-• Info-Bildschirm mit Feedback, Unterstützung und Quellcode
+• „Über CamperLog“ mit Feedback, Unterstützung und Quellcode
