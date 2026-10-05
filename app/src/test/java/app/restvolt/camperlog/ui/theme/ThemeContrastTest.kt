@@ -33,6 +33,8 @@ class ThemeContrastTest {
         // Erinnerungskarten im Fahrzeug-Reiter: überfällig in errorContainer, fällig in tertiaryContainer.
         assertContrast("Text in überfälliger Erinnerung", scheme.onErrorContainer, scheme.errorContainer, 4.5)
         assertContrast("Text in bald fälliger Erinnerung", scheme.onTertiaryContainer, scheme.tertiaryContainer, 4.5)
+        assertContrast("Text auf Tonal-Button", scheme.onSecondaryContainer, scheme.secondaryContainer, 4.5)
+        assertContrast("Text in Primär-Container", scheme.onPrimaryContainer, scheme.primaryContainer, 4.5)
     }
 
     @Test

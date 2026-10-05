@@ -12,56 +12,68 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-private val NavyBlue = Color(0xFF0F2D52)
-private val GreyBlue = Color(0xFF5B6B82)
+/** Markenfarbe der App-Familie (auch Logo). Auf hellem Grund zu kontrastarm für Text, daher dort [AzureOnLight]. */
+private val Azure = Color(0xFF0099FF)
+private val AzureOnLight = Color(0xFF0A63C0)
+private val DeepNavy = Color(0xFF0D1B2A)
+private val GreyBlue = Color(0xFF55657A)
 
 internal val LightColors = lightColorScheme(
-    primary = NavyBlue,
+    primary = AzureOnLight,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFD6E3F5),
-    onPrimaryContainer = NavyBlue,
+    primaryContainer = Color(0xFFD3E6FF),
+    onPrimaryContainer = Color(0xFF00305E),
     secondary = GreyBlue,
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFDDE5F0),
-    onSecondaryContainer = NavyBlue,
-    background = Color(0xFFF4F6FA),
-    onBackground = Color(0xFF14202E),
-    surface = Color(0xFFF4F6FA),
-    onSurface = Color(0xFF14202E),
+    secondaryContainer = Color(0xFFDCE6F2),
+    onSecondaryContainer = DeepNavy,
+    // Bernstein für „bald fällig“, damit es sich von Fehlern (rot) und der Markenfarbe abhebt.
+    tertiary = Color(0xFF7A5900),
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFFFE6B8),
+    onTertiaryContainer = Color(0xFF3D2A00),
+    background = Color(0xFFF4F7FB),
+    onBackground = DeepNavy,
+    surface = Color(0xFFF4F7FB),
+    onSurface = DeepNavy,
     surfaceContainerLowest = Color.White,
     surfaceContainerLow = Color.White,
-    surfaceContainer = Color(0xFFEDF1F7),
-    surfaceContainerHigh = Color(0xFFE7ECF4),
-    surfaceContainerHighest = Color(0xFFE1E7F0),
+    surfaceContainer = Color(0xFFECF2F9),
+    surfaceContainerHigh = Color(0xFFE5EDF6),
+    surfaceContainerHighest = Color(0xFFDEE7F1),
     onSurfaceVariant = GreyBlue,
     // Mindestens 3:1 zu Karten und Hintergrund, damit Feld- und Segmentrahmen erkennbar sind.
-    outline = Color(0xFF6E7D94),
-    outlineVariant = Color(0xFFCCD5E1),
+    outline = Color(0xFF6A7B90),
+    outlineVariant = Color(0xFFC9D5E3),
     error = Color(0xFFB3261E),
 )
 
-/** Dunkles Gegenstück: helles Blau als Akzent, Karten heben sich leicht vom Hintergrund ab. */
+/** Dunkles Gegenstück mit der Markenfarbe selbst als Akzent; Karten heben sich leicht vom Hintergrund ab. */
 internal val DarkColors = darkColorScheme(
-    primary = Color(0xFFA9C7F0),
-    onPrimary = NavyBlue,
-    primaryContainer = Color(0xFF24446E),
-    onPrimaryContainer = Color(0xFFD6E3F5),
-    secondary = Color(0xFFBCC7D9),
-    onSecondary = Color(0xFF263142),
-    secondaryContainer = Color(0xFF3C4759),
-    onSecondaryContainer = Color(0xFFDDE5F0),
-    background = Color(0xFF10161F),
-    onBackground = Color(0xFFE1E6EE),
-    surface = Color(0xFF10161F),
-    onSurface = Color(0xFFE1E6EE),
-    surfaceContainerLowest = Color(0xFF19212D),
-    surfaceContainerLow = Color(0xFF19212D),
-    surfaceContainer = Color(0xFF1E2734),
-    surfaceContainerHigh = Color(0xFF242E3C),
-    surfaceContainerHighest = Color(0xFF2C3746),
-    onSurfaceVariant = Color(0xFFB4C0D0),
-    outline = Color(0xFF8794A8),
-    outlineVariant = Color(0xFF3C4759),
+    primary = Azure,
+    onPrimary = Color(0xFF001E3C),
+    primaryContainer = Color(0xFF004A86),
+    onPrimaryContainer = Color(0xFFD3E6FF),
+    secondary = Color(0xFFB8C6D8),
+    onSecondary = Color(0xFF22303F),
+    secondaryContainer = Color(0xFF384757),
+    onSecondaryContainer = Color(0xFFDCE6F2),
+    tertiary = Color(0xFFF2C46B),
+    onTertiary = Color(0xFF402D00),
+    tertiaryContainer = Color(0xFF5C4300),
+    onTertiaryContainer = Color(0xFFFFE6B8),
+    background = Color(0xFF0E141B),
+    onBackground = Color(0xFFE0E6EE),
+    surface = Color(0xFF0E141B),
+    onSurface = Color(0xFFE0E6EE),
+    surfaceContainerLowest = Color(0xFF172029),
+    surfaceContainerLow = Color(0xFF172029),
+    surfaceContainer = Color(0xFF1C2631),
+    surfaceContainerHigh = Color(0xFF222D39),
+    surfaceContainerHighest = Color(0xFF2A3644),
+    onSurfaceVariant = Color(0xFFB3C0D0),
+    outline = Color(0xFF8593A7),
+    outlineVariant = Color(0xFF384757),
     error = Color(0xFFF2B8B5),
     onError = Color(0xFF601410),
 )
@@ -81,7 +93,7 @@ private val shapes = Shapes(
     large = RoundedCornerShape(20.dp),
 )
 
-/** App-Theme mit dunkelblauer Primärfarbe; folgt standardmäßig dem hellen/dunklen Systemmodus. */
+/** App-Theme in der Markenfarbe Azurblau; folgt standardmäßig dem hellen/dunklen Systemmodus. */
 @Composable
 fun CamperLogTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     MaterialTheme(
