@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
@@ -11,6 +12,7 @@ import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.Vehicle
 import java.util.Locale
 
 /** Aktuelle Sprache der App für Datums- und Zahlenformate; ein Sprachwechsel löst Neukomposition aus. */
@@ -86,4 +88,16 @@ fun TourError.messageRes(field: TourField): Int = when (this) {
     TourError.AMOUNT_TOO_LARGE -> R.string.error_amount_too_large
     TourError.MORE_NIGHTS_THAN_DAYS -> R.string.error_more_nights_than_days
     TourError.NOT_A_WEB_LINK -> R.string.error_not_a_web_link
+}
+
+/** Anzeigename eines Fahrzeugs; ein leerer Name wird als „Mein Wohnmobil" angezeigt. */
+@Composable
+fun vehicleDisplayName(vehicle: Vehicle?): String =
+    vehicle?.name?.takeIf(String::isNotBlank) ?: stringResource(R.string.vehicle_default_name)
+
+/** Anzeigename für Auswahllisten; verkaufte Fahrzeuge erhalten einen Zusatz. */
+@Composable
+fun vehicleMenuLabel(vehicle: Vehicle): String {
+    val name = vehicleDisplayName(vehicle)
+    return if (vehicle.isSold) stringResource(R.string.vehicle_sold_label, name) else name
 }

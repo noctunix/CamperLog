@@ -12,6 +12,22 @@
     <string name="no_share_app">No app available for sharing</string>
     <string name="distance_km">%1$d km</string>
 
+    <!-- Bottom navigation -->
+    <string name="nav_tours">Tours</string>
+    <string name="nav_logbook">Logbook</string>
+    <string name="nav_vehicle">Vehicle</string>
+
+    <!-- Vehicle switcher -->
+    <string name="vehicle_default_name">My camper</string>
+    <string name="vehicle_sold_label">%1$s (sold)</string>
+    <string name="vehicle_switcher_all_vehicles">All vehicles</string>
+    <string name="vehicle_switcher_manage">Manage vehicles</string>
+    <string name="vehicle_switcher_description">%1$s, change vehicle</string>
+    <string name="logbook_title">Logbook</string>
+    <string name="vehicle_title">Vehicle</string>
+    <string name="vehicles_manage_title">Manage vehicles</string>
+    <string name="field_vehicle">Vehicle</string>
+
     <!-- Field labels -->
     <string name="field_start_date">Start date</string>
     <string name="field_end_date">End date</string>
@@ -63,6 +79,7 @@
     <string name="tours_all_years">All years</string>
     <string name="tours_open_details">Open details</string>
     <string name="tours_row_meta">Year %1$d · %2$s</string>
+    <string name="tours_row_meta_vehicle">Year %1$d · %2$s · %3$s</string>
     <string name="tours_empty">No tours yet. Tap “New tour” to add your first trip.</string>
     <string name="tours_no_match">No tours match your search and filters.</string>
     <string name="tours_deleted">“%1$s” deleted</string>

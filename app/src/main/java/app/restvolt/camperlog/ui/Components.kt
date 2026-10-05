@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -44,6 +45,42 @@ fun BackTopBar(title: String, onBack: () -> Unit, actions: @Composable () -> Uni
             containerColor = MaterialTheme.colorScheme.background,
             titleContentColor = MaterialTheme.colorScheme.primary,
         ),
+    )
+}
+
+/**
+ * Obere Leiste der drei Hauptreiter: [titleContent] zeigt Titel oder Fahrzeugwechsler,
+ * [onOpenOverview] ist nur auf dem Touren-Reiter gesetzt.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TabTopBar(
+    titleContent: @Composable () -> Unit,
+    onOpenData: () -> Unit,
+    onOpenSettings: () -> Unit,
+    scrollBehavior: TopAppBarScrollBehavior? = null,
+    onOpenOverview: (() -> Unit)? = null,
+) {
+    TopAppBar(
+        title = titleContent,
+        actions = {
+            if (onOpenOverview != null) {
+                IconButton(onClick = onOpenOverview) {
+                    Icon(painterResource(R.drawable.ic_bar_chart), contentDescription = stringResource(R.string.tours_overview))
+                }
+            }
+            IconButton(onClick = onOpenData) {
+                Icon(painterResource(R.drawable.ic_import_export), contentDescription = stringResource(R.string.data_title))
+            }
+            IconButton(onClick = onOpenSettings) {
+                Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.settings_title))
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.primary,
+        ),
+        scrollBehavior = scrollBehavior,
     )
 }
 

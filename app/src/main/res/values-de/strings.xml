@@ -12,6 +12,22 @@
     <string name="no_share_app">Keine App zum Teilen gefunden</string>
     <string name="distance_km">%1$d km</string>
 
+    <!-- Untere Navigation -->
+    <string name="nav_tours">Touren</string>
+    <string name="nav_logbook">Bordbuch</string>
+    <string name="nav_vehicle">Fahrzeug</string>
+
+    <!-- Fahrzeugwechsler -->
+    <string name="vehicle_default_name">Mein Wohnmobil</string>
+    <string name="vehicle_sold_label">%1$s (verkauft)</string>
+    <string name="vehicle_switcher_all_vehicles">Alle Fahrzeuge</string>
+    <string name="vehicle_switcher_manage">Fahrzeuge verwalten</string>
+    <string name="vehicle_switcher_description">%1$s, Fahrzeug wechseln</string>
+    <string name="logbook_title">Bordbuch</string>
+    <string name="vehicle_title">Fahrzeug</string>
+    <string name="vehicles_manage_title">Fahrzeuge verwalten</string>
+    <string name="field_vehicle">Fahrzeug</string>
+
     <!-- Field labels -->
     <string name="field_start_date">Startdatum</string>
     <string name="field_end_date">Enddatum</string>
@@ -63,6 +79,7 @@
     <string name="tours_all_years">Alle Jahre</string>
     <string name="tours_open_details">Details öffnen</string>
     <string name="tours_row_meta">Jahr %1$d · %2$s</string>
+    <string name="tours_row_meta_vehicle">Jahr %1$d · %2$s · %3$s</string>
     <string name="tours_empty">Noch keine Touren. Lege mit „Neue Tour“ die erste Fahrt an.</string>
     <string name="tours_no_match">Keine Tour passt zu Suche und Filter.</string>
     <string name="tours_deleted">„%1$s“ gelöscht</string>
