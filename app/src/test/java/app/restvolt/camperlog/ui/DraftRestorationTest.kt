@@ -13,7 +13,10 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.VehicleError
+import app.restvolt.camperlog.domain.VehicleField
 import app.restvolt.camperlog.ui.edit.EditTourViewModel
+import app.restvolt.camperlog.ui.edit.EditVehicleViewModel
 import app.restvolt.camperlog.ui.rates.RateEditViewModel
 import app.restvolt.camperlog.ui.rates.RateError
 import kotlinx.coroutines.Dispatchers
@@ -209,6 +212,57 @@ class DraftRestorationTest {
         before.save()
         assertTrue(before.uiState.value.isSaved)
 
+        assertTrue(handle.keys().isEmpty())
+    }
+
+    @Test
+    fun newVehicleInputSurvivesProcessDeath() {
+        val repository = FakeVehicleRepository()
+        val handle = SavedStateHandle()
+        val before = EditVehicleViewModel(repository, 0, handle, locale)
+        before.onInputChange { it.copy(name = "Wohnmobil", lengthM = "6.36") }
+
+        val after = EditVehicleViewModel(repository, 0, handle.afterProcessDeath(), locale)
+
+        assertEquals(before.uiState.value.input, after.uiState.value.input)
+        assertTrue(after.uiState.value.isDirty)
+    }
+
+    @Test
+    fun vehicleDraftWinsOverStoredVehicle() {
+        val repository = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "Alt")))
+        val handle = SavedStateHandle()
+        EditVehicleViewModel(repository, 1, handle, locale).onInputChange { it.copy(name = "Neu") }
+
+        val after = EditVehicleViewModel(repository, 1, handle.afterProcessDeath(), locale)
+
+        assertEquals("Neu", after.uiState.value.input.name)
+        assertTrue(after.uiState.value.isDirty)
+    }
+
+    @Test
+    fun vehicleVisibleErrorsSurviveProcessDeath() {
+        val repository = FakeVehicleRepository()
+        val handle = SavedStateHandle()
+        val before = EditVehicleViewModel(repository, 0, handle, locale)
+        before.save()
+
+        val after = EditVehicleViewModel(repository, 0, handle.afterProcessDeath(), locale)
+
+        assertEquals(VehicleError.REQUIRED, after.uiState.value.errors[VehicleField.NAME])
+        after.onInputChange { it.copy(name = "Camper") }
+        assertFalse(VehicleField.NAME in after.uiState.value.errors)
+    }
+
+    @Test
+    fun savedVehicleLeavesNoDraft() {
+        val repository = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "Alt")))
+        val handle = SavedStateHandle()
+        val before = EditVehicleViewModel(repository, 1, handle, locale)
+        before.onInputChange { it.copy(name = "Neu") }
+        before.save()
+
+        assertTrue(before.uiState.value.isSaved)
         assertTrue(handle.keys().isEmpty())
     }
 
