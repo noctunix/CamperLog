@@ -8,6 +8,7 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,7 @@ sealed interface VehicleMessage {
 /** Hält das Datenblatt des Fahrzeug-Reiters und seinen Fahrzeugwechsler aktuell; löscht Reparaturen. */
 class VehicleViewModel(private val vehicles: VehicleRepository) : ViewModel() {
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<VehicleUiState> =
         combine(vehicles.observeVehicles(), vehicles.observeCurrentVehicle()) { list, current -> list to current }
             .flatMapLatest { (list, current) ->

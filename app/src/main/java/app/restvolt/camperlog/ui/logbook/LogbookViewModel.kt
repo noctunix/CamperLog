@@ -10,6 +10,8 @@ import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
+import java.time.LocalDate
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +21,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 /** Eine Bordbuch-Kachel: Art und ihr jüngstes Datum, sofern schon erfasst. */
 data class LogTileState(val type: LogType, val lastDate: LocalDate?)
@@ -47,6 +48,7 @@ class LogbookViewModel(
     private val today: () -> LocalDate = LocalDate::now,
 ) : ViewModel() {
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<LogbookUiState> =
         combine(vehicles.observeVehicles(), vehicles.observeCurrentVehicle()) { list, current -> list to current }
             .flatMapLatest { (list, current) ->
