@@ -10,7 +10,7 @@ plugins {
 
 // Single SemVer version declaration (MAJOR.MINOR.PATCH); release tag: v<version>.
 // The derived versionCode (1.2.3 -> 10203) increases with each version for Android updates.
-val appVersion = "1.1.0"
+val appVersion = "1.1.1"
 val appVersionCode = appVersion.split(".").map(String::toInt).also {
     require(it.size == 3) { "appVersion must be MAJOR.MINOR.PATCH: $appVersion" }
 }.let { (major, minor, patch) ->
