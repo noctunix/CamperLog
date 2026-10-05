@@ -167,6 +167,28 @@ class RoomTourRepositoryTest {
     }
 
     @Test
+    fun totalsAndYearTotalsCanBeFilteredByVehicle() = runTest {
+        val otherVehicleId = db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-2", createdAtMillis = 0, updatedAtMillis = 0))
+        repository.save(tour(start = "2025-07-01", km = 300, days = 3, nights = 2, costs = listOf(eur(10_050))))
+        repository.save(
+            tour(start = "2026-04-10", km = 150, days = 2, nights = 1, costs = listOf(eur(2_599))).copy(vehicleId = otherVehicleId),
+        )
+
+        assertEquals(TourTotals(1, 300, 3, 2, listOf(eur(10_050))), repository.observeTotals(vehicleId).first())
+        assertEquals(TourTotals(1, 150, 2, 1, listOf(eur(2_599))), repository.observeTotals(otherVehicleId).first())
+        assertEquals(TourTotals(2, 450, 5, 3, listOf(eur(12_649))), repository.observeTotals(null).first())
+
+        assertEquals(
+            listOf(YearTotals(2025, TourTotals(1, 300, 3, 2, listOf(eur(10_050))))),
+            repository.observeYearTotals(vehicleId).first(),
+        )
+        assertEquals(
+            listOf(YearTotals(2026, TourTotals(1, 150, 2, 1, listOf(eur(2_599))))),
+            repository.observeYearTotals(otherVehicleId).first(),
+        )
+    }
+
+    @Test
     fun totalsAreZeroWithoutTours() = runTest {
         assertEquals(TourTotals(0, 0, 0, 0, emptyList()), repository.observeTotals().first())
         assertEquals(emptyList<YearTotals>(), repository.observeYearTotals().first())

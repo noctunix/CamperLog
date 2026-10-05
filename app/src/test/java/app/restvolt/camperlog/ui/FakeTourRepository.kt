@@ -69,10 +69,16 @@ class FakeTourRepository(initial: List<Tour> = emptyList()) : TourRepository {
         .maxWithOrNull(compareBy<Tour> { it.updatedAt }.thenBy { it.id })
         ?.costs?.last()?.currency
 
-    override fun observeTotals(): Flow<TourTotals> = state.map(::totalsOf)
+    // vehicleId 0 heißt noch kein aufgelöstes Fahrzeug (siehe Tour.vehicleId) und zählt daher immer mit.
+    private fun List<Tour>.filterByVehicle(vehicleId: Long?) =
+        filter { vehicleId == null || it.vehicleId == 0L || it.vehicleId == vehicleId }
 
-    override fun observeYearTotals(): Flow<List<YearTotals>> = state.map { list ->
-        list.groupBy { it.year }.toSortedMap(reverseOrder()).map { (year, tours) -> YearTotals(year, totalsOf(tours)) }
+    override fun observeTotals(vehicleId: Long?): Flow<TourTotals> =
+        state.map { list -> totalsOf(list.filterByVehicle(vehicleId)) }
+
+    override fun observeYearTotals(vehicleId: Long?): Flow<List<YearTotals>> = state.map { list ->
+        list.filterByVehicle(vehicleId)
+            .groupBy { it.year }.toSortedMap(reverseOrder()).map { (year, tours) -> YearTotals(year, totalsOf(tours)) }
     }
 
     private fun totalsOf(tours: List<Tour>) = TourTotals(

@@ -78,24 +78,29 @@ interface TourDao {
     )
     suspend fun lastUsedCurrency(): String?
 
-    @Query("SELECT $SUMS FROM tours")
-    fun observeTotals(): Flow<TotalsRow>
+    @Query("SELECT $SUMS FROM tours WHERE :vehicleId IS NULL OR vehicle_id = :vehicleId")
+    fun observeTotals(vehicleId: Long?): Flow<TotalsRow>
 
-    @Query("SELECT currency, SUM(amount_minor) AS amount_minor FROM tour_costs GROUP BY currency ORDER BY currency")
-    fun observeCostSums(): Flow<List<CostSumRow>>
+    @Query(
+        "SELECT c.currency, SUM(c.amount_minor) AS amount_minor FROM tour_costs c " +
+            "JOIN tours t ON t.id = c.tour_id WHERE :vehicleId IS NULL OR t.vehicle_id = :vehicleId " +
+            "GROUP BY c.currency ORDER BY c.currency",
+    )
+    fun observeCostSums(vehicleId: Long?): Flow<List<CostSumRow>>
 
-    /** Wie [observeCostSums], aber einmalig; SQLite wirft bei einem 64-Bit-Überlauf der Summe. */
+    /** Wie [observeCostSums], aber einmalig über alle Fahrzeuge; SQLite wirft bei einem 64-Bit-Überlauf der Summe. */
     @Query("SELECT currency, SUM(amount_minor) AS amount_minor FROM tour_costs GROUP BY currency ORDER BY currency")
     suspend fun getCostSums(): List<CostSumRow>
 
-    @Query("SELECT $YEAR AS year, $SUMS FROM tours GROUP BY year ORDER BY year DESC")
-    fun observeYearTotals(): Flow<List<YearTotalsRow>>
+    @Query("SELECT $YEAR AS year, $SUMS FROM tours WHERE :vehicleId IS NULL OR vehicle_id = :vehicleId GROUP BY year ORDER BY year DESC")
+    fun observeYearTotals(vehicleId: Long?): Flow<List<YearTotalsRow>>
 
     @Query(
         "SELECT $YEAR AS year, c.currency, SUM(c.amount_minor) AS amount_minor " +
-            "FROM tour_costs c JOIN tours t ON t.id = c.tour_id GROUP BY year, c.currency ORDER BY year DESC, c.currency",
+            "FROM tour_costs c JOIN tours t ON t.id = c.tour_id " +
+            "WHERE :vehicleId IS NULL OR t.vehicle_id = :vehicleId GROUP BY year, c.currency ORDER BY year DESC, c.currency",
     )
-    fun observeYearCostSums(): Flow<List<YearCostSumRow>>
+    fun observeYearCostSums(vehicleId: Long?): Flow<List<YearCostSumRow>>
 }
 
 /** Stand einer gespeicherten Tour für den Import-Abgleich. */
