@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.ui.about.KeepAndroidOpenSettings
+import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertTrue
@@ -31,9 +32,12 @@ class KeepAndroidOpenFlowTest {
 
     private fun clearPreferences() {
         context.getSharedPreferences("keep_android_open", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("introduction", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     private fun start(logs: FakeLogRepository, vehicles: FakeVehicleRepository = FakeVehicleRepository()) {
+        // Der Hinweis hat ohne die Einführungstour Vorrang, die hier nicht Gegenstand des Tests ist.
+        IntroductionSettings(context).seen = true
         val repository = FakeTourRepository(emptyList()) { vehicles.currentVehicleId }
         compose.setContent {
             CamperLogTheme {

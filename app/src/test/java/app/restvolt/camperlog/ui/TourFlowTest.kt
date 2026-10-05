@@ -70,7 +70,7 @@ class TourFlowTest {
         val repository = FakeTourRepository(tours.toList())
         compose.setContent {
             CamperLogTheme {
-                CamperLogNavHost(repository, vehicles, FakeLogRepository(), FakeExchangeRateRepository(), FakeBackupImporter(), ThemeMode.SYSTEM) { }
+                CamperLogNavHost(repository, vehicles, FakeLogRepository(), FakeExchangeRateRepository(), FakeBackupImporter(), ThemeMode.SYSTEM, canShowStartDialogs = false) { }
             }
         }
         return repository
