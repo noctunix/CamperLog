@@ -50,7 +50,8 @@ fun BackTopBar(title: String, onBack: () -> Unit, actions: @Composable () -> Uni
 
 /**
  * Obere Leiste der drei Hauptreiter: [titleContent] zeigt Titel oder Fahrzeugwechsler,
- * [onOpenOverview] ist nur auf dem Touren-Reiter gesetzt.
+ * [onOpenOverview] ist nur auf dem Touren-Reiter gesetzt. [extraActions] stehen vor den
+ * gemeinsamen Aktionen, z. B. „Bearbeiten" auf dem Fahrzeug-Reiter.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,10 +61,12 @@ fun TabTopBar(
     onOpenSettings: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior? = null,
     onOpenOverview: (() -> Unit)? = null,
+    extraActions: @Composable () -> Unit = {},
 ) {
     TopAppBar(
         title = titleContent,
         actions = {
+            extraActions()
             if (onOpenOverview != null) {
                 IconButton(onClick = onOpenOverview) {
                     Icon(painterResource(R.drawable.ic_bar_chart), contentDescription = stringResource(R.string.tours_overview))

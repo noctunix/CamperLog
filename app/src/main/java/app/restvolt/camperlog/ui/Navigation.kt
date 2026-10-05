@@ -35,6 +35,8 @@ import app.restvolt.camperlog.ui.detail.TourDetailScreen
 import app.restvolt.camperlog.ui.detail.TourDetailViewModel
 import app.restvolt.camperlog.ui.edit.EditTourScreen
 import app.restvolt.camperlog.ui.edit.EditTourViewModel
+import app.restvolt.camperlog.ui.edit.EditVehicleScreen
+import app.restvolt.camperlog.ui.edit.EditVehicleViewModel
 import app.restvolt.camperlog.ui.logbook.LogbookScreen
 import app.restvolt.camperlog.ui.overview.OverviewScreen
 import app.restvolt.camperlog.ui.overview.OverviewViewModel
@@ -48,7 +50,9 @@ import app.restvolt.camperlog.ui.tours.ToursFilterSettings
 import app.restvolt.camperlog.ui.tours.ToursScreen
 import app.restvolt.camperlog.ui.tours.ToursViewModel
 import app.restvolt.camperlog.ui.vehicle.VehicleScreen
+import app.restvolt.camperlog.ui.vehicle.VehicleViewModel
 import app.restvolt.camperlog.ui.vehicles.VehiclesScreen
+import app.restvolt.camperlog.ui.vehicles.VehiclesViewModel
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -60,9 +64,13 @@ internal object LogbookRoute
 @Serializable
 internal object VehicleRoute
 
-/** Fahrzeugverwaltung; in Phase 3 wird sie mit Liste, Anlegen und Löschen gefüllt. */
+/** Fahrzeugverwaltung: Liste, Anlegen, Bearbeiten und Löschen. */
 @Serializable
 internal object VehiclesRoute
+
+/** Fahrzeugformular; [vehicleId] 0 legt ein neues Fahrzeug an. */
+@Serializable
+internal data class VehicleEditRoute(val vehicleId: Long = 0)
 
 @Serializable
 internal data class EditRoute(val tourId: Long = 0)
@@ -126,15 +134,29 @@ fun CamperLogNavHost(
         }
         composable<VehicleRoute> {
             VehicleScreen(
-                viewModel = viewModel { VehicleSwitcherViewModel(vehicles) },
+                viewModel = viewModel { VehicleViewModel(vehicles) },
                 onOpenData = { navController.navigate(DataRoute) },
                 onOpenSettings = { navController.navigate(SettingsRoute) },
                 onOpenVehicles = { navController.navigate(VehiclesRoute) },
+                onEditVehicle = { id -> navController.navigate(VehicleEditRoute(id)) },
                 bottomBar = bottomBar,
             )
         }
         composable<VehiclesRoute> { entry ->
-            VehiclesScreen(onBack = { navController.popFrom(entry) })
+            VehiclesScreen(
+                viewModel = viewModel { VehiclesViewModel(vehicles) },
+                onBack = { navController.popFrom(entry) },
+                onAdd = { navController.navigate(VehicleEditRoute()) },
+                onEdit = { id -> navController.navigate(VehicleEditRoute(id)) },
+            )
+        }
+        composable<VehicleEditRoute> { entry ->
+            val vehicleId = entry.toRoute<VehicleEditRoute>().vehicleId
+            EditVehicleScreen(
+                viewModel = viewModel { EditVehicleViewModel(vehicles, vehicleId, createSavedStateHandle()) },
+                onDone = { navController.popFrom(entry) },
+                onSaved = { navController.popFrom(entry) },
+            )
         }
         composable<EditRoute> { entry ->
             val tourId = entry.toRoute<EditRoute>().tourId
