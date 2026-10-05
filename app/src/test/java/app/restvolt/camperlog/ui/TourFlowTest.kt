@@ -64,11 +64,13 @@ class TourFlowTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun start(vararg tours: Tour): FakeTourRepository {
+    private fun start(vararg tours: Tour): FakeTourRepository = start(FakeVehicleRepository(), *tours)
+
+    private fun start(vehicles: FakeVehicleRepository, vararg tours: Tour): FakeTourRepository {
         val repository = FakeTourRepository(tours.toList())
         compose.setContent {
             CamperLogTheme {
-                CamperLogNavHost(repository, FakeExchangeRateRepository(), FakeBackupImporter(), ThemeMode.SYSTEM) { }
+                CamperLogNavHost(repository, vehicles, FakeExchangeRateRepository(), FakeBackupImporter(), ThemeMode.SYSTEM) { }
             }
         }
         return repository
