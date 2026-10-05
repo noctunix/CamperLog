@@ -12,10 +12,16 @@ import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.util.Currency
 
-/** Synchrones In-Memory-Repository für UI-Tests; die Room-Anbindung testet RoomTourRepositoryTest. */
-class FakeTourRepository(initial: List<Tour> = emptyList()) : TourRepository {
+/**
+ * Synchrones In-Memory-Repository für UI-Tests; die Room-Anbindung testet RoomTourRepositoryTest.
+ * Wie Room ordnet es Touren ohne Fahrzeug ([Tour.vehicleId] 0) dem Fahrzeug [currentVehicleId] zu.
+ */
+class FakeTourRepository(
+    initial: List<Tour> = emptyList(),
+    private val currentVehicleId: () -> Long = { 1L },
+) : TourRepository {
 
-    private val state = MutableStateFlow(initial)
+    private val state = MutableStateFlow(initial.map { it.withVehicle() })
     private var nextId = (initial.maxOfOrNull { it.id } ?: 0) + 1
 
     val tours: List<Tour> get() = state.value
@@ -45,7 +51,7 @@ class FakeTourRepository(initial: List<Tour> = emptyList()) : TourRepository {
         val now = Instant.EPOCH
         return if (tour.id == 0L) {
             val id = nextId++
-            state.value += tour.copy(id = id, createdAt = now, updatedAt = now)
+            state.value += tour.withVehicle().copy(id = id, createdAt = now, updatedAt = now)
             id
         } else {
             state.value = state.value.map { if (it.id == tour.id) tour.copy(updatedAt = now) else it }
@@ -69,9 +75,9 @@ class FakeTourRepository(initial: List<Tour> = emptyList()) : TourRepository {
         .maxWithOrNull(compareBy<Tour> { it.updatedAt }.thenBy { it.id })
         ?.costs?.last()?.currency
 
-    // vehicleId 0 heißt noch kein aufgelöstes Fahrzeug (siehe Tour.vehicleId) und zählt daher immer mit.
-    private fun List<Tour>.filterByVehicle(vehicleId: Long?) =
-        filter { vehicleId == null || it.vehicleId == 0L || it.vehicleId == vehicleId }
+    private fun Tour.withVehicle() = if (vehicleId == 0L) copy(vehicleId = currentVehicleId()) else this
+
+    private fun List<Tour>.filterByVehicle(vehicleId: Long?) = filter { vehicleId == null || it.vehicleId == vehicleId }
 
     override fun observeTotals(vehicleId: Long?): Flow<TourTotals> =
         state.map { list -> totalsOf(list.filterByVehicle(vehicleId)) }

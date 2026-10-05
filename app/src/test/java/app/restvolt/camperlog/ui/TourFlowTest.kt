@@ -465,6 +465,7 @@ class TourFlowTest {
 
     private fun tour(id: Long, destination: String) = Tour(
         id = id,
+        vehicleId = 1,
         startDate = LocalDate.of(2025, 6, 1),
         endDate = LocalDate.of(2025, 6, 3),
         destination = destination,

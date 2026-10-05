@@ -68,10 +68,7 @@ class ToursViewModel(
         query,
         selectedYear,
     ) { filter, query, year ->
-        // vehicleId 0 heißt noch kein aufgelöstes Fahrzeug (siehe Tour.vehicleId) und bleibt daher immer sichtbar.
-        val visible = filter.tours.filter {
-            filter.allVehicles || it.vehicleId == 0L || it.vehicleId == filter.currentVehicleId
-        }
+        val visible = filter.tours.filter { filter.allVehicles || it.vehicleId == filter.currentVehicleId }
         val years = visible.map(Tour::year).distinct().sortedDescending()
         val activeYear = year?.takeIf { it in years }
         ToursUiState(

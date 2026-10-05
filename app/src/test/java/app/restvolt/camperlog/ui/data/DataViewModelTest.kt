@@ -143,7 +143,7 @@ class DataViewModelTest {
         viewModel.exportCsv()
 
         assertEquals(ShareRequest.Csv("csv:1"), viewModel.share.value)
-        assertEquals(listOf(listOf(tour)), files.csvExports)
+        assertEquals(listOf(listOf(tour.copy(vehicleId = 1))), files.csvExports)
         viewModel.shareHandled(started = false)
         assertNull(viewModel.share.value)
         assertEquals(DataMessage.Text(R.string.no_share_app), viewModel.message.value)

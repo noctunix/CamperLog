@@ -42,7 +42,7 @@ class VehicleFlowTest {
     val compose = createComposeRule()
 
     private fun start(vehicles: FakeVehicleRepository, vararg tours: Tour): FakeTourRepository {
-        val repository = FakeTourRepository(tours.toList())
+        val repository = FakeTourRepository(tours.toList()) { vehicles.currentVehicleId }
         compose.setContent {
             CamperLogTheme {
                 CamperLogNavHost(repository, vehicles, FakeExchangeRateRepository(), FakeBackupImporter(), ThemeMode.SYSTEM) { }
