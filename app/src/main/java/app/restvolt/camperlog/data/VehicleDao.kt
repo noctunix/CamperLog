@@ -63,8 +63,10 @@ interface VehicleDao {
      */
     @Query(
         "INSERT INTO vehicles (uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
-            "insurance_policy_number, tire_size, created_at, updated_at) " +
-            "SELECT :uuid, '', '', '', '', '', '', '', '', '', :nowMillis, :nowMillis " +
+            "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, breakdown_phone, " +
+            "travel_protection_provider, travel_protection_contract_number, travel_protection_phone, " +
+            "insurer_claims_phone, created_at, updated_at) " +
+            "SELECT :uuid, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', :nowMillis, :nowMillis " +
             "WHERE NOT EXISTS (SELECT 1 FROM vehicles)",
     )
     suspend fun insertDefaultIfNone(uuid: String, nowMillis: Long)

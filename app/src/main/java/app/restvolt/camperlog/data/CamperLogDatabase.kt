@@ -18,7 +18,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         RepairEntity::class,
         LogEntryEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -35,7 +35,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
         /** Öffnet die Datenbankdatei der App. Nur einmal pro Prozess aufrufen. */
         fun open(context: Context): CamperLogDatabase =
             Room.databaseBuilder(context.applicationContext, CamperLogDatabase::class.java, "camperlog.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
     }
 }
@@ -190,5 +190,23 @@ internal val MIGRATION_4_5 = object : Migration(4, 5) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_tours_vehicle_id` ON `tours` (`vehicle_id`)")
 
         db.execSQL("ALTER TABLE `settings` ADD COLUMN `current_vehicle_id` INTEGER")
+    }
+}
+
+/**
+ * Version 6: Pannenhilfe, Schutzbrief und Schadenhotline sowie das gewogene Leergewicht kommen zu
+ * den Fahrzeugen hinzu. Reine Textspalten und ein zusätzliches Gewicht brauchen keinen Fremdschlüssel,
+ * daher reicht `ALTER TABLE ADD COLUMN` ohne Neuaufbau der Tabelle.
+ */
+internal val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `measured_empty_weight_kg` INTEGER")
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `breakdown_provider` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `breakdown_membership_number` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `breakdown_phone` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `travel_protection_provider` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `travel_protection_contract_number` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `travel_protection_phone` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `insurer_claims_phone` TEXT NOT NULL DEFAULT ''")
     }
 }
