@@ -25,6 +25,8 @@ Builds:
     gradleprops:
       - unsignedRelease
 
+AllowedAPKSigningKeys: b25e7004ac94e051497e7076256c4ad90401dc06fd0a10079480ce96f3b2b4e4
+
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
 UpdateCheckData: app/build.gradle.kts|val appVersionCode = (\d+)|.|val appVersion = "(.+)"
