@@ -1,0 +1,6 @@
+• New signing key: if updating from an older install, back up (Data > Backup), uninstall, install, then restore
+• Manage multiple vehicles, each with a full data sheet
+• Logbook tab: one-tap tracking for cassette, grey water, and heater use
+• Maintenance reminders for inspection, gas check, and oil change
+• Repair log with cost and odometer reading
+• About screen with feedback, support, and source code links

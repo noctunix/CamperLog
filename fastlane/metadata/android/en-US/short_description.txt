@@ -1,1 +1,1 @@
-Log camper trips, costs and currencies - private, offline, no tracking
+Log trips, vehicles, maintenance and logbook - private, offline, no tracking

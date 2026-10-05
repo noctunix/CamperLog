@@ -1,12 +1,17 @@
-<p>CamperLog ist eine App zum Erfassen deiner Camping-Touren, ihrer Kosten und der Währungen, in denen du bezahlt hast.</p>
+<p>CamperLog ist eine App zum Erfassen deiner Camping-Touren, ihrer Kosten und der Währungen, in denen du bezahlt hast, zusammen mit dem Datenblatt, der Wartung und dem Bordbuch deines Fahrzeugs.</p>
 <p><b>Funktionen:</b></p>
 <ul>
 <li>Tourenlog: Ziel, Datum, Tourart (Tagestour, Wochenende, Urlaub), Kilometer, Übernachtungen und Kosten; durchsuchbar und nach Jahr filterbar.</li>
+<li>Mehrere Fahrzeuge: ein Datenblatt pro Fahrzeug (allgemeine Daten, Kauf &amp; Verkauf, Versicherung &amp; Steuer, Maße &amp; Gewicht, Motor, Reifen, Tanks, Energie, Notizen); wechsle zwischen Fahrzeugen oder sieh dir Touren und die Übersicht für alle zusammen an.</li>
+<li>Bordbuch: Ein Tipp auf „Heute" trägt das Leeren von Kassette und Grauwasser oder den Lauf von Diesel- oder Gasheizung ein, mit Verlauf und Rückgängig.</li>
+<li>Wartung und Reparaturen: nächste Hauptuntersuchung und Gasprüfung, letzter Ölwechsel mit Kilometerstand, sowie ein Reparaturverzeichnis mit Datum, Beschreibung, Kilometerstand und Kosten.</li>
+<li>Erinnerungen in der App: Karten im Fahrzeug-Tab weisen auf anstehende Wartung hin; Vorlaufzeit und Ölwechsel-Intervall lassen sich in den Einstellungen anpassen. Keine Benachrichtigungen, keine Berechtigungen.</li>
 <li>Mehrere Währungen: Kosten behalten ihre ursprüngliche Währung und Genauigkeit; Beträge werden im Zahlenformat deines Geräts eingegeben.</li>
-<li>Übersicht: Touren, Kilometer, Reisetage, Übernachtungen und Kosten je Währung, insgesamt und pro Jahr; optional umgerechnet in eine Hauptwährung anhand selbst gepflegter Wechselkurse.</li>
+<li>Übersicht: Touren, Kilometer, Reisetage, Übernachtungen und Kosten je Währung, insgesamt und pro Jahr, für ein Fahrzeug oder alle zusammen; optional umgerechnet in eine Hauptwährung anhand selbst gepflegter Wechselkurse.</li>
 <li>Export: alle Touren als CSV für Tabellenkalkulationen, geschützt gegen Formel-Injection.</li>
-<li>Sicherung und Wiederherstellung: eine JSON-Datei mit allen Touren, Wechselkursen und der Hauptwährung; beim Einspielen siehst du vorher eine Vorschau.</li>
+<li>Sicherung und Wiederherstellung: eine JSON-Datei mit allen Touren, Fahrzeugen, Reparaturen, Bordbuch-Einträgen, Wechselkursen und der Hauptwährung; beim Einspielen siehst du vorher eine Vorschau.</li>
 <li>Helles und dunkles Design, standardmäßig passend zum System.</li>
 </ul>
 <p><b>Datenschutz:</b> CamperLog benötigt keine Berechtigungen und hat keinen Netzwerkzugriff. Alle Daten bleiben auf deinem Gerät, bis du sie selbst exportierst oder teilst.</p>
 <p>Beim Deinstallieren der App werden ihre Daten gelöscht. Erstelle daher regelmäßig eine Sicherung, zum Beispiel vor einem Gerätewechsel.</p>
+<p>Feedback und Unterstützung: camperlog@restvolt.app oder über Liberapay. Quellcode und Lizenzen findest du im Info-Bildschirm der App.</p>
