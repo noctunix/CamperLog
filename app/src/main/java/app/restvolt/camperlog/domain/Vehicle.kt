@@ -32,6 +32,14 @@ data class Vehicle(
     val widthCm: Int? = null,
     val heightCm: Int? = null,
     val grossWeightKg: Int? = null,
+    val measuredEmptyWeightKg: Int? = null,
+    val breakdownProvider: String = "",
+    val breakdownMembershipNumber: String = "",
+    val breakdownPhone: String = "",
+    val travelProtectionProvider: String = "",
+    val travelProtectionContractNumber: String = "",
+    val travelProtectionPhone: String = "",
+    val insurerClaimsPhone: String = "",
     val powerKw: Int? = null,
     val tireSize: String = "",
     val tirePressureFrontMbar: Int? = null,
@@ -53,6 +61,18 @@ data class Vehicle(
 ) {
     /** Ob das Fahrzeug verkauft ist. */
     val isSold: Boolean get() = saleDate != null
+
+    /** Restzuladung = zulässiges Gesamtgewicht minus gewogenes Leergewicht; nur, wenn beide erfasst sind. */
+    val remainingPayloadKg: Int?
+        get() = if (grossWeightKg != null && measuredEmptyWeightKg != null) grossWeightKg - measuredEmptyWeightKg else null
+
+    /** Ob die Karte „Panne & Unfall" angezeigt werden soll. */
+    val hasBreakdownInfo: Boolean
+        get() = listOf(
+            breakdownProvider, breakdownMembershipNumber, breakdownPhone,
+            travelProtectionProvider, travelProtectionContractNumber, travelProtectionPhone,
+            insurerClaimsPhone,
+        ).any(String::isNotBlank)
 }
 
 /** Eine Reparatur an einem Fahrzeug. */

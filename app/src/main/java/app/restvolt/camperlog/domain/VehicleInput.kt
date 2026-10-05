@@ -16,6 +16,12 @@ const val MAX_TANK_L = 10_000.0
 const val MAX_BATTERY_AH = 100_000
 const val MAX_SOLAR_WP = 100_000
 const val MAX_ODOMETER_KM = 10_000_000
+const val MAX_PHONE_LENGTH = 30
+
+private val PHONE_PATTERN = Regex("""[0-9 +\-/()]+""")
+
+/** Ob [text] nur Ziffern, Leerzeichen und die Zeichen `+ - / ( )` enthält und höchstens [MAX_PHONE_LENGTH] lang ist. */
+fun isValidPhone(text: String): Boolean = text.length <= MAX_PHONE_LENGTH && PHONE_PATTERN.matches(text)
 
 /**
  * Unvalidierte Eingaben des Fahrzeugformulars. Zahlen und Beträge liegen als Text im Zahlenformat
@@ -46,6 +52,14 @@ data class VehicleInput(
     val widthM: String = "",
     val heightM: String = "",
     val grossWeightKg: String = "",
+    val measuredEmptyWeightKg: String = "",
+    val breakdownProvider: String = "",
+    val breakdownMembershipNumber: String = "",
+    val breakdownPhone: String = "",
+    val travelProtectionProvider: String = "",
+    val travelProtectionContractNumber: String = "",
+    val travelProtectionPhone: String = "",
+    val insurerClaimsPhone: String = "",
     val powerKw: String = "",
     val tireSize: String = "",
     val tirePressureFrontBar: String = "",
@@ -79,6 +93,10 @@ enum class VehicleField {
     WIDTH,
     HEIGHT,
     GROSS_WEIGHT_KG,
+    MEASURED_EMPTY_WEIGHT_KG,
+    BREAKDOWN_PHONE,
+    TRAVEL_PROTECTION_PHONE,
+    INSURER_CLAIMS_PHONE,
     POWER_KW,
     TIRE_PRESSURE_FRONT,
     TIRE_PRESSURE_REAR,
@@ -105,6 +123,7 @@ enum class VehicleError {
     AMOUNT_TOO_LARGE,
     DATE_IN_FUTURE,
     SALE_BEFORE_PURCHASE,
+    INVALID_PHONE,
 }
 
 /**
@@ -134,6 +153,10 @@ fun VehicleInput.validate(locale: Locale, isNew: Boolean, today: LocalDate = Loc
         positiveDecimalError(widthM, locale, 2, MAX_DIMENSION_M)?.let { put(VehicleField.WIDTH, it) }
         positiveDecimalError(heightM, locale, 2, MAX_DIMENSION_M)?.let { put(VehicleField.HEIGHT, it) }
         intError(grossWeightKg, MAX_WEIGHT_KG)?.let { put(VehicleField.GROSS_WEIGHT_KG, it) }
+        intError(measuredEmptyWeightKg, MAX_WEIGHT_KG)?.let { put(VehicleField.MEASURED_EMPTY_WEIGHT_KG, it) }
+        phoneError(breakdownPhone)?.let { put(VehicleField.BREAKDOWN_PHONE, it) }
+        phoneError(travelProtectionPhone)?.let { put(VehicleField.TRAVEL_PROTECTION_PHONE, it) }
+        phoneError(insurerClaimsPhone)?.let { put(VehicleField.INSURER_CLAIMS_PHONE, it) }
         intError(powerKw, MAX_POWER_KW)?.let { put(VehicleField.POWER_KW, it) }
         decimalError(tirePressureFrontBar, locale, 2, MAX_TIRE_PRESSURE_BAR)?.let { put(VehicleField.TIRE_PRESSURE_FRONT, it) }
         decimalError(tirePressureRearBar, locale, 2, MAX_TIRE_PRESSURE_BAR)?.let { put(VehicleField.TIRE_PRESSURE_REAR, it) }
@@ -181,6 +204,14 @@ fun VehicleInput.toVehicle(original: Vehicle?, locale: Locale): Vehicle = Vehicl
     widthCm = parseScaledDecimal(widthM, locale, uiFractionDigits = 2, storageExponent = 2),
     heightCm = parseScaledDecimal(heightM, locale, uiFractionDigits = 2, storageExponent = 2),
     grossWeightKg = parseOptionalInt(grossWeightKg),
+    measuredEmptyWeightKg = parseOptionalInt(measuredEmptyWeightKg),
+    breakdownProvider = breakdownProvider.trim(),
+    breakdownMembershipNumber = breakdownMembershipNumber.trim(),
+    breakdownPhone = breakdownPhone.trim(),
+    travelProtectionProvider = travelProtectionProvider.trim(),
+    travelProtectionContractNumber = travelProtectionContractNumber.trim(),
+    travelProtectionPhone = travelProtectionPhone.trim(),
+    insurerClaimsPhone = insurerClaimsPhone.trim(),
     powerKw = parseOptionalInt(powerKw),
     tireSize = tireSize.trim(),
     tirePressureFrontMbar = parseScaledDecimal(tirePressureFrontBar, locale, uiFractionDigits = 2, storageExponent = 3),
@@ -226,6 +257,14 @@ fun Vehicle.toInput(locale: Locale): VehicleInput = VehicleInput(
     widthM = scaledToInput(widthCm, locale, uiFractionDigits = 2, storageExponent = 2),
     heightM = scaledToInput(heightCm, locale, uiFractionDigits = 2, storageExponent = 2),
     grossWeightKg = grossWeightKg?.toString().orEmpty(),
+    measuredEmptyWeightKg = measuredEmptyWeightKg?.toString().orEmpty(),
+    breakdownProvider = breakdownProvider,
+    breakdownMembershipNumber = breakdownMembershipNumber,
+    breakdownPhone = breakdownPhone,
+    travelProtectionProvider = travelProtectionProvider,
+    travelProtectionContractNumber = travelProtectionContractNumber,
+    travelProtectionPhone = travelProtectionPhone,
+    insurerClaimsPhone = insurerClaimsPhone,
     powerKw = powerKw?.toString().orEmpty(),
     tireSize = tireSize,
     tirePressureFrontBar = scaledToInput(tirePressureFrontMbar, locale, uiFractionDigits = 2, storageExponent = 3),
@@ -297,6 +336,9 @@ private fun positiveDecimalError(text: String, locale: Locale, fractionDigits: I
         else -> null
     }
 }
+
+private fun phoneError(text: String): VehicleError? =
+    if (text.isBlank() || isValidPhone(text.trim())) null else VehicleError.INVALID_PHONE
 
 private fun amountError(text: String, currency: Currency, locale: Locale): VehicleError? {
     if (text.isBlank()) return null
