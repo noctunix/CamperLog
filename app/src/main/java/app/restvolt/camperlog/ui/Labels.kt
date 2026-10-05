@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.ElectricityFlatRate
@@ -18,7 +19,6 @@ import app.restvolt.camperlog.domain.MAX_SOLAR_WP
 import app.restvolt.camperlog.domain.MAX_TANK_L
 import app.restvolt.camperlog.domain.MAX_TIRE_PRESSURE_BAR
 import app.restvolt.camperlog.domain.MAX_WEIGHT_KG
-import androidx.compose.ui.res.pluralStringResource
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Reminder
 import app.restvolt.camperlog.domain.ReminderKind
@@ -31,6 +31,7 @@ import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleError
 import app.restvolt.camperlog.domain.VehicleField
 import app.restvolt.camperlog.domain.formatDate
+import app.restvolt.camperlog.domain.logRecency
 import java.time.LocalDate
 import java.util.Locale
 
@@ -127,12 +128,12 @@ fun LogRecency.text(): String = when (this) {
     is LogRecency.DaysAgo -> pluralStringResource(R.plurals.logbook_days_ago, days, days)
 }
 
-/** Datum eines Bordbuch-Eintrags als „Heute"/„Gestern" oder „vor x Tagen · <Datum>". */
+/** Datum eines Bordbuch-Eintrags als „Heute", sonst relativ mit Datum („Gestern · <Datum>", „vor x Tagen · <Datum>"). */
 @Composable
 fun logDateText(date: LocalDate, today: LocalDate, locale: Locale): String {
-    val recency = app.restvolt.camperlog.domain.logRecency(date, today)
+    val recency = logRecency(date, today)
     val recencyText = recency.text()
-    return if (recency is LogRecency.DaysAgo) "$recencyText · ${formatDate(date, locale)}" else recencyText
+    return if (recency == LogRecency.Today) recencyText else "$recencyText · ${formatDate(date, locale)}"
 }
 
 /** Anzeigename eines Fahrzeugs; ein leerer Name wird als „Mein Wohnmobil" angezeigt. */
