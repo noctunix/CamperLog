@@ -9,6 +9,9 @@ import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.Repair
+import app.restvolt.camperlog.domain.RepairError
+import app.restvolt.camperlog.domain.RepairField
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
@@ -17,10 +20,12 @@ import app.restvolt.camperlog.domain.VehicleError
 import app.restvolt.camperlog.domain.VehicleField
 import app.restvolt.camperlog.ui.edit.EditTourViewModel
 import app.restvolt.camperlog.ui.edit.EditVehicleViewModel
+import app.restvolt.camperlog.ui.edit.RepairEditViewModel
 import app.restvolt.camperlog.ui.rates.RateEditViewModel
 import app.restvolt.camperlog.ui.rates.RateError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -266,6 +271,63 @@ class DraftRestorationTest {
         assertTrue(handle.keys().isEmpty())
     }
 
+    @Test
+    fun newRepairInputSurvivesProcessDeath() {
+        val handle = SavedStateHandle()
+        val before = RepairEditViewModel(vehicles, FakeExchangeRateRepository(), vehicles.currentVehicleId, 0, handle, locale)
+        before.onInputChange { it.copy(description = "Reifen gewechselt", odometerKm = "42000") }
+
+        val after = RepairEditViewModel(
+            vehicles, FakeExchangeRateRepository(), vehicles.currentVehicleId, 0, handle.afterProcessDeath(), locale,
+        )
+
+        assertEquals(before.uiState.value.input, after.uiState.value.input)
+        assertTrue(after.uiState.value.isDirty)
+    }
+
+    @Test
+    fun repairDraftWinsOverStoredRepair() {
+        val vehicleId = vehicles.currentVehicleId
+        val repairId = runBlocking { vehicles.saveRepair(repair(vehicleId, "Alt")) }
+        val handle = SavedStateHandle()
+        RepairEditViewModel(vehicles, FakeExchangeRateRepository(), vehicleId, repairId, handle, locale)
+            .onInputChange { it.copy(description = "Neu") }
+
+        val after = RepairEditViewModel(vehicles, FakeExchangeRateRepository(), vehicleId, repairId, handle.afterProcessDeath(), locale)
+
+        assertEquals("Neu", after.uiState.value.input.description)
+        assertTrue(after.uiState.value.isDirty)
+    }
+
+    @Test
+    fun repairVisibleErrorsSurviveProcessDeath() {
+        val handle = SavedStateHandle()
+        val before = RepairEditViewModel(vehicles, FakeExchangeRateRepository(), vehicles.currentVehicleId, 0, handle, locale)
+        before.onInputChange { it.copy(description = "") }
+        before.save()
+
+        val after = RepairEditViewModel(
+            vehicles, FakeExchangeRateRepository(), vehicles.currentVehicleId, 0, handle.afterProcessDeath(), locale,
+        )
+
+        assertEquals(RepairError.REQUIRED, after.uiState.value.errors[RepairField.DESCRIPTION])
+        after.onInputChange { it.copy(description = "Reifen") }
+        assertFalse(RepairField.DESCRIPTION in after.uiState.value.errors)
+    }
+
+    @Test
+    fun savedRepairLeavesNoDraft() {
+        val vehicleId = vehicles.currentVehicleId
+        val repairId = runBlocking { vehicles.saveRepair(repair(vehicleId, "Alt")) }
+        val handle = SavedStateHandle()
+        val before = RepairEditViewModel(vehicles, FakeExchangeRateRepository(), vehicleId, repairId, handle, locale)
+        before.onInputChange { it.copy(description = "Neu") }
+        before.save()
+
+        assertTrue(before.uiState.value.isSaved)
+        assertTrue(handle.keys().isEmpty())
+    }
+
     private fun rate(currency: Currency) = ExchangeRate(currency, BigDecimal("11.5"), LocalDate.of(2026, 9, 1), "EZB")
 
     private fun tour() = Tour(
@@ -285,6 +347,14 @@ class DraftRestorationTest {
         levelingBlocksUsed = false,
         notes = "",
         mapLink = null,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
+
+    private fun repair(vehicleId: Long, description: String) = Repair(
+        vehicleId = vehicleId,
+        date = LocalDate.of(2026, 1, 1),
+        description = description,
         createdAt = Instant.EPOCH,
         updatedAt = Instant.EPOCH,
     )
