@@ -76,10 +76,15 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+    }
+
+    sourceSets.getByName("main") {
+        assets.srcDir(layout.buildDirectory.dir("generated/licenseAsset").get().asFile)
     }
 
     lint {
@@ -99,6 +104,18 @@ android {
 
 room {
     schemaDirectory("$projectDir/schemas")
+}
+
+// The About screen shows the Apache-2.0 license text offline, read from this generated asset
+// rather than a checked-in copy - copying it at build time from the repository root LICENSE is
+// what makes it impossible for the two to drift apart.
+val copyLicenseAsset = tasks.register<Copy>("copyLicenseAsset") {
+    from(rootProject.file("LICENSE"))
+    into(layout.buildDirectory.dir("generated/licenseAsset"))
+}
+
+tasks.named("preBuild") {
+    dependsOn(copyLicenseAsset)
 }
 
 dependencies {
