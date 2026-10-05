@@ -1,0 +1,5 @@
+• Daten als JSON-Datei sichern und wiederherstellen, mit Vorschau und Wahl zwischen Zusammenführen und Ersetzen
+• CSV-Export in den neuen Daten-Bildschirm verschoben
+• Validierung beim Einspielen gehärtet gegen extreme Daten, große Summen und hohen Speicherverbrauch
+• Kostenbeträge sind jetzt begrenzt, mit klarer Fehlermeldung zum Höchstbetrag
+• Währungssummen sind gegen Überlauf geschützt

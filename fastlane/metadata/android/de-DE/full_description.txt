@@ -1,0 +1,12 @@
+<p>CamperLog ist eine App zum Erfassen deiner Camping-Touren, ihrer Kosten und der Währungen, in denen du bezahlt hast.</p>
+<p><b>Funktionen:</b></p>
+<ul>
+<li>Tourenlog: Ziel, Datum, Tourart (Tagestour, Wochenende, Urlaub), Kilometer, Übernachtungen und Kosten; durchsuchbar und nach Jahr filterbar.</li>
+<li>Mehrere Währungen: Kosten behalten ihre ursprüngliche Währung und Genauigkeit; Beträge werden im Zahlenformat deines Geräts eingegeben.</li>
+<li>Übersicht: Touren, Kilometer, Reisetage, Übernachtungen und Kosten je Währung, insgesamt und pro Jahr; optional umgerechnet in eine Hauptwährung anhand selbst gepflegter Wechselkurse.</li>
+<li>Export: alle Touren als CSV für Tabellenkalkulationen, geschützt gegen Formel-Injection.</li>
+<li>Sicherung und Wiederherstellung: eine JSON-Datei mit allen Touren, Wechselkursen und der Hauptwährung; beim Einspielen siehst du vorher eine Vorschau.</li>
+<li>Helles und dunkles Design, standardmäßig passend zum System.</li>
+</ul>
+<p><b>Datenschutz:</b> CamperLog benötigt keine Berechtigungen und hat keinen Netzwerkzugriff. Alle Daten bleiben auf deinem Gerät, bis du sie selbst exportierst oder teilst.</p>
+<p>Beim Deinstallieren der App werden ihre Daten gelöscht. Erstelle daher regelmäßig eine Sicherung, zum Beispiel vor einem Gerätewechsel.</p>

@@ -1,0 +1,5 @@
+• Back up and restore your data as a JSON file, with a preview and a choice to merge or replace
+• CSV export moved to the new Data screen
+• Import validation hardened against extreme dates, large sums, and excessive memory use
+• Cost amounts are now limited, with a clear error showing the maximum allowed
+• Currency totals are protected against overflow

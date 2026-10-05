@@ -42,7 +42,7 @@ Pushes to `master` and pull requests run these checks in [GitHub Actions](.githu
 
 ## Versions and releases
 
-The version is declared in `app/build.gradle.kts` as `appVersion` plus the matching `appVersionCode` (`1.2.3` → `10203`); the build fails if they disagree. Release regularly, e.g. after each completed set of user-visible changes, so the published APK stays current. For each release, increment both values (SemVer; `MINOR` and `PATCH` must each be below 100), commit the changes, and tag the **commit on `master`** with `v<version>`. Push the branch before the tag:
+The version is declared in `app/build.gradle.kts` as `appVersion` plus the matching `appVersionCode` (`1.2.3` → `10203`); the build fails if they disagree. Release regularly, e.g. after each completed set of user-visible changes, so the published APK stays current. For each release, increment both values (SemVer; `MINOR` and `PATCH` must each be below 100), add `fastlane/metadata/android/en-US/changelogs/<appVersionCode>.txt` and its `de-DE` counterpart (used by F-Droid), commit the changes, and tag the **commit on `master`** with `v<version>`. Push the branch before the tag:
 
 ```sh
 git push github master
