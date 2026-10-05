@@ -1,4 +1,4 @@
-<p align="center"><img src="fastlane/metadata/android/en-US/images/icon.png" width="96" alt="CamperLog app icon"></p>
+<p align="center"><img src="logo/icon.svg" width="96" alt="CamperLog app icon"></p>
 
 # CamperLog
 
