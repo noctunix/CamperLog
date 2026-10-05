@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.data
 
 import android.content.Context
+import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.EUR
@@ -9,6 +10,7 @@ import app.restvolt.camperlog.domain.Money
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -40,7 +42,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tours = RoomTourRepository(db.tourDao()) { Instant.EPOCH }.allTours()
+            val tours = RoomTourRepository(db.tourDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
 
             assertEquals(listOf(1L, 2L), tours.map { it.id })
             assertEquals(listOf(Money(8_950, EUR)), tours[0].costs)
@@ -72,7 +74,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tours = RoomTourRepository(db.tourDao()) { Instant.EPOCH }.allTours()
+            val tours = RoomTourRepository(db.tourDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
             val rates = RoomExchangeRateRepository(db.exchangeRateDao())
 
             assertEquals(listOf(Money(1_250_000, Currency.getInstance("NOK")), Money(4_500, EUR)), tours.single().costs)
@@ -102,7 +104,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tours = RoomTourRepository(db.tourDao()) { Instant.EPOCH }.allTours()
+            val tours = RoomTourRepository(db.tourDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
 
             assertEquals(listOf(1L, 2L), tours.map { it.id })
             assertEquals(listOf(Money(1_250_000, Currency.getInstance("NOK"))), tours[0].costs)
@@ -113,6 +115,69 @@ class MigrationTest {
             db.close()
         }
     }
+
+    @Test
+    fun migration4To5CreatesOneVehicleAndAssignsAllToursToIt() = runTest {
+        createVersion4(
+            "INSERT INTO tours VALUES (1, 'uuid-1', '2026-06-01', '2026-06-14', 'Lofoten', 'VACATION', 14, 13, " +
+                "4200, 1, 'YES', 'GOOD', 'LEVEL', 0, '', NULL, 1000, 2000)",
+            "INSERT INTO tours VALUES (2, 'uuid-2', '2026-07-01', '2026-07-01', 'Ostsee', 'DAY_TRIP', 1, 0, 120, " +
+                "0, 'NO', 'OK', 'SLOPED', 1, '', NULL, 3000, 4000)",
+            "INSERT INTO tour_costs VALUES (1, 'NOK', 1250000, 0)",
+            "INSERT INTO settings VALUES (1, 'NOK')",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val vehicleRows = db.openHelper.readableDatabase.query("SELECT id, uuid, name FROM vehicles")
+            val vehicleId: Long
+            vehicleRows.use {
+                assertEquals(1, it.count)
+                it.moveToFirst()
+                vehicleId = it.getLong(it.getColumnIndexOrThrow("id"))
+                assertEquals(4, UUID.fromString(it.getString(it.getColumnIndexOrThrow("uuid"))).version())
+                assertEquals("", it.getString(it.getColumnIndexOrThrow("name")))
+            }
+
+            val tours = RoomTourRepository(db.tourDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
+            assertEquals(listOf(vehicleId, vehicleId), tours.map { it.vehicleId })
+            assertEquals(listOf(Money(1_250_000, Currency.getInstance("NOK"))), tours[0].costs)
+            assertEquals(Currency.getInstance("NOK"), RoomExchangeRateRepository(db.exchangeRateDao()).observeMainCurrency().first())
+
+            // Der Fremdschlüssel verhindert das Löschen des Fahrzeugs, solange Touren darauf verweisen.
+            val error = runCatching {
+                db.openHelper.writableDatabase.execSQL("DELETE FROM vehicles WHERE id = $vehicleId")
+            }.exceptionOrNull()
+            assertTrue(error is SQLiteConstraintException)
+        } finally {
+            db.close()
+        }
+    }
+
+    /** Legt `camperlog.db` im Stand von Version 4 nach `schemas/…/4.json` an und füllt sie mit [inserts]. */
+    private fun createVersion4(vararg inserts: String) = createDatabase(
+        version = 4,
+        identityHash = "f6facf88f2a0a37deabeedb2313e2b16",
+        schema = listOf(
+            "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL DEFAULT '', `start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, " +
+                "`destination` TEXT NOT NULL, `tour_type` TEXT NOT NULL, `travel_days` INTEGER NOT NULL, " +
+                "`overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, " +
+                "`pitch_assigned` INTEGER NOT NULL, `electricity_flat_rate` TEXT NOT NULL, " +
+                "`lte_quality` TEXT NOT NULL, `pitch_slope` TEXT NOT NULL, `leveling_blocks_used` INTEGER NOT NULL, " +
+                "`notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+            "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_tours_uuid` ON `tours` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `tour_costs` (`tour_id` INTEGER NOT NULL, `currency` TEXT NOT NULL, " +
+                "`amount_minor` INTEGER NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`tour_id`, `currency`), " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE TABLE IF NOT EXISTS `exchange_rates` (`currency` TEXT NOT NULL, `per_euro` TEXT NOT NULL, " +
+                "`rate_date` TEXT NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`currency`))",
+            "CREATE TABLE IF NOT EXISTS `settings` (`id` INTEGER NOT NULL, `main_currency` TEXT NOT NULL, " +
+                "PRIMARY KEY(`id`))",
+        ),
+        inserts = inserts.toList(),
+    )
 
     /** Legt `camperlog.db` im Stand von Version 3 nach `schemas/…/3.json` an und füllt sie mit [inserts]. */
     private fun createVersion3(vararg inserts: String) = createDatabase(

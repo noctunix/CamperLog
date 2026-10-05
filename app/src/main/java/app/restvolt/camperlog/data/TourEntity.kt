@@ -12,11 +12,23 @@ import androidx.room.Relation
  * Datenbankzeile einer Tour. Datumswerte sind ISO-Texte (`yyyy-MM-dd`), damit sie korrekt
  * sortieren und das Jahr per SQL ausgelesen werden kann. Enums werden über ihren Namen gespeichert.
  */
-@Entity(tableName = "tours", indices = [Index("start_date"), Index(value = ["uuid"], unique = true)])
+@Entity(
+    tableName = "tours",
+    indices = [Index("start_date"), Index(value = ["uuid"], unique = true), Index("vehicle_id")],
+    foreignKeys = [
+        ForeignKey(
+            entity = VehicleEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["vehicle_id"],
+            onDelete = ForeignKey.RESTRICT,
+        ),
+    ],
+)
 data class TourEntity(
     @PrimaryKey(autoGenerate = true) val id: Long,
     /** Geräteübergreifend eindeutige Kennung der Tour (UUID als Text). */
     @ColumnInfo(defaultValue = "") val uuid: String,
+    @ColumnInfo(name = "vehicle_id") val vehicleId: Long,
     @ColumnInfo(name = "start_date") val startDate: String,
     @ColumnInfo(name = "end_date") val endDate: String,
     val destination: String,
