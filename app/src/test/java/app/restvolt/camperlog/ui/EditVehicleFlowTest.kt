@@ -83,7 +83,8 @@ class EditVehicleFlowTest {
         start()
         compose.onNodeWithText("Fahrzeug").performClick()
 
-        compose.onNodeWithContentDescription("Fahrzeuge verwalten").performClick()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Fahrzeuge verwalten").performClick()
 
         compose.onNodeWithText("Fahrzeuge verwalten").assertExists()
     }
@@ -92,7 +93,8 @@ class EditVehicleFlowTest {
     fun nameRequired_forNewVehicle() {
         start()
         compose.onNodeWithText("Fahrzeug").performClick()
-        compose.onNodeWithContentDescription("Fahrzeuge verwalten").performClick()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Fahrzeuge verwalten").performClick()
         compose.onNodeWithText("Fahrzeug hinzufügen").performClick()
 
         clickSave()

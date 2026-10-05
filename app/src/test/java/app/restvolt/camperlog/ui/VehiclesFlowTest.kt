@@ -39,7 +39,8 @@ class VehiclesFlowTest {
 
     private fun openManageVehicles() {
         compose.onNodeWithText("Fahrzeug").performClick()
-        compose.onNodeWithContentDescription("Fahrzeuge verwalten").performClick()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Fahrzeuge verwalten").performClick()
     }
 
     private fun clickSave() =

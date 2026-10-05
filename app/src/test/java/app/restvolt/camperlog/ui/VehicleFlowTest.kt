@@ -153,7 +153,7 @@ class VehicleFlowTest {
         compose.onNode(hasText("Bordbuch") and isHeading()).assertExists()
 
         compose.onNodeWithText("Fahrzeug").performClick()
-        compose.onNode(hasText("Fahrzeug") and isHeading()).assertExists()
+        compose.onNode(hasText("Mein Wohnmobil") and isHeading()).assertExists()
 
         compose.onNodeWithText("Touren").performClick()
         compose.onNodeWithText("Tourenlog").assertExists()

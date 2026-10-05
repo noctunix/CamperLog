@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.ui.vehicle
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -17,6 +20,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -41,6 +47,7 @@ import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.TabTopBar
 import app.restvolt.camperlog.ui.VehicleSwitcherTitle
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.vehicleDisplayName
 import java.util.Locale
 
 /** Fahrzeug-Reiter: Datenblatt des aktuellen Fahrzeugs. Erinnerungen und Reparaturen folgen in Phase 3b. */
@@ -64,7 +71,7 @@ fun VehicleScreen(
                     VehicleSwitcherTitle(
                         vehicles = state.vehicles,
                         currentVehicleId = state.currentVehicleId,
-                        title = stringResource(R.string.vehicle_title),
+                        title = vehicle?.let { vehicleDisplayName(it) } ?: stringResource(R.string.vehicle_title),
                         onSelectVehicle = viewModel::onSelectVehicle,
                         onManageVehicles = onOpenVehicles,
                     )
@@ -75,13 +82,8 @@ fun VehicleScreen(
                             Icon(painterResource(R.drawable.ic_edit), contentDescription = stringResource(R.string.vehicle_edit_action))
                         }
                     }
-                    IconButton(onClick = onOpenVehicles) {
-                        Icon(
-                            painterResource(R.drawable.ic_directions_car),
-                            contentDescription = stringResource(R.string.vehicle_switcher_manage),
-                        )
-                    }
                 },
+                overflowMenu = { VehicleOverflowMenu(onManageVehicles = onOpenVehicles) },
                 onOpenData = onOpenData,
                 onOpenSettings = onOpenSettings,
             )
@@ -234,4 +236,23 @@ private fun tankRows(vehicle: Vehicle, locale: Locale): List<Pair<String, String
 private fun energyRows(vehicle: Vehicle, locale: Locale): List<Pair<String, String>> = buildList {
     vehicle.batteryCapacityAh?.let { add(stringResource(R.string.field_battery_capacity) to formatAh(it, locale)) }
     vehicle.solarPowerWp?.let { add(stringResource(R.string.field_solar_power) to formatWp(it, locale)) }
+}
+
+@Composable
+private fun VehicleOverflowMenu(onManageVehicles: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.more_options))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.vehicle_switcher_manage)) },
+                onClick = {
+                    expanded = false
+                    onManageVehicles()
+                },
+            )
+        }
+    }
 }
