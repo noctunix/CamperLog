@@ -207,7 +207,7 @@
     </plurals>
     <string name="import_replace_text_no_tours">Alle gespeicherten Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen.</string>
     <string name="import_replace_confirm">Alles ersetzen</string>
-    <string name="import_done">Sicherung eingespielt: %1$d neu, %2$d aktualisiert, %3$d unverändert, %4$s.</string>
+    <string name="import_done">Sicherung eingespielt. Touren neu: %1$d, aktualisiert: %2$d, unverändert: %3$d; %4$s.</string>
     <plurals name="import_done_rates">
         <item quantity="one">%1$d Wechselkurs übernommen</item>
         <item quantity="other">%1$d Wechselkurse übernommen</item>

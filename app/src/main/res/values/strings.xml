@@ -207,7 +207,7 @@
     </plurals>
     <string name="import_replace_text_no_tours">All saved exchange rates and the main currency will be deleted and replaced by the backup. This cannot be undone.</string>
     <string name="import_replace_confirm">Replace everything</string>
-    <string name="import_done">Backup restored: %1$d new, %2$d updated, %3$d unchanged, %4$s.</string>
+    <string name="import_done">Backup restored. Tours new: %1$d, updated: %2$d, unchanged: %3$d; %4$s.</string>
     <plurals name="import_done_rates">
         <item quantity="one">%1$d exchange rate imported</item>
         <item quantity="other">%1$d exchange rates imported</item>
