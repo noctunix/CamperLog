@@ -16,6 +16,7 @@ import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -43,15 +44,19 @@ class RoomBackupImporterTest {
     private lateinit var tours: RoomTourRepository
     private lateinit var rates: RoomExchangeRateRepository
     private lateinit var importer: RoomBackupImporter
+    private var vehicleId = 0L
 
     @Before
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CamperLogDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        tours = RoomTourRepository(db.tourDao())
+        tours = RoomTourRepository(db.tourDao(), db.vehicleDao())
         rates = RoomExchangeRateRepository(db.exchangeRateDao())
         importer = RoomBackupImporter(db, Clock.fixed(Instant.parse("2026-10-04T12:00:00Z"), ZoneOffset.UTC))
+        vehicleId = runBlocking {
+            db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-1", createdAtMillis = 0, updatedAtMillis = 0))
+        }
     }
 
     @After
@@ -61,6 +66,7 @@ class RoomBackupImporterTest {
 
     private fun tour(n: Int, destination: String = "Ziel $n", updatedAt: String = "2026-07-10T10:00:00Z") = Tour(
         uuid = uuid(n),
+        vehicleId = vehicleId,
         startDate = LocalDate.of(2026, 7, n),
         endDate = LocalDate.of(2026, 7, n + 1),
         destination = destination,
@@ -117,6 +123,15 @@ class RoomBackupImporterTest {
             storedTours().map { it.destination },
         )
         assertEquals(tour(1, "Import neu", updatedAt = "2026-07-15T10:00:00Z"), storedTours().first())
+    }
+
+    @Test
+    fun merge_assignsCurrentVehicleToToursWithoutVehicleId() = runTest {
+        // Sicherungen aus Version 1 kennen noch keine Fahrzeuge; ihre Touren tragen vehicleId 0.
+        val result = importer.import(backup(listOf(tour(1).copy(vehicleId = 0))), ImportMode.MERGE)
+
+        assertEquals(ImportResult(addedTours = 1, updatedTours = 0, unchangedTours = 0, importedRates = 0), result)
+        assertEquals(vehicleId, tours.allTours().single().vehicleId)
     }
 
     @Test

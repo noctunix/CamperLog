@@ -13,6 +13,7 @@ import app.restvolt.camperlog.domain.TourTotals
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.YearTotals
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -35,13 +36,17 @@ class RoomTourRepositoryTest {
     private lateinit var db: CamperLogDatabase
     private lateinit var repository: RoomTourRepository
     private var now = Instant.parse("2026-01-01T10:00:00Z")
+    private var vehicleId = 0L
 
     @Before
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CamperLogDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = RoomTourRepository(db.tourDao()) { now }
+        repository = RoomTourRepository(db.tourDao(), db.vehicleDao()) { now }
+        vehicleId = runBlocking {
+            db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-1", createdAtMillis = 0, updatedAtMillis = 0))
+        }
     }
 
     @After
@@ -74,6 +79,12 @@ class RoomTourRepositoryTest {
         repository.delete(id)
         assertNull(repository.observeTour(id).first())
         assertEquals(emptyList<Tour>(), repository.observeTours().first())
+    }
+
+    @Test
+    fun newTourWithoutVehicleIdUsesCurrentVehicle() = runTest {
+        val id = repository.save(tour(start = "2026-05-01").copy(vehicleId = 0))
+        assertEquals(vehicleId, repository.observeTour(id).first()?.vehicleId)
     }
 
     @Test
@@ -189,6 +200,7 @@ class RoomTourRepositoryTest {
     ): Tour {
         val startDate = LocalDate.parse(start)
         return Tour(
+            vehicleId = vehicleId,
             startDate = startDate,
             endDate = startDate.plusDays(days - 1L),
             destination = destination,
