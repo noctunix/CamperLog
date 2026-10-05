@@ -312,7 +312,52 @@ class RoomBackupImporterTest {
     }
 
     @Test
+    fun merge_replacesUntouchedPlaceholderVehicleOfAFreshInstall() = runTest {
+        val result = importer.import(
+            backup(
+                tours = listOf(tour(10).copy(vehicleId = 0)),
+                vehicles = listOf(BackupVehicle(vehicle(10), emptyList(), emptyList()), BackupVehicle(vehicle(11), emptyList(), emptyList())),
+                tourVehicleUuid = mapOf(uuid(10) to vehicleUuid(10)),
+                currentVehicleUuid = vehicleUuid(11),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(2, result.addedVehicles)
+        assertEquals(listOf(vehicleUuid(10), vehicleUuid(11)), vehicles.allVehicles().map { it.uuid }.sorted())
+        assertEquals(vehicleUuid(11), vehicles.observeCurrentVehicle().first().uuid)
+    }
+
+    @Test
+    fun merge_keepsLocalVehicleThatHasTours() = runTest {
+        seed(tour(1))
+
+        importer.import(backup(tours = emptyList(), vehicles = listOf(BackupVehicle(vehicle(10), emptyList(), emptyList()))), ImportMode.MERGE)
+
+        assertEquals(2, vehicles.allVehicles().size)
+    }
+
+    @Test
+    fun merge_keepsLocalVehicleWithDetails() = runTest {
+        vehicles.save(vehicles.allVehicles().single().copy(licensePlate = "M-CL 1"))
+
+        importer.import(backup(tours = emptyList(), vehicles = listOf(BackupVehicle(vehicle(10), emptyList(), emptyList()))), ImportMode.MERGE)
+
+        assertEquals(2, vehicles.allVehicles().size)
+    }
+
+    @Test
+    fun merge_keepsPlaceholderWhenTheBackupContainsIt() = runTest {
+        val local = vehicles.allVehicles().single()
+
+        importer.import(backup(tours = emptyList(), vehicles = listOf(BackupVehicle(local, emptyList(), emptyList()))), ImportMode.MERGE)
+
+        assertEquals(listOf(local.id), vehicles.allVehicles().map { it.id })
+    }
+
+    @Test
     fun merge_doesNotChangeCurrentVehicle() = runTest {
+        vehicles.save(vehicles.allVehicles().single().copy(name = "Eigenes"))
         db.vehicleDao().setCurrentVehicleId(vehicleId)
 
         importer.import(

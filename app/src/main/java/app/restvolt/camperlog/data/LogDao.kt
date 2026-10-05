@@ -24,6 +24,9 @@ interface LogDao {
     @Query("SELECT uuid FROM log_entries")
     suspend fun getUuids(): List<String>
 
+    @Query("SELECT COUNT(*) FROM log_entries WHERE vehicle_id = :vehicleId")
+    suspend fun countForVehicle(vehicleId: Long): Int
+
     @Insert
     suspend fun insert(entry: LogEntryEntity): Long
 

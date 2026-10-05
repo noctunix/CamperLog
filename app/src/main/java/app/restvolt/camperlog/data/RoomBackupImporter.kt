@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import app.restvolt.camperlog.backup.Backup
 import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.backup.BackupVehicle
+import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.domain.ExchangeRate
@@ -61,6 +62,7 @@ class RoomBackupImporter(
                 vehicleDao.insertDefaultIfNone(newUuid(), now.toEpochMilli())
             }
         } else {
+            val placeholderId = if (importedVehicles.isNotEmpty()) untouchedSoleVehicleId(vehicleDao, logDao) else null
             val storedVehicles = vehicleDao.getVersions().associateBy(VehicleVersionRow::uuid)
             for (backupVehicle in importedVehicles) {
                 val vehicle = backupVehicle.vehicle
@@ -78,6 +80,13 @@ class RoomBackupImporter(
                     }
                     else -> localIdByVehicleUuid[vehicle.uuid] = existing.id
                 }
+            }
+            // Beim Einspielen auf einem neuen Gerät bliebe sonst das automatisch angelegte, leere
+            // Fahrzeug als zweites neben dem aus der Sicherung stehen.
+            if (placeholderId != null && placeholderId !in localIdByVehicleUuid.values) {
+                vehicleDao.deleteById(placeholderId)
+                val currentId = backup.currentVehicleUuid?.let { localIdByVehicleUuid[it] } ?: localIdByVehicleUuid.values.first()
+                vehicleDao.setCurrentVehicleId(currentId)
             }
         }
 
@@ -125,7 +134,7 @@ class RoomBackupImporter(
             }
         }
 
-        // --- Aktuelles Fahrzeug: bleibt beim Zusammenführen unverändert ---
+        // --- Aktuelles Fahrzeug: bleibt beim Zusammenführen unverändert, außer das leere Fahrzeug wurde ersetzt ---
         if (mode == ImportMode.REPLACE) {
             val currentId = backup.currentVehicleUuid?.let { localIdByVehicleUuid[it] }
                 ?: localIdByVehicleUuid.values.firstOrNull()
@@ -196,3 +205,17 @@ private fun BackupVehicle.notAfter(now: Instant, today: LocalDate): BackupVehicl
     },
     logEntries = logEntries.map { it.copy(date = minOf(it.date, today), createdAt = minOf(it.createdAt, now)) },
 )
+
+/**
+ * Die id des einzigen Fahrzeugs, falls es unberührt ist: ohne Angaben, Touren, Reparaturen und
+ * Bordbuch-Einträge – so, wie die App es beim ersten Start selbst anlegt.
+ */
+private suspend fun untouchedSoleVehicleId(vehicles: VehicleDao, logs: LogDao): Long? {
+    val only = vehicles.getAll().singleOrNull() ?: return null
+    val blank = Vehicle(createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+    val untouched = only.toDomain().copy(id = 0, uuid = "", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH) == blank
+    return only.id.takeIf {
+        untouched && vehicles.countToursForVehicle(it) == 0 && vehicles.countRepairsForVehicle(it) == 0 &&
+            logs.countForVehicle(it) == 0
+    }
+}
