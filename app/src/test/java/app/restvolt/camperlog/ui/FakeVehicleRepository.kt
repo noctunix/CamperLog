@@ -10,10 +10,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 
-/** Synchrones In-Memory-Repository für UI-Tests; die Room-Anbindung testet RoomVehicleRepositoryTest. */
+/**
+ * Synchrones In-Memory-Repository für UI-Tests; die Room-Anbindung testet RoomVehicleRepositoryTest.
+ * [tourCount] liefert die Anzahl Touren eines Fahrzeugs für die HAS_TOURS-Prüfung bei [delete].
+ */
 class FakeVehicleRepository(
     initial: List<Vehicle> = listOf(defaultVehicle()),
     currentVehicleId: Long = initial.firstOrNull()?.id ?: 0,
+    private val tourCount: (Long) -> Int = { 0 },
 ) : VehicleRepository {
 
     private val state = MutableStateFlow(initial)
@@ -51,6 +55,7 @@ class FakeVehicleRepository(
 
     override suspend fun delete(id: Long): VehicleDeleteResult {
         if (state.value.size <= 1) return VehicleDeleteResult.LAST_VEHICLE
+        if (tourCount(id) > 0) return VehicleDeleteResult.HAS_TOURS
         state.value = state.value.filterNot { it.id == id }
         return VehicleDeleteResult.DELETED
     }
