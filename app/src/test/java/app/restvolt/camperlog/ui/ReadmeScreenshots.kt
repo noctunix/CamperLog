@@ -59,13 +59,14 @@ class ReadmeScreenshots {
         compose.setContent {
             CamperLogTheme(darkTheme = false) {
                 CamperLogNavHost(
-                FakeTourRepository(sampleTours),
-                FakeVehicleRepository(listOf(sampleVehicle)),
-                FakeLogRepository(sampleLogEntries()),
-                FakeExchangeRateRepository(rates),
-                FakeBackupImporter(),
-                ThemeMode.LIGHT,
-            ) { }
+                    FakeTourRepository(sampleTours),
+                    FakeVehicleRepository(listOf(sampleVehicle)),
+                    FakeLogRepository(sampleLogEntries()),
+                    FakeExchangeRateRepository(rates),
+                    FakeBackupImporter(),
+                    ThemeMode.LIGHT,
+                    canShowStartDialogs = false,
+                ) { }
             }
         }
     }
