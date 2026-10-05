@@ -25,6 +25,7 @@ import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.amountReading
 import app.restvolt.camperlog.domain.fractionDigits
+import app.restvolt.camperlog.domain.isValidPhone
 import app.restvolt.camperlog.domain.isWebUrl
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
@@ -356,11 +357,14 @@ private fun TourDto.toTour(): Tour? {
 private fun VehicleDto.toVehicle(): Vehicle? {
     val uuid = parseUuid(uuid) ?: return null
     if (
-        listOf(name, licensePlate, manufacturer, model, vin, insurer, insurancePolicyNumber, tireSize)
-            .any { it.length > MAX_DESTINATION_LENGTH }
+        listOf(
+            name, licensePlate, manufacturer, model, vin, insurer, insurancePolicyNumber, tireSize,
+            breakdownProvider, breakdownMembershipNumber, travelProtectionProvider, travelProtectionContractNumber,
+        ).any { it.length > MAX_DESTINATION_LENGTH }
     ) {
         return null
     }
+    if (listOf(breakdownPhone, travelProtectionPhone, insurerClaimsPhone).any { it.isNotEmpty() && !isValidPhone(it) }) return null
     if (notes.length > MAX_NOTES_LENGTH) return null
     val firstRegistration = firstRegistration?.let { parseDate(it) ?: return null }
     val purchaseDate = purchaseDate?.let { parseDate(it) ?: return null }
@@ -374,6 +378,7 @@ private fun VehicleDto.toVehicle(): Vehicle? {
     val vehicleTax = vehicleTaxPerYear?.let { it.toMoney() ?: return null }
     if (!lengthCm.inBounds(MAX_LENGTH_CM) || !widthCm.inBounds(MAX_LENGTH_CM) || !heightCm.inBounds(MAX_LENGTH_CM)) return null
     if (!grossWeightKg.inBounds(MAX_WEIGHT_KG) || !powerKw.inBounds(MAX_POWER_KW)) return null
+    if (!measuredEmptyWeightKg.inBounds(MAX_WEIGHT_KG)) return null
     if (!tirePressureFrontMbar.inBounds(MAX_TIRE_PRESSURE_MBAR) || !tirePressureRearMbar.inBounds(MAX_TIRE_PRESSURE_MBAR)) return null
     val tanksInBounds = listOf(fuelTankDl, adBlueTankDl, freshWaterTankDl, greyWaterTankDl, boilerDl, cassetteDl)
         .all { it.inBounds(MAX_TANK_DL) }
@@ -404,6 +409,14 @@ private fun VehicleDto.toVehicle(): Vehicle? {
         widthCm = widthCm,
         heightCm = heightCm,
         grossWeightKg = grossWeightKg,
+        measuredEmptyWeightKg = measuredEmptyWeightKg,
+        breakdownProvider = breakdownProvider,
+        breakdownMembershipNumber = breakdownMembershipNumber,
+        breakdownPhone = breakdownPhone,
+        travelProtectionProvider = travelProtectionProvider,
+        travelProtectionContractNumber = travelProtectionContractNumber,
+        travelProtectionPhone = travelProtectionPhone,
+        insurerClaimsPhone = insurerClaimsPhone,
         powerKw = powerKw,
         tireSize = tireSize,
         tirePressureFrontMbar = tirePressureFrontMbar,
@@ -513,6 +526,14 @@ private fun BackupVehicle.toDto() = vehicle.let { v ->
         widthCm = v.widthCm,
         heightCm = v.heightCm,
         grossWeightKg = v.grossWeightKg,
+        measuredEmptyWeightKg = v.measuredEmptyWeightKg,
+        breakdownProvider = v.breakdownProvider,
+        breakdownMembershipNumber = v.breakdownMembershipNumber,
+        breakdownPhone = v.breakdownPhone,
+        travelProtectionProvider = v.travelProtectionProvider,
+        travelProtectionContractNumber = v.travelProtectionContractNumber,
+        travelProtectionPhone = v.travelProtectionPhone,
+        insurerClaimsPhone = v.insurerClaimsPhone,
         powerKw = v.powerKw,
         tireSize = v.tireSize,
         tirePressureFrontMbar = v.tirePressureFrontMbar,
