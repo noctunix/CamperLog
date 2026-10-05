@@ -294,6 +294,16 @@
     <string name="field_width">Breite</string>
     <string name="field_height">Höhe</string>
     <string name="field_gross_weight">zul. Gesamtgewicht</string>
+    <string name="field_measured_empty_weight">Leergewicht (gewogen)</string>
+    <string name="field_remaining_payload">Zuladung</string>
+    <string name="field_breakdown_provider">Pannenhilfe (Anbieter)</string>
+    <string name="field_breakdown_membership_number">Mitgliedsnummer</string>
+    <string name="field_breakdown_phone">Telefon Pannenhilfe</string>
+    <string name="field_travel_protection_provider">Schutzbrief (Anbieter)</string>
+    <string name="field_travel_protection_contract_number">Vertragsnummer</string>
+    <string name="field_travel_protection_phone">Telefon Schutzbrief</string>
+    <string name="field_insurer_claims_phone">Schadenhotline Versicherung</string>
+    <string name="field_phone_hint">Mit Ländervorwahl, z. B. +49 …, damit es auch im Ausland klappt.</string>
     <string name="field_power">Leistung</string>
     <string name="field_tire_size">Reifengröße</string>
     <string name="field_tire_pressure_front">Reifendruck vorne</string>
@@ -320,6 +330,7 @@
     <string name="section_purchase_sale">Kauf &amp; Verkauf</string>
     <string name="section_insurance_tax">Versicherung &amp; Steuer</string>
     <string name="section_dimensions_weight">Abmessungen &amp; Gewicht</string>
+    <string name="section_breakdown_accident">Panne &amp; Unfall</string>
     <string name="section_engine">Motor</string>
     <string name="section_tires">Reifen</string>
     <string name="section_tanks">Tanks</string>
@@ -336,6 +347,7 @@
     <string name="error_value_too_large">Wert zu groß, höchstens %1$s</string>
     <string name="error_date_required">Datum erforderlich</string>
     <string name="error_description_required">Beschreibung erforderlich</string>
+    <string name="error_invalid_phone">Nur Ziffern, Leerzeichen und + - / ( ) sind erlaubt.</string>
 
     <!-- Datenblatt Fahrzeug -->
     <string name="vehicle_not_found">Dieses Fahrzeug existiert nicht mehr.</string>
@@ -350,6 +362,14 @@
     <string name="vehicle_repair_deleted">Reparatur gelöscht</string>
     <string name="vehicle_repair_delete_failed">Reparatur konnte nicht gelöscht werden.</string>
     <string name="vehicle_repair_restore_failed">Reparatur konnte nicht wiederhergestellt werden.</string>
+    <string name="vehicle_breakdown_group">Pannenhilfe</string>
+    <string name="vehicle_breakdown_membership_line">Mitgliedsnummer %1$s</string>
+    <string name="vehicle_travel_protection_group">Schutzbrief</string>
+    <string name="vehicle_travel_protection_contract_line">Vertragsnummer %1$s</string>
+    <string name="vehicle_overloaded_by">Überladen um %1$s</string>
+    <string name="vehicle_call_action">%1$s anrufen, %2$s</string>
+    <string name="vehicle_no_dialer">Keine Telefon-App gefunden</string>
+    <string name="vehicle_copy_number">Nummer kopieren</string>
 
     <!-- Fahrzeugformular -->
     <string name="vehicle_edit_title_new">Neues Fahrzeug</string>

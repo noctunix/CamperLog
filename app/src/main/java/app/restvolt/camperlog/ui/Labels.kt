@@ -164,6 +164,10 @@ val VehicleField.labelRes: Int
         VehicleField.WIDTH -> R.string.field_width
         VehicleField.HEIGHT -> R.string.field_height
         VehicleField.GROSS_WEIGHT_KG -> R.string.field_gross_weight
+        VehicleField.MEASURED_EMPTY_WEIGHT_KG -> R.string.field_measured_empty_weight
+        VehicleField.BREAKDOWN_PHONE -> R.string.field_breakdown_phone
+        VehicleField.TRAVEL_PROTECTION_PHONE -> R.string.field_travel_protection_phone
+        VehicleField.INSURER_CLAIMS_PHONE -> R.string.field_insurer_claims_phone
         VehicleField.POWER_KW -> R.string.field_power
         VehicleField.TIRE_PRESSURE_FRONT -> R.string.field_tire_pressure_front
         VehicleField.TIRE_PRESSURE_REAR -> R.string.field_tire_pressure_rear
@@ -182,7 +186,7 @@ val VehicleField.labelRes: Int
 /** Höchstwert und Einheit eines Feldes mit Obergrenze, für die Fehlermeldung zu [VehicleError.TOO_LARGE]. */
 private fun vehicleFieldBound(field: VehicleField): Pair<Double, String> = when (field) {
     VehicleField.LENGTH, VehicleField.WIDTH, VehicleField.HEIGHT -> MAX_DIMENSION_M to "m"
-    VehicleField.GROSS_WEIGHT_KG -> MAX_WEIGHT_KG.toDouble() to "kg"
+    VehicleField.GROSS_WEIGHT_KG, VehicleField.MEASURED_EMPTY_WEIGHT_KG -> MAX_WEIGHT_KG.toDouble() to "kg"
     VehicleField.POWER_KW -> MAX_POWER_KW.toDouble() to "kW"
     VehicleField.TIRE_PRESSURE_FRONT, VehicleField.TIRE_PRESSURE_REAR -> MAX_TIRE_PRESSURE_BAR to "bar"
     VehicleField.FUEL_TANK, VehicleField.AD_BLUE_TANK, VehicleField.FRESH_WATER_TANK,
@@ -212,6 +216,7 @@ fun VehicleError.messageRes(field: VehicleField): String {
         VehicleError.INVALID_NUMBER -> stringResource(R.string.error_invalid_number)
         VehicleError.INVALID_AMOUNT -> stringResource(R.string.error_invalid_amount)
         VehicleError.AMOUNT_TOO_LARGE -> stringResource(R.string.error_amount_too_large, "")
+        VehicleError.INVALID_PHONE -> stringResource(R.string.error_invalid_phone)
         VehicleError.NOT_POSITIVE -> stringResource(R.string.error_must_be_positive, vehicleFieldBound(field).second)
         VehicleError.TOO_LARGE -> {
             val (max, unit) = vehicleFieldBound(field)

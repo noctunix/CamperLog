@@ -1,9 +1,14 @@
 package app.restvolt.camperlog.ui.vehicle
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -16,6 +21,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,8 +37,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -40,6 +49,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Reminder
@@ -55,6 +65,7 @@ import app.restvolt.camperlog.domain.formatLitres
 import app.restvolt.camperlog.domain.formatMetres
 import app.restvolt.camperlog.domain.formatPower
 import app.restvolt.camperlog.domain.formatWp
+import app.restvolt.camperlog.share.tryStart
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LabeledValue
 import app.restvolt.camperlog.ui.SectionCard
@@ -64,8 +75,11 @@ import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.text
 import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.vehicleDisplayName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.util.Locale
+import kotlin.math.abs
 
 /** Fahrzeug-Reiter: Datenblatt des aktuellen Fahrzeugs mit Erinnerungen und Reparaturen. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,6 +106,10 @@ fun VehicleScreen(
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
     val message by viewModel.message.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val noDialerApp = stringResource(R.string.vehicle_no_dialer)
+    val copyNumber = stringResource(R.string.vehicle_copy_number)
 
     Scaffold(
         topBar = {
@@ -130,6 +148,7 @@ fun VehicleScreen(
                 onOpenReminder = { onEditVehicle(vehicle.id) },
                 onAddRepair = { onAddRepair(vehicle.id) },
                 onOpenRepair = { repair -> onOpenRepair(vehicle.id, repair.id) },
+                onCall = { phone -> dialOrOfferCopy(scope, context, snackbar, noDialerApp, copyNumber, phone) },
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize(),
@@ -165,15 +184,17 @@ private fun VehicleSheet(
     onOpenReminder: () -> Unit,
     onAddRepair: () -> Unit,
     onOpenRepair: (Repair) -> Unit,
+    onCall: (String) -> Unit,
     modifier: Modifier,
 ) {
     val locale = currentLocale()
     val soldLine = vehicle.saleDate?.let { stringResource(R.string.vehicle_sold_on, formatDate(it, locale)) }
     val purchaseSale = purchaseSaleRows(vehicle, locale)
+    val dimensionsWeightTitle = stringResource(R.string.section_dimensions_weight)
     val sections = listOf(
         stringResource(R.string.section_general) to generalRows(vehicle, locale),
         stringResource(R.string.section_insurance_tax) to insuranceTaxRows(vehicle, locale),
-        stringResource(R.string.section_dimensions_weight) to dimensionsRows(vehicle, locale),
+        dimensionsWeightTitle to dimensionsRows(vehicle, locale),
         stringResource(R.string.section_engine) to engineRows(vehicle, locale),
         stringResource(R.string.section_tires) to tireRows(vehicle, locale),
         stringResource(R.string.section_tanks) to tankRows(vehicle, locale),
@@ -189,6 +210,7 @@ private fun VehicleSheet(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        if (vehicle.hasBreakdownInfo) BreakdownAssistanceCard(vehicle, onCall)
         reminders.forEach { reminder -> ReminderCard(reminder, today, onClick = onOpenReminder) }
         if (!hasAnyValue) {
             EmptyHint(stringResource(R.string.vehicle_sheet_empty_hint))
@@ -217,6 +239,11 @@ private fun VehicleSheet(
                     SectionCard {
                         SectionHeading(title)
                         rows.forEach { (label, value) -> LabeledValue(label, value) }
+                        if (title == dimensionsWeightTitle) {
+                            vehicle.remainingPayloadKg?.takeIf { it < 0 }?.let { over ->
+                                OverweightWarning(formatKg(abs(over), locale))
+                            }
+                        }
                     }
                 }
             }
@@ -307,6 +334,134 @@ private fun RepairRow(repair: Repair, locale: Locale, onClick: () -> Unit) {
     }
 }
 
+/** Karte „Panne & Unfall" am Kopf des Datenblatts; nur sichtbar, wenn [Vehicle.hasBreakdownInfo] gilt. */
+@Composable
+private fun BreakdownAssistanceCard(vehicle: Vehicle, onCall: (String) -> Unit) {
+    val showBreakdown = vehicle.breakdownProvider.isNotBlank() || vehicle.breakdownMembershipNumber.isNotBlank() ||
+        vehicle.breakdownPhone.isNotBlank()
+    val showTravelProtection = vehicle.travelProtectionProvider.isNotBlank() ||
+        vehicle.travelProtectionContractNumber.isNotBlank() || vehicle.travelProtectionPhone.isNotBlank()
+    val showInsurerClaims = vehicle.insurerClaimsPhone.isNotBlank()
+
+    SectionCard {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(painterResource(R.drawable.ic_car_crash), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            SectionHeading(stringResource(R.string.section_breakdown_accident))
+        }
+        if (showBreakdown) {
+            AssistanceGroup(
+                groupTitle = stringResource(R.string.vehicle_breakdown_group),
+                provider = vehicle.breakdownProvider,
+                extraLine = vehicle.breakdownMembershipNumber.takeIf(String::isNotBlank)
+                    ?.let { stringResource(R.string.vehicle_breakdown_membership_line, it) },
+                phone = vehicle.breakdownPhone,
+                fallbackSubject = stringResource(R.string.field_breakdown_phone),
+                onCall = onCall,
+            )
+        }
+        if (showBreakdown && (showTravelProtection || showInsurerClaims)) HorizontalDivider()
+        if (showTravelProtection) {
+            AssistanceGroup(
+                groupTitle = stringResource(R.string.vehicle_travel_protection_group),
+                provider = vehicle.travelProtectionProvider,
+                extraLine = vehicle.travelProtectionContractNumber.takeIf(String::isNotBlank)
+                    ?.let { stringResource(R.string.vehicle_travel_protection_contract_line, it) },
+                phone = vehicle.travelProtectionPhone,
+                fallbackSubject = stringResource(R.string.field_travel_protection_phone),
+                onCall = onCall,
+            )
+        }
+        if (showTravelProtection && showInsurerClaims) HorizontalDivider()
+        if (showInsurerClaims) {
+            AssistanceGroup(
+                groupTitle = stringResource(R.string.field_insurer_claims_phone),
+                provider = vehicle.insurer,
+                extraLine = null,
+                phone = vehicle.insurerClaimsPhone,
+                fallbackSubject = stringResource(R.string.field_insurer_claims_phone),
+                onCall = onCall,
+            )
+        }
+    }
+}
+
+/** Ein Block der Panne-&-Unfall-Karte: Titel mit Anbieter, optionale Zusatzzeile, Telefonzeile. */
+@Composable
+private fun AssistanceGroup(
+    groupTitle: String,
+    provider: String,
+    extraLine: String?,
+    phone: String,
+    fallbackSubject: String,
+    onCall: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            if (provider.isNotBlank()) "$groupTitle · $provider" else groupTitle,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        extraLine?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (phone.isNotBlank()) {
+            PhoneRow(subject = provider.ifBlank { fallbackSubject }, phone = phone, onCall = { onCall(phone) })
+        }
+    }
+}
+
+/** Telefonnummer mit Wähl-Symbol; die ganze Zeile ist der 48 dp hohe Tippbereich mit zusammengefasster Semantik. */
+@Composable
+private fun PhoneRow(subject: String, phone: String, onCall: () -> Unit) {
+    val callLabel = stringResource(R.string.vehicle_call_action, subject, phone)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(onClickLabel = callLabel, onClick = onCall),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(phone, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        Icon(painterResource(R.drawable.ic_call), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+    }
+}
+
+/** Warnung bei negativer Restzuladung: Symbol und Fehlertext, nicht nur Farbe. */
+@Composable
+private fun OverweightWarning(overweightText: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(painterResource(R.drawable.ic_warning), contentDescription = null, tint = MaterialTheme.colorScheme.error)
+        Text(
+            stringResource(R.string.vehicle_overloaded_by, overweightText),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+    }
+}
+
+/** Öffnet den Wähler für [phone] über `ACTION_DIAL`; ohne Telefon-App bietet die Snackbar das Kopieren an. */
+private fun dialOrOfferCopy(
+    scope: CoroutineScope,
+    context: Context,
+    snackbar: SnackbarHostState,
+    noDialerApp: String,
+    copyNumber: String,
+    phone: String,
+) {
+    val intent = Intent(Intent.ACTION_DIAL, "tel:${phone.replace(" ", "")}".toUri())
+    if (!context.tryStart(intent)) {
+        scope.launch {
+            val result = snackbar.showSnackbar(message = noDialerApp, actionLabel = copyNumber, withDismissAction = true)
+            if (result == SnackbarResult.ActionPerformed) context.copyToClipboard(phone, phone)
+        }
+    }
+}
+
+private fun Context.copyToClipboard(label: String, text: String) {
+    val clipboard = getSystemService(ClipboardManager::class.java)
+    clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
+}
+
 @Composable
 private fun SectionHeading(text: String) {
     Text(
@@ -350,6 +505,8 @@ private fun dimensionsRows(vehicle: Vehicle, locale: Locale): List<Pair<String, 
     vehicle.widthCm?.let { add(stringResource(R.string.field_width) to formatMetres(it, locale)) }
     vehicle.heightCm?.let { add(stringResource(R.string.field_height) to formatMetres(it, locale)) }
     vehicle.grossWeightKg?.let { add(stringResource(R.string.field_gross_weight) to formatKg(it, locale)) }
+    vehicle.measuredEmptyWeightKg?.let { add(stringResource(R.string.field_measured_empty_weight) to formatKg(it, locale)) }
+    vehicle.remainingPayloadKg?.let { add(stringResource(R.string.field_remaining_payload) to formatKg(abs(it), locale)) }
 }
 
 @Composable

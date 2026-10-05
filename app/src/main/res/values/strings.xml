@@ -294,6 +294,16 @@
     <string name="field_width">Width</string>
     <string name="field_height">Height</string>
     <string name="field_gross_weight">Gross weight</string>
+    <string name="field_measured_empty_weight">Measured empty weight</string>
+    <string name="field_remaining_payload">Remaining payload</string>
+    <string name="field_breakdown_provider">Breakdown service</string>
+    <string name="field_breakdown_membership_number">Membership number</string>
+    <string name="field_breakdown_phone">Breakdown phone</string>
+    <string name="field_travel_protection_provider">Travel protection</string>
+    <string name="field_travel_protection_contract_number">Contract number</string>
+    <string name="field_travel_protection_phone">Travel protection phone</string>
+    <string name="field_insurer_claims_phone">Insurer claims hotline</string>
+    <string name="field_phone_hint">With country code, e.g. +49 …, so it works abroad.</string>
     <string name="field_power">Power</string>
     <string name="field_tire_size">Tyre size</string>
     <string name="field_tire_pressure_front">Tyre pressure front</string>
@@ -320,6 +330,7 @@
     <string name="section_purchase_sale">Purchase &amp; sale</string>
     <string name="section_insurance_tax">Insurance &amp; tax</string>
     <string name="section_dimensions_weight">Dimensions &amp; weight</string>
+    <string name="section_breakdown_accident">Breakdown &amp; accident</string>
     <string name="section_engine">Engine</string>
     <string name="section_tires">Tyres</string>
     <string name="section_tanks">Tanks</string>
@@ -336,6 +347,7 @@
     <string name="error_value_too_large">Value too large, at most %1$s</string>
     <string name="error_date_required">Date required</string>
     <string name="error_description_required">Description required</string>
+    <string name="error_invalid_phone">Only digits, spaces and + - / ( ) are allowed.</string>
 
     <!-- Vehicle sheet -->
     <string name="vehicle_not_found">This vehicle no longer exists.</string>
@@ -350,6 +362,14 @@
     <string name="vehicle_repair_deleted">Repair deleted</string>
     <string name="vehicle_repair_delete_failed">Could not delete repair.</string>
     <string name="vehicle_repair_restore_failed">Could not restore repair.</string>
+    <string name="vehicle_breakdown_group">Breakdown assistance</string>
+    <string name="vehicle_breakdown_membership_line">Membership number %1$s</string>
+    <string name="vehicle_travel_protection_group">Travel protection</string>
+    <string name="vehicle_travel_protection_contract_line">Contract number %1$s</string>
+    <string name="vehicle_overloaded_by">Overloaded by %1$s</string>
+    <string name="vehicle_call_action">Call %1$s, %2$s</string>
+    <string name="vehicle_no_dialer">No phone app found</string>
+    <string name="vehicle_copy_number">Copy number</string>
 
     <!-- Vehicle form -->
     <string name="vehicle_edit_title_new">New vehicle</string>

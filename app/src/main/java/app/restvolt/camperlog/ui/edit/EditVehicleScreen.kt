@@ -267,6 +267,60 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
             )
         }
         SectionCard {
+            SectionHeading(stringResource(R.string.section_breakdown_accident))
+            FormTextField(
+                label = stringResource(R.string.field_breakdown_provider),
+                value = input.breakdownProvider,
+                onValueChange = { value -> change { it.copy(breakdownProvider = value) } },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+            )
+            FormTextField(
+                label = stringResource(R.string.field_breakdown_membership_number),
+                value = input.breakdownMembershipNumber,
+                onValueChange = { value -> change { it.copy(breakdownMembershipNumber = value) } },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
+            )
+            FormTextField(
+                label = stringResource(R.string.field_breakdown_phone),
+                value = input.breakdownPhone,
+                onValueChange = { value -> change { it.copy(breakdownPhone = value) } },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+                modifier = focusOf(VehicleField.BREAKDOWN_PHONE),
+                error = errorOf(VehicleField.BREAKDOWN_PHONE),
+                hint = stringResource(R.string.field_phone_hint),
+            )
+            FormTextField(
+                label = stringResource(R.string.field_travel_protection_provider),
+                value = input.travelProtectionProvider,
+                onValueChange = { value -> change { it.copy(travelProtectionProvider = value) } },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+            )
+            FormTextField(
+                label = stringResource(R.string.field_travel_protection_contract_number),
+                value = input.travelProtectionContractNumber,
+                onValueChange = { value -> change { it.copy(travelProtectionContractNumber = value) } },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
+            )
+            FormTextField(
+                label = stringResource(R.string.field_travel_protection_phone),
+                value = input.travelProtectionPhone,
+                onValueChange = { value -> change { it.copy(travelProtectionPhone = value) } },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+                modifier = focusOf(VehicleField.TRAVEL_PROTECTION_PHONE),
+                error = errorOf(VehicleField.TRAVEL_PROTECTION_PHONE),
+                hint = stringResource(R.string.field_phone_hint),
+            )
+            FormTextField(
+                label = stringResource(R.string.field_insurer_claims_phone),
+                value = input.insurerClaimsPhone,
+                onValueChange = { value -> change { it.copy(insurerClaimsPhone = value) } },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+                modifier = focusOf(VehicleField.INSURER_CLAIMS_PHONE),
+                error = errorOf(VehicleField.INSURER_CLAIMS_PHONE),
+                hint = stringResource(R.string.field_phone_hint),
+            )
+        }
+        SectionCard {
             SectionHeading(stringResource(R.string.section_dimensions_weight))
             UnitField(
                 stringResource(R.string.field_length), input.lengthM, "m", KeyboardType.Decimal,
@@ -284,6 +338,10 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 stringResource(R.string.field_gross_weight), input.grossWeightKg, "kg", KeyboardType.Number,
                 errorOf(VehicleField.GROSS_WEIGHT_KG), focusOf(VehicleField.GROSS_WEIGHT_KG),
             ) { value -> change { it.copy(grossWeightKg = value) } }
+            UnitField(
+                stringResource(R.string.field_measured_empty_weight), input.measuredEmptyWeightKg, "kg", KeyboardType.Number,
+                errorOf(VehicleField.MEASURED_EMPTY_WEIGHT_KG), focusOf(VehicleField.MEASURED_EMPTY_WEIGHT_KG),
+            ) { value -> change { it.copy(measuredEmptyWeightKg = value) } }
         }
         SectionCard {
             SectionHeading(stringResource(R.string.section_engine))
