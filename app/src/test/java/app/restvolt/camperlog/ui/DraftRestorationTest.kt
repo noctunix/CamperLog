@@ -76,6 +76,21 @@ class DraftRestorationTest {
     }
 
     @Test
+    fun selectedVehicleSurvivesProcessDeath() {
+        val vehicles = FakeVehicleRepository(
+            listOf(defaultVehicle(id = 1, name = "Wohnmobil A"), defaultVehicle(id = 2, name = "Wohnmobil B")),
+            currentVehicleId = 1,
+        )
+        val handle = SavedStateHandle()
+        val before = EditTourViewModel(FakeTourRepository(), vehicles, 0, handle, locale)
+        before.onVehicleChange(2)
+
+        val after = EditTourViewModel(FakeTourRepository(), vehicles, 0, handle.afterProcessDeath(), locale)
+
+        assertEquals(2L, after.uiState.value.input.vehicleId)
+    }
+
+    @Test
     fun draftWinsOverStoredTour() {
         val repository = FakeTourRepository(listOf(tour()))
         val handle = SavedStateHandle()
