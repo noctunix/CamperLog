@@ -32,7 +32,7 @@ class RepairFlowTest {
         val repository = FakeTourRepository(emptyList()) { vehicles.currentVehicleId }
         compose.setContent {
             CamperLogTheme {
-                CamperLogNavHost(repository, vehicles, FakeExchangeRateRepository(), FakeBackupImporter(), ThemeMode.SYSTEM) { }
+                CamperLogNavHost(repository, vehicles, FakeLogRepository(), FakeExchangeRateRepository(), FakeBackupImporter(), ThemeMode.SYSTEM) { }
             }
         }
         return vehicles

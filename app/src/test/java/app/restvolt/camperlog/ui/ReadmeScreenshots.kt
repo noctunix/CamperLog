@@ -59,6 +59,7 @@ class ReadmeScreenshots {
                 CamperLogNavHost(
                 FakeTourRepository(sampleTours),
                 FakeVehicleRepository(listOf(sampleVehicle)),
+                FakeLogRepository(),
                 FakeExchangeRateRepository(rates),
                 FakeBackupImporter(),
                 ThemeMode.LIGHT,
