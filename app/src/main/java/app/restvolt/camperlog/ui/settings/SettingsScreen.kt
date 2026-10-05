@@ -24,14 +24,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -56,6 +54,7 @@ fun SettingsScreen(
     viewModel: RatesViewModel,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    reminderSettings: ReminderSettings,
     onBack: () -> Unit,
     onOpenRates: () -> Unit,
 ) {
@@ -64,10 +63,7 @@ fun SettingsScreen(
     val resources = LocalResources.current
     val snackbar = remember { SnackbarHostState() }
     var pickMainCurrency by rememberSaveable { mutableStateOf(false) }
-    val context = LocalContext.current
-    val reminderSettings = remember { ReminderSettings(context) }
-    var reminderLeadDays by remember { mutableIntStateOf(reminderSettings.reminderLeadDays) }
-    var oilChangeIntervalMonths by remember { mutableIntStateOf(reminderSettings.oilChangeIntervalMonths) }
+    val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
     var pickLeadDays by rememberSaveable { mutableStateOf(false) }
     var pickOilInterval by rememberSaveable { mutableStateOf(false) }
 
@@ -134,15 +130,15 @@ fun SettingsScreen(
                     )
                     ReminderChoiceRow(
                         label = stringResource(R.string.settings_reminder_lead_days),
-                        valueText = pluralStringResource(R.plurals.settings_reminder_lead_days_option, reminderLeadDays, reminderLeadDays),
+                        valueText = pluralStringResource(R.plurals.settings_reminder_lead_days_option, reminderPreferences.leadDays, reminderPreferences.leadDays),
                         onClick = { pickLeadDays = true },
                     )
                     ReminderChoiceRow(
                         label = stringResource(R.string.settings_reminder_oil_interval),
                         valueText = pluralStringResource(
                             R.plurals.settings_reminder_oil_interval_option,
-                            oilChangeIntervalMonths,
-                            oilChangeIntervalMonths,
+                            reminderPreferences.oilChangeIntervalMonths,
+                            reminderPreferences.oilChangeIntervalMonths,
                         ),
                         onClick = { pickOilInterval = true },
                     )
@@ -155,11 +151,10 @@ fun SettingsScreen(
         IntChoiceDialog(
             title = stringResource(R.string.settings_reminder_lead_days),
             options = REMINDER_LEAD_DAYS_OPTIONS,
-            selected = reminderLeadDays,
+            selected = reminderPreferences.leadDays,
             optionLabel = { pluralStringResource(R.plurals.settings_reminder_lead_days_option, it, it) },
             onSelect = {
                 reminderSettings.reminderLeadDays = it
-                reminderLeadDays = it
                 pickLeadDays = false
             },
             onDismiss = { pickLeadDays = false },
@@ -170,11 +165,10 @@ fun SettingsScreen(
         IntChoiceDialog(
             title = stringResource(R.string.settings_reminder_oil_interval),
             options = REMINDER_OIL_INTERVAL_OPTIONS,
-            selected = oilChangeIntervalMonths,
+            selected = reminderPreferences.oilChangeIntervalMonths,
             optionLabel = { pluralStringResource(R.plurals.settings_reminder_oil_interval_option, it, it) },
             onSelect = {
                 reminderSettings.oilChangeIntervalMonths = it
-                oilChangeIntervalMonths = it
                 pickOilInterval = false
             },
             onDismiss = { pickOilInterval = false },

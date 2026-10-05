@@ -126,11 +126,11 @@ fun CamperLogNavHost(
     val currentDestination = navController.currentBackStackEntryAsState().value?.destination
     val context = LocalContext.current
     val reminderSettings = remember { ReminderSettings(context) }
-    // Liest die Einstellungen frisch bei jeder Navigation (z. B. zurück aus den Einstellungen),
-    // ohne eine eigene Reaktivität für SharedPreferences zu benötigen.
-    val currentVehicle by vehicles.observeCurrentVehicle().collectAsStateWithLifecycle(initialValue = null)
+    val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
+    val currentVehicleFlow = remember(vehicles) { vehicles.observeCurrentVehicle() }
+    val currentVehicle by currentVehicleFlow.collectAsStateWithLifecycle(initialValue = null)
     val reminderCount = currentVehicle?.let { vehicle ->
-        dueReminders(vehicle, LocalDate.now(), reminderSettings.reminderLeadDays, reminderSettings.oilChangeIntervalMonths).size
+        dueReminders(vehicle, LocalDate.now(), reminderPreferences.leadDays, reminderPreferences.oilChangeIntervalMonths).size
     } ?: 0
     val bottomBar: @Composable () -> Unit = { CamperLogBottomBar(navController, currentDestination, reminderCount) }
 
@@ -257,6 +257,7 @@ fun CamperLogNavHost(
                 viewModel = viewModel { RatesViewModel(exchangeRates, repository) },
                 themeMode = themeMode,
                 onThemeModeChange = onThemeModeChange,
+                reminderSettings = reminderSettings,
                 onBack = { navController.popFrom(entry) },
                 onOpenRates = { navController.navigate(RatesRoute) },
             )

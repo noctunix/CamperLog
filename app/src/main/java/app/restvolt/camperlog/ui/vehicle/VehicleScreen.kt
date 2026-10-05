@@ -84,8 +84,9 @@ fun VehicleScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val vehicle = state.currentVehicle
     val today = LocalDate.now()
+    val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
     val reminders = vehicle?.let {
-        dueReminders(it, today, reminderSettings.reminderLeadDays, reminderSettings.oilChangeIntervalMonths)
+        dueReminders(it, today, reminderPreferences.leadDays, reminderPreferences.oilChangeIntervalMonths)
     }.orEmpty()
 
     val snackbar = remember { SnackbarHostState() }

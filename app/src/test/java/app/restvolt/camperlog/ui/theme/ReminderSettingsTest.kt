@@ -30,4 +30,21 @@ class ReminderSettingsTest {
             preferences.edit().clear().commit()
         }
     }
+
+    @Test
+    fun settersUpdateValuesImmediately() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val preferences = context.getSharedPreferences("reminders", Context.MODE_PRIVATE)
+        preferences.edit().clear().commit()
+        try {
+            val settings = ReminderSettings(context)
+
+            settings.reminderLeadDays = 60
+            settings.oilChangeIntervalMonths = 24
+
+            assertEquals(ReminderPreferences(leadDays = 60, oilChangeIntervalMonths = 24), settings.values.value)
+        } finally {
+            preferences.edit().clear().commit()
+        }
+    }
 }
