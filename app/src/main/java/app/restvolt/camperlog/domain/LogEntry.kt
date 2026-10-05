@@ -29,6 +29,9 @@ interface LogRepository {
     /** Liefert alle Einträge aller Fahrzeuge für den Sicherungs-Export. */
     suspend fun allEntries(): List<LogEntry>
 
+    /** Ob mindestens ein Bordbuch-Eintrag gespeichert ist. */
+    suspend fun hasEntries(): Boolean
+
     /** Legt einen neuen Eintrag an. */
     suspend fun add(vehicleId: Long, type: LogType, date: LocalDate): LogEntry
 

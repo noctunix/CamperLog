@@ -4,19 +4,21 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.LogType
+import java.time.Instant
+import java.time.LocalDate
+import java.util.UUID
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.time.Instant
-import java.time.LocalDate
-import java.util.UUID
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -40,6 +42,15 @@ class RoomLogRepositoryTest {
 
     @After
     fun tearDown() = db.close()
+
+    @Test
+    fun hasEntriesReflectsWhetherAnyEntryIsStored() = runTest {
+        assertFalse(repository.hasEntries())
+
+        repository.add(vehicleId, LogType.CASSETTE_EMPTIED, LocalDate.of(2026, 1, 1))
+
+        assertTrue(repository.hasEntries())
+    }
 
     @Test
     fun observeLatestHasOneDatePerTypeAndIgnoresOtherVehicles() = runTest {

@@ -33,6 +33,9 @@ interface TourDao {
     @Query("SELECT * FROM tours ORDER BY start_date ASC, id ASC")
     suspend fun getAllAscending(): List<TourWithCosts>
 
+    @Query("SELECT EXISTS(SELECT 1 FROM tours)")
+    suspend fun hasAny(): Boolean
+
     @Insert
     suspend fun insert(tour: TourEntity): Long
 

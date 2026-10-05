@@ -15,6 +15,9 @@ interface TourRepository {
     /** Liefert alle Touren chronologisch aufsteigend für den Export. */
     suspend fun allTours(): List<Tour>
 
+    /** Ob mindestens eine Tour gespeichert ist. */
+    suspend fun hasTours(): Boolean
+
     /**
      * Legt [tour] an, wenn ihre id 0 ist, sonst wird sie aktualisiert.
      * Zeitstempel werden dabei vom Repository gesetzt.

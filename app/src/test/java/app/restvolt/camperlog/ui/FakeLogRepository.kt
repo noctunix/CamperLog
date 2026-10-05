@@ -32,6 +32,8 @@ class FakeLogRepository(initial: List<LogEntry> = emptyList()) : LogRepository {
 
     override suspend fun allEntries(): List<LogEntry> = state.value
 
+    override suspend fun hasEntries(): Boolean = state.value.isNotEmpty()
+
     override suspend fun add(vehicleId: Long, type: LogType, date: LocalDate): LogEntry {
         val entry = LogEntry(id = nextId++, uuid = "log-${nextId}", vehicleId = vehicleId, type = type, date = date, createdAt = Instant.EPOCH)
         state.value += entry

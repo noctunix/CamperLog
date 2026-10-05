@@ -12,22 +12,24 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourTotals
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.YearTotals
+import java.time.Instant
+import java.time.LocalDate
+import java.util.Currency
+import java.util.UUID
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.time.Instant
-import java.time.LocalDate
-import java.util.Currency
-import java.util.UUID
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -51,6 +53,15 @@ class RoomTourRepositoryTest {
 
     @After
     fun tearDown() = db.close()
+
+    @Test
+    fun hasToursReflectsWhetherAnyTourIsStored() = runTest {
+        assertFalse(repository.hasTours())
+
+        repository.save(tour(start = "2026-05-01", destination = "Gardasee"))
+
+        assertTrue(repository.hasTours())
+    }
 
     @Test
     fun insertReadUpdateDelete() = runTest {

@@ -165,7 +165,7 @@ fun CamperLogNavHost(
     if (canShowStartDialogs) {
         LaunchedEffect(Unit) {
             keepAndroidOpenSettings.recordFirstLaunchIfNeeded()
-            val hasData = repository.allTours().isNotEmpty() || logbook.allEntries().isNotEmpty()
+            val hasData = repository.hasTours() || logbook.hasEntries()
             showStartupKeepAndroidOpen = shouldShowKeepAndroidOpen(keepAndroidOpenSettings.state, hasData, Instant.now())
         }
     }

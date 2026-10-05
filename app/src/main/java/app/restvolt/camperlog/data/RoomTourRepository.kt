@@ -33,6 +33,8 @@ class RoomTourRepository(
 
     override suspend fun allTours(): List<Tour> = dao.getAllAscending().map(TourWithCosts::toDomain)
 
+    override suspend fun hasTours(): Boolean = dao.hasAny()
+
     override suspend fun save(tour: Tour): Long {
         val now = clock()
         return if (tour.id == 0L) {

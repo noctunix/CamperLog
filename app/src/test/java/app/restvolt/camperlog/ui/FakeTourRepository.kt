@@ -36,6 +36,8 @@ class FakeTourRepository(
         return state.value.sortedBy { it.startDate }
     }
 
+    override suspend fun hasTours(): Boolean = state.value.isNotEmpty()
+
     /** Simuliert eine volle oder defekte Datenbank: Schreibzugriffe werfen dann eine [SQLiteException]. */
     var failWrites = false
 
