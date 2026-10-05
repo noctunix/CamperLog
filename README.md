@@ -22,7 +22,7 @@ CamperLog is an Android app for recording camper trips, their costs, and the cur
 
 ## Getting started
 
-1. Download the latest `CamperLog-*.apk` from [Releases](https://github.com/DeveloperAsAService/CamperLog/releases) and optionally compare it with the published SHA-256 checksum. Release APKs are built for **arm64** devices running **Android 8.0 or newer**.
+1. Download the latest `CamperLog-*.apk` from [Releases](https://github.com/noctunix/CamperLog/releases) and optionally compare it with the published SHA-256 checksum. Release APKs are built for **arm64** devices running **Android 8.0 or newer**.
 2. Open the APK on your phone and allow installing apps from this source when Android asks. Later releases install as updates and keep your data.
 3. Tap **New tour** to record your first trip. Under **Settings → Manage exchange rates**, choose a main currency and enter rates if you want converted totals.
 
