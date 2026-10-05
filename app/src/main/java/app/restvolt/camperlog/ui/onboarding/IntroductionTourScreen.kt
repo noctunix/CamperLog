@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -79,42 +80,44 @@ fun IntroductionTourScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(24.dp),
-    ) {
-        Box(
+    // Surface statt Modifier.background: setzt auch die Inhaltsfarbe, sonst bleibt Text im Dark Mode schwarz.
+    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp),
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(24.dp),
         ) {
-            if (pagerState.currentPage < PAGE_FINISH) {
-                TextButton(onClick = onFinished, modifier = Modifier.align(Alignment.CenterEnd)) {
-                    Text(stringResource(R.string.btn_intro_skip))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp),
+            ) {
+                if (pagerState.currentPage < PAGE_FINISH) {
+                    TextButton(onClick = onFinished, modifier = Modifier.align(Alignment.CenterEnd)) {
+                        Text(stringResource(R.string.btn_intro_skip))
+                    }
                 }
             }
-        }
 
-        HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
-            when (page) {
-                0 -> TourPage(R.drawable.ic_map, R.string.title_intro_welcome, R.string.body_intro_welcome)
-                1 -> TourPage(R.drawable.ic_book, R.string.title_intro_logbook, R.string.body_intro_logbook)
-                2 -> TourPage(R.drawable.ic_directions_car, R.string.title_intro_vehicle, R.string.body_intro_vehicle)
-                3 -> TourPage(R.drawable.ic_import_export, R.string.title_intro_data, R.string.body_intro_data)
-                PAGE_SETTINGS -> SettingsPage(
-                    themeMode = themeMode,
-                    onThemeModeChange = onThemeModeChange,
-                    leadDays = reminderPreferences.leadDays,
-                    onLeadDaysChange = { reminderSettings.reminderLeadDays = it },
-                )
-                PAGE_FINISH -> TourPage(R.drawable.ic_check, R.string.title_intro_finish, R.string.body_intro_finish)
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+                when (page) {
+                    0 -> TourPage(R.drawable.ic_map, R.string.title_intro_welcome, R.string.body_intro_welcome)
+                    1 -> TourPage(R.drawable.ic_book, R.string.title_intro_logbook, R.string.body_intro_logbook)
+                    2 -> TourPage(R.drawable.ic_directions_car, R.string.title_intro_vehicle, R.string.body_intro_vehicle)
+                    3 -> TourPage(R.drawable.ic_import_export, R.string.title_intro_data, R.string.body_intro_data)
+                    PAGE_SETTINGS -> SettingsPage(
+                        themeMode = themeMode,
+                        onThemeModeChange = onThemeModeChange,
+                        leadDays = reminderPreferences.leadDays,
+                        onLeadDaysChange = { reminderSettings.reminderLeadDays = it },
+                    )
+                    PAGE_FINISH -> TourPage(R.drawable.ic_check, R.string.title_intro_finish, R.string.body_intro_finish)
+                }
             }
-        }
 
-        TourControls(pagerState = pagerState, scope = scope, onFinished = onFinished)
+            TourControls(pagerState = pagerState, scope = scope, onFinished = onFinished)
+        }
     }
 }
 
