@@ -16,6 +16,7 @@ import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import org.junit.Assume.assumeTrue
@@ -57,7 +58,7 @@ class ReadmeScreenshots {
             CamperLogTheme(darkTheme = false) {
                 CamperLogNavHost(
                 FakeTourRepository(sampleTours),
-                FakeVehicleRepository(),
+                FakeVehicleRepository(listOf(sampleVehicle)),
                 FakeExchangeRateRepository(rates),
                 FakeBackupImporter(),
                 ThemeMode.LIGHT,
@@ -77,6 +78,9 @@ class ReadmeScreenshots {
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithContentDescription("Data").performClick()
         capture("4_data")
+        compose.onNodeWithContentDescription("Back").performClick()
+        compose.onNodeWithText("Vehicle").performClick()
+        capture("5_vehicle")
     }
 
     private fun capture(name: String) {
@@ -125,6 +129,37 @@ class ReadmeScreenshots {
                 updatedAt = stamp,
             )
         }
+
+        val sampleVehicle = Vehicle(
+            id = 1,
+            uuid = "00000000-0000-4000-8000-0000000000a1",
+            name = "Bluebird",
+            licensePlate = "M-CL 2024",
+            manufacturer = "Fiat Ducato",
+            model = "Kastenwagen 600",
+            firstRegistration = LocalDate.of(2021, 4, 15),
+            purchaseDate = LocalDate.of(2023, 3, 1),
+            purchasePrice = Money(4_890_000, EUR),
+            purchaseOdometerKm = 38_500,
+            insurer = "Example Insurance",
+            insurancePremiumPerYear = Money(64_000, EUR),
+            lengthCm = 599,
+            widthCm = 205,
+            heightCm = 265,
+            grossWeightKg = 3_500,
+            powerKw = 103,
+            tireSize = "225/75 R16 C",
+            tirePressureFrontMbar = 5_000,
+            tirePressureRearMbar = 5_500,
+            fuelTankDl = 900,
+            freshWaterTankDl = 1_000,
+            greyWaterTankDl = 900,
+            cassetteDl = 185,
+            batteryCapacityAh = 200,
+            solarPowerWp = 340,
+            createdAt = Instant.parse("2023-03-01T10:00:00Z"),
+            updatedAt = Instant.parse("2023-03-01T10:00:00Z"),
+        )
 
         val sampleTours = listOf(
             sample(
