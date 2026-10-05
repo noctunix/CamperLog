@@ -421,12 +421,9 @@
     <string name="about_version">Version %1$s (%2$d)</string>
     <string name="about_claim">Dein Wohnmobil-Logbuch – privat, offline, Open Source.</string>
     <string name="about_action_feedback">Feedback senden</string>
-    <string name="about_feedback_subject" translatable="false">CamperLog %1$s</string>
-    <string name="about_feedback_address" translatable="false">camperlog@restvolt.app</string>
     <string name="about_no_mail_app">Keine E-Mail-App verfügbar</string>
     <string name="about_copy_address">Adresse kopieren</string>
     <string name="about_action_support">Entwicklung unterstützen</string>
-    <string name="about_donate_uri" translatable="false">https://liberapay.com/noctunix/donate</string>
     <string name="about_action_keep_android_open">Keep Android Open</string>
     <string name="about_action_show_intro">Einführung erneut anzeigen</string>
     <string name="about_no_app_available">Keine passende App verfügbar</string>
@@ -434,13 +431,10 @@
     <string name="about_source_body">CamperLog ist freie Software: Jede Zeile Code ist einsehbar und überprüfbar. Beiträge, Fehlermeldungen und Vorschläge sind jederzeit willkommen.</string>
     <string name="about_link_repo">Repository öffnen</string>
     <string name="about_link_issues">Fehler melden</string>
-    <string name="about_repo_uri" translatable="false">https://github.com/noctunix/CamperLog</string>
-    <string name="about_issues_uri" translatable="false">https://github.com/noctunix/CamperLog/issues</string>
     <string name="about_section_license">Lizenz</string>
     <string name="about_license_body">CamperLog steht unter der Apache License 2.0.</string>
     <string name="about_link_license_text">Lizenztext anzeigen</string>
     <string name="about_link_license_github">LICENSE auf GitHub öffnen</string>
-    <string name="about_license_github_uri" translatable="false">https://github.com/noctunix/CamperLog/blob/main/LICENSE</string>
     <string name="info_license_loading">Lizenztext wird geladen…</string>
     <string name="err_license_load_failed">Lizenztext konnte nicht geladen werden.</string>
     <string name="about_section_third_party">Drittanbieter-Bibliotheken</string>
@@ -459,5 +453,4 @@
     <string name="btn_keep_android_open_link">keepandroidopen.org öffnen</string>
     <string name="btn_keep_android_open_supported">Ich habe die Petition unterstützt</string>
     <string name="btn_remind_later">Später erinnern</string>
-    <string name="keep_android_open_uri" translatable="false">https://keepandroidopen.org/</string>
 </resources>
