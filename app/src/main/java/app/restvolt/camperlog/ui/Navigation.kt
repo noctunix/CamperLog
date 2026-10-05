@@ -7,8 +7,12 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -39,6 +43,10 @@ import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.dueReminders
+import app.restvolt.camperlog.domain.shouldShowKeepAndroidOpen
+import app.restvolt.camperlog.ui.about.AboutScreen
+import app.restvolt.camperlog.ui.about.KeepAndroidOpenDialog
+import app.restvolt.camperlog.ui.about.KeepAndroidOpenSettings
 import app.restvolt.camperlog.ui.data.AndroidDataFiles
 import app.restvolt.camperlog.ui.data.DataScreen
 import app.restvolt.camperlog.ui.data.DataViewModel
@@ -71,6 +79,7 @@ import app.restvolt.camperlog.ui.vehicle.VehicleViewModel
 import app.restvolt.camperlog.ui.vehicles.VehiclesScreen
 import app.restvolt.camperlog.ui.vehicles.VehiclesViewModel
 import kotlinx.serialization.Serializable
+import java.time.Instant
 import java.time.LocalDate
 
 @Serializable
@@ -118,6 +127,9 @@ internal object RatesRoute
 internal object SettingsRoute
 
 @Serializable
+internal object AboutRoute
+
+@Serializable
 internal object DataRoute
 
 /** Kursformular; ohne [currencyCode] wird ein neuer Kurs mit frei wählbarer Währung angelegt. */
@@ -133,6 +145,7 @@ fun CamperLogNavHost(
     exchangeRates: ExchangeRateRepository,
     backupImporter: BackupImporter,
     themeMode: ThemeMode,
+    canShowStartDialogs: Boolean = true,
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -146,6 +159,16 @@ fun CamperLogNavHost(
         dueReminders(vehicle, LocalDate.now(), reminderPreferences.leadDays, reminderPreferences.oilChangeIntervalMonths).size
     } ?: 0
     val bottomBar: @Composable () -> Unit = { CamperLogBottomBar(navController, currentDestination, reminderCount) }
+
+    val keepAndroidOpenSettings = remember { KeepAndroidOpenSettings(context) }
+    var showStartupKeepAndroidOpen by rememberSaveable { mutableStateOf(false) }
+    if (canShowStartDialogs) {
+        LaunchedEffect(Unit) {
+            keepAndroidOpenSettings.recordFirstLaunchIfNeeded()
+            val hasData = repository.allTours().isNotEmpty() || logbook.allEntries().isNotEmpty()
+            showStartupKeepAndroidOpen = shouldShowKeepAndroidOpen(keepAndroidOpenSettings.state, hasData, Instant.now())
+        }
+    }
 
     NavHost(navController, startDestination = ToursRoute) {
         composable<ToursRoute> {
@@ -281,6 +304,14 @@ fun CamperLogNavHost(
                 reminderSettings = reminderSettings,
                 onBack = { navController.popFrom(entry) },
                 onOpenRates = { navController.navigate(RatesRoute) },
+                onOpenAbout = { navController.navigate(AboutRoute) },
+            )
+        }
+        composable<AboutRoute> { entry ->
+            AboutScreen(
+                onBack = { navController.popFrom(entry) },
+                // Einführungstour folgt in einer späteren Phase.
+                onShowIntroductionAgain = {},
             )
         }
         composable<RateEditRoute> { entry ->
@@ -290,6 +321,20 @@ fun CamperLogNavHost(
                 onDone = { navController.popFrom(entry) },
             )
         }
+    }
+
+    if (showStartupKeepAndroidOpen) {
+        KeepAndroidOpenDialog(
+            onSupported = {
+                keepAndroidOpenSettings.markShown()
+                keepAndroidOpenSettings.markSupported()
+                showStartupKeepAndroidOpen = false
+            },
+            onDismiss = {
+                keepAndroidOpenSettings.markShown()
+                showStartupKeepAndroidOpen = false
+            },
+        )
     }
 }
 

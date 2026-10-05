@@ -57,6 +57,7 @@ fun SettingsScreen(
     reminderSettings: ReminderSettings,
     onBack: () -> Unit,
     onOpenRates: () -> Unit,
+    onOpenAbout: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val locale = currentLocale()
@@ -142,6 +143,11 @@ fun SettingsScreen(
                         ),
                         onClick = { pickOilInterval = true },
                     )
+                }
+            }
+            item {
+                OutlinedButton(onClick = onOpenAbout, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.settings_open_about))
                 }
             }
         }
