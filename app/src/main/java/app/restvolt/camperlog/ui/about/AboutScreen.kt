@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -43,7 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -59,9 +60,9 @@ import app.restvolt.camperlog.BuildConfig
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.share.tryStart
 import app.restvolt.camperlog.ui.BackTopBar
+import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import java.io.IOException
 
 /**
  * Über-Bildschirm: Version, Kontakt- und Unterstützungsaktionen sowie aufklappbare Abschnitte zu
@@ -112,14 +113,14 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
                         modifier = Modifier
                             .size(64.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(colorResource(R.color.primary)),
+                            .background(colorResource(R.color.launcher_background)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
+                        // Der Vordergrund ist für 108 dp mit Sicherheitsrand gezeichnet; 96 dp zeigen das Motiv wie im Launcher.
+                        Image(
                             painterResource(R.drawable.ic_launcher_foreground),
                             contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = Color.White,
+                            modifier = Modifier.requiredSize(96.dp),
                         )
                     }
                     Text(
