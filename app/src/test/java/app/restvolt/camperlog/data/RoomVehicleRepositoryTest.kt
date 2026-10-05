@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.TourType
@@ -143,6 +144,24 @@ class RoomVehicleRepositoryTest {
         repository.restoreRepair(stored)
         assertEquals(listOf("Bremsen", "Reifen"), repository.observeRepairs(vehicleId).first().map { it.description })
         assertEquals(first, repository.observeRepairs(vehicleId).first().last().id)
+    }
+
+    @Test
+    fun lastUsedRepairCurrencyComesFromTheMostRecentlyChangedRepairWithCost() = runTest {
+        assertNull(repository.lastUsedRepairCurrency())
+        val vehicleId = repository.save(vehicle(name = "Womo"))
+
+        now = Instant.parse("2026-01-01T10:00:00Z")
+        repository.saveRepair(repair(vehicleId, "2026-01-01", "Reifen").copy(cost = Money(10_000, Currency.getInstance("NOK"))))
+        assertEquals(Currency.getInstance("NOK"), repository.lastUsedRepairCurrency())
+
+        now = Instant.parse("2026-02-01T10:00:00Z")
+        repository.saveRepair(repair(vehicleId, "2026-02-01", "Ohne Kosten"))
+        assertEquals(Currency.getInstance("NOK"), repository.lastUsedRepairCurrency())
+
+        now = Instant.parse("2026-03-01T10:00:00Z")
+        repository.saveRepair(repair(vehicleId, "2026-03-01", "Bremsen").copy(cost = Money(5_000, Currency.getInstance("ISK"))))
+        assertEquals(Currency.getInstance("ISK"), repository.lastUsedRepairCurrency())
     }
 
     @Test

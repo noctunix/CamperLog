@@ -141,15 +141,20 @@ class VehicleInputTest {
     }
 
     @Test
-    fun roundTripKeepsMaintenanceFieldsOfOriginalVehicle() {
-        val original = valid.toVehicle(null, de).copy(
-            id = 7,
+    fun maintenanceFieldsRoundTripThroughInput() {
+        val input = valid.copy(
             nextInspectionDate = LocalDate.of(2027, 1, 1),
             nextGasCheckDate = LocalDate.of(2027, 2, 1),
             lastOilChangeDate = LocalDate.of(2026, 1, 1),
-            lastOilChangeOdometerKm = 50_000,
+            lastOilChangeOdometerKm = "50000",
         )
-        val edited = original.toInput(de).copy(name = "Neuer Name").toVehicle(original, de)
+        val vehicle = input.toVehicle(null, de).copy(id = 7)
+        assertEquals(LocalDate.of(2027, 1, 1), vehicle.nextInspectionDate)
+        assertEquals(LocalDate.of(2027, 2, 1), vehicle.nextGasCheckDate)
+        assertEquals(LocalDate.of(2026, 1, 1), vehicle.lastOilChangeDate)
+        assertEquals(50_000, vehicle.lastOilChangeOdometerKm)
+
+        val edited = vehicle.toInput(de).copy(name = "Neuer Name").toVehicle(vehicle, de)
         assertEquals(7L, edited.id)
         assertEquals(LocalDate.of(2027, 1, 1), edited.nextInspectionDate)
         assertEquals(LocalDate.of(2027, 2, 1), edited.nextGasCheckDate)
@@ -159,10 +164,31 @@ class VehicleInputTest {
     }
 
     @Test
-    fun newVehicleHasNoMaintenanceFields() {
+    fun newVehicleHasNoMaintenanceFieldsWhenNotEntered() {
         val vehicle = valid.toVehicle(null, de)
         assertNull(vehicle.nextInspectionDate)
         assertNull(vehicle.lastOilChangeOdometerKm)
+    }
+
+    @Test
+    fun lastOilChangeCannotBeInTheFuture() {
+        val today = LocalDate.of(2026, 10, 5)
+        val future = valid.copy(lastOilChangeDate = today.plusDays(1))
+        assertEquals(VehicleError.DATE_IN_FUTURE, future.validate(de, isNew = true, today)[VehicleField.LAST_OIL_CHANGE_DATE])
+        assertTrue(valid.copy(lastOilChangeDate = today).validate(de, isNew = true, today).isEmpty())
+    }
+
+    @Test
+    fun lastOilChangeOdometerFollowsExistingOdometerBounds() {
+        assertEquals(
+            VehicleError.NEGATIVE_NUMBER,
+            valid.copy(lastOilChangeOdometerKm = "-1").validate(de, isNew = true)[VehicleField.LAST_OIL_CHANGE_ODOMETER_KM],
+        )
+        assertEquals(
+            VehicleError.TOO_LARGE,
+            valid.copy(lastOilChangeOdometerKm = "10000001").validate(de, isNew = true)[VehicleField.LAST_OIL_CHANGE_ODOMETER_KM],
+        )
+        assertTrue(valid.copy(lastOilChangeOdometerKm = "50000").validate(de, isNew = true).isEmpty())
     }
 
     @Test

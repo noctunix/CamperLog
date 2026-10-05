@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.time.Instant
+import java.util.Currency
 
 /**
  * Synchrones In-Memory-Repository für UI-Tests; die Room-Anbindung testet RoomVehicleRepositoryTest.
@@ -79,6 +80,9 @@ class FakeVehicleRepository(
     override suspend fun restoreRepair(repair: Repair) {
         repairs.value += repair
     }
+
+    override suspend fun lastUsedRepairCurrency(): Currency? =
+        repairs.value.filter { it.cost != null }.maxByOrNull { it.updatedAt }?.cost?.currency
 }
 
 /** Fahrzeug für Tests mit sinnvollen Zeitstempeln; [sold] setzt ein Verkaufsdatum. */

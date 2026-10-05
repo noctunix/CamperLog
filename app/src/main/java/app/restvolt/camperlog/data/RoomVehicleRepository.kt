@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
+import java.util.Currency
 import java.util.UUID
 
 /**
@@ -79,4 +80,6 @@ class RoomVehicleRepository(
     override suspend fun restoreRepair(repair: Repair) {
         dao.insertRepair(repair.toEntity())
     }
+
+    override suspend fun lastUsedRepairCurrency(): Currency? = dao.lastUsedRepairCurrency()?.let(Currency::getInstance)
 }

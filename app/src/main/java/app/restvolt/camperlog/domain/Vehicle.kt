@@ -3,6 +3,7 @@ package app.restvolt.camperlog.domain
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Currency
 
 /**
  * Ein Wohnmobil. Nur [id], [uuid] und [name] sind nicht optional; ein leerer [name] wird in der
@@ -118,4 +119,7 @@ interface VehicleRepository {
 
     /** Legt eine zuvor gelöschte [repair] mit ihrer bisherigen id und ihren Zeitstempeln wieder an. */
     suspend fun restoreRepair(repair: Repair)
+
+    /** Währung der zuletzt geänderten Reparatur mit erfassten Kosten, sonst `null`. */
+    suspend fun lastUsedRepairCurrency(): Currency?
 }

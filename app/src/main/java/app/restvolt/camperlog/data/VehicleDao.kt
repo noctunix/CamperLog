@@ -84,6 +84,9 @@ interface VehicleDao {
 
     @Query("DELETE FROM repairs WHERE id = :id")
     suspend fun deleteRepairById(id: Long)
+
+    @Query("SELECT cost_currency FROM repairs WHERE cost_currency IS NOT NULL ORDER BY updated_at DESC, id DESC LIMIT 1")
+    suspend fun lastUsedRepairCurrency(): String?
 }
 
 /**

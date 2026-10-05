@@ -19,8 +19,7 @@ const val MAX_ODOMETER_KM = 10_000_000
 
 /**
  * Unvalidierte Eingaben des Fahrzeugformulars. Zahlen und Beträge liegen als Text im Zahlenformat
- * der Oberfläche vor; die Wartungsfelder von [Vehicle] (Phase 3b) sind hier nicht enthalten und
- * bleiben beim Speichern unverändert erhalten.
+ * der Oberfläche vor.
  */
 @Serializable
 data class VehicleInput(
@@ -59,6 +58,10 @@ data class VehicleInput(
     val cassetteL: String = "",
     val batteryCapacityAh: String = "",
     val solarPowerWp: String = "",
+    @Serializable(with = LocalDateSerializer::class) val nextInspectionDate: LocalDate? = null,
+    @Serializable(with = LocalDateSerializer::class) val nextGasCheckDate: LocalDate? = null,
+    @Serializable(with = LocalDateSerializer::class) val lastOilChangeDate: LocalDate? = null,
+    val lastOilChangeOdometerKm: String = "",
     val notes: String = "",
 )
 
@@ -87,6 +90,8 @@ enum class VehicleField {
     CASSETTE,
     BATTERY_CAPACITY_AH,
     SOLAR_POWER_WP,
+    LAST_OIL_CHANGE_DATE,
+    LAST_OIL_CHANGE_ODOMETER_KM,
 }
 
 /** Grund eines Validierungsfehlers. Den Text dazu liefert die UI aus den String-Ressourcen. */
@@ -140,6 +145,10 @@ fun VehicleInput.validate(locale: Locale, isNew: Boolean, today: LocalDate = Loc
         decimalError(cassetteL, locale, 1, MAX_TANK_L)?.let { put(VehicleField.CASSETTE, it) }
         intError(batteryCapacityAh, MAX_BATTERY_AH)?.let { put(VehicleField.BATTERY_CAPACITY_AH, it) }
         intError(solarPowerWp, MAX_SOLAR_WP)?.let { put(VehicleField.SOLAR_POWER_WP, it) }
+        if (lastOilChangeDate != null && lastOilChangeDate.isAfter(today)) {
+            put(VehicleField.LAST_OIL_CHANGE_DATE, VehicleError.DATE_IN_FUTURE)
+        }
+        intError(lastOilChangeOdometerKm, MAX_ODOMETER_KM)?.let { put(VehicleField.LAST_OIL_CHANGE_ODOMETER_KM, it) }
     }
 
 /**
@@ -147,8 +156,7 @@ fun VehicleInput.validate(locale: Locale, isNew: Boolean, today: LocalDate = Loc
  *
  * @param original das bearbeitete Fahrzeug oder `null` für ein neues Fahrzeug
  * @param locale dieselbe Sprache wie bei [validate]
- * @return Fahrzeug mit id, Zeitstempeln und Wartungsfeldern von [original]; bei einem neuen
- *   Fahrzeug sind die Wartungsfelder leer
+ * @return Fahrzeug mit id und Zeitstempeln von [original]
  */
 fun VehicleInput.toVehicle(original: Vehicle?, locale: Locale): Vehicle = Vehicle(
     id = original?.id ?: 0,
@@ -185,10 +193,10 @@ fun VehicleInput.toVehicle(original: Vehicle?, locale: Locale): Vehicle = Vehicl
     cassetteDl = parseScaledDecimal(cassetteL, locale, uiFractionDigits = 1, storageExponent = 1),
     batteryCapacityAh = parseOptionalInt(batteryCapacityAh),
     solarPowerWp = parseOptionalInt(solarPowerWp),
-    nextInspectionDate = original?.nextInspectionDate,
-    nextGasCheckDate = original?.nextGasCheckDate,
-    lastOilChangeDate = original?.lastOilChangeDate,
-    lastOilChangeOdometerKm = original?.lastOilChangeOdometerKm,
+    nextInspectionDate = nextInspectionDate,
+    nextGasCheckDate = nextGasCheckDate,
+    lastOilChangeDate = lastOilChangeDate,
+    lastOilChangeOdometerKm = parseOptionalInt(lastOilChangeOdometerKm),
     createdAt = original?.createdAt ?: Instant.EPOCH,
     updatedAt = original?.updatedAt ?: Instant.EPOCH,
 )
@@ -230,15 +238,19 @@ fun Vehicle.toInput(locale: Locale): VehicleInput = VehicleInput(
     cassetteL = scaledToInput(cassetteDl, locale, uiFractionDigits = 1, storageExponent = 1),
     batteryCapacityAh = batteryCapacityAh?.toString().orEmpty(),
     solarPowerWp = solarPowerWp?.toString().orEmpty(),
+    nextInspectionDate = nextInspectionDate,
+    nextGasCheckDate = nextGasCheckDate,
+    lastOilChangeDate = lastOilChangeDate,
+    lastOilChangeOdometerKm = lastOilChangeOdometerKm?.toString().orEmpty(),
     notes = notes,
 )
 
-private fun Money?.toInput(locale: Locale): String = this?.let { amountToInput(it.minor, it.currency, locale) }.orEmpty()
+internal fun Money?.toInput(locale: Locale): String = this?.let { amountToInput(it.minor, it.currency, locale) }.orEmpty()
 
-private fun parseMoney(text: String, currency: Currency, locale: Locale): Money? =
+internal fun parseMoney(text: String, currency: Currency, locale: Locale): Money? =
     if (text.isBlank()) null else parseAmount(text, currency, locale)?.let { Money(it, currency) }
 
-private fun parseOptionalInt(text: String): Int? = text.trim().toIntOrNull()?.takeIf { it >= 0 }
+internal fun parseOptionalInt(text: String): Int? = text.trim().toIntOrNull()?.takeIf { it >= 0 }
 
 /**
  * Wandelt einen Dezimalwert der Oberfläche (mit [uiFractionDigits] Nachkommastellen) in die
