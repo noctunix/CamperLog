@@ -122,11 +122,13 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
-// Fail clearly instead of silently creating an unsigned release APK.
+// Fail clearly instead of silently creating an unsigned release APK. Builders that sign
+// separately (F-Droid) opt out with -PunsignedRelease.
 val checkReleaseSigning by tasks.registering {
     val hasSigning = releaseSigningFile.exists()
+    val unsignedAllowed = providers.gradleProperty("unsignedRelease").isPresent
     doLast {
-        check(hasSigning) {
+        check(hasSigning || unsignedAllowed) {
             "keystore.properties is missing (see keystore.properties.example)."
         }
     }
