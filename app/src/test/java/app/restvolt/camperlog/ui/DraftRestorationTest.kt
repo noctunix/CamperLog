@@ -234,6 +234,24 @@ class DraftRestorationTest {
     }
 
     @Test
+    fun newVehicleBreakdownFieldsSurviveProcessDeath() {
+        val repository = FakeVehicleRepository()
+        val handle = SavedStateHandle()
+        val before = EditVehicleViewModel(repository, 0, handle, locale)
+        before.onInputChange {
+            it.copy(
+                measuredEmptyWeightKg = "3020",
+                breakdownProvider = "ADAC",
+                breakdownPhone = "+49 89 22 22 22",
+            )
+        }
+
+        val after = EditVehicleViewModel(repository, 0, handle.afterProcessDeath(), locale)
+
+        assertEquals(before.uiState.value.input, after.uiState.value.input)
+    }
+
+    @Test
     fun vehicleDraftWinsOverStoredVehicle() {
         val repository = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "Alt")))
         val handle = SavedStateHandle()

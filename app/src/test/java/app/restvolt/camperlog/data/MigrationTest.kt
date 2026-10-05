@@ -154,6 +154,98 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migration5To6AddsBreakdownAndEmptyWeightColumnsWithDefaults() = runTest {
+        createVersion5(
+            "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
+                "insurance_policy_number, tire_size, created_at, updated_at) VALUES " +
+                "(1, 'veh-1', 'Bluebird', '', '', '', '', '', '', '', '', 1000, 2000)",
+            "INSERT INTO tours VALUES (1, 'uuid-1', 1, '2026-06-01', '2026-06-14', 'Lofoten', 'VACATION', 14, 13, " +
+                "4200, 1, 'YES', 'GOOD', 'LEVEL', 0, '', NULL, 1000, 2000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val vehicles = RoomVehicleRepository(db.vehicleDao()).allVehicles()
+            val vehicle = vehicles.single()
+            assertEquals("Bluebird", vehicle.name)
+            assertEquals(null, vehicle.measuredEmptyWeightKg)
+            assertEquals("", vehicle.breakdownProvider)
+            assertEquals("", vehicle.breakdownPhone)
+            assertEquals("", vehicle.travelProtectionProvider)
+            assertEquals("", vehicle.insurerClaimsPhone)
+
+            db.openHelper.writableDatabase.execSQL(
+                "UPDATE vehicles SET measured_empty_weight_kg = 3020, breakdown_provider = 'ADAC', " +
+                    "breakdown_phone = '+49 89 22 22 22' WHERE id = 1",
+            )
+            val updated = RoomVehicleRepository(db.vehicleDao()).allVehicles().single()
+            assertEquals(3020, updated.measuredEmptyWeightKg)
+            assertEquals("ADAC", updated.breakdownProvider)
+            assertEquals("+49 89 22 22 22", updated.breakdownPhone)
+        } finally {
+            db.close()
+        }
+    }
+
+    /** Legt `camperlog.db` im Stand von Version 5 nach `schemas/…/5.json` an und füllt sie mit [inserts]. */
+    private fun createVersion5(vararg inserts: String) = createDatabase(
+        version = 5,
+        identityHash = "89bb465bece1122f7bd6cf85fbb13869",
+        schema = listOf(
+            "CREATE TABLE IF NOT EXISTS `vehicles` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `license_plate` TEXT NOT NULL, " +
+                "`manufacturer` TEXT NOT NULL, `model` TEXT NOT NULL, `vin` TEXT NOT NULL, " +
+                "`first_registration` TEXT, `notes` TEXT NOT NULL, `purchase_date` TEXT, " +
+                "`purchase_price_currency` TEXT, `purchase_price_minor` INTEGER, `purchase_odometer_km` INTEGER, " +
+                "`sale_date` TEXT, `sale_price_currency` TEXT, `sale_price_minor` INTEGER, " +
+                "`insurer` TEXT NOT NULL, `insurance_policy_number` TEXT NOT NULL, " +
+                "`insurance_premium_per_year_currency` TEXT, `insurance_premium_per_year_minor` INTEGER, " +
+                "`vehicle_tax_per_year_currency` TEXT, `vehicle_tax_per_year_minor` INTEGER, " +
+                "`length_cm` INTEGER, `width_cm` INTEGER, `height_cm` INTEGER, `gross_weight_kg` INTEGER, " +
+                "`power_kw` INTEGER, `tire_size` TEXT NOT NULL, `tire_pressure_front_mbar` INTEGER, " +
+                "`tire_pressure_rear_mbar` INTEGER, `fuel_tank_dl` INTEGER, `ad_blue_tank_dl` INTEGER, " +
+                "`fresh_water_tank_dl` INTEGER, `grey_water_tank_dl` INTEGER, `boiler_dl` INTEGER, " +
+                "`cassette_dl` INTEGER, `battery_capacity_ah` INTEGER, `solar_power_wp` INTEGER, " +
+                "`next_inspection_date` TEXT, `next_gas_check_date` TEXT, `last_oil_change_date` TEXT, " +
+                "`last_oil_change_odometer_km` INTEGER, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_vehicles_uuid` ON `vehicles` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `repairs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `date` TEXT NOT NULL, " +
+                "`description` TEXT NOT NULL, `odometer_km` INTEGER, `cost_currency` TEXT, `cost_minor` INTEGER, " +
+                "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE INDEX IF NOT EXISTS `index_repairs_vehicle_id` ON `repairs` (`vehicle_id`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_repairs_uuid` ON `repairs` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `log_entries` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `type` TEXT NOT NULL, `date` TEXT NOT NULL, " +
+                "`created_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE INDEX IF NOT EXISTS `index_log_entries_vehicle_id_type_date` ON `log_entries` " +
+                "(`vehicle_id`, `type`, `date`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_log_entries_uuid` ON `log_entries` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL DEFAULT '', `vehicle_id` INTEGER NOT NULL, `start_date` TEXT NOT NULL, " +
+                "`end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, `tour_type` TEXT NOT NULL, " +
+                "`travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, " +
+                "`pitch_assigned` INTEGER NOT NULL, `electricity_flat_rate` TEXT NOT NULL, " +
+                "`lte_quality` TEXT NOT NULL, `pitch_slope` TEXT NOT NULL, `leveling_blocks_used` INTEGER NOT NULL, " +
+                "`notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+            "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_tours_uuid` ON `tours` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_tours_vehicle_id` ON `tours` (`vehicle_id`)",
+            "CREATE TABLE IF NOT EXISTS `tour_costs` (`tour_id` INTEGER NOT NULL, `currency` TEXT NOT NULL, " +
+                "`amount_minor` INTEGER NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`tour_id`, `currency`), " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE TABLE IF NOT EXISTS `exchange_rates` (`currency` TEXT NOT NULL, `per_euro` TEXT NOT NULL, " +
+                "`rate_date` TEXT NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`currency`))",
+            "CREATE TABLE IF NOT EXISTS `settings` (`id` INTEGER NOT NULL, `main_currency` TEXT NOT NULL, " +
+                "`current_vehicle_id` INTEGER, PRIMARY KEY(`id`))",
+        ),
+        inserts = inserts.toList(),
+    )
+
     /** Legt `camperlog.db` im Stand von Version 4 nach `schemas/…/4.json` an und füllt sie mit [inserts]. */
     private fun createVersion4(vararg inserts: String) = createDatabase(
         version = 4,

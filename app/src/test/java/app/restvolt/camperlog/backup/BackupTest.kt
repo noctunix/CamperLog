@@ -8,6 +8,7 @@ import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.MAX_BATTERY_AH
 import app.restvolt.camperlog.domain.MAX_DIMENSION_M
 import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
+import app.restvolt.camperlog.domain.MAX_PHONE_LENGTH
 import app.restvolt.camperlog.domain.MAX_POWER_KW
 import app.restvolt.camperlog.domain.MAX_SOLAR_WP
 import app.restvolt.camperlog.domain.MAX_TANK_L
@@ -87,6 +88,14 @@ class BackupTest {
         widthCm = 250,
         heightCm = 295,
         grossWeightKg = 3500,
+        measuredEmptyWeightKg = 3020,
+        breakdownProvider = "ADAC",
+        breakdownMembershipNumber = "123 456 789",
+        breakdownPhone = "+49 89 22 22 22",
+        travelProtectionProvider = "Beispiel AG",
+        travelProtectionContractNumber = "987-654",
+        travelProtectionPhone = "+49 30 123456",
+        insurerClaimsPhone = "+49 69 5678",
         powerKw = 130,
         tireSize = "225/75 R16 C",
         tirePressureFrontMbar = 2500,
@@ -433,9 +442,29 @@ class BackupTest {
             "\"solarPowerWp\": 400" to "\"solarPowerWp\": ${MAX_SOLAR_WP + 1}",
             "\"purchaseOdometerKm\": 500" to "\"purchaseOdometerKm\": ${MAX_ODOMETER_KM + 1}",
             "\"lastOilChangeOdometerKm\": 12000" to "\"lastOilChangeOdometerKm\": ${MAX_ODOMETER_KM + 1}",
+            "\"measuredEmptyWeightKg\": 3020" to "\"measuredEmptyWeightKg\": ${MAX_WEIGHT_KG + 1}",
+            "\"measuredEmptyWeightKg\": 3020" to "\"measuredEmptyWeightKg\": -1",
         ).forEach { (old, new) ->
             assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1), failure(vehicleEncodedWith(old, new)))
         }
+    }
+
+    @Test
+    fun decode_rejectsInvalidVehiclePhoneNumbers() {
+        val tooLong = "1".repeat(MAX_PHONE_LENGTH + 1)
+        listOf(
+            "\"breakdownPhone\": \"+49 89 22 22 22\"" to "\"breakdownPhone\": \"call ADAC\"",
+            "\"travelProtectionPhone\": \"+49 30 123456\"" to "\"travelProtectionPhone\": \"$tooLong\"",
+        ).forEach { (old, new) ->
+            assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1), failure(vehicleEncodedWith(old, new)))
+        }
+    }
+
+    @Test
+    fun decode_acceptsVehiclePhoneNumbersWithFormattingCharacters() {
+        val decoded = success(vehicleEncodedWith("\"insurerClaimsPhone\": \"+49 69 5678\"", "\"insurerClaimsPhone\": \"+49 (0)69-5678/0\""))
+
+        assertEquals("+49 (0)69-5678/0", decoded.vehicles.single().vehicle.insurerClaimsPhone)
     }
 
     @Test

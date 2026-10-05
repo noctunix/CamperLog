@@ -29,6 +29,14 @@ class VehicleInputTest {
         widthM = "2,30",
         heightM = "2,80",
         grossWeightKg = "3500",
+        measuredEmptyWeightKg = "3020",
+        breakdownProvider = "ADAC",
+        breakdownMembershipNumber = "123 456 789",
+        breakdownPhone = "+49 89 22 22 22",
+        travelProtectionProvider = "Beispiel AG",
+        travelProtectionContractNumber = "987-654",
+        travelProtectionPhone = "+49 30 123456",
+        insurerClaimsPhone = "+49 69 5678",
         powerKw = "120",
         tireSize = "225/75 R16 C",
         tirePressureFrontBar = "2,80",
@@ -198,5 +206,66 @@ class VehicleInputTest {
         assertNull(vehicle.lengthCm)
         assertNull(vehicle.powerKw)
         assertEquals("", vehicle.licensePlate)
+        assertNull(vehicle.measuredEmptyWeightKg)
+        assertEquals("", vehicle.breakdownProvider)
+    }
+
+    @Test
+    fun measuredEmptyWeightFollowsGrossWeightBounds() {
+        assertEquals(
+            VehicleError.TOO_LARGE,
+            valid.copy(measuredEmptyWeightKg = "100001").validate(de, isNew = true)[VehicleField.MEASURED_EMPTY_WEIGHT_KG],
+        )
+        assertEquals(
+            VehicleError.NEGATIVE_NUMBER,
+            valid.copy(measuredEmptyWeightKg = "-1").validate(de, isNew = true)[VehicleField.MEASURED_EMPTY_WEIGHT_KG],
+        )
+        assertTrue(valid.copy(measuredEmptyWeightKg = "100000").validate(de, isNew = true).isEmpty())
+    }
+
+    @Test
+    fun remainingPayloadIsGrossMinusMeasuredEmptyWeight() {
+        val vehicle = valid.copy(grossWeightKg = "3500", measuredEmptyWeightKg = "3020").toVehicle(null, de)
+        assertEquals(480, vehicle.remainingPayloadKg)
+    }
+
+    @Test
+    fun remainingPayloadIsNegativeWhenOverweight() {
+        val vehicle = valid.copy(grossWeightKg = "3500", measuredEmptyWeightKg = "3600").toVehicle(null, de)
+        assertEquals(-100, vehicle.remainingPayloadKg)
+    }
+
+    @Test
+    fun remainingPayloadIsNullWhenEitherWeightIsMissing() {
+        val vehicle = valid.copy(grossWeightKg = "3500", measuredEmptyWeightKg = "").toVehicle(null, de)
+        assertNull(vehicle.remainingPayloadKg)
+    }
+
+    @Test
+    fun phoneNumbersAcceptDigitsSpacesAndFormattingCharacters() {
+        val input = valid.copy(breakdownPhone = "+49 89 22-22/22 (0)")
+        assertTrue(input.validate(de, isNew = true).isEmpty())
+    }
+
+    @Test
+    fun phoneNumbersRejectLetters() {
+        assertEquals(
+            VehicleError.INVALID_PHONE,
+            valid.copy(breakdownPhone = "call ADAC").validate(de, isNew = true)[VehicleField.BREAKDOWN_PHONE],
+        )
+    }
+
+    @Test
+    fun phoneNumbersRejectExcessiveLength() {
+        val tooLong = "1".repeat(MAX_PHONE_LENGTH + 1)
+        assertEquals(
+            VehicleError.INVALID_PHONE,
+            valid.copy(travelProtectionPhone = tooLong).validate(de, isNew = true)[VehicleField.TRAVEL_PROTECTION_PHONE],
+        )
+    }
+
+    @Test
+    fun blankPhoneNumbersAreValid() {
+        assertTrue(valid.copy(insurerClaimsPhone = "").validate(de, isNew = true).isEmpty())
     }
 }
