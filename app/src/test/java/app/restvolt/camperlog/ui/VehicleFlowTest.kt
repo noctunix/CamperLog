@@ -22,6 +22,7 @@ import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
@@ -32,6 +33,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Locale
 
 /** Abläufe rund um den Fahrzeugwechsler, die Fahrzeugfilterung der Touren und die untere Navigation. */
 @RunWith(RobolectricTestRunner::class)
@@ -143,6 +145,19 @@ class VehicleFlowTest {
         clickSave()
 
         assertEquals(1L, repository.tours.single().vehicleId)
+    }
+
+    @Test
+    fun vehicleTab_showsLeakTestReminderCardAndDataSheetRow() {
+        val dueDate = LocalDate.now().plusDays(10)
+        val vehicle = defaultVehicle(id = 1, name = "Camper").copy(nextLeakTestDate = dueDate)
+        start(FakeVehicleRepository(listOf(vehicle)))
+
+        compose.onNodeWithText("Fahrzeug").performClick()
+
+        compose.onNode(hasText("Dichtheitsprüfung fällig in", substring = true)).assertExists()
+        compose.onNodeWithText("Nächste Dichtheitsprüfung").assertExists()
+        compose.onNodeWithText(formatDate(dueDate, Locale.GERMANY)).assertExists()
     }
 
     @Test
