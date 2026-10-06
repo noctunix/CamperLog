@@ -24,6 +24,10 @@ interface StationDao {
     @Query("SELECT * FROM stations WHERE id = :id")
     fun observeById(id: Long): Flow<StationEntity?>
 
+    /** Einmaliger Lesezugriff auf eine Station, für den Vorher-Stand beim Speichern (4). */
+    @Query("SELECT * FROM stations WHERE id = :id")
+    suspend fun getById(id: Long): StationEntity?
+
     @Query("SELECT * FROM stations")
     suspend fun getAll(): List<StationEntity>
 

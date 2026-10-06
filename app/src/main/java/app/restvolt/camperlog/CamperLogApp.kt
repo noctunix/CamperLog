@@ -32,7 +32,7 @@ class CamperLogApp : Application() {
     val logbook: LogRepository by lazy { RoomLogRepository(database.logDao()) }
 
     /** Stationen (Übernachtungen, Ver-/Entsorgung, Tanken, …). */
-    val stations: StationRepository by lazy { RoomStationRepository(database.stationDao()) }
+    val stations: StationRepository by lazy { RoomStationRepository(database, logbook) }
 
     /** Einspielen von JSON-Sicherungen. */
     val backupImporter: BackupImporter by lazy { RoomBackupImporter(database) }

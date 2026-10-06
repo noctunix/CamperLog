@@ -5,9 +5,14 @@ import java.time.Instant
 import java.time.LocalDate
 
 /** Art des Bordbuch-Eintrags. */
-enum class LogType { CASSETTE_EMPTIED, GREY_WATER_EMPTIED, DIESEL_HEATER_RUN, GAS_HEATER_RUN }
+enum class LogType { CASSETTE_EMPTIED, GREY_WATER_EMPTIED, DIESEL_HEATER_RUN, GAS_HEATER_RUN, GAS_BOTTLE_SWAPPED }
 
-/** Ein Bordbuch-Eintrag; unveränderlich nach dem Anlegen. */
+/**
+ * Ein Bordbuch-Eintrag. Nach dem Anlegen unveränderlich, mit einer Ausnahme: [stationId] folgt der
+ * Verknüpfung mit einer Station (4), also dem Setzen/Lösen des Häkchens, einem Verschieben von Datum
+ * oder Fahrzeug (dort als Löschen und Neuanlegen mit derselben uuid) und dem Fremdschlüssel
+ * `ON DELETE SET NULL` beim Löschen der Station.
+ */
 data class LogEntry(
     val id: Long = 0,
     val uuid: String = "",
@@ -15,6 +20,7 @@ data class LogEntry(
     val type: LogType,
     val date: LocalDate,
     val createdAt: Instant,
+    val stationId: Long? = null,
 )
 
 /** Zugriff auf das Bordbuch eines Fahrzeugs. */
@@ -40,4 +46,16 @@ interface LogRepository {
 
     /** Legt einen zuvor gelöschten [entry] mit seiner bisherigen id wieder an. */
     suspend fun restore(entry: LogEntry)
+
+    /** Liefert den mit [stationId] und [type] verknüpften Eintrag, oder `null` (4). */
+    suspend fun linkedEntry(stationId: Long, type: LogType): LogEntry?
+
+    /** Liefert einen noch unverknüpften Eintrag von [vehicleId]/[type]/[date], für die Dublettenprüfung (4.1). */
+    suspend fun findUnlinked(vehicleId: Long, type: LogType, date: LocalDate): LogEntry?
+
+    /** Verknüpft den Eintrag [entryId] mit [stationId] (4.1, 8.3). */
+    suspend fun link(entryId: Long, stationId: Long)
+
+    /** Legt einen neuen, mit [stationId] verknüpften Eintrag an; [uuid] stammt von einer verschobenen Station, falls gesetzt (4.3). */
+    suspend fun addLinked(vehicleId: Long, type: LogType, date: LocalDate, stationId: Long, uuid: String? = null): LogEntry
 }

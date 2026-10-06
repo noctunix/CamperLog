@@ -47,4 +47,33 @@ class FakeLogRepository(initial: List<LogEntry> = emptyList()) : LogRepository {
     override suspend fun restore(entry: LogEntry) {
         state.value += entry
     }
+
+    override suspend fun linkedEntry(stationId: Long, type: LogType): LogEntry? =
+        state.value.firstOrNull { it.stationId == stationId && it.type == type }
+
+    override suspend fun findUnlinked(vehicleId: Long, type: LogType, date: LocalDate): LogEntry? =
+        state.value.firstOrNull { it.vehicleId == vehicleId && it.type == type && it.date == date && it.stationId == null }
+
+    override suspend fun link(entryId: Long, stationId: Long) {
+        state.value = state.value.map { if (it.id == entryId) it.copy(stationId = stationId) else it }
+    }
+
+    override suspend fun addLinked(vehicleId: Long, type: LogType, date: LocalDate, stationId: Long, uuid: String?): LogEntry {
+        val entry = LogEntry(
+            id = nextId++,
+            uuid = uuid ?: "log-${nextId}",
+            vehicleId = vehicleId,
+            type = type,
+            date = date,
+            createdAt = Instant.EPOCH,
+            stationId = stationId,
+        )
+        state.value += entry
+        return entry
+    }
+
+    /** Simuliert das Fremdschlüsselverhalten `ON DELETE SET NULL`, wenn [FakeStationRepository] eine Station entfernt. */
+    fun detachStation(stationId: Long) {
+        state.value = state.value.map { if (it.stationId == stationId) it.copy(stationId = null) else it }
+    }
 }

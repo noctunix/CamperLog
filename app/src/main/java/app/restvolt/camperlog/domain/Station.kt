@@ -146,6 +146,12 @@ interface StationRepository {
      * [date] enthält, bei mehreren Treffern die mit dem spätesten Start; `null`, wenn keine passt.
      */
     suspend fun defaultTourId(vehicleId: Long, date: LocalDate): Long?
+
+    /** Liefert die aktuell mit [stationId] verknüpften Bordbuch-Einträge, für ein Rückgängig nach dem Löschen (8.3, 13.4). */
+    suspend fun linkedLogEntries(stationId: Long): List<LogEntry>
+
+    /** Verknüpft die Bordbuch-Einträge mit den ids [entryIds] wieder mit [stationId] (Rückgängig, 8.3, 13.4). */
+    suspend fun relinkLogEntries(entryIds: List<Long>, stationId: Long)
 }
 
 /**

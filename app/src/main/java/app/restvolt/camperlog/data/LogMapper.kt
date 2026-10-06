@@ -12,6 +12,7 @@ internal fun LogEntryEntity.toDomain(): LogEntry = LogEntry(
     type = LogType.valueOf(type),
     date = LocalDate.parse(date),
     createdAt = Instant.ofEpochMilli(createdAtMillis),
+    stationId = stationId,
 )
 
 internal fun LogEntry.toEntity(): LogEntryEntity = LogEntryEntity(
@@ -21,4 +22,5 @@ internal fun LogEntry.toEntity(): LogEntryEntity = LogEntryEntity(
     type = type.name,
     date = date.toString(),
     createdAtMillis = createdAt.toEpochMilli(),
+    stationId = stationId,
 )

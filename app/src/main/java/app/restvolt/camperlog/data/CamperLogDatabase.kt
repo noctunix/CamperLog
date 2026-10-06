@@ -29,7 +29,7 @@ import java.util.UUID
         LogEntryEntity::class,
         StationEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -54,7 +54,10 @@ abstract class CamperLogDatabase : RoomDatabase() {
          */
         fun open(context: Context, onToursMigrated: () -> Unit = {}): CamperLogDatabase =
             Room.databaseBuilder(context.applicationContext, CamperLogDatabase::class.java, "camperlog.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated))
+                .addMigrations(
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
+                    MIGRATION_7_8,
+                )
                 .build()
     }
 }
@@ -403,4 +406,35 @@ private fun lteLabel(quality: LteQuality): Int = when (quality) {
 private fun pitchSlopeLabel(slope: PitchSlope): Int = when (slope) {
     PitchSlope.LEVEL -> R.string.pitch_level
     PitchSlope.SLOPED -> R.string.pitch_sloped
+}
+
+/**
+ * Version 8: `log_entries` bekommt `station_id` (Fremdschlüssel `stations`, `ON DELETE SET NULL`)
+ * für die Verknüpfung mit der Station, deren Ver-/Entsorgungs-Häkchen den Eintrag erzeugt haben (4).
+ * SQLite kann ab API 26 keine Fremdschlüssel nachträglich hinzufügen, daher wird `log_entries` wie
+ * schon in [MIGRATION_1_2] neu aufgebaut; bestehende Einträge bleiben unverknüpft (`NULL`).
+ */
+internal val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE `log_entries_new` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `type` TEXT NOT NULL, `date` TEXT NOT NULL, " +
+                "`created_at` INTEGER NOT NULL, `station_id` INTEGER, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , " +
+                "FOREIGN KEY(`station_id`) REFERENCES `stations`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        )
+        db.execSQL(
+            "INSERT INTO `log_entries_new` (`id`, `uuid`, `vehicle_id`, `type`, `date`, `created_at`, `station_id`) " +
+                "SELECT `id`, `uuid`, `vehicle_id`, `type`, `date`, `created_at`, NULL FROM `log_entries`",
+        )
+        db.execSQL("DROP TABLE `log_entries`")
+        db.execSQL("ALTER TABLE `log_entries_new` RENAME TO `log_entries`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_log_entries_vehicle_id_type_date` ON `log_entries` (`vehicle_id`, `type`, `date`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_log_entries_uuid` ON `log_entries` (`uuid`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_log_entries_station_id` ON `log_entries` (`station_id`)")
+
+        db.query("PRAGMA foreign_key_check").use { cursor ->
+            check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 7→8" }
+        }
+    }
 }

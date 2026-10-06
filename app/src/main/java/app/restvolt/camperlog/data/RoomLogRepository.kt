@@ -37,4 +37,24 @@ class RoomLogRepository(
     override suspend fun restore(entry: LogEntry) {
         dao.insert(entry.toEntity())
     }
+
+    override suspend fun linkedEntry(stationId: Long, type: LogType): LogEntry? = dao.linkedEntry(stationId, type.name)?.toDomain()
+
+    override suspend fun findUnlinked(vehicleId: Long, type: LogType, date: LocalDate): LogEntry? =
+        dao.findUnlinked(vehicleId, type.name, date.toString())?.toDomain()
+
+    override suspend fun link(entryId: Long, stationId: Long) = dao.link(entryId, stationId)
+
+    override suspend fun addLinked(vehicleId: Long, type: LogType, date: LocalDate, stationId: Long, uuid: String?): LogEntry {
+        val entry = LogEntry(
+            uuid = uuid ?: newUuid(),
+            vehicleId = vehicleId,
+            type = type,
+            date = date,
+            createdAt = clock(),
+            stationId = stationId,
+        )
+        val id = dao.insert(entry.toEntity())
+        return entry.copy(id = id)
+    }
 }

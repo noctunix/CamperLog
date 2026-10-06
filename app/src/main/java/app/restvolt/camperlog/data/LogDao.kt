@@ -39,6 +39,18 @@ interface LogDao {
     /** Löscht alle Bordbuch-Einträge; die Fahrzeuge bleiben erhalten. */
     @Query("DELETE FROM log_entries")
     suspend fun deleteAll()
+
+    /** Der mit [stationId] und [type] verknüpfte Eintrag, oder `null` (4). */
+    @Query("SELECT * FROM log_entries WHERE station_id = :stationId AND type = :type LIMIT 1")
+    suspend fun linkedEntry(stationId: Long, type: String): LogEntryEntity?
+
+    /** Ein noch unverknüpfter Eintrag von [vehicleId]/[type]/[date], für die Dublettenprüfung (4.1). */
+    @Query("SELECT * FROM log_entries WHERE vehicle_id = :vehicleId AND type = :type AND date = :date AND station_id IS NULL LIMIT 1")
+    suspend fun findUnlinked(vehicleId: Long, type: String, date: String): LogEntryEntity?
+
+    /** Verknüpft den Eintrag [entryId] mit [stationId] (4.1, 8.3). */
+    @Query("UPDATE log_entries SET station_id = :stationId WHERE id = :entryId")
+    suspend fun link(entryId: Long, stationId: Long)
 }
 
 /** Jüngstes Datum einer Art für [LogDao.observeLatest]. */

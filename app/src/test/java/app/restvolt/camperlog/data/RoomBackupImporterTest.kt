@@ -152,7 +152,7 @@ class RoomBackupImporterTest {
     private suspend fun storedTours() = tours.allTours().map { it.copy(id = 0) }
 
     /** Gespeicherte Stationen ohne Datenbank-id, damit sie mit Sicherungs-Stationen vergleichbar sind. */
-    private suspend fun storedStations() = RoomStationRepository(db.stationDao()).allStations().map { it.copy(id = 0) }
+    private suspend fun storedStations() = RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations().map { it.copy(id = 0) }
 
     private suspend fun seed(vararg seeded: Tour) = seeded.forEach { tours.restore(it) }
 
@@ -549,7 +549,7 @@ class RoomBackupImporterTest {
 
     @Test
     fun merge_stations_addsNewUpdatesNewerKeepsOlderOrEqualUnchanged() = runTest {
-        val local = RoomStationRepository(db.stationDao())
+        val local = RoomStationRepository(db, RoomLogRepository(db.logDao()))
         local.restore(station(1, name = "Lokal alt", updatedAt = "2026-07-10T10:00:00Z").copy(vehicleId = vehicleId))
         local.restore(station(2, name = "Lokal neu", updatedAt = "2026-07-20T10:00:00Z").copy(vehicleId = vehicleId))
 
@@ -620,7 +620,7 @@ class RoomBackupImporterTest {
 
     @Test
     fun replace_stations_removesEverythingNotInBackup() = runTest {
-        RoomStationRepository(db.stationDao()).restore(station(1, name = "Lokal").copy(vehicleId = vehicleId))
+        RoomStationRepository(db, RoomLogRepository(db.logDao())).restore(station(1, name = "Lokal").copy(vehicleId = vehicleId))
 
         val result = importer.import(
             backup(

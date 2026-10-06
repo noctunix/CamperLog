@@ -213,7 +213,7 @@ class MigrationTest {
             assertEquals("Reisenotiz", tour.notes)
             assertEquals(listOf(Money(48650, EUR)), tour.costs)
 
-            val station = RoomStationRepository(db.stationDao()).allStations().single()
+            val station = RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations().single()
             assertEquals(1L, station.vehicleId)
             assertEquals(tour.id, station.tourId)
             assertEquals(StationType.OVERNIGHT, station.type)
@@ -266,7 +266,7 @@ class MigrationTest {
         try {
             val tour = RoomTourRepository(db.tourDao(), db.vehicleDao()).allTours().single()
             assertEquals("Alte Notiz", tour.notes)
-            assertEquals(emptyList<Station>(), RoomStationRepository(db.stationDao()).allStations())
+            assertEquals(emptyList<Station>(), RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations())
         } finally {
             db.close()
         }
@@ -284,7 +284,7 @@ class MigrationTest {
         try {
             val tour = RoomTourRepository(db.tourDao(), db.vehicleDao()).allTours().single()
             assertEquals("Pitch: sloped, leveling blocks used", tour.notes)
-            assertEquals(emptyList<Station>(), RoomStationRepository(db.stationDao()).allStations())
+            assertEquals(emptyList<Station>(), RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations())
         } finally {
             db.close()
         }
@@ -300,7 +300,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            assertEquals(1, RoomStationRepository(db.stationDao()).allStations().size)
+            assertEquals(1, RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations().size)
 
             // Ein Fahrzeug mit Stationen lässt sich nicht löschen.
             val error = runCatching { db.openHelper.writableDatabase.execSQL("DELETE FROM vehicles WHERE id = 1") }.exceptionOrNull()
@@ -308,7 +308,7 @@ class MigrationTest {
 
             // Das Löschen der Tour löscht ihre Station mit (CASCADE).
             db.openHelper.writableDatabase.execSQL("DELETE FROM tours WHERE id = 1")
-            assertEquals(emptyList<Station>(), RoomStationRepository(db.stationDao()).allStations())
+            assertEquals(emptyList<Station>(), RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations())
         } finally {
             db.close()
         }
