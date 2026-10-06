@@ -1,0 +1,3 @@
+• Optionales Wetter an Stationen von Open-Meteo: Temperatur, Wetterlage und Wind mit einem Tipp
+• Neuer Schalter „Wetter (Internet)“, standardmäßig aus – Koordinaten werden vor dem Senden auf etwa 1 km gerundet, sonst verlässt nichts das Gerät
+• „Über CamperLog“ nennt die Datenquellen und erklärt genau, was übertragen wird

@@ -1,0 +1,3 @@
+• Optional weather on stops from Open-Meteo: temperature, conditions and wind, with one tap
+• New switch "Weather (internet)", off by default – coordinates are rounded to about 1 km before sending, nothing else leaves the device
+• About lists the data sources and explains exactly what is transferred
