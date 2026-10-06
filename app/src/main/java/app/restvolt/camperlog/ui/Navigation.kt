@@ -672,9 +672,9 @@ private fun NavController.stationDetailViewModel(
     return viewModel(viewModelStoreOwner = detailEntry) { StationDetailViewModel(stations, tours, stationId) }
 }
 
-/** Ob [T] irgendwo im aktuellen Stapel liegt; [getBackStackEntry] würde sonst werfen. */
+/** Ob [T] irgendwo im aktuellen Stapel liegt; ein direkter Aufruf von [getBackStackEntry] würde sonst werfen. */
 private inline fun <reified T : Any> NavController.hasRoute(): Boolean =
-    currentBackStack.value.any { it.destination.hasRoute<T>() }
+    runCatching { getBackStackEntry<T>() }.isSuccess
 
 /** Verlässt [entry] nur, solange er sichtbar ist; verhindert doppeltes Zurück bei schnellem Tippen. */
 private fun NavController.popFrom(entry: NavBackStackEntry) {
