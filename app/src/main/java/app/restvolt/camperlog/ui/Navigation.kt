@@ -121,7 +121,7 @@ import java.time.LocalDate
 @Serializable
 internal object ToursRoute
 
-/** Stationen-Reiter (6.3): fahrzeugübergreifende Liste mit Suche, Filtern und FAB. */
+/** Stationen-Reiter: fahrzeugübergreifende Liste mit Suche, Filtern und FAB. */
 @Serializable
 internal object StationsRoute
 
@@ -156,11 +156,11 @@ internal data class EditRoute(val tourId: Long = 0)
 @Serializable
 internal data class DetailRoute(val tourId: Long)
 
-/** Karte der Stationen einer Tour (6.2, 6.9); nur erreichbar, wenn [isMapAvailable] zutrifft. */
+/** Karte der Stationen einer Tour; nur erreichbar, wenn [isMapAvailable] zutrifft. */
 @Serializable
 internal data class TourMapRoute(val tourId: Long)
 
-/** Karte des aktuellen Filters des Stationen-Reiters (6.3, 6.9). */
+/** Karte des aktuellen Filters des Stationen-Reiters. */
 @Serializable
 internal object StationsMapRoute
 
@@ -216,23 +216,23 @@ fun CamperLogNavHost(
     backupImporter: BackupImporter,
     themeMode: ThemeMode,
     canShowStartDialogs: Boolean = true,
-    /** Aus einem eingehenden `geo:`-Link gelesener Ort (13.5 Nr. 4); `null` außerhalb dieses Starts. */
+    /** Aus einem eingehenden `geo:`-Link gelesener Ort; `null` außerhalb dieses Starts. */
     pendingGeoIntent: GeoIntentLocation? = null,
     /** [pendingGeoIntent] wurde übernommen und soll nicht erneut ausgelöst werden, z. B. bei einer Drehung. */
     onGeoIntentHandled: () -> Unit = {},
-    /** Fahrzeug-id aus einer getippten Wartungs-Benachrichtigung (1.9.0); `null` außerhalb dieses Starts. */
+    /** Fahrzeug-id aus einer getippten Wartungs-Benachrichtigung; `null` außerhalb dieses Starts. */
     pendingVehicleId: Long? = null,
     /** [pendingVehicleId] wurde übernommen und soll nicht erneut ausgelöst werden. */
     onVehicleIntentHandled: () -> Unit = {},
-    /** Direkt der Daten-Screen soll geöffnet werden, aus einer getippten Sicherungs-Erinnerung (1.9.0). */
+    /** Direkt der Daten-Screen soll geöffnet werden, aus einer getippten Sicherungs-Erinnerung. */
     pendingOpenData: Boolean = false,
     /** [pendingOpenData] wurde übernommen und soll nicht erneut ausgelöst werden. */
     onOpenDataHandled: () -> Unit = {},
-    /** Standorthardware für das Stationsformular und "Wo bin ich?" (6.7); in Tests ein Fake. */
+    /** Standorthardware für das Stationsformular und "Wo bin ich?"; in Tests ein Fake. */
     locationProvider: LocationProvider = AndroidLocationProvider(LocalContext.current),
-    /** Wetterabfrage für die "Wetter"-Karte im Stationsformular (6.8); in Tests ein Fake. */
+    /** Wetterabfrage für die "Wetter"-Karte im Stationsformular; in Tests ein Fake. */
     weatherProvider: WeatherProvider = AndroidWeatherProvider(userAgent = camperLogUserAgent(BuildConfig.VERSION_NAME)),
-    /** Kachellader der Karte (6.9); in Tests ein Fake. */
+    /** Kachellader der Karte; in Tests ein Fake. */
     tileLoader: TileLoader = AndroidTileLoader(userAgent = camperLogUserAgent(BuildConfig.VERSION_NAME)),
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
@@ -296,7 +296,7 @@ fun CamperLogNavHost(
         }
     }
 
-    // Eine getippte Wartungs-Benachrichtigung (1.9.0) wählt das Fahrzeug aus und öffnet den Reiter.
+    // Eine getippte Wartungs-Benachrichtigung wählt das Fahrzeug aus und öffnet den Reiter.
     LaunchedEffect(pendingVehicleId) {
         val vehicleId = pendingVehicleId
         if (vehicleId != null) {
@@ -306,7 +306,7 @@ fun CamperLogNavHost(
         }
     }
 
-    // Eine getippte Sicherungs-Erinnerung (1.9.0) öffnet direkt den Daten-Screen.
+    // Eine getippte Sicherungs-Erinnerung öffnet direkt den Daten-Screen.
     LaunchedEffect(pendingOpenData) {
         if (pendingOpenData) {
             navController.navigate(DataRoute)
@@ -484,9 +484,9 @@ fun CamperLogNavHost(
         composable<StationEditRoute> { entry ->
             val route = entry.toRoute<StationEditRoute>()
             val stationEditContext = LocalContext.current
-            // Wohin die Speichermeldung geht, hängt davon ab, von wo das Formular geöffnet wurde (4.6):
+            // Wohin die Speichermeldung geht, hängt davon ab, von wo das Formular geöffnet wurde:
             // eine bestehende Station kam vom Stationsdetail, eine neue von der Tourdetailseite (dann
-            // trägt die Route eine tourId) oder vom Stationen-Reiter. Ein `geo:`-Link (13.5 Nr. 4) öffnet
+            // trägt die Route eine tourId) oder vom Stationen-Reiter. Ein `geo:`-Link öffnet
             // eine neue Station ohne einen dieser Vorgänger im Stapel; dann bleibt die Meldung stumm.
             val onStationSaved: (Set<StationService>) -> Unit = when {
                 route.stationId != 0L && navController.hasRoute<StationDetailRoute>() ->
@@ -649,7 +649,7 @@ fun CamperLogNavHost(
     }
 }
 
-/** Untere Navigationsleiste der vier Hauptreiter (2.1); erneutes Tippen kehrt zur Wurzel des Reiters zurück. */
+/** Untere Navigationsleiste der vier Hauptreiter; erneutes Tippen kehrt zur Wurzel des Reiters zurück. */
 @Composable
 private fun CamperLogBottomBar(navController: NavController, current: NavDestination?, reminderCount: Int) {
     NavigationBar {
@@ -693,7 +693,7 @@ private fun CamperLogBottomBar(navController: NavController, current: NavDestina
 }
 
 /**
- * Beschriftung eines Hauptreiters, einzeilig und bei Bedarf verkleinert (2.1): mit 4 Reitern bricht
+ * Beschriftung eines Hauptreiters, einzeilig und bei Bedarf verkleinert: mit 4 Reitern bricht
  * "Stationen"/"Bordbuch" sonst schon bei 1.5x mittendrin ab, weil Compose nicht trennt.
  */
 @Composable
@@ -782,7 +782,7 @@ private fun NavController.stationsViewModel(
 
 /**
  * Das [StationDetailViewModel] der Stationsdetailseite, damit das Bearbeiten dort die Speichermeldung
- * auslöst (4.6). [StationEditRoute] liegt in diesem Fall immer über [StationDetailRoute] im Stapel.
+ * auslöst. [StationEditRoute] liegt in diesem Fall immer über [StationDetailRoute] im Stapel.
  */
 @Composable
 private fun NavController.stationDetailViewModel(
