@@ -40,13 +40,10 @@ import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.LogType
-import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.dueReminders
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import app.restvolt.camperlog.domain.shouldShowKeepAndroidOpen
 import app.restvolt.camperlog.ui.about.AboutScreen
 import app.restvolt.camperlog.ui.about.KeepAndroidOpenDialog
@@ -142,32 +139,17 @@ internal object DataRoute
 @Serializable
 internal data class RateEditRoute(val currencyCode: String? = null)
 
-/**
- * Platzhalter für Hosts ohne eigene Stationsverwaltung (z. B. ältere Testfälle): liefert immer
- * leere Listen. Der Daten-Screen ist die einzige Stelle, die [StationRepository] wirklich braucht.
- */
-private object NoOpStationRepository : StationRepository {
-    override fun observeForTour(tourId: Long): Flow<List<Station>> = flowOf(emptyList())
-    override fun observeForVehicle(vehicleId: Long?): Flow<List<Station>> = flowOf(emptyList())
-    override fun observeStation(id: Long): Flow<Station?> = flowOf(null)
-    override suspend fun allStations(): List<Station> = emptyList()
-    override suspend fun save(station: Station): Long = 0
-    override suspend fun delete(id: Long) = Unit
-    override suspend fun restore(station: Station) = Unit
-    override suspend fun defaultTourId(vehicleId: Long, date: LocalDate): Long? = null
-}
-
 /** Navigationsgraph der App mit Start auf der Tourenliste. */
 @Composable
 fun CamperLogNavHost(
     repository: TourRepository,
     vehicles: VehicleRepository,
     logbook: LogRepository,
+    stations: StationRepository,
     exchangeRates: ExchangeRateRepository,
     backupImporter: BackupImporter,
     themeMode: ThemeMode,
     canShowStartDialogs: Boolean = true,
-    stations: StationRepository = NoOpStationRepository,
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
     val navController = rememberNavController()

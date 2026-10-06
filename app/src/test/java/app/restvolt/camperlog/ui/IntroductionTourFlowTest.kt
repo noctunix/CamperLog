@@ -49,6 +49,7 @@ class IntroductionTourFlowTest {
                     tours,
                     FakeVehicleRepository(),
                     logs,
+                    FakeStationRepository(),
                     FakeExchangeRateRepository(),
                     FakeBackupImporter(),
                     ThemeMode.SYSTEM,

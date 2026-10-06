@@ -62,6 +62,7 @@ class ReadmeScreenshots {
                     FakeTourRepository(sampleTours),
                     FakeVehicleRepository(listOf(sampleVehicle)),
                     FakeLogRepository(sampleLogEntries()),
+                    FakeStationRepository(),
                     FakeExchangeRateRepository(rates),
                     FakeBackupImporter(),
                     ThemeMode.LIGHT,

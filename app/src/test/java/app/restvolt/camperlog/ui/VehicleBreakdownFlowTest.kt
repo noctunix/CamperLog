@@ -34,6 +34,7 @@ class VehicleBreakdownFlowTest {
                     repository,
                     vehicles,
                     FakeLogRepository(),
+                    FakeStationRepository(),
                     FakeExchangeRateRepository(),
                     FakeBackupImporter(),
                     ThemeMode.SYSTEM,
