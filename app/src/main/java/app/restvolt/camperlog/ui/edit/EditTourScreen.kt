@@ -44,6 +44,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
@@ -208,6 +209,11 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 errors[TourField.DISTANCE_KM],
                 focusOf(TourField.DISTANCE_KM),
             ) { value -> change { it.copy(distanceKm = value) } }
+            Text(
+                stringResource(R.string.tour_section_other_costs),
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.titleSmall,
+            )
             CostFields(
                 costs = input.costs,
                 errors = state.costErrors,

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ExchangeRate
@@ -16,8 +17,10 @@ import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.SiteKind
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
@@ -193,7 +196,11 @@ class ReadmeScreenshots {
             }
         }
 
-        /** Stationen der Lofoten-Tour (id 1): Fähre, Übernachtung mit „gerne wieder", Ver-/Entsorgung, Sehenswertes. */
+        /**
+         * Stationen der Lofoten-Tour (id 1): Fähre mit Buchungsnummer und Kosten, Übernachtung mit
+         * „gerne wieder", Stellplatzkosten und verbrauchsabhängigem Strom, eine Vignette, Ver-/Entsorgung
+         * und Sehenswertes.
+         */
         fun sampleStations(): List<Station> = listOf(
             Station(
                 id = 1,
@@ -204,6 +211,8 @@ class ReadmeScreenshots {
                 date = LocalDate.of(2026, 7, 4),
                 time = LocalTime.of(8, 0),
                 name = "Bodø–Moskenes",
+                ferryBookingReference = "TF-884215",
+                costs = listOf(StationCost(CostCategory.FERRY, Money(89_00, EUR))),
                 createdAt = Instant.parse("2026-07-04T08:00:00Z"),
                 updatedAt = Instant.parse("2026-07-04T08:00:00Z"),
             ),
@@ -220,7 +229,12 @@ class ReadmeScreenshots {
                 longitude = 13.0067,
                 nights = 2,
                 siteKind = SiteKind.CAMPSITE,
-                electricityBilling = ElectricityBilling.FLAT_PER_STAY,
+                electricityBilling = ElectricityBilling.METERED,
+                electricityCurrency = EUR,
+                electricityPricePerKwh = BigDecimal("0.40"),
+                electricityMeterStart = BigDecimal("800"),
+                electricityMeterEnd = BigDecimal("820"),
+                costs = listOf(StationCost(CostCategory.PITCH, Money(32_00, EUR))),
                 favorite = true,
                 createdAt = Instant.parse("2026-07-04T18:00:00Z"),
                 updatedAt = Instant.parse("2026-07-04T18:00:00Z"),
@@ -248,6 +262,23 @@ class ReadmeScreenshots {
                 name = "Reinefjord viewpoint",
                 createdAt = Instant.parse("2026-07-11T12:00:00Z"),
                 updatedAt = Instant.parse("2026-07-11T12:00:00Z"),
+            ),
+            Station(
+                id = 5,
+                uuid = "00000000-0000-4000-8000-0000000000c5",
+                vehicleId = 1,
+                tourId = 1,
+                type = StationType.TOLL,
+                date = LocalDate.of(2026, 7, 6),
+                name = "Autobahnvignette",
+                tollKind = TollKind.VIGNETTE,
+                tollCountry = "AT",
+                tollValidFrom = LocalDate.of(2026, 7, 1),
+                tollValidUntil = LocalDate.of(2027, 1, 31),
+                tollPaymentMethod = "Online",
+                costs = listOf(StationCost(CostCategory.TOLL, Money(96_80, EUR))),
+                createdAt = Instant.parse("2026-07-06T09:00:00Z"),
+                updatedAt = Instant.parse("2026-07-06T09:00:00Z"),
             ),
         )
 
