@@ -1,1 +1,1 @@
-Log trips, vehicles, maintenance and logbook - private, offline, no tracking
+Log tours, stops, vehicles and logbook - private, works offline, no tracking
