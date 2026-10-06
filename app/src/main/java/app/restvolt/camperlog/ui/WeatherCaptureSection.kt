@@ -37,7 +37,7 @@ import app.restvolt.camperlog.domain.weatherCondition
 import app.restvolt.camperlog.share.tryStart
 
 /**
- * Nicht erfolgreiche Zustände der Wetterabfrage (6.8), ohne [WeatherCaptureState.Success]: der
+ * Nicht erfolgreiche Zustände der Wetterabfrage, ohne [WeatherCaptureState.Success]: der
  * Aufrufer übernimmt einen Treffer sofort ins Formular und zeigt ihn selbst mit [WeatherSummary]
  * an, genau wie [LocationCaptureSection] es mit einem GPS-Fix macht.
  */
@@ -58,7 +58,7 @@ fun WeatherFetchRow(controller: WeatherCaptureController, label: String, onFetch
     }
 }
 
-/** Zeile mit Refresh/Entfernen (6.8 Erfolgszustand) oder, während eine erneute Abfrage läuft, deren Zustand. */
+/** Zeile mit Refresh/Entfernen (Erfolgszustand) oder, während eine erneute Abfrage läuft, deren Zustand. */
 @Composable
 fun WeatherRefreshRow(controller: WeatherCaptureController, onRefresh: () -> Unit, onRemove: () -> Unit, modifier: Modifier = Modifier) {
     val state by controller.state.collectAsStateWithLifecycle()
@@ -102,7 +102,7 @@ private val CompassDirection.labelRes: Int
         CompassDirection.NW -> R.string.wind_direction_nw
     }
 
-/** Temperatur, Wetterlage, Wind und Zeitpunkt eines Schnappschusses (6.6, 6.8), mit Open-Meteo-Attribution. */
+/** Temperatur, Wetterlage, Wind und Zeitpunkt eines Schnappschusses, mit Open-Meteo-Attribution. */
 @Composable
 fun WeatherSummary(snapshot: WeatherSnapshot, modifier: Modifier = Modifier) {
     val context = LocalContext.current

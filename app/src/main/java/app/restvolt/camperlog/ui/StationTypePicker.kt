@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.StationType
 
-/** Typauswahl vor dem Stationsformular (6.4): eine Liste statt eines Rasters, siehe dortige Begründung. */
+/** Typauswahl vor dem Stationsformular: eine Liste statt eines Rasters. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StationTypePickerSheet(onSelect: (StationType) -> Unit, onDismiss: () -> Unit) {

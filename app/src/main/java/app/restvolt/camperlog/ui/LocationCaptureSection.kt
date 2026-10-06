@@ -41,7 +41,7 @@ import app.restvolt.camperlog.share.openAppDetailsSettings
 import app.restvolt.camperlog.share.openLocationSourceSettings
 import java.util.Locale
 
-/** Von der Oberfläche beigesteuerte Bedienelemente des [LocationCaptureController] (6.7). */
+/** Von der Oberfläche beigesteuerte Bedienelemente des [LocationCaptureController]. */
 data class LocationCaptureHandlers(val onTap: () -> Unit, val onContinueRationale: () -> Unit)
 
 /**
@@ -73,7 +73,7 @@ fun rememberLocationCaptureHandlers(controller: LocationCaptureController): Loca
 }
 
 /**
- * Inhalt der Standortbestimmung (6.7) außer [LocationCaptureState.Found], das der Aufrufer selbst
+ * Inhalt der Standortbestimmung außer [LocationCaptureState.Found], das der Aufrufer selbst
  * zeigt (Stationsformular übernimmt den Fix sofort ins Feld, "Wo bin ich?" zeigt ihn groß an).
  * [onEnterManually] blendet bei dauerhafter Ablehnung eine dritte Aktion ein; `null` lässt sie weg.
  */
@@ -149,7 +149,7 @@ fun LocationCaptureSection(
     }
 }
 
-/** Lesbare Zusammenfassung eines gefundenen Fixes (6.7): Koordinaten, Genauigkeit, ggf. "zuletzt bekannt". */
+/** Lesbare Zusammenfassung eines gefundenen Fixes: Koordinaten, Genauigkeit, ggf. "zuletzt bekannt". */
 @Composable
 fun locationFixSummary(fix: LocationFix, locale: Locale): String {
     val coordinates = formatCoordinates(fix.latitude, fix.longitude, locale)

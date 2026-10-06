@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Zustand des Verlaufs einer Bordbuch-Art: ihre Einträge, neueste zuerst, und die Stationen desselben Fahrzeugs (4). */
+/** Zustand des Verlaufs einer Bordbuch-Art: ihre Einträge, neueste zuerst, und die Stationen desselben Fahrzeugs. */
 data class LogHistoryUiState(val entries: List<LogEntry> = emptyList(), val stations: List<Station> = emptyList())
 
 /** Rückmeldungen, die der Verlauf als Snackbar anzeigt. */

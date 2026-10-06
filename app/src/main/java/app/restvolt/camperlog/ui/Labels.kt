@@ -291,7 +291,7 @@ fun Reminder.text(today: LocalDate, locale: Locale): String {
     }
 }
 
-/** Anzeigename der Stationsart (3.2); auch Fallback-Überschrift, wenn [app.restvolt.camperlog.domain.Station.name] leer ist. */
+/** Anzeigename der Stationsart; auch Fallback-Überschrift, wenn [app.restvolt.camperlog.domain.Station.name] leer ist. */
 @get:StringRes
 val StationType.labelRes: Int
     get() = when (this) {
@@ -304,7 +304,7 @@ val StationType.labelRes: Int
         StationType.OTHER -> R.string.station_type_other
     }
 
-/** Symbol der Stationsart (3.2), amtliche Material-Symbols-Pfaddaten auf das 24-Einheiten-Raster skaliert. */
+/** Symbol der Stationsart, amtliche Material-Symbols-Pfaddaten auf das 24-Einheiten-Raster skaliert. */
 @get:DrawableRes
 val StationType.iconRes: Int
     get() = when (this) {
@@ -368,14 +368,14 @@ fun StationError.messageRes(field: StationField): Int = when (this) {
     StationError.FUTURE_DATE -> R.string.error_station_service_future_date
 }
 
-/** Text der "Station gespeichert"-Snackbar (4.6): Grundtext, ergänzt um die ins Bordbuch eingetragenen Dienste. */
+/** Text der "Station gespeichert"-Snackbar: Grundtext, ergänzt um die ins Bordbuch eingetragenen Dienste. */
 fun stationSavedText(resources: android.content.res.Resources, loggedServices: Set<StationService>): String {
     if (loggedServices.isEmpty()) return resources.getString(R.string.station_saved)
     val names = loggedServices.sortedBy { it.ordinal }.joinToString(", ") { resources.getString(it.labelRes) }
     return resources.getString(R.string.station_saved_with_log, names)
 }
 
-/** Anzeigetext der Wetterlage (6.8). */
+/** Anzeigetext der Wetterlage. */
 @get:StringRes
 val WeatherCondition.labelRes: Int
     get() = when (this) {
@@ -389,7 +389,7 @@ val WeatherCondition.labelRes: Int
         WeatherCondition.THUNDERSTORM -> R.string.weather_condition_thunderstorm
     }
 
-/** Symbol der Wetterlage (6.8), amtliche Material-Symbols-Pfaddaten auf das 24-Einheiten-Raster skaliert. */
+/** Symbol der Wetterlage, amtliche Material-Symbols-Pfaddaten auf das 24-Einheiten-Raster skaliert. */
 @get:DrawableRes
 val WeatherCondition.iconRes: Int
     get() = when (this) {
@@ -405,7 +405,7 @@ val WeatherCondition.iconRes: Int
 
 /**
  * Sprechform von Koordinaten für TalkBack, z. B. „68,0912 Grad Nord, 13,1023 Grad Ost, Genauigkeit
- * 8 Meter" (7); [accuracyM] wird nur bei einer GPS-Herkunft mitgesprochen.
+ * 8 Meter"; [accuracyM] wird nur bei einer GPS-Herkunft mitgesprochen.
  */
 @Composable
 fun coordinatesContentDescription(latitude: Double, longitude: Double, accuracyM: Int?, locale: Locale): String {

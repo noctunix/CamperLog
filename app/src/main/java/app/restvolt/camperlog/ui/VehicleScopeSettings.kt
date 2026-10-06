@@ -5,7 +5,7 @@ import androidx.core.content.edit
 
 /**
  * Persistiert die Ansichtseinstellung "Alle Fahrzeuge", die sich Touren- und Stationen-Reiter
- * teilen (2.4); das aktuelle Fahrzeug selbst liegt in Room.
+ * teilen; das aktuelle Fahrzeug selbst liegt in Room.
  */
 class VehicleScopeSettings(context: Context) {
     private val preferences = context.getSharedPreferences("tours_filter", Context.MODE_PRIVATE)

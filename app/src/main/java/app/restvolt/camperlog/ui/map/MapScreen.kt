@@ -93,17 +93,17 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 import java.util.Locale
 
-/** Sichtbarer Rand beim Einpassen aller Stationen (6.9: "fit bounds with 48 dp padding"). */
+/** Sichtbarer Rand beim Einpassen aller Stationen. */
 private val FIT_BOUNDS_PADDING = 48.dp
 
-/** Fester Markenton für Marker und Linie, unabhängig vom Theme (6.9: OSM-Kacheln bleiben im Dunkelmodus hell). */
+/** Fester Markenton für Marker und Linie, unabhängig vom Theme (OSM-Kacheln bleiben im Dunkelmodus hell). */
 private val MapMarkerColor = Color(0xFF004A86)
 
 /**
- * Eigene Compose-Slippy-Map einer Tour oder des Stationen-Reiters (6.9, 13): Kachelraster mit
+ * Eigene Compose-Slippy-Map einer Tour oder des Stationen-Reiters: Kachelraster mit
  * Ziehen/Kneifzoom/Doppeltipp, Zoomtasten, Einpassen, Markern und gestrichelten Verbindungen in
  * chronologischer Reihenfolge, sowie die Stationsliste im Bottom Sheet als vollwertige
- * barrierefreie Alternative (7).
+ * barrierefreie Alternative.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -222,7 +222,7 @@ fun MapScreen(
     }
 }
 
-/** Kachelraster, gestrichelte Verbindungslinie und Marker, mit Ziehen/Kneifzoom/Doppeltipp (6.9, 13). */
+/** Kachelraster, gestrichelte Verbindungslinie und Marker, mit Ziehen/Kneifzoom/Doppeltipp. */
 @Composable
 private fun MapCanvas(
     camera: MapCamera,
@@ -349,7 +349,7 @@ private fun MapCanvas(
 private fun decodeTile(pngBytes: ByteArray): ImageBitmap? =
     BitmapFactory.decodeByteArray(pngBytes, 0, pngBytes.size)?.asImageBitmap()
 
-/** "© OpenStreetMap contributors", immer sichtbar und nicht von anderen Elementen verdeckt (6.9, 13). */
+/** "© OpenStreetMap contributors", immer sichtbar und nicht von anderen Elementen verdeckt. */
 @Composable
 private fun AttributionChip(modifier: Modifier = Modifier) {
     val uri = stringResource(R.string.about_osm_copyright_uri)
@@ -399,7 +399,7 @@ private fun SelectedStationCard(station: Station, locale: Locale, onDetails: () 
     }
 }
 
-/** Barrierefreie Alternative zum Kartencanvas (7): vollständige Stationsliste im Bottom Sheet. */
+/** Barrierefreie Alternative zum Kartencanvas: vollständige Stationsliste im Bottom Sheet. */
 @Composable
 private fun StationListSheet(
     located: List<Station>,

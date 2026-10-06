@@ -23,11 +23,11 @@ sealed interface TileState {
     data object Failed : TileState
 }
 
-/** Höchstzahl im Session-Zwischenspeicher gehaltener Kacheln (6.9, 13: "in-memory LRU bitmap cache"). */
+/** Höchstzahl im Session-Zwischenspeicher gehaltener Kacheln. */
 private const val TILE_MEMORY_CACHE_CAPACITY = 256
 
 /**
- * Lädt die aktuell sichtbaren Kacheln über [tileLoader] (6.9, 13): begrenzt auf die per
+ * Lädt die aktuell sichtbaren Kacheln über [tileLoader]: begrenzt auf die per
  * [setVisibleTiles] gemeldete Sichtfläche, bricht Anfragen für Kacheln ab, die nicht mehr sichtbar
  * sind, und hält bereits geladene Kacheln in einem LRU-Zwischenspeicher für die laufende Sitzung.
  * Das Banner nach [TileState.Failed]-Häufung ([shouldShowTileFailureBanner]) bleibt bestehen, bis
@@ -48,9 +48,8 @@ class MapViewModel(private val tileLoader: TileLoader) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     /**
-     * Meldet die aktuell sichtbare Kachelmenge (6.9, 13: "only tiles of the visible viewport").
-     * Kacheln, die den Bildschirm verlassen haben, werden abgebrochen ("cancellation of off-screen
-     * requests"); neue, noch unbekannte Kacheln werden angefragt.
+     * Meldet die aktuell sichtbare Kachelmenge. Kacheln, die den Bildschirm verlassen haben, werden
+     * abgebrochen; neue, noch unbekannte Kacheln werden angefragt.
      */
     fun setVisibleTiles(visible: Set<TileCoord>) {
         currentVisible = visible
@@ -76,7 +75,7 @@ class MapViewModel(private val tileLoader: TileLoader) : ViewModel() {
         }
     }
 
-    /** "Erneut" auf dem Fehlerbanner (6.9): setzt den Zähler zurück und fragt fehlgeschlagene Kacheln neu an. */
+    /** "Erneut" auf dem Fehlerbanner: setzt den Zähler zurück und fragt fehlgeschlagene Kacheln neu an. */
     fun retryFailedTiles() {
         _failedTileCount.value = 0
         val failed = _tiles.value.filterValues { it is TileState.Failed }.keys
@@ -90,7 +89,7 @@ class MapViewModel(private val tileLoader: TileLoader) : ViewModel() {
     }
 }
 
-/** Kleiner LRU-Zwischenspeicher für Kachelbytes der laufenden Sitzung (6.9, 13), ohne Android-Abhängigkeit. */
+/** Kleiner LRU-Zwischenspeicher für Kachelbytes der laufenden Sitzung, ohne Android-Abhängigkeit. */
 private class LruTileCache(private val capacity: Int) {
     private val entries = LinkedHashMap<TileCoord, ByteArray>(capacity, 0.75f, true)
 
