@@ -119,24 +119,6 @@ class RoomBackupImporter(
             }
         }
 
-        // --- Bordbuch-Einträge: unveränderlich, daher nur anlegen, wenn die uuid noch unbekannt ist ---
-        val importedLogEntries = importedVehicles.flatMap { backupVehicle ->
-            val localVehicleId = checkNotNull(localIdByVehicleUuid[backupVehicle.vehicle.uuid])
-            backupVehicle.logEntries.map { it.copy(vehicleId = localVehicleId) }
-        }
-        var addedLogEntries = 0
-        if (mode == ImportMode.REPLACE) {
-            importedLogEntries.forEach { logDao.insert(it.copy(id = 0).toEntity()); addedLogEntries++ }
-        } else {
-            val storedLogEntryUuids = logDao.getUuids().toHashSet()
-            for (entry in importedLogEntries) {
-                if (storedLogEntryUuids.add(entry.uuid)) {
-                    logDao.insert(entry.copy(id = 0).toEntity())
-                    addedLogEntries++
-                }
-            }
-        }
-
         // --- Aktuelles Fahrzeug: bleibt beim Zusammenführen unverändert, außer das leere Fahrzeug wurde ersetzt ---
         if (mode == ImportMode.REPLACE) {
             val currentId = backup.currentVehicleUuid?.let { localIdByVehicleUuid[it] }
@@ -190,21 +172,50 @@ class RoomBackupImporter(
         }
         var addedStations = 0
         var updatedStations = 0
+        val stationLocalIdByUuid = HashMap<String, Long>()
         if (mode == ImportMode.REPLACE) {
-            importedStations.forEach { stationDao.insert(it.copy(id = 0).toEntity()); addedStations++ }
+            importedStations.forEach { station ->
+                stationLocalIdByUuid[station.uuid] = stationDao.insert(station.copy(id = 0).toEntity())
+                addedStations++
+            }
         } else {
             val storedStations = stationDao.getVersions().associateBy(StationVersionRow::uuid)
             for (station in importedStations) {
                 val existing = storedStations[station.uuid]
-                when {
+                val localId = when {
                     existing == null -> {
-                        stationDao.insert(station.copy(id = 0).toEntity())
+                        val id = stationDao.insert(station.copy(id = 0).toEntity())
                         addedStations++
+                        id
                     }
                     station.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
                         stationDao.update(station.copy(id = existing.id).toEntity())
                         updatedStations++
+                        existing.id
                     }
+                    else -> existing.id
+                }
+                stationLocalIdByUuid[station.uuid] = localId
+            }
+        }
+
+        // --- Bordbuch-Einträge: unveränderlich außer der Stationsverknüpfung, daher nur anlegen, wenn die uuid noch unbekannt ist ---
+        val importedLogEntries = importedVehicles.flatMap { backupVehicle ->
+            val localVehicleId = checkNotNull(localIdByVehicleUuid[backupVehicle.vehicle.uuid])
+            backupVehicle.logEntries.map { entry ->
+                val stationId = backup.logEntryStationUuid[entry.uuid]?.let { uuid -> stationLocalIdByUuid[uuid] }
+                entry.copy(vehicleId = localVehicleId, stationId = stationId)
+            }
+        }
+        var addedLogEntries = 0
+        if (mode == ImportMode.REPLACE) {
+            importedLogEntries.forEach { logDao.insert(it.copy(id = 0).toEntity()); addedLogEntries++ }
+        } else {
+            val storedLogEntryUuids = logDao.getUuids().toHashSet()
+            for (entry in importedLogEntries) {
+                if (storedLogEntryUuids.add(entry.uuid)) {
+                    logDao.insert(entry.copy(id = 0).toEntity())
+                    addedLogEntries++
                 }
             }
         }

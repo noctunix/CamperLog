@@ -183,6 +183,7 @@ class DataViewModel(
         val logEntriesByVehicle = logs.allEntries().groupBy { it.vehicleId }
         val vehicleUuidById = allVehicles.associate { it.id to it.uuid }
         val tourUuidById = tours.associate { it.id to it.uuid }
+        val stationUuidById = allStations.associate { it.id to it.uuid }
         val backup = Backup(
             exportedAt = clock(),
             mainCurrency = exchangeRates.observeMainCurrency().first(),
@@ -201,6 +202,9 @@ class DataViewModel(
             stationVehicleUuid = allStations.mapNotNull { station -> vehicleUuidById[station.vehicleId]?.let { station.uuid to it } }.toMap(),
             stationTourUuid = allStations.mapNotNull { station ->
                 station.tourId?.let { tourUuidById[it] }?.let { station.uuid to it }
+            }.toMap(),
+            logEntryStationUuid = logEntriesByVehicle.values.flatten().mapNotNull { entry ->
+                entry.stationId?.let { stationUuidById[it] }?.let { entry.uuid to it }
             }.toMap(),
         )
         return withContext(background) { encodeBackup(backup) }

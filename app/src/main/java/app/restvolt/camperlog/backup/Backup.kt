@@ -65,7 +65,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 3
+const val BACKUP_SCHEMA_VERSION = 4
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -109,7 +109,9 @@ private val MAX_INSTANT = Instant.parse("2199-12-31T00:00:00Z")
  * aktuelle Fahrzeug. [stations] enthält sowohl aus dem Sicherungsformat gelesene als auch aus den
  * alten Stellplatz-Feldern einer Tour vor Formatversion 3 abgeleitete Stationen (3.4); [stationVehicleUuid]
  * ordnet einer Stations-UUID die UUID ihres Fahrzeugs zu (fehlt bei einer aus einer Tour abgeleiteten
- * Station: ihr Fahrzeug ist das der Tour), [stationTourUuid] die UUID ihrer Tour, falls sie zu einer gehört.
+ * Station: ihr Fahrzeug ist das der Tour), [stationTourUuid] die UUID ihrer Tour, falls sie zu einer
+ * gehört. [logEntryStationUuid] ordnet einer Bordbuch-Eintrags-UUID die UUID ihrer verknüpften
+ * Station zu (4); fehlt ein Eintrag hier, ist er nicht verknüpft.
  */
 data class Backup(
     val exportedAt: Instant,
@@ -122,6 +124,7 @@ data class Backup(
     val stations: List<Station> = emptyList(),
     val stationVehicleUuid: Map<String, String> = emptyMap(),
     val stationTourUuid: Map<String, String> = emptyMap(),
+    val logEntryStationUuid: Map<String, String> = emptyMap(),
 )
 
 /** Ein Fahrzeug einer Sicherung mit seinen Reparaturen und Bordbuch-Einträgen. */
@@ -130,6 +133,12 @@ data class BackupVehicle(
     val repairs: List<Repair>,
     val logEntries: List<LogEntry>,
 )
+
+/**
+ * Ein beim Lesen der Bordbuch-Einträge gefundener Stationsbezug, dessen Existenz erst geprüft werden
+ * kann, nachdem Touren und Stationen vollständig gelesen sind (siehe [BackupDto.toBackup]).
+ */
+private data class PendingLogEntryStationLink(val vehicleNumber: Int, val logEntryNumber: Int, val entryUuid: String, val stationUuid: String)
 
 /** Warum eine Datei nicht als Sicherung gelesen werden konnte. */
 enum class BackupError {
@@ -183,7 +192,7 @@ fun encodeBackup(backup: Backup): String = json.encodeToString(
         tours = backup.tours.map { tour ->
             json.encodeToJsonElement(TourDto.serializer(), tour.toDto(backup.tourVehicleUuid[tour.uuid]))
         },
-        vehicles = backup.vehicles.map { json.encodeToJsonElement(VehicleDto.serializer(), it.toDto()) },
+        vehicles = backup.vehicles.map { json.encodeToJsonElement(VehicleDto.serializer(), it.toDto(backup.logEntryStationUuid)) },
         currentVehicle = backup.currentVehicleUuid,
         stations = backup.stations.map { station ->
             val dto = station.toDto(
@@ -283,6 +292,7 @@ private fun BackupDto.toBackup(): BackupReadResult {
     val seenVehicleUuids = HashSet<String>()
     val seenRepairUuids = HashSet<String>()
     val seenLogEntryUuids = HashSet<String>()
+    val pendingLogEntryStationLinks = ArrayList<PendingLogEntryStationLink>()
     val backupVehicles = vehicles.mapIndexed { index, element ->
         val vehicleNumber = index + 1
         val dto = decodeJson(VehicleDto.serializer(), element) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
@@ -311,6 +321,11 @@ private fun BackupDto.toBackup(): BackupReadResult {
                 ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber, logEntryNumber = logEntryNumber)
             if (!seenLogEntryUuids.add(entry.uuid)) {
                 return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber, logEntryNumber = logEntryNumber)
+            }
+            logDto.stationUuid?.let { candidate ->
+                val normalized = parseUuid(candidate)
+                    ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber, logEntryNumber = logEntryNumber)
+                pendingLogEntryStationLinks += PendingLogEntryStationLink(vehicleNumber, logEntryNumber, entry.uuid, normalized)
             }
             entry
         }
@@ -387,8 +402,19 @@ private fun BackupDto.toBackup(): BackupReadResult {
     }
 
     val allStations = legacyStations + decodedStations
+    val logEntryStationUuid = HashMap<String, String>()
+    for (pending in pendingLogEntryStationLinks) {
+        if (pending.stationUuid !in seenStationUuids) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = pending.vehicleNumber, logEntryNumber = pending.logEntryNumber)
+        }
+        logEntryStationUuid[pending.entryUuid] = pending.stationUuid
+    }
+
     return BackupReadResult.Success(
-        Backup(exportedAt, mainCurrency, rates, tours, tourVehicleUuid, backupVehicles, currentVehicleUuid, allStations, stationVehicleUuid, stationTourUuid),
+        Backup(
+            exportedAt, mainCurrency, rates, tours, tourVehicleUuid, backupVehicles, currentVehicleUuid, allStations,
+            stationVehicleUuid, stationTourUuid, logEntryStationUuid,
+        ),
     )
 }
 
@@ -594,7 +620,7 @@ private fun Tour.toDto(vehicleUuid: String?) = TourDto(
     vehicleUuid = vehicleUuid,
 )
 
-private fun BackupVehicle.toDto() = vehicle.let { v ->
+private fun BackupVehicle.toDto(logEntryStationUuid: Map<String, String>) = vehicle.let { v ->
     VehicleDto(
         uuid = v.uuid,
         name = v.name,
@@ -644,7 +670,7 @@ private fun BackupVehicle.toDto() = vehicle.let { v ->
         createdAt = v.createdAt.toString(),
         updatedAt = v.updatedAt.toString(),
         repairs = repairs.map { json.encodeToJsonElement(RepairDto.serializer(), it.toDto()) },
-        logEntries = logEntries.map { json.encodeToJsonElement(LogEntryDto.serializer(), it.toDto()) },
+        logEntries = logEntries.map { json.encodeToJsonElement(LogEntryDto.serializer(), it.toDto(logEntryStationUuid[it.uuid])) },
     )
 }
 
@@ -658,7 +684,8 @@ private fun Repair.toDto() = RepairDto(
     updatedAt = updatedAt.toString(),
 )
 
-private fun LogEntry.toDto() = LogEntryDto(uuid = uuid, type = type.name, date = date.toString(), createdAt = createdAt.toString())
+private fun LogEntry.toDto(stationUuid: String?) =
+    LogEntryDto(uuid = uuid, type = type.name, date = date.toString(), createdAt = createdAt.toString(), stationUuid = stationUuid)
 
 private val DECIMAL = Regex("""\d{1,20}(\.\d{1,20})?""")
 private val UUID_PATTERN = Regex("""[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}""")

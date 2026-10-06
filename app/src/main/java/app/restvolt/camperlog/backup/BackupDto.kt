@@ -142,6 +142,8 @@ internal data class LogEntryDto(
     val type: String,
     val date: String,
     val createdAt: String,
+    /** uuid der verknüpften Station; `null` ohne Verknüpfung oder in Sicherungen vor Formatversion 4. */
+    val stationUuid: String? = null,
 )
 
 @Serializable
