@@ -3,6 +3,7 @@ package app.restvolt.camperlog.ui
 import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
@@ -19,8 +20,11 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.GeoIntentLocation
+import app.restvolt.camperlog.domain.LogEntry
+import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
@@ -48,15 +52,16 @@ class StationFlowTest {
         tours: List<Tour> = emptyList(),
         stations: List<Station> = emptyList(),
         pendingGeoIntent: GeoIntentLocation? = null,
-    ): Pair<FakeTourRepository, FakeStationRepository> {
+        logs: FakeLogRepository = FakeLogRepository(),
+    ): Triple<FakeTourRepository, FakeStationRepository, FakeLogRepository> {
         val tourRepository = FakeTourRepository(tours)
-        val stationRepository = FakeStationRepository(stations)
+        val stationRepository = FakeStationRepository(stations, logs)
         compose.setContent {
             CamperLogTheme {
                 CamperLogNavHost(
                     tourRepository,
                     FakeVehicleRepository(),
-                    FakeLogRepository(),
+                    logs,
                     stationRepository,
                     FakeExchangeRateRepository(),
                     FakeBackupImporter(),
@@ -66,7 +71,7 @@ class StationFlowTest {
                 ) { }
             }
         }
-        return tourRepository to stationRepository
+        return Triple(tourRepository, stationRepository, logs)
     }
 
     private fun lofoten(id: Long = 1) = Tour(
@@ -193,7 +198,7 @@ class StationFlowTest {
     @Test
     fun deleteStop_fromDetail_removesItAndOffersUndo() {
         val existing = station(id = 1, name = "Camping Moskenes")
-        val (_, stationRepository) = start(listOf(lofoten()), listOf(existing))
+        val (_, stationRepository, _) = start(listOf(lofoten()), listOf(existing))
 
         compose.onNodeWithText("Lofoten").performClick()
         compose.onNodeWithText("Camping Moskenes").performClick()
@@ -206,6 +211,52 @@ class StationFlowTest {
 
         compose.onNodeWithText("Rückgängig").performClick()
         assertEquals(listOf(existing), stationRepository.stations)
+    }
+
+    @Test
+    fun deleteStop_withLinkedLogEntry_undoRelinksIt() {
+        val existing = station(id = 1, name = "Camping Moskenes", services = setOf(StationService.CASSETTE))
+        val linked = LogEntry(
+            id = 1,
+            uuid = "log-1",
+            vehicleId = 1,
+            type = LogType.CASSETTE_EMPTIED,
+            date = existing.date,
+            createdAt = Instant.EPOCH,
+            stationId = existing.id,
+        )
+        val logs = FakeLogRepository(listOf(linked))
+        val (_, stationRepository, _) = start(listOf(lofoten()), listOf(existing), logs = logs)
+
+        compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Camping Moskenes").performClick()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Station löschen").performClick()
+
+        assertEquals(null, logs.entries.single { it.id == linked.id }.stationId)
+
+        compose.onNodeWithText("Rückgängig").performClick()
+
+        assertEquals(existing.id, logs.entries.single { it.id == linked.id }.stationId)
+    }
+
+    @Test
+    fun savingSupplyStopWithCassette_showsSnackbar_andLogbookTileUpdates() {
+        val (_, _, logs) = start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Ver-/Entsorgung").performClick()
+        compose.onNodeWithText("Kassette").performClick()
+        clickSave()
+
+        compose.onNodeWithText("Station gespeichert · Kassette ins Bordbuch eingetragen").assertExists()
+        assertEquals(LogType.CASSETTE_EMPTIED, logs.entries.single().type)
+
+        // Die Tourdetailseite hat keine untere Navigation; erst zurück zu den Touren, dann ins Bordbuch.
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Bordbuch").performClick()
+        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(4)
     }
 
     @Test

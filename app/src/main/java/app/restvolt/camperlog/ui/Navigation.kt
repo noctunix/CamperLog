@@ -383,12 +383,17 @@ fun CamperLogNavHost(
         composable<StationEditRoute> { entry ->
             val route = entry.toRoute<StationEditRoute>()
             // Wohin die Speichermeldung geht, hängt davon ab, von wo das Formular geöffnet wurde (4.6):
-            // eine bestehende Station kam immer vom Stationsdetail, eine neue von der Tourdetailseite
-            // (dann trägt die Route eine tourId) oder sonst vom Stationen-Reiter.
+            // eine bestehende Station kam vom Stationsdetail, eine neue von der Tourdetailseite (dann
+            // trägt die Route eine tourId) oder vom Stationen-Reiter. Ein `geo:`-Link (13.5 Nr. 4) öffnet
+            // eine neue Station ohne einen dieser Vorgänger im Stapel; dann bleibt die Meldung stumm.
             val onStationSaved: (Set<StationService>) -> Unit = when {
-                route.stationId != 0L -> navController.stationDetailViewModel(entry, stations, repository, route.stationId)::onStationSaved
-                route.tourId != null -> navController.tourDetailViewModel(entry, repository, vehicles, stations)::onStationSaved
-                else -> navController.stationsViewModel(entry, stations, repository, vehicles)::onStationSaved
+                route.stationId != 0L && navController.hasRoute<StationDetailRoute>() ->
+                    navController.stationDetailViewModel(entry, stations, repository, route.stationId)::onStationSaved
+                route.tourId != null && navController.hasRoute<DetailRoute>() ->
+                    navController.tourDetailViewModel(entry, repository, vehicles, stations)::onStationSaved
+                navController.hasRoute<StationsRoute>() ->
+                    navController.stationsViewModel(entry, stations, repository, vehicles)::onStationSaved
+                else -> { _ -> }
             }
             EditStationScreen(
                 viewModel = viewModel {
@@ -666,6 +671,10 @@ private fun NavController.stationDetailViewModel(
     val detailEntry = remember(entry) { getBackStackEntry<StationDetailRoute>() }
     return viewModel(viewModelStoreOwner = detailEntry) { StationDetailViewModel(stations, tours, stationId) }
 }
+
+/** Ob [T] irgendwo im aktuellen Stapel liegt; [getBackStackEntry] würde sonst werfen. */
+private inline fun <reified T : Any> NavController.hasRoute(): Boolean =
+    currentBackStack.value.any { it.destination.hasRoute<T>() }
 
 /** Verlässt [entry] nur, solange er sichtbar ist; verhindert doppeltes Zurück bei schnellem Tippen. */
 private fun NavController.popFrom(entry: NavBackStackEntry) {
