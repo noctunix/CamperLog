@@ -493,6 +493,7 @@ private fun VehicleDto.toVehicle(): Vehicle? {
     val saleDate = saleDate?.let { parseDate(it) ?: return null }
     val nextInspectionDate = nextInspectionDate?.let { parseDate(it) ?: return null }
     val nextGasCheckDate = nextGasCheckDate?.let { parseDate(it) ?: return null }
+    val nextLeakTestDate = nextLeakTestDate?.let { parseDate(it) ?: return null }
     val lastOilChangeDate = lastOilChangeDate?.let { parseDate(it) ?: return null }
     val purchasePriceMoney = purchasePrice?.let { it.toMoney() ?: return null }
     val salePriceMoney = salePrice?.let { it.toMoney() ?: return null }
@@ -553,6 +554,7 @@ private fun VehicleDto.toVehicle(): Vehicle? {
         solarPowerWp = solarPowerWp,
         nextInspectionDate = nextInspectionDate,
         nextGasCheckDate = nextGasCheckDate,
+        nextLeakTestDate = nextLeakTestDate,
         lastOilChangeDate = lastOilChangeDate,
         lastOilChangeOdometerKm = lastOilChangeOdometerKm,
         createdAt = createdAtValue,
@@ -665,6 +667,7 @@ private fun BackupVehicle.toDto(logEntryStationUuid: Map<String, String>) = vehi
         solarPowerWp = v.solarPowerWp,
         nextInspectionDate = v.nextInspectionDate?.toString(),
         nextGasCheckDate = v.nextGasCheckDate?.toString(),
+        nextLeakTestDate = v.nextLeakTestDate?.toString(),
         lastOilChangeDate = v.lastOilChangeDate?.toString(),
         lastOilChangeOdometerKm = v.lastOilChangeOdometerKm,
         createdAt = v.createdAt.toString(),

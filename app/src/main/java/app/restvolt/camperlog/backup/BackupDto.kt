@@ -115,6 +115,7 @@ internal data class VehicleDto(
     val solarPowerWp: Int? = null,
     val nextInspectionDate: String? = null,
     val nextGasCheckDate: String? = null,
+    val nextLeakTestDate: String? = null,
     val lastOilChangeDate: String? = null,
     val lastOilChangeOdometerKm: Int? = null,
     val createdAt: String,
