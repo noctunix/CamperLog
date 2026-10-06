@@ -116,7 +116,7 @@ class StationCsvTest {
 
         val row = stationsToCsv(listOf(station), mapOf(1L to "=HYPERLINK(\"x\")"), mapOf(1L to "-2+3"), DEFAULT_NAME).split("\r\n")[1]
 
-        assertEquals("'-2+3", row.substringAfterLast(","))
+        assertEquals("'-2+3", row.split(",")[STATION_CSV_HEADER.indexOf("fahrzeug")])
         assertEquals("\"'=HYPERLINK(\"\"x\"\")\"", row.split(",")[STATION_CSV_HEADER.indexOf("tour")])
     }
 
