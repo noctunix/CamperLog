@@ -396,7 +396,6 @@ fun CamperLogNavHost(
         composable<StationEditRoute> { entry ->
             val route = entry.toRoute<StationEditRoute>()
             val stationEditContext = LocalContext.current
-            val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
             // Wohin die Speichermeldung geht, hängt davon ab, von wo das Formular geöffnet wurde (4.6):
             // eine bestehende Station kam vom Stationsdetail, eine neue von der Tourdetailseite (dann
             // trägt die Route eine tourId) oder vom Stationen-Reiter. Ein `geo:`-Link (13.5 Nr. 4) öffnet
@@ -427,7 +426,7 @@ fun CamperLogNavHost(
                         savedStateHandle = createSavedStateHandle(),
                     )
                 },
-                locationEnabled = locationEnabled,
+                locationSettings = locationSettings,
                 onDone = { navController.popFrom(entry) },
                 onSaved = { loggedServices ->
                     onStationSaved(loggedServices)

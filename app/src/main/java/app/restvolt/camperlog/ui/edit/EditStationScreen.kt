@@ -52,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -88,9 +89,11 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.allowedServices
 import app.restvolt.camperlog.domain.formatCoordinates
+import app.restvolt.camperlog.domain.isApproximateFix
 import app.restvolt.camperlog.domain.ParsedLocation
 import app.restvolt.camperlog.domain.parseLocationText
 import app.restvolt.camperlog.domain.period
+import app.restvolt.camperlog.share.openAppDetailsSettings
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
@@ -102,6 +105,7 @@ import app.restvolt.camperlog.ui.iconRes
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.locationFixSummary
 import app.restvolt.camperlog.ui.messageRes
+import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.yesNoRes
 import java.time.LocalDate
@@ -114,11 +118,12 @@ import java.time.LocalTime
 @Composable
 fun EditStationScreen(
     viewModel: EditStationViewModel,
-    locationEnabled: Boolean,
+    locationSettings: LocationSettings,
     onDone: () -> Unit,
     onSaved: (Set<StationService>) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
@@ -158,6 +163,7 @@ fun EditStationScreen(
                 state = state,
                 viewModel = viewModel,
                 locationEnabled = locationEnabled,
+                locationSettings = locationSettings,
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
@@ -178,7 +184,13 @@ fun EditStationScreen(
 }
 
 @Composable
-private fun StationForm(state: StationEditUiState, viewModel: EditStationViewModel, locationEnabled: Boolean, modifier: Modifier) {
+private fun StationForm(
+    state: StationEditUiState,
+    viewModel: EditStationViewModel,
+    locationEnabled: Boolean,
+    locationSettings: LocationSettings,
+    modifier: Modifier,
+) {
     val input = state.input
     val errors = state.errors.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
     val change = viewModel::onInputChange
@@ -257,6 +269,7 @@ private fun StationForm(state: StationEditUiState, viewModel: EditStationViewMod
                 if (input.coordinateSource == CoordinateSource.GPS && input.latitude != null && input.longitude != null) {
                     GpsSuccessRow(
                         fix = LocationFix(input.latitude, input.longitude, input.accuracyM),
+                        locationSettings = locationSettings,
                         onRemove = viewModel::onRemoveGpsCoordinates,
                     )
                 } else {
@@ -572,14 +585,25 @@ private fun CoordinatesField(
     )
 }
 
-/** Erfolgszustand der Standortbestimmung (6.7): Koordinaten, Genauigkeit und "Koordinaten entfernen". */
+/**
+ * Erfolgszustand der Standortbestimmung (6.7): Koordinaten, Genauigkeit und "Koordinaten entfernen".
+ * Bei nur ungefährer Genauigkeit zeigt sie einmalig den Hinweis auf "Genauer Standort".
+ */
 @Composable
-private fun GpsSuccessRow(fix: LocationFix, onRemove: () -> Unit) {
+private fun GpsSuccessRow(fix: LocationFix, locationSettings: LocationSettings, onRemove: () -> Unit) {
     val locale = currentLocale()
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(locationFixSummary(fix, locale), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        IconButton(onClick = onRemove) {
-            Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.location_remove_coordinates))
+    val context = LocalContext.current
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(locationFixSummary(fix, locale), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            IconButton(onClick = onRemove) {
+                Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.location_remove_coordinates))
+            }
+        }
+        if (isApproximateFix(fix.accuracyM) && !locationSettings.approximateHintShown) {
+            LaunchedEffect(Unit) { locationSettings.approximateHintShown = true }
+            Text(stringResource(R.string.location_approximate_hint_body), style = MaterialTheme.typography.bodySmall)
+            TextButton(onClick = { context.openAppDetailsSettings() }) { Text(stringResource(R.string.location_action_app_settings)) }
         }
     }
 }

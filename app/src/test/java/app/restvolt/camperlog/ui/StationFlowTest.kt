@@ -33,9 +33,11 @@ import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -317,6 +319,34 @@ class StationFlowTest {
 
         compose.onNodeWithText("Aktuellen Standort verwenden").assertDoesNotExist()
         compose.onNodeWithText("Koordinaten eingeben").assertExists()
+    }
+
+    @Test
+    fun locationOn_approximateFix_showsTheOneTimePrecisionHintOnlyOnce() {
+        ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("location", android.content.Context.MODE_PRIVATE).edit().clear().commit()
+        try {
+            setLocationEnabled(true)
+            val approximateFix = LocationFix(68.0912, 13.1023, accuracyM = 3_000)
+            start(listOf(lofoten()), locationProvider = FakeLocationProvider(freshFix = approximateFix))
+            shadowOf(compose.activity.application).grantPermissions(
+                "android.permission.ACCESS_FINE_LOCATION",
+                "android.permission.ACCESS_COARSE_LOCATION",
+            )
+
+            compose.onNodeWithText("Lofoten").performClick()
+            openTypePicker()
+            typePickerItem("Schlafplatz").performClick()
+            compose.onNodeWithText("Aktuellen Standort verwenden").performScrollTo().performClick()
+
+            compose.onNodeWithText("68,0912° N · 13,1023° E · GPS ±3 km (ungefähr)").assertExists()
+            compose.onNodeWithText("Für genaue Positionen erlaube in den App-Einstellungen „Genauer Standort“.").assertExists()
+
+            assertTrue(LocationSettings(ApplicationProvider.getApplicationContext()).approximateHintShown)
+        } finally {
+            ApplicationProvider.getApplicationContext<android.content.Context>()
+                .getSharedPreferences("location", android.content.Context.MODE_PRIVATE).edit().clear().commit()
+        }
     }
 
     @Test
