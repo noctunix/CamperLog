@@ -13,8 +13,8 @@ private val BACKUP_FOLDER_STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss
 private const val BACKUP_MIME_TYPE = "application/json"
 
 /**
- * Schreibzugriff auf den vom Nutzer gewählten Sicherungsordner (6.11: "Backup folder", SAF
- * `OPEN_DOCUMENT_TREE`). URIs werden als Strings übergeben, damit [app.restvolt.camperlog.ui.data.DataViewModel]
+ * Schreibzugriff auf den vom Nutzer gewählten Sicherungsordner (SAF `OPEN_DOCUMENT_TREE`).
+ * URIs werden als Strings übergeben, damit [app.restvolt.camperlog.ui.data.DataViewModel]
  * ohne Android-Klassen testbar bleibt.
  */
 interface BackupFolderWriter {

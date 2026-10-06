@@ -5,7 +5,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 
 /**
- * Nimmt die Standortberechtigung zurück, wenn der Schalter "Standort" ausgeschaltet wird (6.11, 9).
+ * Nimmt die Standortberechtigung zurück, wenn der Schalter "Standort" ausgeschaltet wird.
  * Eigenes Interface, damit der Aufruf in [app.restvolt.camperlog.ui.settings.LocationSettings] mit
  * einem Fake testbar ist.
  */

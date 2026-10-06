@@ -18,7 +18,7 @@ import java.util.UUID
 /**
  * [StationRepository] auf Basis von Room. [clock] liefert die Zeitstempel für Anlage und Änderung,
  * [newUuid] die Kennung neuer Stationen ohne eigene UUID. [logs] ist die Bordbuch-Anbindung, mit der
- * [save] die Ver-/Entsorgungs-Häkchen einer Station nach Abschnitt 4 abgleicht; der Abgleich läuft
+ * [save] die Ver-/Entsorgungs-Häkchen einer Station abgleicht; der Abgleich läuft
  * in derselben Datenbank-Transaktion wie das Speichern der Station.
  */
 class RoomStationRepository(
@@ -77,7 +77,7 @@ class RoomStationRepository(
             .forEach { save(it.copy(vehicleId = vehicleId)) }
     }
 
-    /** Wendet die Bordbuch-Angleichung aus [syncStationLogEntries] auf [new] an (4). */
+    /** Wendet die Bordbuch-Angleichung aus [syncStationLogEntries] auf [new] an. */
     private suspend fun applyLogSync(old: Station?, new: Station) {
         val actions = syncStationLogEntries(
             old = old,

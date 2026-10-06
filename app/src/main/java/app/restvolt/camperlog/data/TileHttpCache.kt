@@ -7,10 +7,10 @@ import java.io.File
 import java.io.IOException
 
 /**
- * Prozessweiter `HttpResponseCache` für Kartenkacheln (6.9, ROADMAP 1.8.0): ein einziges,
- * dauerhaftes Verzeichnis unter `cacheDir`, das Neustarts überlebt (anders als ein reiner
- * In-Memory-Cache pro Bildschirmaufruf, siehe die Voltocol-Lektion in der ROADMAP). Betrifft nur
- * Kacheln, weil nichts anderes in der App gleich große, wiederkehrende Anfragen stellt.
+ * Prozessweiter `HttpResponseCache` für Kartenkacheln: ein einziges, dauerhaftes Verzeichnis
+ * unter `cacheDir`, das Neustarts überlebt (anders als ein reiner In-Memory-Cache pro
+ * Bildschirmaufruf). Betrifft nur Kacheln, weil nichts anderes in der App gleich große,
+ * wiederkehrende Anfragen stellt.
  */
 object TileHttpCache {
     private const val DIR_NAME = "tiles_http"
@@ -25,10 +25,10 @@ object TileHttpCache {
         }
     }
 
-    /** Aktuelle Größe des Kachel-Caches auf der Festplatte in Byte, für die Anzeige in den Einstellungen (6.11). */
+    /** Aktuelle Größe des Kachel-Caches auf der Festplatte in Byte, für die Anzeige in den Einstellungen. */
     fun sizeBytes(context: Context): Long = File(context.cacheDir, DIR_NAME).walkTopDown().filter { it.isFile }.sumOf { it.length() }
 
-    /** Löscht den Kachel-Cache (6.11: "Kartenspeicher … [Leeren]"; beim Ausschalten des Schalters, 6.11). */
+    /** Löscht den Kachel-Cache ("Kartenspeicher … [Leeren]"; auch beim Ausschalten des Wetter-Schalters). */
     fun clear(context: Context) {
         try {
             HttpResponseCache.getInstalled()?.delete()

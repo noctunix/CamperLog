@@ -36,7 +36,7 @@ private data class CurrentWeather(
 )
 
 /**
- * [WeatherProvider] über `HttpsURLConnection` (6.8, 13): keine zusätzliche Abhängigkeit, dafür
+ * [WeatherProvider] über `HttpsURLConnection`: keine zusätzliche Abhängigkeit, dafür
  * fester Host, kurze Zeitbudgets und eine identifizierende User-Agent-Kennung. Weiterleitungen
  * werden nicht automatisch verfolgt, damit die Antwort nie von einem anderen Host als
  * [OPEN_METEO_HOST] stammen kann. [openConnection] ist für Tests mit einer eigenen

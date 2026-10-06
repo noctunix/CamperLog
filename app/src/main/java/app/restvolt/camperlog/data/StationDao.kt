@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface StationDao {
 
-    /** Aufsteigend nach `(date, time NULLS LAST, created_at)`, die Zeitleiste einer Tour (3.3). */
+    /** Aufsteigend nach `(date, time NULLS LAST, created_at)`, die Zeitleiste einer Tour. */
     @Query("SELECT * FROM stations WHERE tour_id = :tourId ORDER BY date ASC, (time IS NULL) ASC, time ASC, created_at ASC")
     fun observeForTour(tourId: Long): Flow<List<StationEntity>>
 
@@ -24,7 +24,7 @@ interface StationDao {
     @Query("SELECT * FROM stations WHERE id = :id")
     fun observeById(id: Long): Flow<StationEntity?>
 
-    /** Einmaliger Lesezugriff auf eine Station, für den Vorher-Stand beim Speichern (4). */
+    /** Einmaliger Lesezugriff auf eine Station, für den Vorher-Stand beim Speichern. */
     @Query("SELECT * FROM stations WHERE id = :id")
     suspend fun getById(id: Long): StationEntity?
 
@@ -53,7 +53,7 @@ interface StationDao {
 
     /**
      * Die Tour von [vehicleId], deren Zeitraum [date] enthält, bei mehreren Treffern die mit dem
-     * spätesten Start (3.3); `NULL`, wenn keine passt.
+     * spätesten Start; `NULL`, wenn keine passt.
      */
     @Query(
         "SELECT id FROM tours WHERE vehicle_id = :vehicleId AND start_date <= :date AND end_date >= :date " +

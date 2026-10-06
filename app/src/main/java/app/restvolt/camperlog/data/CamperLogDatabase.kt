@@ -236,7 +236,7 @@ internal val MIGRATION_5_6 = object : Migration(5, 6) {
 /**
  * Version 7: Stationen kommen hinzu (`stations`, Fremdschlüssel `vehicle_id` RESTRICT, `tour_id`
  * CASCADE). Jede Tour mit `overnight_stays > 0` bekommt dafür genau eine Übernachtungs-Station mit
- * den unverändert übernommenen alten Stellplatz-Werten (3.4); bei Tagestrips (`overnight_stays = 0`)
+ * den unverändert übernommenen alten Stellplatz-Werten; bei Tagestrips (`overnight_stays = 0`)
  * mit davon abweichenden Werten bleibt stattdessen eine Notiz-Zeile, gebaut aus den Strings von
  * [context] in der Gerätesprache. `tours` wird danach ohne die fünf Stellplatz-Spalten neu
  * aufgebaut, wie schon in [MIGRATION_1_2]; `log_entries` bleibt in dieser Phase unverändert.
@@ -291,7 +291,7 @@ internal fun migration6To7(context: Context, onToursMigrated: () -> Unit = {}): 
         if (hadTours) onToursMigrated()
     }
 
-    /** Legt für jede Tour mit mindestens einer Übernachtung die Übernachtungs-Station an (3.4, Punkt 2). */
+    /** Legt für jede Tour mit mindestens einer Übernachtung die Übernachtungs-Station an. */
     private fun insertOvernightStations(db: SupportSQLiteDatabase) {
         db.query(
             "SELECT `id`, `vehicle_id`, `start_date`, `destination`, `overnight_stays`, `pitch_assigned`, " +
@@ -339,7 +339,7 @@ internal fun migration6To7(context: Context, onToursMigrated: () -> Unit = {}): 
         }
     }
 
-    /** Hängt Tagestrips mit von den alten Vorgaben abweichenden Stellplatz-Werten eine Notiz-Zeile an (3.4, Punkt 3). */
+    /** Hängt Tagestrips mit von den alten Vorgaben abweichenden Stellplatz-Werten eine Notiz-Zeile an. */
     private fun appendDayTripNotes(db: SupportSQLiteDatabase, context: Context) {
         db.query(
             "SELECT `id`, `pitch_assigned`, `electricity_flat_rate`, `lte_quality`, `pitch_slope`, " +
@@ -410,7 +410,7 @@ private fun pitchSlopeLabel(slope: PitchSlope): Int = when (slope) {
 
 /**
  * Version 8: `log_entries` bekommt `station_id` (Fremdschlüssel `stations`, `ON DELETE SET NULL`)
- * für die Verknüpfung mit der Station, deren Ver-/Entsorgungs-Häkchen den Eintrag erzeugt haben (4).
+ * für die Verknüpfung mit der Station, deren Ver-/Entsorgungs-Häkchen den Eintrag erzeugt haben.
  * SQLite kann ab API 26 keine Fremdschlüssel nachträglich hinzufügen, daher wird `log_entries` wie
  * schon in [MIGRATION_1_2] neu aufgebaut; bestehende Einträge bleiben unverknüpft (`NULL`).
  */

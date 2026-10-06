@@ -17,8 +17,8 @@ import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 
 /**
- * [TileLoader] über `HttpsURLConnection` (6.9, 13): identifizierende User-Agent-Kennung,
- * `Cache-Control: max-stale=…` statt `no-cache` (ROADMAP 1.8.0: großzügige Wiederverwendung
+ * [TileLoader] über `HttpsURLConnection`: identifizierende User-Agent-Kennung,
+ * `Cache-Control: max-stale=…` statt `no-cache` (großzügige Wiederverwendung
  * zwischengespeicherter Kacheln), nie automatisch verfolgte Weiterleitungen. Die tatsächliche
  * Zwischenspeicherung übernimmt der prozessweit installierte `HttpResponseCache`
  * ([TileHttpCache]) transparent für jede `HttpURLConnection`; diese Klasse begrenzt nur, wie
