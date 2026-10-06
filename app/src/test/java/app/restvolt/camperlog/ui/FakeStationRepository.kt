@@ -14,7 +14,7 @@ import java.time.LocalDate
 
 /**
  * Synchrones In-Memory-Repository für UI-Tests; die Room-Anbindung testet RoomStationRepositoryTest.
- * [logs] gleicht beim Speichern und Löschen die Ver-/Entsorgungs-Häkchen mit dem Bordbuch ab (4), wie
+ * [logs] gleicht beim Speichern und Löschen die Ver-/Entsorgungs-Häkchen mit dem Bordbuch ab, wie
  * es in echt [app.restvolt.camperlog.data.RoomStationRepository] innerhalb einer Transaktion tut.
  */
 class FakeStationRepository(initial: List<Station> = emptyList(), private val logs: FakeLogRepository = FakeLogRepository()) : StationRepository {
@@ -73,7 +73,7 @@ class FakeStationRepository(initial: List<Station> = emptyList(), private val lo
         state.value.filter { it.tourId == tourId && it.vehicleId != vehicleId }.forEach { save(it.copy(vehicleId = vehicleId)) }
     }
 
-    /** Wendet die Bordbuch-Angleichung aus [syncStationLogEntries] auf [new] an (4), wie [save] in echt tut. */
+    /** Wendet die Bordbuch-Angleichung aus [syncStationLogEntries] auf [new] an, wie [save] in echt tut. */
     private suspend fun applyLogSync(old: Station?, new: Station) {
         val actions = syncStationLogEntries(
             old = old,

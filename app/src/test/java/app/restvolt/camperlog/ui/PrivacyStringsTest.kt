@@ -6,7 +6,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Verhindert ein Zurückfallen auf die vor Phase F gültigen Datenschutzaussagen (9): Seit das
+ * Verhindert ein Zurückfallen auf alte Datenschutzaussagen: Seit das
  * Wetter-&-Karte-Feature die INTERNET-Berechtigung einführt, sind "kein Netzwerkzugriff" und
  * "keine Berechtigungen" nicht mehr wahr, egal ob ein- oder ausgeschaltet.
  */
@@ -42,7 +42,7 @@ class PrivacyStringsTest {
         assertTrue(de.contains("Internet-Berechtigung"))
     }
 
-    /** ROADMAP 1.8.0: die Kartenanteile wurden wiederhergestellt, nachdem die Karte fehlte (phase F). */
+    /** Die Kartenanteile wurden wiederhergestellt, nachdem die Karte zwischenzeitlich fehlte. */
     @Test
     fun weatherSwitchAndPrivacyBulletMentionTheMap() {
         assertTrue(en.contains("Weather &amp; map (internet)"))
@@ -65,7 +65,7 @@ class PrivacyStringsTest {
         assertTrue(de.contains("OpenStreetMap-Mitwirkende (ODbL)"))
     }
 
-    /** ROADMAP 1.9.0: Benachrichtigungen sind jetzt optional möglich - die alte Aussage wäre falsch. */
+    /** Benachrichtigungen sind jetzt optional möglich - die alte Aussage wäre falsch. */
     @Test
     fun noStaleNoNotificationsClaimRemains() {
         assertFalse(en.contains("does not send notifications", ignoreCase = true))

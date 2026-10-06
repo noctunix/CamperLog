@@ -89,14 +89,14 @@ class StationFlowTest {
         return Triple(tourRepository, stationRepository, logs)
     }
 
-    /** Schreibt den Standort-Schalter direkt in die Geräteeinstellungen (6.11), wie `ReminderSettingsTest`. */
+    /** Schreibt den Standort-Schalter direkt in die Geräteeinstellungen, wie `ReminderSettingsTest`. */
     private fun setLocationEnabled(enabled: Boolean) {
         ApplicationProvider.getApplicationContext<android.content.Context>()
             .getSharedPreferences("location", android.content.Context.MODE_PRIVATE)
             .edit().putBoolean("enabled", enabled).commit()
     }
 
-    /** Schreibt den Wetter-Schalter direkt in die Geräteeinstellungen (6.11), wie [setLocationEnabled]. */
+    /** Schreibt den Wetter-Schalter direkt in die Geräteeinstellungen, wie [setLocationEnabled]. */
     private fun setWeatherEnabled(enabled: Boolean) {
         ApplicationProvider.getApplicationContext<android.content.Context>()
             .getSharedPreferences("weather", android.content.Context.MODE_PRIVATE)
@@ -151,7 +151,7 @@ class StationFlowTest {
         updatedAt = Instant.EPOCH,
     )
 
-    /** FAB und Leerstands-Textbutton tragen denselben Text (8.1); welcher von beiden reicht, beide öffnen die Typauswahl. */
+    /** FAB und Leerstands-Textbutton tragen denselben Text; welcher von beiden reicht, beide öffnen die Typauswahl. */
     private fun openTypePicker() {
         compose.onAllNodesWithText("Station hinzufügen").onFirst().performClick()
     }

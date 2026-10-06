@@ -20,7 +20,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Prüft die Beschriftungen der unteren Navigation bei 200 % Schriftgröße auf 360 dp Breite (2.1):
+ * Prüft die Beschriftungen der unteren Navigation bei 200 % Schriftgröße auf 360 dp Breite:
  * mit vier Reitern bleiben 84 dp pro Eintrag, "Stationen" und "Bordbuch" sind dort am längsten.
  */
 @RunWith(RobolectricTestRunner::class)

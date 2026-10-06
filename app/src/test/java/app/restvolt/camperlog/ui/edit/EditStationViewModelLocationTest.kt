@@ -26,7 +26,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Übernahme eines GPS-Fixes ins Stationsformular (6.7): Erfolg, Abbruch und Entfernen. Robolectric,
+ * Übernahme eines GPS-Fixes ins Stationsformular: Erfolg, Abbruch und Entfernen. Robolectric,
  * weil jede Eingabeänderung den Entwurf über [androidx.lifecycle.SavedStateHandle] sichert (siehe
  * `DraftRestorationTest`).
  */

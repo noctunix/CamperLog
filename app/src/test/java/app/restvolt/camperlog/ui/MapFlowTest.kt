@@ -27,7 +27,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 /**
- * Kartenbildschirm (6.9, 7, 13): Einstiegspunkt in der Tourdetailseite nur bei eingeschaltetem
+ * Kartenbildschirm: Einstiegspunkt in der Tourdetailseite nur bei eingeschaltetem
  * Schalter und vorhandenen Koordinaten, Marker- und Listensemantik als barrierefreie Alternative.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -127,13 +127,13 @@ class MapFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         compose.onNodeWithText("Karte").performClick()
 
-        // Kartencanvas als Bild mit Zusammenfassung (7): "Karte mit 1 von 2 Stationen".
+        // Kartencanvas als Bild mit Zusammenfassung: "Karte mit 1 von 2 Stationen".
         compose.onNodeWithContentDescription("Karte mit 1 von 2 Stationen").assertExists()
 
-        // Marker tragen eine eigene, vollständige Sprechform (7).
+        // Marker tragen eine eigene, vollständige Sprechform.
         compose.onNode(hasContentDescription("Camping Moskenes", substring = true)).assertExists()
 
-        // Die Liste im Bottom Sheet ist die vollständige barrierefreie Alternative (7): beide Stationen
+        // Die Liste im Bottom Sheet ist die vollständige barrierefreie Alternative: beide Stationen
         // erscheinen, die unverortete mit dem Hinweis "nicht auf der Karte".
         compose.onNodeWithText("Camping Moskenes").assertExists()
         compose.onNodeWithText("Ohne Koordinaten").assertExists()
@@ -142,7 +142,7 @@ class MapFlowTest {
         // Zusammenfassung "1 Station · 1 ohne Koordinaten" aus den Plural-Strings.
         compose.onNodeWithText("1 Station · 1 ohne Koordinaten").assertExists()
 
-        // Attribution ist immer sichtbar und tappbar (6.9, 13).
+        // Attribution ist immer sichtbar und tappbar.
         compose.onNodeWithText("© OpenStreetMap-Mitwirkende").assertExists()
     }
 

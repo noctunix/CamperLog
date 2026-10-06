@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 import java.time.Instant
 
 /**
- * Deep Links aus getippten Benachrichtigungen (1.9.0): eine Wartungs-Benachrichtigung wählt ihr
+ * Deep Links aus getippten Benachrichtigungen: eine Wartungs-Benachrichtigung wählt ihr
  * Fahrzeug aus und öffnet den Fahrzeug-Reiter, eine Sicherungs-Erinnerung öffnet den Daten-Screen.
  * Analog zu `StationFlowTest`s `pendingGeoIntent`-Tests, nur dass hier direkt beim Start statt über
  * ein Formular navigiert wird.

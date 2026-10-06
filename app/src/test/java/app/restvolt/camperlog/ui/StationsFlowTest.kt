@@ -27,7 +27,7 @@ import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
 
-/** End-to-End-Abläufe auf dem Stationen-Reiter (6.3): Liste, Suche, Filter, Fahrzeugumfang, Anlegen. */
+/** End-to-End-Abläufe auf dem Stationen-Reiter: Liste, Suche, Filter, Fahrzeugumfang, Anlegen. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
 class StationsFlowTest {
@@ -159,7 +159,7 @@ class StationsFlowTest {
         val stationB = station(id = 2, name = "Platz B", vehicleId = 2)
         start(vehicles, stations = listOf(stationA, stationB))
 
-        // Auf Touren "Alle Fahrzeuge" wählen gilt dann auch für Stationen (2.4).
+        // Auf Touren "Alle Fahrzeuge" wählen gilt dann auch für Stationen.
         compose.onNodeWithContentDescription("Wohnmobil A, Fahrzeug wechseln").performClick()
         compose.onNodeWithText("Alle Fahrzeuge").performClick()
         openStationsTab()
@@ -193,7 +193,7 @@ class StationsFlowTest {
         compose.onNodeWithText("Schlafplatz").assertExists()
     }
 
-    /** ROADMAP 1.8.0: der Einstellungen-Verweis war aus dem Hinweistext verschwunden und ist zurück. */
+    /** Der Einstellungen-Verweis war aus dem Hinweistext verschwunden und ist zurück. */
     @Test
     fun whatsNewCard_showsTheFullTextAndOpensSettings() {
         val preferences = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()

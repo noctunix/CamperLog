@@ -196,7 +196,7 @@ class IntroductionTourFlowTest {
             compose.onNodeWithText("Wetter & Karte (Internet)").performClick()
 
             assertTrue(WeatherSettings(context).values.value)
-            // Der Standort-Schalter bleibt von der Wetter-Umschaltung unberührt (6.10: zwei unabhängige Schalter).
+            // Der Standort-Schalter bleibt von der Wetter-Umschaltung unberührt: zwei unabhängige Schalter.
             assertFalse(LocationSettings(context).values.value)
         } finally {
             clearPreferences()

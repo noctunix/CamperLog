@@ -28,7 +28,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 /**
- * Übernahme einer Wetterabfrage ins Stationsformular (6.8): Erfolg, Fehlschläge und Entfernen.
+ * Übernahme einer Wetterabfrage ins Stationsformular: Erfolg, Fehlschläge und Entfernen.
  * Robolectric, weil jede Eingabeänderung den Entwurf über [androidx.lifecycle.SavedStateHandle] sichert.
  */
 @OptIn(ExperimentalCoroutinesApi::class)

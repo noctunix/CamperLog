@@ -22,7 +22,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
-/** Fahrzeug-Datenblatt: Karte „Panne & Unfall", Restzuladung, Wähl-Intent und "Wo bin ich?" (13.5 Nr. 1). */
+/** Fahrzeug-Datenblatt: Karte „Panne & Unfall", Restzuladung, Wähl-Intent und "Wo bin ich?". */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
 class VehicleBreakdownFlowTest {

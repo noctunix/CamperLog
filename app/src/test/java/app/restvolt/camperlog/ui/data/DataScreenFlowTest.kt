@@ -45,7 +45,7 @@ private class FakeScreenBackupFolderWriter(var folderName: String? = "Sicherunge
     }
 }
 
-/** Abläufe des Daten-Screens rund um den Sicherungsordner und die In-App-Sicherungs-Erinnerung (1.9.0). */
+/** Abläufe des Daten-Screens rund um den Sicherungsordner und die In-App-Sicherungs-Erinnerung. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
 class DataScreenFlowTest {
