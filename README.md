@@ -6,24 +6,25 @@ CamperLog is an Android app for recording camper trips, their costs, and the cur
 
 <p align="center">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_tours.png" width="200" alt="Tour list">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_detail.png" width="200" alt="Tour with its stops">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7_stops.png" width="200" alt="Stops">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5_vehicle.png" width="200" alt="Vehicle data sheet">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6_logbook.png" width="200" alt="Logbook">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_overview.png" width="200" alt="Cost overview">
 </p>
 
 ## Features
 
-CamperLog is organized into three tabs: **Tours**, **Logbook**, and **Vehicle**.
+CamperLog is organized into four tabs: **Tours**, **Stops**, **Logbook**, and **Vehicle**.
 
-- **Tour log:** destination, dates, tour type (day trip, weekend, vacation), vehicle, distance, overnight stays, and costs; searchable and filterable by year.
+- **Tour log:** destination, dates, tour type (day trip, weekend, vacation), vehicle, distance, overnight stays, and costs; searchable and filterable by year. Each tour shows its stops as a timeline.
+- **Stops:** overnight places, water & waste, fuel & charging, sightseeing, food, ferries and more, with or without a tour. Overnight stops keep the pitch details (site kind, pitch assigned, electricity, mobile reception, slope, levelling blocks) and a "would return" flag. Places are described in text or by pasting coordinates and map links (OsmAnd, Organic Maps, OpenStreetMap, Google Maps), parsed offline; `geo:` links from map apps open a new stop. The Stops tab lists all stops with search and filters and exports them as CSV.
 - **Multiple vehicles:** a data sheet per vehicle (general data, purchase & sale, insurance & tax, dimensions & weight, engine, tyres, tanks, energy, notes), a "Breakdown & accident" card with tap-to-dial numbers for breakdown assistance, travel protection and the insurer, and the remaining payload from a measured empty weight; a current vehicle is used for new tours and logbook entries, a switcher appears once you have more than one, and an "All vehicles" view covers tours and the overview.
-- **Logbook:** one tap for "Today" records the current vehicle's cassette and grey water emptying or diesel/gas heater run; other dates can be logged too, with history and undo.
+- **Logbook:** one tap for "Today" records the current vehicle's cassette and grey water emptying, gas bottle swap or diesel/gas heater run; other dates can be logged too, with history and undo. Ticking cassette, grey water or gas on a stop records the logbook entry for you, without duplicates.
 - **Maintenance and repairs:** next inspection (MOT/TÜV) and gas check dates, last oil change with its odometer reading, and a repair log with date, description, mileage, and cost.
 - **In-app reminders:** cards on the Vehicle tab and a badge flag upcoming maintenance; lead time and the oil-change interval are configurable in Settings. No notifications, no permissions.
 - **Multiple currencies:** costs keep their original currency and precision (e.g. `1450.00 NOK`, `3500 ISK`); amounts are entered in your device's number format.
 - **Overview:** tours, distance, travel days, overnight stays, and costs per currency, in total and per year, for one vehicle or all of them; optionally converted into a main currency using exchange rates you maintain yourself.
-- **Export:** all tours as CSV for spreadsheet apps, including the vehicle, protected against formula injection.
-- **Backup and restore:** a JSON file with all tours, vehicles, repairs, logbook entries, exchange rates, and the main currency; the import shows a preview before changing anything, and older backups stay importable.
+- **Export:** tours and stops as CSV for spreadsheet apps, including the vehicle, protected against formula injection.
+- **Backup and restore:** a JSON file with all tours, stops, vehicles, repairs, logbook entries, exchange rates, and the main currency; the import shows a preview before changing anything, and older backups stay importable.
 - **About:** feedback and support links, source code and licenses, and a replayable introduction tour.
 - **Light and dark theme**, following the system by default.
 

@@ -1,15 +1,16 @@
 <p>CamperLog is an app for recording camper trips, their costs, and the currencies they were paid in, together with your vehicle's data sheet, maintenance, and logbook.</p>
 <p><b>Features:</b></p>
 <ul>
-<li>Tour log: destination, dates, trip type (day trip, weekend, vacation), distance, overnight stays, and costs; searchable and filterable by year.</li>
+<li>Tour log: destination, dates, trip type (day trip, weekend, vacation), distance, overnight stays, and costs; searchable and filterable by year, with the tour's stops as a timeline.</li>
+<li>Stops: overnight places, water &amp; waste, fuel &amp; charging, sightseeing, food, ferries and more. Overnight stops keep pitch details and a "would return" flag. Describe places in text or paste coordinates and map links (parsed offline); geo: links from map apps open a new stop.</li>
 <li>Multiple vehicles: a data sheet per vehicle (general data, purchase &amp; sale, insurance &amp; tax, dimensions &amp; weight, engine, tyres, tanks, energy, notes), a "Breakdown &amp; accident" card with tap-to-dial numbers, and the remaining payload from a measured empty weight; switch between vehicles or view tours and the overview for all of them together.</li>
-<li>Logbook: one tap for "Today" records the cassette and grey water emptying or a diesel or gas heater run, with history and undo.</li>
+<li>Logbook: one tap for "Today" records the cassette and grey water emptying, a gas bottle swap or a diesel or gas heater run, with history and undo. Ticking these on a stop records them for you.</li>
 <li>Maintenance and repairs: next inspection and gas check dates, last oil change with its odometer reading, and a repair log with date, description, mileage, and cost.</li>
 <li>In-app reminders: cards on the vehicle tab flag upcoming maintenance; lead time and the oil-change interval are configurable in settings. No notifications, no permissions.</li>
 <li>Multiple currencies: costs keep their original currency and precision; amounts are entered in your device's number format.</li>
 <li>Overview: tours, distance, travel days, overnight stays, and costs per currency, in total and per year, for one vehicle or all of them; optionally converted into a main currency using exchange rates you maintain yourself.</li>
-<li>Export: all tours as CSV for spreadsheet apps, protected against formula injection.</li>
-<li>Backup and restore: a JSON file with all tours, vehicles, repairs, logbook entries, exchange rates, and the main currency; restoring shows a preview before anything changes.</li>
+<li>Export: tours and stops as CSV for spreadsheet apps, protected against formula injection.</li>
+<li>Backup and restore: a JSON file with all tours, stops, vehicles, repairs, logbook entries, exchange rates, and the main currency; restoring shows a preview before anything changes.</li>
 <li>Light and dark theme, following the system by default.</li>
 </ul>
 <p><b>Privacy:</b> CamperLog requests no permissions and has no network access. All data stays on your device until you export or share it yourself.</p>
