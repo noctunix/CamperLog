@@ -53,21 +53,21 @@ class LogbookFlowTest {
     fun tapToday_recordsEntryOnTheTileAndUndoRemovesItAgain() {
         start()
 
-        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(4)
-        compose.onAllNodesWithText("Heute").assertCountEquals(4)
+        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(5)
+        compose.onAllNodesWithText("Heute").assertCountEquals(5)
 
         // Erste Kachel ist "Kassette geleert".
         compose.onAllNodesWithText("Heute")[0].performClick()
 
         compose.onNodeWithText("Kassette geleert für heute erfasst").assertExists()
-        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(3)
-        // Vier Buttons plus der neue Datumstext der Kachel.
-        compose.onAllNodesWithText("Heute").assertCountEquals(5)
+        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(4)
+        // Fünf Buttons plus der neue Datumstext der Kachel.
+        compose.onAllNodesWithText("Heute").assertCountEquals(6)
 
         compose.onNodeWithText("Rückgängig").performClick()
 
-        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(4)
-        compose.onAllNodesWithText("Heute").assertCountEquals(4)
+        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(5)
+        compose.onAllNodesWithText("Heute").assertCountEquals(5)
     }
 
     @Test
@@ -79,7 +79,7 @@ class LogbookFlowTest {
         compose.onNode(dayCell(1)).performClick()
         compose.onNodeWithText("OK").performClick()
 
-        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(3)
+        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(4)
         compose.onNode(hasText("Grauwasser abgelassen für", substring = true)).assertExists()
         compose.onNodeWithText("Rückgängig").assertExists()
     }
@@ -119,13 +119,13 @@ class LogbookFlowTest {
         val logs = FakeLogRepository(listOf(LogEntry(1, "log-1", vehicleId = 1, type = LogType.CASSETTE_EMPTIED, date = today, createdAt = Instant.EPOCH)))
         start(vehicles, logs)
 
-        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(3)
-        compose.onAllNodesWithText("Heute").assertCountEquals(5)
+        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(4)
+        compose.onAllNodesWithText("Heute").assertCountEquals(6)
 
         compose.onNodeWithContentDescription("Wohnmobil A, Fahrzeug wechseln").performClick()
         compose.onNodeWithText("Wohnmobil B").performClick()
 
-        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(4)
-        compose.onAllNodesWithText("Heute").assertCountEquals(4)
+        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(5)
+        compose.onAllNodesWithText("Heute").assertCountEquals(5)
     }
 }
