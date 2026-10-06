@@ -41,10 +41,12 @@ import androidx.navigation.toRoute
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.BuildConfig
 import app.restvolt.camperlog.backup.BackupImporter
+import app.restvolt.camperlog.data.AndroidBackupFolderWriter
 import app.restvolt.camperlog.data.AndroidLocationPermissionGate
 import app.restvolt.camperlog.data.AndroidLocationProvider
 import app.restvolt.camperlog.data.AndroidTileLoader
 import app.restvolt.camperlog.data.AndroidWeatherProvider
+import app.restvolt.camperlog.data.BackupFolderWriter
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.LocationProvider
@@ -66,8 +68,10 @@ import app.restvolt.camperlog.ui.about.AboutScreen
 import app.restvolt.camperlog.ui.about.KeepAndroidOpenDialog
 import app.restvolt.camperlog.ui.about.KeepAndroidOpenSettings
 import app.restvolt.camperlog.ui.settings.LocationSettings
+import app.restvolt.camperlog.ui.settings.NotificationSettings
 import app.restvolt.camperlog.ui.settings.WeatherSettings
 import app.restvolt.camperlog.ui.data.AndroidDataFiles
+import app.restvolt.camperlog.ui.data.BackupSettings
 import app.restvolt.camperlog.ui.data.DataScreen
 import app.restvolt.camperlog.ui.data.DataViewModel
 import app.restvolt.camperlog.ui.detail.DetailUiState
@@ -216,6 +220,14 @@ fun CamperLogNavHost(
     pendingGeoIntent: GeoIntentLocation? = null,
     /** [pendingGeoIntent] wurde übernommen und soll nicht erneut ausgelöst werden, z. B. bei einer Drehung. */
     onGeoIntentHandled: () -> Unit = {},
+    /** Fahrzeug-id aus einer getippten Wartungs-Benachrichtigung (1.9.0); `null` außerhalb dieses Starts. */
+    pendingVehicleId: Long? = null,
+    /** [pendingVehicleId] wurde übernommen und soll nicht erneut ausgelöst werden. */
+    onVehicleIntentHandled: () -> Unit = {},
+    /** Direkt der Daten-Screen soll geöffnet werden, aus einer getippten Sicherungs-Erinnerung (1.9.0). */
+    pendingOpenData: Boolean = false,
+    /** [pendingOpenData] wurde übernommen und soll nicht erneut ausgelöst werden. */
+    onOpenDataHandled: () -> Unit = {},
     /** Standorthardware für das Stationsformular und "Wo bin ich?" (6.7); in Tests ein Fake. */
     locationProvider: LocationProvider = AndroidLocationProvider(LocalContext.current),
     /** Wetterabfrage für die "Wetter"-Karte im Stationsformular (6.8); in Tests ein Fake. */
@@ -231,6 +243,9 @@ fun CamperLogNavHost(
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
     val locationSettings = remember { LocationSettings(context) }
     val weatherSettings = remember { WeatherSettings(context) }
+    val notificationSettings = remember { NotificationSettings(context) }
+    val backupSettings = remember { BackupSettings(context) }
+    val backupFolderWriter = remember { AndroidBackupFolderWriter(context) }
     val currentVehicleFlow = remember(vehicles) { vehicles.observeCurrentVehicle() }
     val currentVehicle by currentVehicleFlow.collectAsStateWithLifecycle(initialValue = null)
     val reminderCount = currentVehicle?.let { vehicle ->
@@ -278,6 +293,24 @@ fun CamperLogNavHost(
         if (pendingGeoIntent != null) {
             geoLocationForPicker = pendingGeoIntent
             onGeoIntentHandled()
+        }
+    }
+
+    // Eine getippte Wartungs-Benachrichtigung (1.9.0) wählt das Fahrzeug aus und öffnet den Reiter.
+    LaunchedEffect(pendingVehicleId) {
+        val vehicleId = pendingVehicleId
+        if (vehicleId != null) {
+            vehicles.setCurrentVehicle(vehicleId)
+            navController.navigateToTab(VehicleRoute)
+            onVehicleIntentHandled()
+        }
+    }
+
+    // Eine getippte Sicherungs-Erinnerung (1.9.0) öffnet direkt den Daten-Screen.
+    LaunchedEffect(pendingOpenData) {
+        if (pendingOpenData) {
+            navController.navigate(DataRoute)
+            onOpenDataHandled()
         }
     }
 
@@ -537,8 +570,21 @@ fun CamperLogNavHost(
             val context = LocalContext.current
             DataScreen(
                 viewModel = viewModel {
-                    DataViewModel(repository, exchangeRates, vehicles, logbook, stations, backupImporter, AndroidDataFiles(context))
+                    DataViewModel(
+                        repository,
+                        exchangeRates,
+                        vehicles,
+                        logbook,
+                        stations,
+                        backupImporter,
+                        AndroidDataFiles(context),
+                        backupFolderWriter,
+                        onBackupSaved = backupSettings::recordBackupMade,
+                    )
                 },
+                backupSettings = backupSettings,
+                notificationSettings = notificationSettings,
+                folderWriter = backupFolderWriter,
                 onBack = { navController.popFrom(entry) },
             )
         }
@@ -548,6 +594,7 @@ fun CamperLogNavHost(
                 themeMode = themeMode,
                 onThemeModeChange = onThemeModeChange,
                 reminderSettings = reminderSettings,
+                notificationSettings = notificationSettings,
                 locationSettings = locationSettings,
                 weatherSettings = weatherSettings,
                 onBack = { navController.popFrom(entry) },

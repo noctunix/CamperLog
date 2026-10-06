@@ -8,11 +8,12 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.backup.Backup
 import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.backup.BackupReadResult
-import app.restvolt.camperlog.backup.BackupVehicle
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
+import app.restvolt.camperlog.backup.buildBackup
 import app.restvolt.camperlog.backup.encodeBackup
 import app.restvolt.camperlog.backup.readBackup
+import app.restvolt.camperlog.data.BackupFolderWriter
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
@@ -23,7 +24,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -50,6 +50,9 @@ sealed interface DataMessage {
 
     /** Gewählte Datei ist keine gültige Sicherung. */
     data class LoadFailed(val failure: BackupReadResult.Failure) : DataMessage
+
+    /** Sicherung erfolgreich in den Sicherungsordner geschrieben; [folderName] für die Meldung. */
+    data class BackedUpToFolder(val folderName: String) : DataMessage
 }
 
 /** Datei, die der Screen mit einer anderen App teilen soll; [uri] wie von [DataFiles] geliefert. */
@@ -77,6 +80,9 @@ class DataViewModel(
     private val stations: StationRepository,
     private val importer: BackupImporter,
     private val files: DataFiles,
+    private val folderWriter: BackupFolderWriter,
+    /** Nach jeder erfolgreich geschriebenen Sicherung aufgerufen, um die Sicherungs-Erinnerung neu zu "scharfen". */
+    private val onBackupSaved: (Instant) -> Unit = {},
     private val clock: () -> Instant = Instant::now,
     private val background: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
@@ -154,13 +160,35 @@ class DataViewModel(
     /** Speichert eine Sicherung in die vom Nutzer gewählte Datei [target]. */
     fun saveBackup(target: String) = launchTask(R.string.backup_failed) {
         files.writeBackup(target, backupJson())
+        onBackupSaved(clock())
         DataMessage.Text(R.string.backup_saved)
     }
 
     /** Schreibt eine Sicherung in den Export-Cache und fordert das Teilen an. */
     fun shareBackup() = launchTask(R.string.backup_failed) {
         _share.value = ShareRequest.Backup(files.writeBackupExport(backupJson()))
+        onBackupSaved(clock())
         null
+    }
+
+    /**
+     * Schreibt eine neue, zeitgestempelte Sicherung in den gewählten Sicherungsordner [folderUri]
+     * (6.11: "Backup folder"). Ist der Ordner nicht mehr zugreifbar, meldet [DataMessage.Text] mit
+     * [R.string.data_backup_folder_failed], ohne [onBackupSaved] aufzurufen.
+     */
+    fun backUpToFolder(folderUri: String) = launchTask(R.string.backup_failed) {
+        val folderName = folderWriter.folderDisplayName(folderUri)
+        if (folderName == null || !folderWriter.isAccessible(folderUri)) {
+            DataMessage.Text(R.string.data_backup_folder_failed)
+        } else {
+            val written = folderWriter.writeTimestampedBackup(folderUri, backupJson())
+            if (written != null) {
+                onBackupSaved(clock())
+                DataMessage.BackedUpToFolder(folderName)
+            } else {
+                DataMessage.Text(R.string.data_backup_folder_failed)
+            }
+        }
     }
 
     /** Quittiert [share]; ohne passende App ([started] = false) folgt ein Hinweis. */
@@ -176,37 +204,7 @@ class DataViewModel(
 
     /** Vollständige Sicherung des aktuellen Stands als JSON. */
     suspend fun backupJson(): String {
-        val tours = repository.allTours()
-        val allVehicles = vehicles.allVehicles()
-        val allStations = stations.allStations()
-        val repairsByVehicle = vehicles.allRepairs().groupBy { it.vehicleId }
-        val logEntriesByVehicle = logs.allEntries().groupBy { it.vehicleId }
-        val vehicleUuidById = allVehicles.associate { it.id to it.uuid }
-        val tourUuidById = tours.associate { it.id to it.uuid }
-        val stationUuidById = allStations.associate { it.id to it.uuid }
-        val backup = Backup(
-            exportedAt = clock(),
-            mainCurrency = exchangeRates.observeMainCurrency().first(),
-            rates = exchangeRates.observeRates().first(),
-            tours = tours,
-            tourVehicleUuid = tours.mapNotNull { tour -> vehicleUuidById[tour.vehicleId]?.let { tour.uuid to it } }.toMap(),
-            vehicles = allVehicles.map { vehicle ->
-                BackupVehicle(
-                    vehicle = vehicle,
-                    repairs = repairsByVehicle[vehicle.id].orEmpty(),
-                    logEntries = logEntriesByVehicle[vehicle.id].orEmpty(),
-                )
-            },
-            currentVehicleUuid = vehicles.observeCurrentVehicle().first().uuid,
-            stations = allStations,
-            stationVehicleUuid = allStations.mapNotNull { station -> vehicleUuidById[station.vehicleId]?.let { station.uuid to it } }.toMap(),
-            stationTourUuid = allStations.mapNotNull { station ->
-                station.tourId?.let { tourUuidById[it] }?.let { station.uuid to it }
-            }.toMap(),
-            logEntryStationUuid = logEntriesByVehicle.values.flatten().mapNotNull { entry ->
-                entry.stationId?.let { stationUuidById[it] }?.let { entry.uuid to it }
-            }.toMap(),
-        )
+        val backup = buildBackup(repository, exchangeRates, vehicles, logs, stations, clock())
         return withContext(background) { encodeBackup(backup) }
     }
 

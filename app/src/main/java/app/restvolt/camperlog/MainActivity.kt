@@ -16,6 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.parseGeoIntent
+import app.restvolt.camperlog.reminders.EXTRA_OPEN_DATA
+import app.restvolt.camperlog.reminders.EXTRA_OPEN_VEHICLE_ID
 import app.restvolt.camperlog.share.cleanUpExports
 import app.restvolt.camperlog.ui.CamperLogNavHost
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
@@ -30,6 +32,8 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
 
     private var pendingGeoIntent by mutableStateOf<GeoIntentLocation?>(null)
+    private var pendingVehicleId by mutableStateOf<Long?>(null)
+    private var pendingOpenData by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,6 +41,8 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             lifecycleScope.launch { cleanUpExports(applicationContext) }
             pendingGeoIntent = parseGeoIntent(intent?.dataString)
+            pendingVehicleId = intent?.openVehicleIdExtra()
+            pendingOpenData = intent?.getBooleanExtra(EXTRA_OPEN_DATA, false) == true
         }
         setContent {
             val themeSettings = remember { ThemeSettings(this) }
@@ -58,6 +64,10 @@ class MainActivity : ComponentActivity() {
                     stations = app.stations,
                     pendingGeoIntent = pendingGeoIntent,
                     onGeoIntentHandled = { pendingGeoIntent = null },
+                    pendingVehicleId = pendingVehicleId,
+                    onVehicleIntentHandled = { pendingVehicleId = null },
+                    pendingOpenData = pendingOpenData,
+                    onOpenDataHandled = { pendingOpenData = false },
                     onThemeModeChange = { selected ->
                         themeSettings.mode = selected
                         themeMode = selected
@@ -71,5 +81,10 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingGeoIntent = parseGeoIntent(intent.dataString)
+        pendingVehicleId = intent.openVehicleIdExtra()
+        pendingOpenData = intent.getBooleanExtra(EXTRA_OPEN_DATA, false)
     }
 }
+
+/** Fahrzeug-id einer getippten Wartungs-Benachrichtigung (1.9.0), oder `null` ohne diesen Extra. */
+private fun Intent.openVehicleIdExtra(): Long? = getLongExtra(EXTRA_OPEN_VEHICLE_ID, -1L).takeIf { it > 0 }

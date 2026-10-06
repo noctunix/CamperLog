@@ -7,6 +7,7 @@ import app.restvolt.camperlog.backup.BackupReadResult
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.decodeBackup
 import app.restvolt.camperlog.backup.encodeBackup
+import app.restvolt.camperlog.data.BackupFolderWriter
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
@@ -47,6 +48,8 @@ private const val VEHICLE_UUID = "11111111-1111-4111-8111-111111111111"
 class DataViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val files = FakeDataFiles()
+    private val folderWriter = FakeBackupFolderWriter()
+    private val backupSavedAt = mutableListOf<Instant>()
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -85,6 +88,7 @@ class DataViewModelTest {
             FakeStationRepository(),
             FakeBackupImporter(),
             files,
+            folderWriter,
             clock = { exportedAt },
             background = dispatcher,
         )
@@ -112,6 +116,8 @@ class DataViewModelTest {
             FakeStationRepository(),
             importer,
             files,
+            folderWriter,
+            onBackupSaved = { backupSavedAt += it },
             background = dispatcher,
         ).also { files.sources["backup"] = backupText; files.sources["empty"] = "{}" }
 
@@ -200,6 +206,7 @@ class DataViewModelTest {
             FakeStationRepository(listOf(station)),
             FakeBackupImporter(),
             files,
+            folderWriter,
             background = dispatcher,
         )
 
@@ -233,6 +240,7 @@ class DataViewModelTest {
         val json = files.written.getValue("content://target")
         assertEquals(listOf(tour), (decodeBackup(json) as BackupReadResult.Success).backup.tours)
         assertEquals(DataMessage.Text(R.string.backup_saved), viewModel.message.value)
+        assertEquals(1, backupSavedAt.size)
     }
 
     @Test
@@ -244,6 +252,32 @@ class DataViewModelTest {
 
         assertEquals(DataMessage.Text(R.string.backup_failed), viewModel.message.value)
         assertEquals(false, viewModel.busy.value)
+        assertTrue(backupSavedAt.isEmpty())
+    }
+
+    @Test
+    fun backUpToFolder_writesTimestampedBackupAndReportsFolderName() {
+        folderWriter.folderName = "Sicherungen"
+        val viewModel = viewModel(tours = listOf(tour))
+
+        viewModel.backUpToFolder("content://folder")
+
+        assertEquals(1, folderWriter.written.size)
+        assertEquals(listOf(tour), (decodeBackup(folderWriter.written.single()) as BackupReadResult.Success).backup.tours)
+        assertEquals(DataMessage.BackedUpToFolder("Sicherungen"), viewModel.message.value)
+        assertEquals(1, backupSavedAt.size)
+    }
+
+    @Test
+    fun backUpToFolder_inaccessibleFolder_reportsFailureWithoutWriting() {
+        folderWriter.accessible = false
+        val viewModel = viewModel(tours = listOf(tour))
+
+        viewModel.backUpToFolder("content://folder")
+
+        assertTrue(folderWriter.written.isEmpty())
+        assertEquals(DataMessage.Text(R.string.data_backup_folder_failed), viewModel.message.value)
+        assertTrue(backupSavedAt.isEmpty())
     }
 
     @Test
@@ -321,6 +355,23 @@ class DataViewModelTest {
 
         assertNull(viewModel.pendingImport.value)
         assertTrue(importer.calls.isEmpty())
+    }
+}
+
+/** [BackupFolderWriter]-Fake: [folderName] und [accessible] steuern das Ergebnis, [written] sammelt die geschriebenen Sicherungen. */
+private class FakeBackupFolderWriter : BackupFolderWriter {
+    var folderName: String? = "Ordner"
+    var accessible: Boolean = true
+    val written = mutableListOf<String>()
+
+    override fun isAccessible(folderUri: String): Boolean = accessible
+
+    override fun folderDisplayName(folderUri: String): String? = folderName
+
+    override suspend fun writeTimestampedBackup(folderUri: String, json: String): String? {
+        if (!accessible) return null
+        written += json
+        return "backup.json"
     }
 }
 

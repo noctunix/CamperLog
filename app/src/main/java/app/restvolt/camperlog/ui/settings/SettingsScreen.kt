@@ -1,5 +1,9 @@
 package app.restvolt.camperlog.ui.settings
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,6 +49,7 @@ fun SettingsScreen(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
     reminderSettings: ReminderSettings,
+    notificationSettings: NotificationSettings,
     locationSettings: LocationSettings,
     weatherSettings: WeatherSettings,
     onBack: () -> Unit,
@@ -58,9 +63,16 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     var pickMainCurrency by rememberSaveable { mutableStateOf(false) }
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
+    val notificationsEnabled by notificationSettings.values.collectAsStateWithLifecycle()
+    var notificationPermissionDenied by rememberSaveable { mutableStateOf(false) }
     val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
     val weatherEnabled by weatherSettings.values.collectAsStateWithLifecycle()
     var pickOilInterval by rememberSaveable { mutableStateOf(false) }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        notificationPermissionDenied = !granted
+        notificationSettings.enabled = granted
+    }
 
     Scaffold(
         topBar = { BackTopBar(title = stringResource(R.string.settings_title), onBack = onBack) },
@@ -120,6 +132,25 @@ fun SettingsScreen(
                         ),
                         onClick = { pickOilInterval = true },
                     )
+                    SwitchSettingRow(
+                        title = stringResource(R.string.settings_notifications_switch_title),
+                        supportingText = stringResource(R.string.settings_notifications_switch_support),
+                        checked = notificationsEnabled,
+                        onCheckedChange = { wantsEnabled ->
+                            when {
+                                !wantsEnabled -> {
+                                    notificationPermissionDenied = false
+                                    notificationSettings.enabled = false
+                                }
+                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ->
+                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                else -> notificationSettings.enabled = true
+                            }
+                        },
+                    )
+                    if (notificationPermissionDenied) {
+                        NotificationPermissionDeniedHint()
+                    }
                 }
             }
             item {

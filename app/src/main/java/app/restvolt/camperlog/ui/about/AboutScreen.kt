@@ -260,6 +260,7 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
                         R.string.about_privacy_bullet_opt_in,
                         R.string.about_privacy_bullet_location,
                         R.string.about_privacy_bullet_weather_map,
+                        R.string.about_privacy_bullet_notifications,
                         R.string.about_privacy_bullet_no_tracking,
                         R.string.about_privacy_bullet_local,
                         R.string.about_privacy_bullet_backup,

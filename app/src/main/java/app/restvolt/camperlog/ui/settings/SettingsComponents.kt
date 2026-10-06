@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.TileHttpCache
 import app.restvolt.camperlog.domain.tileCacheMegabytes
+import app.restvolt.camperlog.share.openNotificationSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -135,6 +136,22 @@ internal fun SwitchSettingRow(title: String, supportingText: String, checked: Bo
             Text(supportingText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+/** Hinweis nach abgelehnter Benachrichtigungsberechtigung (Android 13+), mit Link zu den Systemeinstellungen. */
+@Composable
+internal fun NotificationPermissionDeniedHint() {
+    val context = LocalContext.current
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            stringResource(R.string.settings_notifications_denied_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(onClick = { context.openNotificationSettings() }) {
+            Text(stringResource(R.string.settings_notifications_open_settings))
+        }
     }
 }
 

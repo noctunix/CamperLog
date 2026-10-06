@@ -208,6 +208,10 @@ fun Context.openAppDetailsSettings(): Boolean =
 /** Öffnet die Standorteinstellungen des Geräts (6.7: Standort ist ausgeschaltet). */
 fun Context.openLocationSourceSettings(): Boolean = tryStart(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
 
+/** Öffnet die Benachrichtigungseinstellungen von CamperLog (1.9.0: abgelehnte POST_NOTIFICATIONS-Berechtigung). */
+fun Context.openNotificationSettings(): Boolean =
+    tryStart(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+
 /**
  * Öffnet den Kartenlink der Tour oder sucht das Ziel in einer Karten-App.
  * Der gespeicherte Link wird nur verwendet, wenn er eine http(s)-URL ist.

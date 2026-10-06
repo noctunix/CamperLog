@@ -60,5 +60,15 @@ object ThirdPartyLibraries {
             license = "Apache-2.0",
             url = "https://fonts.google.com/icons",
         ),
+        ThirdPartyLibrary(
+            name = "AndroidX WorkManager",
+            license = "Apache-2.0",
+            url = "https://developer.android.com/jetpack/androidx/releases/work",
+        ),
+        ThirdPartyLibrary(
+            name = "AndroidX DocumentFile",
+            license = "Apache-2.0",
+            url = "https://developer.android.com/jetpack/androidx/releases/documentfile",
+        ),
     )
 }

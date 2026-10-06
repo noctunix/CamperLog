@@ -26,6 +26,8 @@ class ThirdPartyLibrariesTest {
         "androidx.compose.ui.tooling.preview" to "Jetpack Compose (UI, Material 3)",
         "androidx.room.runtime" to "AndroidX Room",
         "kotlinx.serialization.json" to "kotlinx.serialization",
+        "androidx.work.runtime.ktx" to "AndroidX WorkManager",
+        "androidx.documentfile" to "AndroidX DocumentFile",
     )
 
     @Test

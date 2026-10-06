@@ -103,7 +103,7 @@
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_open_rates">Manage exchange rates</string>
     <string name="settings_reminders">Reminders</string>
-    <string name="settings_reminders_hint">Reminders are only shown inside the app; CamperLog does not send notifications.</string>
+    <string name="settings_reminders_hint">Reminders are always shown inside the app. Turn on notifications below to also get a daily background check.</string>
     <string name="settings_reminder_lead_days">Remind before due date</string>
     <string name="settings_reminder_oil_interval">Oil change interval</string>
     <plurals name="settings_reminder_lead_days_option">
@@ -114,6 +114,17 @@
         <item quantity="one">%1$d month</item>
         <item quantity="other">%1$d months</item>
     </plurals>
+    <string name="settings_notifications_switch_title">Notifications</string>
+    <string name="settings_notifications_switch_support">A background check runs once a day while this is on, to notify you about due maintenance and your backup reminder.</string>
+    <string name="settings_notifications_denied_hint">Notifications are blocked for CamperLog. Allow them in the notification settings if you want the daily background check.</string>
+    <string name="settings_notifications_open_settings">Notification settings</string>
+    <string name="settings_reminder_backup_weeks">Remind me to back up</string>
+    <string name="settings_reminder_backup_weeks_off">Off</string>
+    <plurals name="settings_reminder_backup_weeks_option">
+        <item quantity="one">Every %1$d week</item>
+        <item quantity="other">Every %1$d weeks</item>
+    </plurals>
+    <string name="settings_reminder_backup_weeks_support">Notifies in the background while notifications are on; otherwise shown as a card here when overdue.</string>
     <string name="settings_location_section">Location &amp; internet</string>
     <string name="settings_location_switch_support">Shows "Use current location" on stops. The position is only determined once, on tap, never in the background.</string>
     <string name="settings_location_revoked_hint">Access is fully removed after the app restarts.</string>
@@ -218,6 +229,20 @@
     <string name="backup_saved">Backup saved</string>
     <string name="backup_failed">Backup failed</string>
     <string name="backup_subject">CamperLog backup</string>
+    <string name="data_backup_last_never">No backup yet</string>
+    <string name="data_backup_last_at">Last backup: %1$s</string>
+    <string name="data_backup_overdue_card">You haven\'t backed up in a while. Use one of the backup options below.</string>
+    <string name="data_backup_folder_title">Backup folder</string>
+    <string name="data_backup_folder_description">Choose a folder, e.g. synced via Syncthing or Nextcloud, to back up into with one tap.</string>
+    <string name="data_backup_folder_choose">Choose folder</string>
+    <string name="data_backup_folder_change">Change folder</string>
+    <string name="data_backup_folder_name">Folder: %1$s</string>
+    <string name="data_backup_folder_inaccessible">The backup folder is no longer accessible. Choose a new one.</string>
+    <string name="data_backup_now">Back up now</string>
+    <string name="data_backup_folder_saved">Backup saved to %1$s</string>
+    <string name="data_backup_folder_failed">Could not write to the backup folder.</string>
+    <string name="data_backup_auto_switch_title">Back up automatically when reminded</string>
+    <string name="data_backup_auto_switch_support">When the backup reminder is due, the daily background check writes a backup into this folder instead of only notifying.</string>
     <string name="data_import_title">Restore backup</string>
     <string name="data_import_description">Reads a CamperLog backup file. You will see what it contains before anything is changed.</string>
     <string name="data_import_choose">Choose backup file</string>
@@ -406,6 +431,17 @@
         <item quantity="other">%1$s, %2$d reminders</item>
     </plurals>
 
+    <!-- Notifications (1.9.0): daily background check, optional -->
+    <string name="notification_channel_maintenance_name">Maintenance reminders</string>
+    <string name="notification_channel_maintenance_description">Due vehicle maintenance and the backup reminder, checked once a day.</string>
+    <string name="notification_reminders_summary_title">Reminders due</string>
+    <plurals name="notification_reminders_summary_text">
+        <item quantity="one">%1$d reminder due</item>
+        <item quantity="other">%1$d reminders due</item>
+    </plurals>
+    <string name="notification_backup_title">Backup reminder</string>
+    <string name="notification_backup_text">You haven\'t backed up your data in a while. Open CamperLog to back up now.</string>
+
     <!-- Manage vehicles -->
     <string name="vehicles_add">Add vehicle</string>
     <string name="vehicles_empty">No vehicles yet.</string>
@@ -485,6 +521,7 @@
     <string name="about_privacy_bullet_opt_in">Location and internet features are off by default. Without them, CamperLog works completely offline.</string>
     <string name="about_privacy_bullet_location">Location (optional): only when you tap “Use current location”, CamperLog reads your position once and saves it with the stop. Never in the background, never sent anywhere.</string>
     <string name="about_privacy_bullet_weather_map">Weather &amp; map (optional): CamperLog has the internet permission but only uses it when you turn this on. Getting the weather sends the stop’s coordinates, rounded to about 1 km, to Open-Meteo. The map loads the area you are looking at from OpenStreetMap. Both services see your IP address.</string>
+    <string name="about_privacy_bullet_notifications">Notifications (optional): off by default. Turning them on asks for the notification permission and runs a daily background check for due maintenance and your backup reminder, entirely on your device. This adds the boot-completed permission so the check survives a restart; nothing is ever sent anywhere.</string>
     <string name="about_privacy_bullet_no_tracking">No account, no ads, no analytics. Nothing else ever leaves your device.</string>
     <string name="about_privacy_bullet_local">All data stays on this device.</string>
     <string name="about_privacy_bullet_backup">Backups are only created when you export them.</string>
