@@ -545,6 +545,7 @@
     <string name="field_coordinates">Coordinates or map link</string>
     <string name="field_time">Time</string>
     <string name="field_tour">Tour</string>
+    <string name="station_clear_time">Remove time</string>
     <string name="field_nights">Nights</string>
     <string name="field_site_kind">Site kind</string>
     <string name="field_pitch_assigned">Pitch assigned</string>

@@ -538,6 +538,7 @@
     <string name="field_coordinates">Koordinaten oder Kartenlink</string>
     <string name="field_time">Uhrzeit</string>
     <string name="field_tour">Tour</string>
+    <string name="station_clear_time">Uhrzeit entfernen</string>
     <string name="field_nights">Nächte</string>
     <string name="field_site_kind">Art des Platzes</string>
     <string name="field_pitch_assigned">Stellplatz zugewiesen</string>

@@ -43,6 +43,8 @@ data class StationInput(
     val levelingBlocksUsed: Boolean? = null,
     val services: Set<StationService> = emptySet(),
     val favorite: Boolean = false,
+    /** Rohtext des Felds "Koordinaten oder Kartenlink" (5.1); nur fürs Formular, nicht Teil der Station. */
+    val locationText: String = "",
 )
 
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
@@ -162,4 +164,5 @@ fun Station.toInput(): StationInput = StationInput(
     levelingBlocksUsed = levelingBlocksUsed,
     services = services,
     favorite = favorite,
+    locationText = mapLink ?: if (latitude != null && longitude != null) "$latitude, $longitude" else "",
 )

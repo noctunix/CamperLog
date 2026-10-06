@@ -15,8 +15,11 @@ enum class StationType { OVERNIGHT, SUPPLY, FUEL, SIGHT, FOOD, FERRY, OTHER }
  */
 enum class StationService { FRESH_WATER, GREY_WATER, CASSETTE, GAS, DIESEL, PETROL, ADBLUE, LPG, ELECTRICITY }
 
-private val SUPPLY_SERVICES = setOf(StationService.FRESH_WATER, StationService.GREY_WATER, StationService.CASSETTE, StationService.GAS)
-private val FUEL_SERVICES = setOf(StationService.DIESEL, StationService.PETROL, StationService.ADBLUE, StationService.LPG, StationService.ELECTRICITY)
+/** Die "Ver-/Entsorgung"-Gruppe, auch für die gleichnamige UI-Sektion (6.5). */
+val SUPPLY_SERVICES: Set<StationService> = setOf(StationService.FRESH_WATER, StationService.GREY_WATER, StationService.CASSETTE, StationService.GAS)
+
+/** Die "Tanken"-Gruppe, auch für die UI-Sektion "Getankt" (6.5). */
+val FUEL_SERVICES: Set<StationService> = setOf(StationService.DIESEL, StationService.PETROL, StationService.ADBLUE, StationService.LPG, StationService.ELECTRICITY)
 
 /** An diesem [StationType] erlaubte [StationService]-Werte; leer, wenn der Typ keine Versorgung kennt. */
 val StationType.allowedServices: Set<StationService>

@@ -1,0 +1,746 @@
+package app.restvolt.camperlog.ui.edit
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.FUEL_SERVICES
+import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.SUPPLY_SERVICES
+import app.restvolt.camperlog.domain.SiteKind
+import app.restvolt.camperlog.domain.StationField
+import app.restvolt.camperlog.domain.StationInput
+import app.restvolt.camperlog.domain.StationService
+import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.allowedServices
+import app.restvolt.camperlog.domain.formatCoordinates
+import app.restvolt.camperlog.domain.ParsedLocation
+import app.restvolt.camperlog.domain.parseLocationText
+import app.restvolt.camperlog.domain.period
+import app.restvolt.camperlog.ui.BackTopBar
+import app.restvolt.camperlog.ui.DateField
+import app.restvolt.camperlog.ui.DiscardChangesDialog
+import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.iconRes
+import app.restvolt.camperlog.ui.labelRes
+import app.restvolt.camperlog.ui.messageRes
+import app.restvolt.camperlog.ui.vehicleDisplayName
+import app.restvolt.camperlog.ui.yesNoRes
+import java.time.LocalDate
+import java.time.LocalTime
+
+/** Formular zum Anlegen und Bearbeiten einer Station (6.5). [onDone] verlässt es ohne, [onSaved] nach dem Speichern. */
+@Composable
+fun EditStationScreen(viewModel: EditStationViewModel, onDone: () -> Unit, onSaved: () -> Unit) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+
+    val snackbar = remember { SnackbarHostState() }
+    val resources = LocalResources.current
+
+    LaunchedEffect(state.isSaved) {
+        if (state.isSaved) onSaved()
+    }
+    LaunchedEffect(state.saveFailed) {
+        if (state.saveFailed) {
+            snackbar.showSnackbar(resources.getString(R.string.station_edit_save_failed), withDismissAction = true)
+            viewModel.onSaveFailureShown()
+        }
+    }
+
+    val requestBack = { if (state.isDirty) confirmDiscard = true else onDone() }
+    BackHandler(enabled = state.isDirty && !state.isSaved) { confirmDiscard = true }
+
+    Scaffold(
+        topBar = {
+            BackTopBar(
+                title = stringResource(if (state.isNew) R.string.station_edit_title_new else R.string.station_edit_title_existing),
+                onBack = requestBack,
+                actions = {
+                    if (!state.notFound && !state.isLoading) {
+                        TextButton(onClick = viewModel::save, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
+                    }
+                },
+            )
+        },
+        bottomBar = { SnackbarHost(snackbar, Modifier.navigationBarsPadding()) },
+    ) { padding ->
+        when {
+            state.isLoading -> Unit
+            state.notFound -> EmptyHint(stringResource(R.string.station_not_found), Modifier.padding(padding))
+            else -> StationForm(
+                state = state,
+                viewModel = viewModel,
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .imePadding(),
+            )
+        }
+    }
+
+    if (confirmDiscard) {
+        DiscardChangesDialog(
+            onKeep = { confirmDiscard = false },
+            onDiscard = {
+                confirmDiscard = false
+                onDone()
+            },
+        )
+    }
+}
+
+@Composable
+private fun StationForm(state: StationEditUiState, viewModel: EditStationViewModel, modifier: Modifier) {
+    val input = state.input
+    val errors = state.errors.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
+    val change = viewModel::onInputChange
+    val required = stringResource(R.string.edit_required)
+    val locale = currentLocale()
+
+    val coordinatesFocus = remember { FocusRequester() }
+    val focus = remember {
+        mapOf(
+            StationField.DATE to FocusRequester(),
+            StationField.COORDINATES to coordinatesFocus,
+            StationField.MAP_LINK to coordinatesFocus,
+            StationField.NIGHTS to FocusRequester(),
+            StationField.NAME to FocusRequester(),
+            StationField.PLACE to FocusRequester(),
+            StationField.NOTES to FocusRequester(),
+        )
+    }
+    fun focusOf(field: StationField) = Modifier.focusRequester(focus.getValue(field))
+
+    // Nach einem abgelehnten Speichern zum ersten fehlerhaften Feld springen; der Fokus scrollt es ins Bild.
+    LaunchedEffect(state.rejectedSaves) {
+        if (state.rejectedSaves > 0) {
+            errors.keys.minByOrNull(StationField::ordinal)?.let { focus.getValue(it).requestFocus() }
+        }
+    }
+
+    val selectedTour = state.tours.firstOrNull { it.id == input.tourId }
+    val toursOfVehicle = state.tours.filter { it.vehicleId == input.vehicleId }.sortedByDescending { it.startDate }
+    val dateWarning = input.date?.let { date ->
+        selectedTour?.takeIf { date < it.startDate || date > it.endDate }?.let { stringResource(R.string.station_date_outside_tour, it.period(locale)) }
+    }
+
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        SectionCard {
+            TypeField(input.type, viewModel::onTypeChange)
+            FormTextField(
+                label = stringResource(R.string.field_name),
+                value = input.name,
+                error = null,
+                onValueChange = { value -> change { it.copy(name = value) } },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+                modifier = focusOf(StationField.NAME),
+            )
+            DateField(
+                stringResource(R.string.field_date),
+                input.date,
+                errors[StationField.DATE],
+                { date -> change { it.copy(date = date) } },
+                modifier = focusOf(StationField.DATE),
+                initialDate = LocalDate.now(),
+                hint = dateWarning ?: required,
+            )
+            TimeField(stringResource(R.string.field_time), input.time) { time -> change { it.copy(time = time) } }
+            TourField(toursOfVehicle, input.tourId, viewModel::onTourChange)
+            if (state.vehicles.size > 1 && input.tourId == null) {
+                VehicleField(state.vehicles, input.vehicleId) { id -> change { it.copy(vehicleId = id) } }
+            }
+        }
+        SectionCard {
+            FormTextField(
+                label = stringResource(R.string.field_place),
+                value = input.place,
+                error = null,
+                onValueChange = { value -> change { it.copy(place = value) } },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
+                modifier = focusOf(StationField.PLACE),
+            )
+            CoordinatesField(
+                locationText = input.locationText,
+                latitude = input.latitude,
+                longitude = input.longitude,
+                mapLink = input.mapLink,
+                error = errors[StationField.COORDINATES] ?: errors[StationField.MAP_LINK],
+                onValueChange = viewModel::onLocationTextChange,
+                modifier = focusOf(StationField.COORDINATES),
+            )
+        }
+        when (input.type) {
+            StationType.OVERNIGHT -> OvernightSection(input, change, focusOf(StationField.NIGHTS), errors[StationField.NIGHTS])
+            StationType.SUPPLY -> SectionCard {
+                SectionHeading(stringResource(R.string.station_section_used_here))
+                ServicesChips(SUPPLY_SERVICES, input.services) { service -> change { it.copy(services = it.services.toggled(service)) } }
+            }
+            StationType.FUEL -> FuelSection(input, change)
+            StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> Unit
+        }
+        SectionCard {
+            FormTextField(
+                label = stringResource(R.string.field_notes),
+                value = input.notes,
+                error = errors[StationField.NOTES],
+                onValueChange = { value -> change { it.copy(notes = value) } },
+                singleLine = false,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                modifier = focusOf(StationField.NOTES),
+            )
+        }
+        Button(
+            onClick = viewModel::save,
+            enabled = !state.isSaving,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp),
+        ) { Text(stringResource(R.string.action_save)) }
+        if (errors.isNotEmpty()) {
+            // Nennt die betroffenen Felder; ändert sich die Liste, sagt TalkBack sie erneut an.
+            val fields = errors.keys.sortedBy(StationField::ordinal).map { stringResource(it.labelRes) }
+            Text(
+                stringResource(R.string.edit_check_fields, fields.joinToString(", ")),
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun OvernightSection(
+    input: StationInput,
+    change: ((StationInput) -> StationInput) -> Unit,
+    nightsFocus: Modifier,
+    nightsError: String?,
+) {
+    SectionCard {
+        SectionHeading(stringResource(R.string.station_section_overnight))
+        FormTextField(
+            label = stringResource(R.string.field_nights),
+            value = input.nights,
+            error = nightsError,
+            onValueChange = { value -> change { it.copy(nights = value) } },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+            modifier = nightsFocus,
+        )
+        SiteKindField(input.siteKind) { kind -> change { it.copy(siteKind = kind) } }
+        FavoriteRow(input.favorite) { value -> change { it.copy(favorite = value) } }
+
+        var pitchExpanded by rememberSaveable(input.type) {
+            mutableStateOf(
+                input.pitchAssigned != null || input.electricityFlatRate != null ||
+                    input.lteQuality != null || input.pitchSlope != null || input.levelingBlocksUsed != null,
+            )
+        }
+        val pitchSummary = listOfNotNull(
+            input.pitchAssigned?.let { summaryPair(stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(it))) },
+            input.electricityFlatRate?.let { summaryPair(stringResource(R.string.field_electricity), stringResource(it.labelRes)) },
+            input.lteQuality?.let { summaryPair(stringResource(R.string.field_lte), stringResource(it.labelRes)) },
+            input.pitchSlope?.let { summaryPair(stringResource(R.string.field_pitch_slope), stringResource(it.labelRes)) },
+            input.levelingBlocksUsed?.let { summaryPair(stringResource(R.string.field_leveling_blocks), stringResource(yesNoRes(it))) },
+        ).let { parts -> if (parts.isEmpty()) stringResource(R.string.station_summary_none) else parts.joinToString(" · ") }
+
+        CollapsibleSection(
+            title = stringResource(R.string.station_section_pitch_details),
+            expanded = pitchExpanded,
+            onToggle = { pitchExpanded = !pitchExpanded },
+            summary = pitchSummary,
+        ) {
+            NullableChoiceField(stringResource(R.string.field_pitch_assigned), listOf(true, false), input.pitchAssigned, ::yesNoRes) { value ->
+                change { it.copy(pitchAssigned = value) }
+            }
+            NullableChoiceField(
+                stringResource(R.string.field_electricity),
+                ElectricityFlatRate.entries,
+                input.electricityFlatRate,
+                ElectricityFlatRate::labelRes,
+            ) { value -> change { it.copy(electricityFlatRate = value) } }
+            NullableChoiceField(stringResource(R.string.field_lte), LteQuality.entries, input.lteQuality, LteQuality::labelRes) { value ->
+                change { it.copy(lteQuality = value) }
+            }
+            NullableChoiceField(stringResource(R.string.field_pitch_slope), PitchSlope.entries, input.pitchSlope, PitchSlope::labelRes) { value ->
+                change { it.copy(pitchSlope = value) }
+            }
+            NullableChoiceField(stringResource(R.string.field_leveling_blocks), listOf(true, false), input.levelingBlocksUsed, ::yesNoRes) { value ->
+                change { it.copy(levelingBlocksUsed = value) }
+            }
+        }
+
+        var usedHereExpanded by rememberSaveable(input.type) { mutableStateOf(input.services.isNotEmpty()) }
+        CollapsibleSection(
+            title = stringResource(R.string.station_section_used_here),
+            expanded = usedHereExpanded,
+            onToggle = { usedHereExpanded = !usedHereExpanded },
+            summary = servicesSummary(StationType.OVERNIGHT.allowedServices, input.services),
+        ) {
+            ServicesChips(SUPPLY_SERVICES, input.services) { service -> change { it.copy(services = it.services.toggled(service)) } }
+        }
+    }
+}
+
+@Composable
+private fun FuelSection(input: StationInput, change: ((StationInput) -> StationInput) -> Unit) {
+    SectionCard {
+        SectionHeading(stringResource(R.string.station_section_fuelled))
+        ServicesChips(FUEL_SERVICES, input.services) { service -> change { it.copy(services = it.services.toggled(service)) } }
+
+        var usedHereExpanded by rememberSaveable(input.type) { mutableStateOf(input.services.any { it in SUPPLY_SERVICES }) }
+        CollapsibleSection(
+            title = stringResource(R.string.station_section_used_here),
+            expanded = usedHereExpanded,
+            onToggle = { usedHereExpanded = !usedHereExpanded },
+            summary = servicesSummary(SUPPLY_SERVICES, input.services),
+        ) {
+            ServicesChips(SUPPLY_SERVICES, input.services) { service -> change { it.copy(services = it.services.toggled(service)) } }
+        }
+    }
+}
+
+private fun Set<StationService>.toggled(service: StationService): Set<StationService> =
+    if (service in this) this - service else this + service
+
+@Composable
+private fun summaryPair(label: String, value: String): String = stringResource(R.string.station_summary_field, label, value)
+
+@Composable
+private fun servicesSummary(allowed: Set<StationService>, selected: Set<StationService>): String {
+    val present = allowed.filter { it in selected }
+    return if (present.isEmpty()) stringResource(R.string.station_summary_none) else present.map { stringResource(it.labelRes) }.joinToString(", ")
+}
+
+@Composable
+private fun SectionHeading(title: String) {
+    Text(title, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
+}
+
+@Composable
+private fun FavoriteRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(painterResource(R.drawable.ic_favorite), contentDescription = null)
+        Text(
+            stringResource(R.string.station_would_return),
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 12.dp),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+@Composable
+private fun ServicesChips(allowed: Set<StationService>, selected: Set<StationService>, onToggle: (StationService) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        allowed.forEach { service ->
+            FilterChip(
+                selected = service in selected,
+                onClick = { onToggle(service) },
+                label = { Text(stringResource(service.labelRes)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SiteKindField(selected: SiteKind?, onSelect: (SiteKind?) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            stringResource(R.string.field_site_kind),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SiteKind.entries.forEach { kind ->
+                FilterChip(
+                    selected = selected == kind,
+                    onClick = { onSelect(if (selected == kind) null else kind) },
+                    label = { Text(stringResource(kind.labelRes)) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollapsibleSection(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    summary: String?,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .clickable(onClick = onToggle)
+                .semantics { role = Role.Button },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                if (!expanded && summary != null) {
+                    Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Icon(
+                painterResource(R.drawable.ic_arrow_drop_down),
+                contentDescription = stringResource(if (expanded) R.string.cd_collapse_section else R.string.cd_expand_section, title),
+                modifier = Modifier.rotate(if (expanded) 180f else 0f),
+                tint = MaterialTheme.colorScheme.outline,
+            )
+        }
+        if (expanded) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                content = content,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CoordinatesField(
+    locationText: String,
+    latitude: Double?,
+    longitude: Double?,
+    mapLink: String?,
+    error: String?,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var revealed by rememberSaveable { mutableStateOf(locationText.isNotBlank()) }
+    if (!revealed) {
+        TextButton(onClick = { revealed = true }) { Text(stringResource(R.string.station_add_coordinates)) }
+        return
+    }
+    val locale = currentLocale()
+    val feedback = error ?: when {
+        latitude != null && longitude != null -> stringResource(R.string.station_coordinates_recognized, formatCoordinates(latitude, longitude, locale))
+        mapLink != null -> stringResource(R.string.station_coordinates_link_saved)
+        locationText.isBlank() -> null
+        parseLocationText(locationText) == ParsedLocation.ShortLinkUnsupported -> stringResource(R.string.station_coordinates_short_link)
+        else -> stringResource(R.string.station_coordinates_not_found)
+    }
+    OutlinedTextField(
+        value = locationText,
+        onValueChange = onValueChange,
+        modifier = modifier.fillMaxWidth(),
+        label = { Text(stringResource(R.string.field_coordinates)) },
+        isError = error != null,
+        supportingText = feedback?.let { { Text(it) } },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+        shape = MaterialTheme.shapes.medium,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimeField(label: String, time: LocalTime?, onTimeSelected: (LocalTime?) -> Unit) {
+    var showPicker by rememberSaveable { mutableStateOf(false) }
+    val pickLabel = stringResource(R.string.edit_pick_date, label)
+    OutlinedTextField(
+        value = time?.let { "%02d:%02d".format(it.hour, it.minute) }.orEmpty(),
+        onValueChange = {},
+        readOnly = true,
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                onClick(label = pickLabel) {
+                    showPicker = true
+                    true
+                }
+            },
+        label = { Text(label) },
+        trailingIcon = {
+            if (time != null) {
+                IconButton(onClick = { onTimeSelected(null) }) {
+                    Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.station_clear_time))
+                }
+            } else {
+                IconButton(onClick = { showPicker = true }) {
+                    Icon(painterResource(R.drawable.ic_schedule), contentDescription = pickLabel)
+                }
+            }
+        },
+        singleLine = true,
+        shape = MaterialTheme.shapes.medium,
+    )
+    if (showPicker) {
+        val now = LocalTime.now()
+        val pickerState = rememberTimePickerState(initialHour = time?.hour ?: now.hour, initialMinute = time?.minute ?: now.minute, is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { showPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    onTimeSelected(LocalTime.of(pickerState.hour, pickerState.minute))
+                    showPicker = false
+                }) { Text(stringResource(R.string.action_ok)) }
+            },
+            dismissButton = { TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.action_cancel)) } },
+            text = { TimePicker(state = pickerState) },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TypeField(selected: StationType, onSelect: (StationType) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = stringResource(selected.labelRes),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.field_type)) },
+            leadingIcon = { Icon(painterResource(selected.iconRes), contentDescription = null) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            StationType.entries.forEach { type ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(type.labelRes)) },
+                    leadingIcon = { Icon(painterResource(type.iconRes), contentDescription = null) },
+                    onClick = {
+                        expanded = false
+                        onSelect(type)
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** Tourauswahl des Formulars; "Keine Tour" steht an erster Stelle (2.4). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TourField(tours: List<Tour>, selectedId: Long?, onSelect: (Long?) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val noTourLabel = stringResource(R.string.station_no_tour)
+    val selected = tours.firstOrNull { it.id == selectedId }
+
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = selected?.destination ?: noTourLabel,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.field_tour)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(noTourLabel) },
+                onClick = {
+                    expanded = false
+                    onSelect(null)
+                },
+            )
+            tours.forEach { tour ->
+                DropdownMenuItem(
+                    text = { Text(tour.destination) },
+                    onClick = {
+                        expanded = false
+                        onSelect(tour.id)
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** Fahrzeugauswahl des Formulars; wird nur bei mehr als einem Fahrzeug und ohne gewählte Tour angezeigt (2.4). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VehicleField(vehicles: List<Vehicle>, selectedId: Long, onSelect: (Long) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val selected = vehicles.firstOrNull { it.id == selectedId } ?: vehicles.first()
+
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = vehicleDisplayName(selected),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.field_vehicle)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            vehicles.forEach { vehicle ->
+                DropdownMenuItem(
+                    text = { Text(vehicleDisplayName(vehicle)) },
+                    onClick = {
+                        expanded = false
+                        onSelect(vehicle.id)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FormTextField(
+    label: String,
+    value: String,
+    error: String?,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+    singleLine: Boolean = true,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.fillMaxWidth(),
+        label = { Text(label) },
+        isError = error != null,
+        supportingText = error?.let { { Text(it) } },
+        singleLine = singleLine,
+        minLines = if (singleLine) 1 else 3,
+        keyboardOptions = keyboardOptions,
+        shape = MaterialTheme.shapes.medium,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> NullableChoiceField(
+    label: String,
+    options: List<T>,
+    selected: T?,
+    optionLabel: (T) -> Int,
+    onSelect: (T?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        // Die Überschrift steckt in jeder Option (siehe unten), sonst liest TalkBack sie doppelt.
+        Text(
+            label,
+            modifier = Modifier.clearAndSetSemantics {},
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            options.forEachIndexed { index, option ->
+                val text = stringResource(optionLabel(option))
+                val description = stringResource(R.string.edit_choice_option, label, text)
+                SegmentedButton(
+                    selected = option == selected,
+                    onClick = { onSelect(if (option == selected) null else option) },
+                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = MaterialTheme.colorScheme.primary,
+                        activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                        activeBorderColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    modifier = Modifier.semantics { contentDescription = description },
+                ) {
+                    Text(text, textAlign = TextAlign.Center)
+                }
+            }
+        }
+    }
+}
