@@ -8,6 +8,7 @@ import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
 import java.time.Clock
 import java.time.Instant
@@ -33,11 +34,13 @@ class RoomBackupImporter(
         val vehicleDao = database.vehicleDao()
         val logDao = database.logDao()
         val tourDao = database.tourDao()
+        val stationDao = database.stationDao()
         val rateDao = database.exchangeRateDao()
 
         val importedVehicles = backup.vehicles.map { it.notAfter(now, today) }
 
         if (mode == ImportMode.REPLACE) {
+            stationDao.deleteAll()
             tourDao.deleteAll()
             vehicleDao.deleteAllRepairs()
             logDao.deleteAll()
@@ -62,7 +65,7 @@ class RoomBackupImporter(
                 vehicleDao.insertDefaultIfNone(newUuid(), now.toEpochMilli())
             }
         } else {
-            val placeholderId = if (importedVehicles.isNotEmpty()) untouchedSoleVehicleId(vehicleDao, logDao) else null
+            val placeholderId = if (importedVehicles.isNotEmpty()) untouchedSoleVehicleId(vehicleDao, logDao, stationDao) else null
             val storedVehicles = vehicleDao.getVersions().associateBy(VehicleVersionRow::uuid)
             for (backupVehicle in importedVehicles) {
                 val vehicle = backupVehicle.vehicle
@@ -154,19 +157,54 @@ class RoomBackupImporter(
         val importedRates = backup.rates.map { if (it.date > today) it.copy(date = today) else it }
 
         val storedTours = tourDao.getVersions().associateBy(TourVersionRow::uuid)
+        val tourLocalIdByUuid = HashMap<String, Long>()
         var added = 0
         var updated = 0
         for (tour in importedTours) {
             val existing = storedTours[tour.uuid]
-            when {
+            val localId = when {
                 existing == null -> {
-                    tourDao.insertWithCosts(tour.copy(id = 0).toEntity(), tour.toCostEntities())
+                    val id = tourDao.insertWithCosts(tour.copy(id = 0).toEntity(), tour.toCostEntities())
                     added++
+                    id
                 }
                 tour.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
                     val replacement = tour.copy(id = existing.id)
                     tourDao.updateWithCosts(replacement.toEntity(), replacement.toCostEntities())
                     updated++
+                    existing.id
+                }
+                else -> existing.id
+            }
+            tourLocalIdByUuid[tour.uuid] = localId
+        }
+
+        // --- Stationen: Fahrzeug kommt aus stationVehicleUuid, sonst (aus einer alten Tour abgeleitet) vom Fahrzeug ihrer Tour ---
+        val tourVehicleIdByUuid = importedTours.associate { it.uuid to it.vehicleId }
+        val importedStations = backup.stations.map { station ->
+            val vehicleId = backup.stationVehicleUuid[station.uuid]?.let { uuid -> checkNotNull(localIdByVehicleUuid[uuid]) }
+                ?: backup.stationTourUuid[station.uuid]?.let { uuid -> checkNotNull(tourVehicleIdByUuid[uuid]) }
+                ?: error("Station ${station.uuid} ohne Fahrzeugbezug")
+            val tourId = backup.stationTourUuid[station.uuid]?.let { uuid -> tourLocalIdByUuid[uuid] }
+            station.notAfter(now, today).copy(vehicleId = vehicleId, tourId = tourId)
+        }
+        var addedStations = 0
+        var updatedStations = 0
+        if (mode == ImportMode.REPLACE) {
+            importedStations.forEach { stationDao.insert(it.copy(id = 0).toEntity()); addedStations++ }
+        } else {
+            val storedStations = stationDao.getVersions().associateBy(StationVersionRow::uuid)
+            for (station in importedStations) {
+                val existing = storedStations[station.uuid]
+                when {
+                    existing == null -> {
+                        stationDao.insert(station.copy(id = 0).toEntity())
+                        addedStations++
+                    }
+                    station.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
+                        stationDao.update(station.copy(id = existing.id).toEntity())
+                        updatedStations++
+                    }
                 }
             }
         }
@@ -189,6 +227,8 @@ class RoomBackupImporter(
             addedRepairs = addedRepairs,
             updatedRepairs = updatedRepairs,
             addedLogEntries = addedLogEntries,
+            addedStations = addedStations,
+            updatedStations = updatedStations,
         )
     }
 }
@@ -206,16 +246,22 @@ private fun BackupVehicle.notAfter(now: Instant, today: LocalDate): BackupVehicl
     logEntries = logEntries.map { it.copy(date = minOf(it.date, today), createdAt = minOf(it.createdAt, now)) },
 )
 
+private fun Station.notAfter(now: Instant, today: LocalDate): Station = copy(
+    date = minOf(date, today),
+    createdAt = minOf(createdAt, now),
+    updatedAt = minOf(updatedAt, now),
+)
+
 /**
- * Die id des einzigen Fahrzeugs, falls es unberührt ist: ohne Angaben, Touren, Reparaturen und
- * Bordbuch-Einträge – so, wie die App es beim ersten Start selbst anlegt.
+ * Die id des einzigen Fahrzeugs, falls es unberührt ist: ohne Angaben, Touren, Reparaturen,
+ * Bordbuch-Einträge und Stationen – so, wie die App es beim ersten Start selbst anlegt.
  */
-private suspend fun untouchedSoleVehicleId(vehicles: VehicleDao, logs: LogDao): Long? {
+private suspend fun untouchedSoleVehicleId(vehicles: VehicleDao, logs: LogDao, stations: StationDao): Long? {
     val only = vehicles.getAll().singleOrNull() ?: return null
     val blank = Vehicle(createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
     val untouched = only.toDomain().copy(id = 0, uuid = "", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH) == blank
     return only.id.takeIf {
         untouched && vehicles.countToursForVehicle(it) == 0 && vehicles.countRepairsForVehicle(it) == 0 &&
-            logs.countForVehicle(it) == 0
+            logs.countForVehicle(it) == 0 && stations.getAll().none { station -> station.vehicleId == it }
     }
 }

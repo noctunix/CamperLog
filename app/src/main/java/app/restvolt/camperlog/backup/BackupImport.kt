@@ -20,7 +20,8 @@ enum class ImportMode {
 /**
  * Ergebnis eines Imports; [unchangedTours] zählt Touren, deren gespeicherte Fassung neuer oder
  * gleich alt war. Bordbuch-Einträge sind unveränderlich, daher gibt es für sie keine Zählung
- * aktualisierter oder unveränderter Einträge.
+ * aktualisierter oder unveränderter Einträge. [addedStations] zählt auch die aus alten
+ * Stellplatz-Feldern abgeleiteten Übernachtungs-Stationen (3.4).
  */
 data class ImportResult(
     val addedTours: Int,
@@ -32,6 +33,8 @@ data class ImportResult(
     val addedRepairs: Int = 0,
     val updatedRepairs: Int = 0,
     val addedLogEntries: Int = 0,
+    val addedStations: Int = 0,
+    val updatedStations: Int = 0,
 )
 
 /** Spielt eine geprüfte Sicherung ein, vollständig oder gar nicht. */

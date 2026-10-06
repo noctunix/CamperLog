@@ -5,18 +5,19 @@ import android.database.SQLException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.backup.Backup
+import app.restvolt.camperlog.backup.BackupReadResult
 import app.restvolt.camperlog.backup.BackupVehicle
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
+import app.restvolt.camperlog.backup.decodeBackup
 import app.restvolt.camperlog.domain.EUR
-import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
-import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
-import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Repair
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
@@ -75,6 +76,7 @@ class RoomBackupImporterTest {
     private fun vehicleUuid(n: Int) = "10000000-0000-4000-8000-%012d".format(n)
     private fun repairUuid(n: Int) = "20000000-0000-4000-8000-%012d".format(n)
     private fun logEntryUuid(n: Int) = "30000000-0000-4000-8000-%012d".format(n)
+    private fun stationUuid(n: Int) = "40000000-0000-4000-8000-%012d".format(n)
 
     private fun tour(n: Int, destination: String = "Ziel $n", updatedAt: String = "2026-07-10T10:00:00Z") = Tour(
         uuid = uuid(n),
@@ -120,6 +122,17 @@ class RoomBackupImporterTest {
     private fun rate(currency: Currency, perEuro: String, date: String) =
         ExchangeRate(currency, BigDecimal(perEuro), LocalDate.parse(date), "EZB")
 
+    private fun station(n: Int, name: String = "Platz $n", updatedAt: String = "2026-07-01T10:00:00Z") = Station(
+        uuid = stationUuid(n),
+        vehicleId = 0,
+        type = StationType.OVERNIGHT,
+        date = LocalDate.of(2026, 7, n.coerceIn(1, 28)),
+        name = name,
+        nights = 1,
+        createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+        updatedAt = Instant.parse(updatedAt),
+    )
+
     private fun backup(
         tours: List<Tour>,
         rates: List<ExchangeRate> = emptyList(),
@@ -127,10 +140,19 @@ class RoomBackupImporterTest {
         vehicles: List<BackupVehicle> = emptyList(),
         tourVehicleUuid: Map<String, String> = emptyMap(),
         currentVehicleUuid: String? = null,
-    ) = Backup(Instant.parse("2026-10-04T12:00:00Z"), main, rates, tours, tourVehicleUuid, vehicles, currentVehicleUuid)
+        stations: List<Station> = emptyList(),
+        stationVehicleUuid: Map<String, String> = emptyMap(),
+        stationTourUuid: Map<String, String> = emptyMap(),
+    ) = Backup(
+        Instant.parse("2026-10-04T12:00:00Z"), main, rates, tours, tourVehicleUuid, vehicles, currentVehicleUuid,
+        stations, stationVehicleUuid, stationTourUuid,
+    )
 
     /** Gespeicherte Touren ohne Datenbank-id, damit sie mit Sicherungs-Touren vergleichbar sind. */
     private suspend fun storedTours() = tours.allTours().map { it.copy(id = 0) }
+
+    /** Gespeicherte Stationen ohne Datenbank-id, damit sie mit Sicherungs-Stationen vergleichbar sind. */
+    private suspend fun storedStations() = RoomStationRepository(db.stationDao()).allStations().map { it.copy(id = 0) }
 
     private suspend fun seed(vararg seeded: Tour) = seeded.forEach { tours.restore(it) }
 
@@ -523,5 +545,141 @@ class RoomBackupImporterTest {
 
         assertTrue(failed.exceptionOrNull() is SQLException)
         assertEquals(listOf("Lokal"), storedTours().map { it.destination })
+    }
+
+    @Test
+    fun merge_stations_addsNewUpdatesNewerKeepsOlderOrEqualUnchanged() = runTest {
+        val local = RoomStationRepository(db.stationDao())
+        local.restore(station(1, name = "Lokal alt", updatedAt = "2026-07-10T10:00:00Z").copy(vehicleId = vehicleId))
+        local.restore(station(2, name = "Lokal neu", updatedAt = "2026-07-20T10:00:00Z").copy(vehicleId = vehicleId))
+
+        val result = importer.import(
+            backup(
+                tours = emptyList(),
+                vehicles = listOf(BackupVehicle(vehicle(1), emptyList(), emptyList())),
+                stations = listOf(
+                    station(1, name = "Import neu", updatedAt = "2026-07-15T10:00:00Z"),
+                    station(2, name = "Import alt", updatedAt = "2026-07-15T10:00:00Z"),
+                    station(3, name = "Import zusätzlich"),
+                ),
+                stationVehicleUuid = mapOf(
+                    stationUuid(1) to vehicleUuid(1),
+                    stationUuid(2) to vehicleUuid(1),
+                    stationUuid(3) to vehicleUuid(1),
+                ),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(1, result.addedStations)
+        assertEquals(1, result.updatedStations)
+        assertEquals(
+            setOf("Import neu", "Lokal neu", "Import zusätzlich"),
+            storedStations().map { it.name }.toSet(),
+        )
+    }
+
+    @Test
+    fun merge_resolvesStationVehicleAndTourFromTheirUuids() = runTest {
+        val result = importer.import(
+            backup(
+                tours = listOf(tour(1).copy(vehicleId = 0)),
+                vehicles = listOf(BackupVehicle(vehicle(1), emptyList(), emptyList())),
+                tourVehicleUuid = mapOf(uuid(1) to vehicleUuid(1)),
+                stations = listOf(station(1)),
+                stationVehicleUuid = mapOf(stationUuid(1) to vehicleUuid(1)),
+                stationTourUuid = mapOf(stationUuid(1) to uuid(1)),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(1, result.addedStations)
+        val storedStation = storedStations().single()
+        val importedVehicleId = vehicles.allVehicles().single { it.uuid == vehicleUuid(1) }.id
+        assertEquals(importedVehicleId, storedStation.vehicleId)
+        assertEquals(tours.allTours().single().id, storedStation.tourId)
+    }
+
+    @Test
+    fun merge_resolvesLegacyStationVehicleFromItsTourWhenVehicleUuidIsAbsent() = runTest {
+        // Aus alten Stellplatz-Feldern abgeleitete Stationen (3.4) tragen keine eigene Fahrzeug-UUID.
+        val result = importer.import(
+            backup(
+                tours = listOf(tour(1)),
+                stations = listOf(station(1)),
+                stationTourUuid = mapOf(stationUuid(1) to uuid(1)),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(1, result.addedStations)
+        val storedStation = storedStations().single()
+        assertEquals(vehicleId, storedStation.vehicleId)
+        assertEquals(tours.allTours().single().id, storedStation.tourId)
+    }
+
+    @Test
+    fun replace_stations_removesEverythingNotInBackup() = runTest {
+        RoomStationRepository(db.stationDao()).restore(station(1, name = "Lokal").copy(vehicleId = vehicleId))
+
+        val result = importer.import(
+            backup(
+                tours = emptyList(),
+                vehicles = listOf(BackupVehicle(vehicle(1), emptyList(), emptyList())),
+                stations = listOf(station(2, name = "Import")),
+                stationVehicleUuid = mapOf(stationUuid(2) to vehicleUuid(1)),
+            ),
+            ImportMode.REPLACE,
+        )
+
+        assertEquals(1, result.addedStations)
+        assertEquals(listOf("Import"), storedStations().map { it.name })
+    }
+
+    @Test
+    fun legacyPitchFromAnOldTour_isImportedAsOneOvernightStation() = runTest {
+        val text = """
+            {
+              "format": "camperlog-backup",
+              "schemaVersion": 1,
+              "exportedAt": "2026-10-04T12:00:00Z",
+              "mainCurrency": "SEK",
+              "exchangeRates": [],
+              "tours": [
+                {
+                  "uuid": "${uuid(9)}",
+                  "startDate": "2026-07-09",
+                  "endDate": "2026-07-22",
+                  "destination": "Lofoten",
+                  "tourType": "VACATION",
+                  "travelDays": 14,
+                  "overnightStays": 13,
+                  "distanceKm": 3420,
+                  "costs": [],
+                  "pitchAssigned": true,
+                  "electricityFlatRate": "YES",
+                  "lteQuality": "GOOD",
+                  "pitchSlope": "LEVEL",
+                  "levelingBlocksUsed": false,
+                  "notes": "",
+                  "mapLink": null,
+                  "createdAt": "2026-07-23T08:00:00Z",
+                  "updatedAt": "2026-07-23T08:00:00Z"
+                }
+              ]
+            }
+        """.trimIndent()
+        val decoded = (decodeBackup(text) as BackupReadResult.Success).backup
+
+        val result = importer.import(decoded, ImportMode.MERGE)
+
+        assertEquals(1, result.addedTours)
+        assertEquals(1, result.addedStations)
+        val storedTour = tours.allTours().single()
+        val storedStation = storedStations().single()
+        assertEquals(storedTour.id, storedStation.tourId)
+        assertEquals(storedTour.vehicleId, storedStation.vehicleId)
+        assertEquals(13, storedStation.nights)
+        assertEquals("Lofoten", storedStation.name)
     }
 }
