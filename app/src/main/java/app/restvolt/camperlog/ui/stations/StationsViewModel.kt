@@ -73,7 +73,7 @@ class StationsViewModel(
     private val selectedType = MutableStateFlow<StationType?>(null)
     private val favoriteOnly = MutableStateFlow(false)
     private val showAllVehicles = MutableStateFlow(filterSettings.allVehicles)
-    private val showWhatsNew = MutableStateFlow(!whatsNewSettings.dismissed)
+    private val showWhatsNew = MutableStateFlow(whatsNewSettings.pending)
 
     val uiState: StateFlow<StationsUiState> = combine(
         combine(
@@ -160,7 +160,7 @@ class StationsViewModel(
 
     /** Schließt die "Neu: Stationen"-Karte endgültig. */
     fun dismissWhatsNew() {
-        whatsNewSettings.dismissed = true
+        whatsNewSettings.pending = false
         showWhatsNew.value = false
     }
 

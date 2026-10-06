@@ -233,6 +233,28 @@ class MigrationTest {
     }
 
     @Test
+    fun migration6To7ReportsMigratedToursOnlyWhenThereWereAny() = runTest {
+        val vehicle = "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
+            "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
+            "breakdown_phone, travel_protection_provider, travel_protection_contract_number, " +
+            "travel_protection_phone, insurer_claims_phone, created_at, updated_at) VALUES " +
+            "(1, 'veh-1', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 1000, 2000)"
+        createVersion6(vehicle)
+        var reported = false
+        CamperLogDatabase.open(context) { reported = true }.apply { openHelper.writableDatabase }.close()
+        assertEquals(false, reported)
+
+        context.deleteDatabase("camperlog.db")
+        createVersion6(
+            vehicle,
+            "INSERT INTO tours VALUES (1, 'tour-1', 1, '2026-04-18', '2026-04-18', 'Schwarzwald', 'DAY_TRIP', 1, 0, " +
+                "240, 0, 'NOT_USED', 'GOOD', 'LEVEL', 0, '', NULL, 1000, 2000)",
+        )
+        CamperLogDatabase.open(context) { reported = true }.apply { openHelper.writableDatabase }.close()
+        assertEquals(true, reported)
+    }
+
+    @Test
     fun migration6To7DayTripWithDefaultValuesGetsNoStationAndKeepsNotes() = runTest {
         createVersion6(
             defaultVehicleInsert,

@@ -14,6 +14,7 @@ import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.ui.stations.StationsWhatsNewSettings
 
 /** Application-Klasse; hält die einzige Datenbank- und Repository-Instanz. */
 class CamperLogApp : Application() {
@@ -36,5 +37,5 @@ class CamperLogApp : Application() {
     /** Einspielen von JSON-Sicherungen. */
     val backupImporter: BackupImporter by lazy { RoomBackupImporter(database) }
 
-    private val database by lazy { CamperLogDatabase.open(this) }
+    private val database by lazy { CamperLogDatabase.open(this) { StationsWhatsNewSettings(this).pending = true } }
 }

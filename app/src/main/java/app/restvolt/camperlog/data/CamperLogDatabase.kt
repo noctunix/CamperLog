@@ -45,10 +45,16 @@ abstract class CamperLogDatabase : RoomDatabase() {
     abstract fun stationDao(): StationDao
 
     companion object {
-        /** Öffnet die Datenbankdatei der App. Nur einmal pro Prozess aufrufen. */
-        fun open(context: Context): CamperLogDatabase =
+        /**
+         * Öffnet die Datenbankdatei der App. Nur einmal pro Prozess aufrufen.
+         *
+         * @param context liefert Dateipfad und die Texte, die Migrationen in Notizen schreiben
+         * @param onToursMigrated wird aufgerufen, wenn das Update auf Version 7 bestehende Touren umgebaut hat
+         * @return die geöffnete Datenbank
+         */
+        fun open(context: Context, onToursMigrated: () -> Unit = {}): CamperLogDatabase =
             Room.databaseBuilder(context.applicationContext, CamperLogDatabase::class.java, "camperlog.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context))
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated))
                 .build()
     }
 }
@@ -232,7 +238,7 @@ internal val MIGRATION_5_6 = object : Migration(5, 6) {
  * [context] in der Gerätesprache. `tours` wird danach ohne die fünf Stellplatz-Spalten neu
  * aufgebaut, wie schon in [MIGRATION_1_2]; `log_entries` bleibt in dieser Phase unverändert.
  */
-internal fun migration6To7(context: Context): Migration = object : Migration(6, 7) {
+internal fun migration6To7(context: Context, onToursMigrated: () -> Unit = {}): Migration = object : Migration(6, 7) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS `stations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
@@ -253,6 +259,7 @@ internal fun migration6To7(context: Context): Migration = object : Migration(6, 
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_stations_tour_id` ON `stations` (`tour_id`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_stations_date` ON `stations` (`date`)")
 
+        val hadTours = db.query("SELECT EXISTS(SELECT 1 FROM `tours`)").use { it.moveToFirst() && it.getInt(0) == 1 }
         insertOvernightStations(db)
         appendDayTripNotes(db, context)
 
@@ -278,6 +285,7 @@ internal fun migration6To7(context: Context): Migration = object : Migration(6, 
         db.query("PRAGMA foreign_key_check").use { cursor ->
             check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 6→7" }
         }
+        if (hadTours) onToursMigrated()
     }
 
     /** Legt für jede Tour mit mindestens einer Übernachtung die Übernachtungs-Station an (3.4, Punkt 2). */
