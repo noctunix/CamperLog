@@ -12,11 +12,13 @@ class ReminderTest {
     private fun vehicle(
         nextInspectionDate: LocalDate? = null,
         nextGasCheckDate: LocalDate? = null,
+        nextLeakTestDate: LocalDate? = null,
         lastOilChangeDate: LocalDate? = null,
         saleDate: LocalDate? = null,
     ) = Vehicle(
         nextInspectionDate = nextInspectionDate,
         nextGasCheckDate = nextGasCheckDate,
+        nextLeakTestDate = nextLeakTestDate,
         lastOilChangeDate = lastOilChangeDate,
         saleDate = saleDate,
         createdAt = Instant.EPOCH,
@@ -45,6 +47,24 @@ class ReminderTest {
     }
 
     @Test
+    fun leakTestUsesTheSameLeadWindowAndOverdueLogicAsGasCheck() {
+        val dueAtBoundary = vehicle(nextLeakTestDate = today.plusDays(30))
+        assertEquals(
+            listOf(Reminder(ReminderKind.LEAK_TEST, today.plusDays(30), overdue = false)),
+            dueReminders(dueAtBoundary, today, leadDays = 30, oilIntervalMonths = 12),
+        )
+
+        val justOutside = vehicle(nextLeakTestDate = today.plusDays(31))
+        assertEquals(emptyList<Reminder>(), dueReminders(justOutside, today, leadDays = 30, oilIntervalMonths = 12))
+
+        val dueToday = vehicle(nextLeakTestDate = today)
+        assertEquals(false, dueReminders(dueToday, today, leadDays = 30, oilIntervalMonths = 12).single().overdue)
+
+        val dueYesterday = vehicle(nextLeakTestDate = today.minusDays(1))
+        assertEquals(true, dueReminders(dueYesterday, today, leadDays = 30, oilIntervalMonths = 12).single().overdue)
+    }
+
+    @Test
     fun oilChangeIsDueOneIntervalAfterTheLastChange() {
         val vehicle = vehicle(lastOilChangeDate = today.minusMonths(12).plusDays(5))
         val reminders = dueReminders(vehicle, today, leadDays = 30, oilIntervalMonths = 12)
@@ -59,6 +79,7 @@ class ReminderTest {
         val sold = vehicle(
             nextInspectionDate = today.minusDays(1),
             nextGasCheckDate = today.minusDays(1),
+            nextLeakTestDate = today.minusDays(1),
             lastOilChangeDate = today.minusMonths(13),
             saleDate = today.minusDays(1),
         )
@@ -75,6 +96,7 @@ class ReminderTest {
         val vehicle = vehicle(
             nextInspectionDate = today.plusDays(10),
             nextGasCheckDate = today.minusDays(2),
+            nextLeakTestDate = today.plusDays(5),
             lastOilChangeDate = today.minusMonths(12),
         )
         val reminders = dueReminders(vehicle, today, leadDays = 30, oilIntervalMonths = 12)
@@ -82,6 +104,7 @@ class ReminderTest {
             listOf(
                 Reminder(ReminderKind.INSPECTION, today.plusDays(10), overdue = false),
                 Reminder(ReminderKind.GAS_CHECK, today.minusDays(2), overdue = true),
+                Reminder(ReminderKind.LEAK_TEST, today.plusDays(5), overdue = false),
                 Reminder(ReminderKind.OIL_CHANGE, today, overdue = false),
             ),
             reminders,

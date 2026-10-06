@@ -153,12 +153,14 @@ class VehicleInputTest {
         val input = valid.copy(
             nextInspectionDate = LocalDate.of(2027, 1, 1),
             nextGasCheckDate = LocalDate.of(2027, 2, 1),
+            nextLeakTestDate = LocalDate.of(2027, 3, 1),
             lastOilChangeDate = LocalDate.of(2026, 1, 1),
             lastOilChangeOdometerKm = "50000",
         )
         val vehicle = input.toVehicle(null, de).copy(id = 7)
         assertEquals(LocalDate.of(2027, 1, 1), vehicle.nextInspectionDate)
         assertEquals(LocalDate.of(2027, 2, 1), vehicle.nextGasCheckDate)
+        assertEquals(LocalDate.of(2027, 3, 1), vehicle.nextLeakTestDate)
         assertEquals(LocalDate.of(2026, 1, 1), vehicle.lastOilChangeDate)
         assertEquals(50_000, vehicle.lastOilChangeOdometerKm)
 
@@ -166,6 +168,7 @@ class VehicleInputTest {
         assertEquals(7L, edited.id)
         assertEquals(LocalDate.of(2027, 1, 1), edited.nextInspectionDate)
         assertEquals(LocalDate.of(2027, 2, 1), edited.nextGasCheckDate)
+        assertEquals(LocalDate.of(2027, 3, 1), edited.nextLeakTestDate)
         assertEquals(LocalDate.of(2026, 1, 1), edited.lastOilChangeDate)
         assertEquals(50_000, edited.lastOilChangeOdometerKm)
         assertEquals("Neuer Name", edited.name)
