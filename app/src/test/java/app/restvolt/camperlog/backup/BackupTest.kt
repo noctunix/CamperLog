@@ -1,7 +1,8 @@
 package app.restvolt.camperlog.backup
 
 import app.restvolt.camperlog.domain.CoordinateSource
-import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
@@ -20,6 +21,7 @@ import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.SiteKind
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
@@ -82,10 +84,16 @@ class BackupTest {
         nights = 2,
         siteKind = SiteKind.CAMPSITE,
         pitchAssigned = true,
-        electricityFlatRate = ElectricityFlatRate.YES,
         lteQuality = LteQuality.GOOD,
         pitchSlope = PitchSlope.LEVEL,
         levelingBlocksUsed = false,
+        electricityBilling = ElectricityBilling.BASE_PLUS_METERED,
+        electricityCurrency = eur,
+        electricityBaseFee = Money(500, eur),
+        electricityPricePerKwh = BigDecimal("0.35"),
+        electricityMeterStart = BigDecimal("120.5"),
+        electricityMeterEnd = BigDecimal("135.75"),
+        costs = listOf(StationCost(CostCategory.PITCH, Money(1500, eur), "Zwei Nächte")),
         services = setOf(StationService.CASSETTE, StationService.FRESH_WATER),
         favorite = true,
         createdAt = Instant.parse("2026-07-04T18:00:00Z"),
@@ -332,7 +340,7 @@ class BackupTest {
         assertEquals(LocalDate.of(2026, 7, 1), station.date)
         assertEquals(13, station.nights)
         assertEquals(true, station.pitchAssigned)
-        assertEquals(ElectricityFlatRate.NOT_USED, station.electricityFlatRate)
+        assertEquals(ElectricityBilling.NONE, station.electricityBilling)
         assertEquals(LteQuality.OK, station.lteQuality)
         assertEquals(PitchSlope.SLOPED, station.pitchSlope)
         assertEquals(true, station.levelingBlocksUsed)
@@ -629,10 +637,16 @@ class BackupTest {
             nights = null,
             siteKind = null,
             pitchAssigned = null,
-            electricityFlatRate = null,
             lteQuality = null,
             pitchSlope = null,
             levelingBlocksUsed = null,
+            electricityBilling = null,
+            electricityCurrency = null,
+            electricityBaseFee = null,
+            electricityPricePerKwh = null,
+            electricityMeterStart = null,
+            electricityMeterEnd = null,
+            costs = emptyList(),
         )
         val fuelBackup = vehicleBackup.copy(
             stations = listOf(fuelStation),

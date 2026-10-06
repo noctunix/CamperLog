@@ -38,7 +38,7 @@ class PitchMigrationTest {
         assertEquals(13, station.nights)
         assertNull(station.siteKind)
         assertEquals(true, station.pitchAssigned)
-        assertEquals(ElectricityFlatRate.YES, station.electricityFlatRate)
+        assertEquals(ElectricityBilling.FLAT_PER_STAY, station.electricityBilling)
         assertEquals(LteQuality.BAD, station.lteQuality)
         assertEquals(PitchSlope.SLOPED, station.pitchSlope)
         assertEquals(true, station.levelingBlocksUsed)

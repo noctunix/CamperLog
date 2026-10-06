@@ -85,7 +85,7 @@ class StationInputTest {
             nights = "3",
             siteKind = SiteKind.CAMPSITE,
             pitchAssigned = true,
-            electricityFlatRate = ElectricityFlatRate.YES,
+            electricityBilling = ElectricityBilling.FLAT_PER_STAY,
             lteQuality = LteQuality.GOOD,
             pitchSlope = PitchSlope.LEVEL,
             levelingBlocksUsed = true,
@@ -96,7 +96,7 @@ class StationInputTest {
         assertNull(station.nights)
         assertNull(station.siteKind)
         assertNull(station.pitchAssigned)
-        assertNull(station.electricityFlatRate)
+        assertNull(station.electricityBilling)
         assertNull(station.lteQuality)
         assertNull(station.pitchSlope)
         assertNull(station.levelingBlocksUsed)

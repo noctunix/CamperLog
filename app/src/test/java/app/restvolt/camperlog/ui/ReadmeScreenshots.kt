@@ -8,7 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
-import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.LogEntry
@@ -220,7 +220,7 @@ class ReadmeScreenshots {
                 longitude = 13.0067,
                 nights = 2,
                 siteKind = SiteKind.CAMPSITE,
-                electricityFlatRate = ElectricityFlatRate.YES,
+                electricityBilling = ElectricityBilling.FLAT_PER_STAY,
                 favorite = true,
                 createdAt = Instant.parse("2026-07-04T18:00:00Z"),
                 updatedAt = Instant.parse("2026-07-04T18:00:00Z"),

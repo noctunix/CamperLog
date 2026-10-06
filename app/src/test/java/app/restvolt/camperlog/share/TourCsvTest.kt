@@ -1,11 +1,13 @@
 package app.restvolt.camperlog.share
 
+import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.EUR
-import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
@@ -64,7 +66,7 @@ class TourCsvTest {
             tourId = 3,
             date = LocalDate.of(2026, 7, 10),
             pitchAssigned = true,
-            electricity = ElectricityFlatRate.NOT_USED,
+            electricity = ElectricityBilling.NONE,
             lte = LteQuality.GOOD,
             slope = PitchSlope.LEVEL,
             blocksUsed = false,
@@ -75,8 +77,9 @@ class TourCsvTest {
         assertEquals(CSV_HEADER.joinToString(","), lines[0])
         assertEquals(
             "3,2026-07-10,2026-07-12,\"Bodensee, Nordufer\",${tour.tourType.csvValue},3,2,412,89.50,ja," +
-                "${ElectricityFlatRate.NOT_USED.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
-                "\"Sagte: \"\"toll\"\"\",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z,\"89.50 EUR; 1450.00 NOK\",Bulli",
+                "${ElectricityBilling.NONE.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
+                "\"Sagte: \"\"toll\"\"\",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z,\"89.50 EUR; 1450.00 NOK\",Bulli," +
+                "\"89.50 EUR; 1450.00 NOK\"",
             lines[1],
         )
         assertEquals("", lines[2])
@@ -123,7 +126,7 @@ class TourCsvTest {
             tourId = 1,
             date = LocalDate.of(2026, 7, 10),
             pitchAssigned = false,
-            electricity = ElectricityFlatRate.NO,
+            electricity = ElectricityBilling.METERED,
             lte = LteQuality.OK,
             slope = PitchSlope.SLOPED,
             blocksUsed = true,
@@ -132,8 +135,8 @@ class TourCsvTest {
 
         assertEquals(
             "1,2026-07-10,2026-07-10,'=cmd|' /C calc'!A0,${TourType.DAY_TRIP.csvValue},1,0,80,0.00,nein," +
-                "${ElectricityFlatRate.NO.csvValue},${LteQuality.OK.csvValue},${PitchSlope.SLOPED.csvValue},ja," +
-                "\"'@Kontakt, bitte\",,2026-07-10T08:00:00Z,2026-07-10T08:00:00Z,,$DEFAULT_NAME",
+                "${ElectricityBilling.METERED.csvValue},${LteQuality.OK.csvValue},${PitchSlope.SLOPED.csvValue},ja," +
+                "\"'@Kontakt, bitte\",,2026-07-10T08:00:00Z,2026-07-10T08:00:00Z,,$DEFAULT_NAME,",
             row,
         )
     }
@@ -173,13 +176,41 @@ class TourCsvTest {
     }
 
     @Test
+    fun totalCostsColumnAddsStationCostsOfTheTourToTheManualTourCosts() {
+        val tour = tour(7, vehicleId = 0).copy(costs = listOf(Money(10_000, EUR)))
+        val ownStation = overnightStation(
+            tourId = 7,
+            date = LocalDate.of(2026, 7, 1),
+            pitchAssigned = false,
+            electricity = ElectricityBilling.NONE,
+            lte = LteQuality.GOOD,
+            slope = PitchSlope.LEVEL,
+            blocksUsed = false,
+        ).copy(costs = listOf(StationCost(CostCategory.SUPPLY, Money(500, EUR))))
+        val otherTourStation = overnightStation(
+            tourId = 99,
+            date = LocalDate.of(2026, 7, 1),
+            pitchAssigned = false,
+            electricity = ElectricityBilling.NONE,
+            lte = LteQuality.GOOD,
+            slope = PitchSlope.LEVEL,
+            blocksUsed = false,
+        ).copy(costs = listOf(StationCost(CostCategory.SUPPLY, Money(999, EUR))))
+
+        val row = toursToCsv(listOf(tour), listOf(ownStation, otherTourStation), emptyMap(), DEFAULT_NAME).split("\r\n")[1]
+
+        assertEquals("105.00 EUR", row.split(",")[CSV_HEADER.indexOf("kosten_gesamt")])
+    }
+
+    @Test
     fun emptyExportContainsOnlyHeader() {
         assertEquals(CSV_HEADER.joinToString(",") + "\r\n", toursToCsv(emptyList(), emptyList(), emptyMap(), DEFAULT_NAME))
     }
 
     @Test
-    fun headerEndsWithVehicleColumn() {
-        assertEquals("fahrzeug", CSV_HEADER.last())
+    fun totalCostsColumnIsAppendedAfterTheVehicleColumn() {
+        assertEquals("fahrzeug", CSV_HEADER[CSV_HEADER.size - 2])
+        assertEquals("kosten_gesamt", CSV_HEADER.last())
     }
 
     @Test
@@ -187,19 +218,20 @@ class TourCsvTest {
         val named = tour(1, vehicleId = 10)
         val blankName = tour(2, vehicleId = 20)
         val unmapped = tour(3, vehicleId = 99)
+        val vehicleIndex = CSV_HEADER.indexOf("fahrzeug")
 
         val rows = toursToCsv(listOf(named, blankName, unmapped), emptyList(), mapOf(10L to "Bulli", 20L to ""), DEFAULT_NAME).split("\r\n")
 
-        assertEquals("Bulli", rows[1].split(",").last())
-        assertEquals(DEFAULT_NAME, rows[2].split(",").last())
-        assertEquals(DEFAULT_NAME, rows[3].split(",").last())
+        assertEquals("Bulli", rows[1].split(",")[vehicleIndex])
+        assertEquals(DEFAULT_NAME, rows[2].split(",")[vehicleIndex])
+        assertEquals(DEFAULT_NAME, rows[3].split(",")[vehicleIndex])
     }
 
     @Test
     fun vehicleColumnIsProtectedAgainstFormulaInjection() {
         val row = toursToCsv(listOf(tour(1, vehicleId = 1)), emptyList(), mapOf(1L to "=cmd|' /C calc'!A0"), DEFAULT_NAME).split("\r\n")[1]
 
-        assertEquals("'=cmd|' /C calc'!A0", row.substringAfterLast(","))
+        assertEquals("'=cmd|' /C calc'!A0", row.split(",")[CSV_HEADER.indexOf("fahrzeug")])
     }
 
     private fun tour(id: Long, vehicleId: Long) = Tour(
@@ -223,7 +255,7 @@ class TourCsvTest {
         tourId: Long,
         date: LocalDate,
         pitchAssigned: Boolean,
-        electricity: ElectricityFlatRate,
+        electricity: ElectricityBilling,
         lte: LteQuality,
         slope: PitchSlope,
         blocksUsed: Boolean,
@@ -233,7 +265,7 @@ class TourCsvTest {
         type = StationType.OVERNIGHT,
         date = date,
         pitchAssigned = pitchAssigned,
-        electricityFlatRate = electricity,
+        electricityBilling = electricity,
         lteQuality = lte,
         pitchSlope = slope,
         levelingBlocksUsed = blocksUsed,

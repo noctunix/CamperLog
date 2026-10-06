@@ -5,7 +5,7 @@ import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.EUR
-import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
@@ -47,7 +47,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tours = RoomTourRepository(db.tourDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
+            val tours = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
 
             assertEquals(listOf(1L, 2L), tours.map { it.id })
             assertEquals(listOf(Money(8_950, EUR)), tours[0].costs)
@@ -79,7 +79,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tours = RoomTourRepository(db.tourDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
+            val tours = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
             val rates = RoomExchangeRateRepository(db.exchangeRateDao())
 
             assertEquals(listOf(Money(1_250_000, Currency.getInstance("NOK")), Money(4_500, EUR)), tours.single().costs)
@@ -109,7 +109,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tours = RoomTourRepository(db.tourDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
+            val tours = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
 
             assertEquals(listOf(1L, 2L), tours.map { it.id })
             assertEquals(listOf(Money(1_250_000, Currency.getInstance("NOK"))), tours[0].costs)
@@ -144,7 +144,7 @@ class MigrationTest {
                 assertEquals("", it.getString(it.getColumnIndexOrThrow("name")))
             }
 
-            val tours = RoomTourRepository(db.tourDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
+            val tours = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
             assertEquals(listOf(vehicleId, vehicleId), tours.map { it.vehicleId })
             assertEquals(listOf(Money(1_250_000, Currency.getInstance("NOK"))), tours[0].costs)
             assertEquals(Currency.getInstance("NOK"), RoomExchangeRateRepository(db.exchangeRateDao()).observeMainCurrency().first())
@@ -208,7 +208,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tour = RoomTourRepository(db.tourDao(), db.vehicleDao()).allTours().single()
+            val tour = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()).allTours().single()
             assertEquals("Lofoten", tour.destination)
             assertEquals("Reisenotiz", tour.notes)
             assertEquals(listOf(Money(48650, EUR)), tour.costs)
@@ -221,7 +221,7 @@ class MigrationTest {
             assertEquals("Lofoten", station.name)
             assertEquals(13, station.nights)
             assertEquals(true, station.pitchAssigned)
-            assertEquals(ElectricityFlatRate.YES, station.electricityFlatRate)
+            assertEquals(ElectricityBilling.FLAT_PER_STAY, station.electricityBilling)
             assertEquals(LteQuality.GOOD, station.lteQuality)
             assertEquals(PitchSlope.LEVEL, station.pitchSlope)
             assertEquals(false, station.levelingBlocksUsed)
@@ -264,7 +264,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tour = RoomTourRepository(db.tourDao(), db.vehicleDao()).allTours().single()
+            val tour = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()).allTours().single()
             assertEquals("Alte Notiz", tour.notes)
             assertEquals(emptyList<Station>(), RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations())
         } finally {
@@ -282,7 +282,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tour = RoomTourRepository(db.tourDao(), db.vehicleDao()).allTours().single()
+            val tour = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()).allTours().single()
             assertEquals("Pitch: sloped, leveling blocks used", tour.notes)
             assertEquals(emptyList<Station>(), RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations())
         } finally {

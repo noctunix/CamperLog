@@ -3,7 +3,6 @@ package app.restvolt.camperlog.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
@@ -236,7 +235,6 @@ class RoomVehicleRepositoryTest {
                 nights = null,
                 siteKind = null,
                 pitchAssigned = null,
-                electricityFlatRate = null,
                 lteQuality = null,
                 pitchSlope = null,
                 levelingBlocksUsed = null,

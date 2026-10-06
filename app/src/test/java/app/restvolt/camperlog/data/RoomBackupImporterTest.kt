@@ -59,7 +59,7 @@ class RoomBackupImporterTest {
         db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CamperLogDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        tours = RoomTourRepository(db.tourDao(), db.vehicleDao())
+        tours = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao())
         rates = RoomExchangeRateRepository(db.exchangeRateDao())
         vehicles = RoomVehicleRepository(db.vehicleDao())
         logs = RoomLogRepository(db.logDao())

@@ -1,15 +1,20 @@
 package app.restvolt.camperlog.share
 
 import app.restvolt.camperlog.domain.CoordinateSource
-import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.EUR
+import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.SiteKind
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -24,8 +29,9 @@ class StationCsvTest {
     }
 
     @Test
-    fun headerEndsWithVehicleColumn() {
-        assertEquals("fahrzeug", STATION_CSV_HEADER.last())
+    fun costAndKwhColumnsAreAppendedAfterTheVehicleColumn() {
+        assertEquals(24, STATION_CSV_HEADER.indexOf("fahrzeug"))
+        assertEquals("strom_kwh", STATION_CSV_HEADER.last())
     }
 
     @Test
@@ -48,10 +54,15 @@ class StationCsvTest {
             nights = 2,
             siteKind = SiteKind.CAMPSITE,
             pitchAssigned = true,
-            electricityFlatRate = ElectricityFlatRate.YES,
             lteQuality = LteQuality.GOOD,
             pitchSlope = PitchSlope.LEVEL,
             levelingBlocksUsed = false,
+            electricityBilling = ElectricityBilling.METERED,
+            electricityCurrency = EUR,
+            electricityPricePerKwh = BigDecimal("0.35"),
+            electricityMeterStart = BigDecimal("100"),
+            electricityMeterEnd = BigDecimal("110"),
+            costs = listOf(StationCost(CostCategory.SUPPLY, Money(500, EUR))),
             services = setOf(StationService.CASSETTE, StationService.FRESH_WATER),
             favorite = true,
             createdAt = Instant.parse("2026-07-04T08:00:00Z"),
@@ -65,9 +76,9 @@ class StationCsvTest {
         assertEquals(
             "7,2026-07-04,18:40,${StationType.OVERNIGHT.csvValue},Camping Moskenes,\"Moskenes, Norwegen\"," +
                 "68.0912,13.1023,${CoordinateSource.ENTERED.csvValue},,,2,${SiteKind.CAMPSITE.csvValue},ja," +
-                "${ElectricityFlatRate.YES.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
+                "${ElectricityBilling.METERED.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
                 "\"${StationService.FRESH_WATER.csvValue}; ${StationService.CASSETTE.csvValue}\",ja,Schöner Blick," +
-                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli",
+                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,10",
             lines[1],
         )
         assertEquals("", lines[2])
