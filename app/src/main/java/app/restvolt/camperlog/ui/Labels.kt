@@ -374,6 +374,8 @@ val StationField.labelRes: Int
         StationField.ELECTRICITY -> R.string.field_electricity
         StationField.TOLL_COUNTRY -> R.string.field_toll_country
         StationField.TOLL_VALID_UNTIL -> R.string.field_toll_valid_until
+        StationField.TOLL_PAYMENT_METHOD -> R.string.field_toll_payment_method
+        StationField.FERRY_BOOKING_REFERENCE -> R.string.field_ferry_booking_reference
     }
 
 /** Fehlermeldung zu [this] am Feld [field]. */

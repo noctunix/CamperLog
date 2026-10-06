@@ -270,6 +270,24 @@ class StationInputTest {
     }
 
     @Test
+    fun tollPaymentMethodTooLongIsInvalid() {
+        assertEquals(
+            StationError.TOO_LONG,
+            validToll.copy(tollPaymentMethod = "x".repeat(MAX_TOLL_PAYMENT_METHOD_LENGTH + 1)).validate()[StationField.TOLL_PAYMENT_METHOD],
+        )
+        assertTrue(validToll.copy(tollPaymentMethod = "x".repeat(MAX_TOLL_PAYMENT_METHOD_LENGTH)).validate().isEmpty())
+    }
+
+    @Test
+    fun ferryBookingReferenceTooLongIsInvalid() {
+        assertEquals(
+            StationError.TOO_LONG,
+            validFerry.copy(ferryBookingReference = "x".repeat(MAX_FERRY_BOOKING_REFERENCE_LENGTH + 1)).validate()[StationField.FERRY_BOOKING_REFERENCE],
+        )
+        assertTrue(validFerry.copy(ferryBookingReference = "x".repeat(MAX_FERRY_BOOKING_REFERENCE_LENGTH)).validate().isEmpty())
+    }
+
+    @Test
     fun toStationKeepsElectricityOnlyForOvernightStations() {
         val input = valid.copy(
             type = StationType.FUEL,

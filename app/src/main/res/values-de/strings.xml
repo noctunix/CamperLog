@@ -622,6 +622,8 @@
     <string name="field_leveling_blocks">Keile genutzt</string>
     <string name="field_toll_country">Land</string>
     <string name="field_toll_valid_until">Gültig bis</string>
+    <string name="field_toll_payment_method">Zahlungsart</string>
+    <string name="field_ferry_booking_reference">Buchungsnummer</string>
     <string name="station_no_tour">Keine Tour</string>
     <string name="station_add_coordinates">Koordinaten eingeben</string>
     <string name="station_coordinates_recognized">Erkannt: %1$s</string>

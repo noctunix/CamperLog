@@ -631,6 +631,8 @@
     <string name="field_leveling_blocks">Leveling blocks used</string>
     <string name="field_toll_country">Country</string>
     <string name="field_toll_valid_until">Valid until</string>
+    <string name="field_toll_payment_method">Payment method</string>
+    <string name="field_ferry_booking_reference">Booking reference</string>
     <string name="station_no_tour">No tour</string>
     <string name="station_add_coordinates">Add coordinates</string>
     <string name="station_coordinates_recognized">Recognised: %1$s</string>

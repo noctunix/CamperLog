@@ -80,7 +80,10 @@ data class StationInput(
 )
 
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
-enum class StationField { DATE, COORDINATES, NIGHTS, NAME, PLACE, NOTES, MAP_LINK, SERVICES, ELECTRICITY, TOLL_COUNTRY, TOLL_VALID_UNTIL }
+enum class StationField {
+    DATE, COORDINATES, NIGHTS, NAME, PLACE, NOTES, MAP_LINK, SERVICES, ELECTRICITY,
+    TOLL_COUNTRY, TOLL_VALID_UNTIL, TOLL_PAYMENT_METHOD, FERRY_BOOKING_REFERENCE,
+}
 
 /** Grund eines Validierungsfehlers. Den Text dazu liefert die UI aus den String-Ressourcen. */
 enum class StationError {
@@ -147,6 +150,13 @@ fun StationInput.validate(today: LocalDate = LocalDate.now(), locale: Locale = L
         if (tollValidFrom != null && tollValidUntil != null && tollValidUntil < tollValidFrom) {
             put(StationField.TOLL_VALID_UNTIL, StationError.END_BEFORE_START)
         }
+        if (tollPaymentMethod.length > MAX_TOLL_PAYMENT_METHOD_LENGTH) {
+            put(StationField.TOLL_PAYMENT_METHOD, StationError.TOO_LONG)
+        }
+    }
+
+    if (type == StationType.FERRY && ferryBookingReference.length > MAX_FERRY_BOOKING_REFERENCE_LENGTH) {
+        put(StationField.FERRY_BOOKING_REFERENCE, StationError.TOO_LONG)
     }
 }
 
