@@ -4,7 +4,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.math.BigDecimal
 import java.time.LocalDate
+import java.util.Locale
 
 class StationInputTest {
 
@@ -16,6 +18,9 @@ class StationInputTest {
         place = "Moskenes, Norwegen",
         nights = "2",
     )
+
+    private val validToll = valid.copy(type = StationType.TOLL, nights = "")
+    private val validFerry = valid.copy(type = StationType.FERRY, nights = "")
 
     @Test
     fun validInputHasNoErrors() {
@@ -188,6 +193,170 @@ class StationInputTest {
         assertEquals(emptySet<StationService>(), StationType.SIGHT.allowedServices)
         assertEquals(emptySet<StationService>(), StationType.FOOD.allowedServices)
         assertEquals(emptySet<StationService>(), StationType.FERRY.allowedServices)
+        assertEquals(emptySet<StationService>(), StationType.TOLL.allowedServices)
         assertEquals(emptySet<StationService>(), StationType.OTHER.allowedServices)
+    }
+
+    @Test
+    fun electricityPriceBelowOrAtTheBoundIsValid() {
+        assertTrue(valid.copy(electricityPricePerKwh = "100").validate().isEmpty())
+        assertTrue(valid.copy(electricityPricePerKwh = "0").validate().isEmpty())
+    }
+
+    @Test
+    fun electricityPriceAboveTheBoundIsInvalid() {
+        assertEquals(StationError.INVALID_NUMBER, valid.copy(electricityPricePerKwh = "100.01").validate()[StationField.ELECTRICITY])
+    }
+
+    @Test
+    fun electricityKwhFieldsAboveTheBoundAreInvalid() {
+        assertEquals(StationError.INVALID_NUMBER, valid.copy(electricityMeterStart = "100001").validate()[StationField.ELECTRICITY])
+        assertEquals(StationError.INVALID_NUMBER, valid.copy(electricityMeterEnd = "100001").validate()[StationField.ELECTRICITY])
+        assertEquals(StationError.INVALID_NUMBER, valid.copy(electricityKwhUsed = "100001").validate()[StationField.ELECTRICITY])
+        assertEquals(StationError.INVALID_NUMBER, valid.copy(electricityKwhPerCoin = "100001").validate()[StationField.ELECTRICITY])
+        assertTrue(valid.copy(electricityKwhUsed = "100000").validate().isEmpty())
+    }
+
+    @Test
+    fun electricityCoinsAboveTheBoundAreInvalid() {
+        assertEquals(StationError.INVALID_NUMBER, valid.copy(electricityCoinsUsed = "10001").validate()[StationField.ELECTRICITY])
+        assertTrue(valid.copy(electricityCoinsUsed = "10000").validate().isEmpty())
+    }
+
+    @Test
+    fun electricityMoneyFieldsRejectInvalidAmounts() {
+        assertEquals(StationError.INVALID_NUMBER, valid.copy(electricityFlatAmount = "nicht-numerisch").validate()[StationField.ELECTRICITY])
+        assertEquals(StationError.INVALID_NUMBER, valid.copy(electricityBaseFee = "nicht-numerisch").validate()[StationField.ELECTRICITY])
+        assertEquals(StationError.INVALID_NUMBER, valid.copy(electricityCoinPrice = "nicht-numerisch").validate()[StationField.ELECTRICITY])
+    }
+
+    @Test
+    fun electricityPricePerKwhIsLocaleAware() {
+        assertTrue(valid.copy(electricityPricePerKwh = "0,35").validate(locale = Locale.GERMANY).isEmpty())
+        assertTrue(valid.copy(electricityPricePerKwh = "0.35").validate(locale = Locale.US).isEmpty())
+    }
+
+    @Test
+    fun electricityBoundsAreOnlyCheckedForOvernightStations() {
+        assertTrue(valid.copy(type = StationType.FUEL, electricityPricePerKwh = "999").validate().isEmpty())
+    }
+
+    @Test
+    fun tollCountryAcceptsAKnownIsoCodeCaseInsensitively() {
+        assertTrue(validToll.copy(tollCountry = "de").validate().isEmpty())
+        assertTrue(validToll.copy(tollCountry = "AT").validate().isEmpty())
+        assertTrue(validToll.copy(tollCountry = "").validate().isEmpty())
+    }
+
+    @Test
+    fun tollCountryRejectsAnUnknownCode() {
+        assertEquals(StationError.INVALID_COUNTRY, validToll.copy(tollCountry = "XX").validate()[StationField.TOLL_COUNTRY])
+    }
+
+    @Test
+    fun tollCountryIsOnlyCheckedForTollStations() {
+        assertTrue(valid.copy(tollCountry = "XX").validate().isEmpty())
+    }
+
+    @Test
+    fun tollValidUntilMustNotBeBeforeValidFrom() {
+        val from = LocalDate.of(2026, 1, 1)
+        assertEquals(
+            StationError.END_BEFORE_START,
+            validToll.copy(tollValidFrom = from, tollValidUntil = from.minusDays(1)).validate()[StationField.TOLL_VALID_UNTIL],
+        )
+        assertTrue(validToll.copy(tollValidFrom = from, tollValidUntil = from).validate().isEmpty())
+        assertTrue(validToll.copy(tollValidFrom = from, tollValidUntil = from.plusDays(1)).validate().isEmpty())
+    }
+
+    @Test
+    fun toStationKeepsElectricityOnlyForOvernightStations() {
+        val input = valid.copy(
+            type = StationType.FUEL,
+            electricityBilling = ElectricityBilling.FLAT_PER_STAY,
+            electricityFlatAmount = "12",
+        )
+        val station = input.toStation(null)
+        assertNull(station.electricityBilling)
+        assertNull(station.electricityCurrency)
+        assertNull(station.electricityFlatAmount)
+    }
+
+    @Test
+    fun toStationKeepsElectricityForOvernightStations() {
+        val input = valid.copy(
+            electricityBilling = ElectricityBilling.FLAT_PER_NIGHT,
+            electricityCurrency = EUR,
+            electricityFlatAmount = "12,50",
+        )
+        val station = input.toStation(null, Locale.GERMANY)
+        assertEquals(ElectricityBilling.FLAT_PER_NIGHT, station.electricityBilling)
+        assertEquals(EUR, station.electricityCurrency)
+        assertEquals(Money(1250, EUR), station.electricityFlatAmount)
+    }
+
+    @Test
+    fun toStationKeepsTollFieldsOnlyForTollStations() {
+        val station = validToll.copy(
+            tollKind = TollKind.VIGNETTE,
+            tollPaymentMethod = "App",
+            tollCountry = "at",
+            tollValidFrom = LocalDate.of(2026, 1, 1),
+            tollValidUntil = LocalDate.of(2026, 12, 31),
+        ).toStation(null)
+        assertEquals(TollKind.VIGNETTE, station.tollKind)
+        assertEquals("App", station.tollPaymentMethod)
+        assertEquals("AT", station.tollCountry)
+        assertEquals(LocalDate.of(2026, 1, 1), station.tollValidFrom)
+        assertEquals(LocalDate.of(2026, 12, 31), station.tollValidUntil)
+
+        val notToll = validToll.copy(type = StationType.OVERNIGHT, nights = "1", tollKind = TollKind.VIGNETTE, tollCountry = "at").toStation(null)
+        assertNull(notToll.tollKind)
+        assertNull(notToll.tollCountry)
+        assertEquals("", notToll.tollPaymentMethod)
+    }
+
+    @Test
+    fun toStationKeepsFerryBookingReferenceOnlyForFerryStations() {
+        val ferry = validFerry.copy(ferryBookingReference = "ABC-123").toStation(null)
+        assertEquals("ABC-123", ferry.ferryBookingReference)
+
+        val notFerry = valid.copy(ferryBookingReference = "ABC-123").toStation(null)
+        assertEquals("", notFerry.ferryBookingReference)
+    }
+
+    @Test
+    fun toStationKeepsCostsFromTheOriginalStation() {
+        val original = valid.toStation(null).copy(
+            id = 7,
+            costs = listOf(StationCost(CostCategory.PITCH, Money(1500, EUR))),
+        )
+        val station = valid.copy(name = "Anderer Name").toStation(original)
+        assertEquals(listOf(StationCost(CostCategory.PITCH, Money(1500, EUR))), station.costs)
+    }
+
+    @Test
+    fun roundTripThroughInputIsLosslessWithElectricityFields() {
+        val station = valid.toStation(null).copy(
+            electricityBilling = ElectricityBilling.BASE_PLUS_METERED,
+            electricityCurrency = EUR,
+            electricityBaseFee = Money(300, EUR),
+            electricityPricePerKwh = BigDecimal("0.35"),
+            electricityMeterStart = BigDecimal("100.5"),
+            electricityMeterEnd = BigDecimal("110.25"),
+        )
+        assertEquals(station, station.toInput(Locale.GERMANY).toStation(station, Locale.GERMANY))
+    }
+
+    @Test
+    fun roundTripThroughInputIsLosslessForTollStations() {
+        val station = validToll.toStation(null).copy(
+            tollKind = TollKind.VIGNETTE,
+            tollPaymentMethod = "App",
+            tollCountry = "AT",
+            tollValidFrom = LocalDate.of(2026, 1, 1),
+            tollValidUntil = LocalDate.of(2026, 12, 31),
+        )
+        assertEquals(station, station.toInput().toStation(station))
     }
 }
