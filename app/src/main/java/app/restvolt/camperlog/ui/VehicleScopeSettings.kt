@@ -1,10 +1,13 @@
-package app.restvolt.camperlog.ui.tours
+package app.restvolt.camperlog.ui
 
 import android.content.Context
 import androidx.core.content.edit
 
-/** Persist the tours-only "all vehicles" view filter; the current vehicle itself lives in Room. */
-class ToursFilterSettings(context: Context) {
+/**
+ * Persistiert die Ansichtseinstellung "Alle Fahrzeuge", die sich Touren- und Stationen-Reiter
+ * teilen (2.4); das aktuelle Fahrzeug selbst liegt in Room.
+ */
+class VehicleScopeSettings(context: Context) {
     private val preferences = context.getSharedPreferences("tours_filter", Context.MODE_PRIVATE)
 
     var allVehicles: Boolean

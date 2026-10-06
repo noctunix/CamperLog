@@ -13,6 +13,12 @@ fun supportedLocale(locale: Locale): Locale =
 fun formatDate(date: LocalDate, locale: Locale = Locale.getDefault()): String =
     DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(supportedLocale(locale)).format(date)
 
+/** Month and year in upper case for a sticky list header, e.g. "JULY 2026" / "JULI 2026" (6.3). */
+fun formatMonthYear(date: LocalDate, locale: Locale = Locale.getDefault()): String {
+    val resolved = supportedLocale(locale)
+    return DateTimeFormatter.ofPattern("LLLL yyyy", resolved).format(date).uppercase(resolved)
+}
+
 /** Display a range or just one date for a day trip. */
 fun Tour.period(locale: Locale = Locale.getDefault()): String =
     if (startDate == endDate) {

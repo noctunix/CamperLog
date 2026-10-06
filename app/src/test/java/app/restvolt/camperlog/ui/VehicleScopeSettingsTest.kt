@@ -1,4 +1,4 @@
-package app.restvolt.camperlog.ui.tours
+package app.restvolt.camperlog.ui
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
@@ -11,7 +11,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
-class ToursFilterSettingsTest {
+class VehicleScopeSettingsTest {
 
     @Test
     fun defaultsOffAndChangeSurvivesNewSettingsInstance() {
@@ -19,11 +19,11 @@ class ToursFilterSettingsTest {
         val preferences = context.getSharedPreferences("tours_filter", Context.MODE_PRIVATE)
         preferences.edit().clear().commit()
         try {
-            assertFalse(ToursFilterSettings(context).allVehicles)
+            assertFalse(VehicleScopeSettings(context).allVehicles)
 
-            ToursFilterSettings(context).allVehicles = true
+            VehicleScopeSettings(context).allVehicles = true
 
-            assertEquals(true, ToursFilterSettings(context).allVehicles)
+            assertEquals(true, VehicleScopeSettings(context).allVehicles)
         } finally {
             preferences.edit().clear().commit()
         }

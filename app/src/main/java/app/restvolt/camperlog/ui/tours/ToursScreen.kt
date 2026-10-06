@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -130,7 +131,12 @@ fun ToursScreen(
                     } else {
                         null
                     }
-                    TourCard(tour = tour, vehicleName = vehicleName, onClick = { onOpenTour(tour.id) })
+                    TourCard(
+                        tour = tour,
+                        vehicleName = vehicleName,
+                        stationCount = state.stationCounts[tour.id] ?: 0,
+                        onClick = { onOpenTour(tour.id) },
+                    )
                 }
             }
         }
@@ -222,7 +228,7 @@ private fun YearFilter(years: List<Int>, selected: Int?, onSelect: (Int?) -> Uni
 }
 
 @Composable
-private fun TourCard(tour: Tour, vehicleName: String?, onClick: () -> Unit) {
+private fun TourCard(tour: Tour, vehicleName: String?, stationCount: Int, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -248,7 +254,13 @@ private fun TourCard(tour: Tour, vehicleName: String?, onClick: () -> Unit) {
                 } else {
                     stringResource(R.string.tours_row_meta, tour.year, stringResource(tour.tourType.labelRes))
                 }
-                Text(meta, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // Stationsanzahl nur bei > 0 anfügen (6.1).
+                val metaWithStations = if (stationCount > 0) {
+                    "$meta · ${pluralStringResource(R.plurals.tours_row_station_count, stationCount, stationCount)}"
+                } else {
+                    meta
+                }
+                Text(metaWithStations, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

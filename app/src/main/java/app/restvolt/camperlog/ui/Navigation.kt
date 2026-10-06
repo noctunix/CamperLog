@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui
 
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -20,6 +21,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.createSavedStateHandle
@@ -41,6 +43,7 @@ import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.LogType
+import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TourRepository
@@ -78,9 +81,11 @@ import app.restvolt.camperlog.ui.rates.RateEditViewModel
 import app.restvolt.camperlog.ui.rates.RatesScreen
 import app.restvolt.camperlog.ui.rates.RatesViewModel
 import app.restvolt.camperlog.ui.settings.SettingsScreen
+import app.restvolt.camperlog.ui.stations.StationsScreen
+import app.restvolt.camperlog.ui.stations.StationsViewModel
+import app.restvolt.camperlog.ui.stations.StationsWhatsNewSettings
 import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
-import app.restvolt.camperlog.ui.tours.ToursFilterSettings
 import app.restvolt.camperlog.ui.tours.ToursScreen
 import app.restvolt.camperlog.ui.tours.ToursViewModel
 import app.restvolt.camperlog.ui.vehicle.VehicleScreen
@@ -93,6 +98,10 @@ import java.time.LocalDate
 
 @Serializable
 internal object ToursRoute
+
+/** Stationen-Reiter (6.3): fahrzeugübergreifende Liste mit Suche, Filtern und FAB. */
+@Serializable
+internal object StationsRoute
 
 @Serializable
 internal object LogbookRoute
@@ -139,8 +148,12 @@ internal data class StationEditRoute(
     val prefillPlace: String? = null,
 )
 
+/**
+ * [fromStationsTab] unterscheidet, ob die Station vom Stationen-Reiter aus geöffnet wurde (dann hat
+ * [StationsRoute] den Löschkanal) oder von der Tourdetailseite aus (dann [DetailRoute]).
+ */
 @Serializable
-internal data class StationDetailRoute(val stationId: Long)
+internal data class StationDetailRoute(val stationId: Long, val fromStationsTab: Boolean = false)
 
 /** [vehicleId] `null` zeigt die Kennzahlen aller Fahrzeuge, sonst nur die von [vehicleId]. */
 @Serializable
@@ -236,7 +249,7 @@ fun CamperLogNavHost(
         composable<ToursRoute> {
             val context = LocalContext.current
             ToursScreen(
-                viewModel = viewModel { ToursViewModel(repository, vehicles, ToursFilterSettings(context)) },
+                viewModel = viewModel { ToursViewModel(repository, vehicles, stations, VehicleScopeSettings(context)) },
                 onAddTour = { navController.navigate(EditRoute()) },
                 onOpenOverview = { vehicleId -> navController.navigate(OverviewRoute(vehicleId)) },
                 onOpenData = { navController.navigate(DataRoute) },
@@ -245,6 +258,31 @@ fun CamperLogNavHost(
                 onOpenVehicles = { navController.navigate(VehiclesRoute) },
                 bottomBar = bottomBar,
             )
+        }
+        composable<StationsRoute> {
+            val context = LocalContext.current
+            var stationsTypePicker by rememberSaveable { mutableStateOf(false) }
+            StationsScreen(
+                viewModel = viewModel {
+                    StationsViewModel(stations, repository, vehicles, VehicleScopeSettings(context), StationsWhatsNewSettings(context))
+                },
+                onAddStop = { stationsTypePicker = true },
+                onOpenTour = { tourId -> navController.navigate(DetailRoute(tourId)) },
+                onOpenStation = { stationId -> navController.navigate(StationDetailRoute(stationId, fromStationsTab = true)) },
+                onOpenData = { navController.navigate(DataRoute) },
+                onOpenSettings = { navController.navigate(SettingsRoute) },
+                onOpenVehicles = { navController.navigate(VehiclesRoute) },
+                bottomBar = bottomBar,
+            )
+            if (stationsTypePicker) {
+                StationTypePickerSheet(
+                    onSelect = { type ->
+                        stationsTypePicker = false
+                        navController.navigate(StationEditRoute(initialType = type.name))
+                    },
+                    onDismiss = { stationsTypePicker = false },
+                )
+            }
         }
         composable<LogbookRoute> {
             LogbookScreen(
@@ -311,7 +349,7 @@ fun CamperLogNavHost(
         }
         composable<EditRoute> { entry ->
             val tourId = entry.toRoute<EditRoute>().tourId
-            val toursViewModel = navController.toursViewModel(entry, repository, vehicles)
+            val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations)
             EditTourScreen(
                 viewModel = viewModel { EditTourViewModel(repository, vehicles, tourId, createSavedStateHandle()) },
                 onDone = { navController.popFrom(entry) },
@@ -323,7 +361,7 @@ fun CamperLogNavHost(
         }
         composable<DetailRoute> { entry ->
             val tourId = entry.toRoute<DetailRoute>().tourId
-            val toursViewModel = navController.toursViewModel(entry, repository, vehicles)
+            val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations)
             TourDetailScreen(
                 viewModel = viewModel { TourDetailViewModel(repository, vehicles, stations, tourId) },
                 onBack = { navController.popFrom(entry) },
@@ -363,15 +401,26 @@ fun CamperLogNavHost(
         }
         composable<StationDetailRoute> { entry ->
             val route = entry.toRoute<StationDetailRoute>()
-            val tourDetailViewModel = navController.tourDetailViewModel(entry, repository, vehicles, stations)
+            // Je nach Herkunft trägt entweder der Stationen-Reiter oder die Tourdetailseite den Löschkanal.
+            val deleteStation: (Station) -> Unit = if (route.fromStationsTab) {
+                val stationsViewModel = navController.stationsViewModel(entry, stations, repository, vehicles)
+                stationsViewModel::deleteStation
+            } else {
+                val tourDetailViewModel = navController.tourDetailViewModel(entry, repository, vehicles, stations)
+                tourDetailViewModel::deleteStation
+            }
             StationDetailScreen(
                 viewModel = viewModel { StationDetailViewModel(stations, repository, route.stationId) },
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(StationEditRoute(stationId = route.stationId)) },
-                onOpenTour = { navController.popFrom(entry) },
+                onOpenTour = if (route.fromStationsTab) {
+                    { tourId -> navController.navigate(DetailRoute(tourId)) }
+                } else {
+                    { navController.popFrom(entry) }
+                },
                 onDelete = { station ->
                     if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                        tourDetailViewModel.deleteStation(station)
+                        deleteStation(station)
                         navController.popBackStack()
                     }
                 },
@@ -459,21 +508,27 @@ fun CamperLogNavHost(
     }
 }
 
-/** Untere Navigationsleiste der drei Hauptreiter; erneutes Tippen kehrt zur Wurzel des Reiters zurück. */
+/** Untere Navigationsleiste der vier Hauptreiter (2.1); erneutes Tippen kehrt zur Wurzel des Reiters zurück. */
 @Composable
 private fun CamperLogBottomBar(navController: NavController, current: NavDestination?, reminderCount: Int) {
     NavigationBar {
         NavigationBarItem(
             selected = current.isOnTab<ToursRoute>(),
             onClick = { navController.navigateToTab(ToursRoute) },
-            icon = { Icon(painterResource(R.drawable.ic_map), contentDescription = null) },
-            label = { Text(stringResource(R.string.nav_tours)) },
+            icon = { Icon(painterResource(R.drawable.ic_route), contentDescription = null) },
+            label = { NavLabel(stringResource(R.string.nav_tours)) },
+        )
+        NavigationBarItem(
+            selected = current.isOnTab<StationsRoute>(),
+            onClick = { navController.navigateToTab(StationsRoute) },
+            icon = { Icon(painterResource(R.drawable.ic_location_on), contentDescription = null) },
+            label = { NavLabel(stringResource(R.string.nav_stops)) },
         )
         NavigationBarItem(
             selected = current.isOnTab<LogbookRoute>(),
             onClick = { navController.navigateToTab(LogbookRoute) },
             icon = { Icon(painterResource(R.drawable.ic_book), contentDescription = null) },
-            label = { Text(stringResource(R.string.nav_logbook)) },
+            label = { NavLabel(stringResource(R.string.nav_logbook)) },
         )
         val vehicleLabel = stringResource(R.string.nav_vehicle)
         val vehicleItemModifier = if (reminderCount > 0) {
@@ -490,10 +545,24 @@ private fun CamperLogBottomBar(navController: NavController, current: NavDestina
                     Icon(painterResource(R.drawable.ic_directions_car), contentDescription = null)
                 }
             },
-            label = { Text(vehicleLabel) },
+            label = { NavLabel(vehicleLabel) },
             modifier = vehicleItemModifier,
         )
     }
+}
+
+/**
+ * Beschriftung eines Hauptreiters, einzeilig und bei Bedarf verkleinert (2.1): mit 4 Reitern bricht
+ * "Stationen"/"Bordbuch" sonst schon bei 1.5x mittendrin ab, weil Compose nicht trennt.
+ */
+@Composable
+private fun NavLabel(text: String) {
+    Text(
+        text,
+        maxLines = 1,
+        softWrap = false,
+        autoSize = TextAutoSize.StepBased(minFontSize = 9.sp),
+    )
 }
 
 private inline fun <reified T : Any> NavDestination?.isOnTab(): Boolean = this?.hierarchy?.any { it.hasRoute<T>() } == true
@@ -516,10 +585,11 @@ private fun NavController.toursViewModel(
     entry: NavBackStackEntry,
     repository: TourRepository,
     vehicles: VehicleRepository,
+    stations: StationRepository,
 ): ToursViewModel {
     val toursEntry = remember(entry) { getBackStackEntry<ToursRoute>() }
     val context = LocalContext.current
-    return viewModel(viewModelStoreOwner = toursEntry) { ToursViewModel(repository, vehicles, ToursFilterSettings(context)) }
+    return viewModel(viewModelStoreOwner = toursEntry) { ToursViewModel(repository, vehicles, stations, VehicleScopeSettings(context)) }
 }
 
 /**
@@ -546,6 +616,24 @@ private fun NavController.tourDetailViewModel(
     val detailEntry = remember(entry) { getBackStackEntry<DetailRoute>() }
     val tourId = detailEntry.toRoute<DetailRoute>().tourId
     return viewModel(viewModelStoreOwner = detailEntry) { TourDetailViewModel(tours, vehicles, stations, tourId) }
+}
+
+/**
+ * Das [StationsViewModel] des Stationen-Reiters, damit das Stationsdetail dort die Löschmeldung
+ * auslöst, wenn es vom Stationen-Reiter aus geöffnet wurde ([StationDetailRoute.fromStationsTab]).
+ */
+@Composable
+private fun NavController.stationsViewModel(
+    entry: NavBackStackEntry,
+    stations: StationRepository,
+    tours: TourRepository,
+    vehicles: VehicleRepository,
+): StationsViewModel {
+    val stationsEntry = remember(entry) { getBackStackEntry<StationsRoute>() }
+    val context = LocalContext.current
+    return viewModel(viewModelStoreOwner = stationsEntry) {
+        StationsViewModel(stations, tours, vehicles, VehicleScopeSettings(context), StationsWhatsNewSettings(context))
+    }
 }
 
 /** Verlässt [entry] nur, solange er sichtbar ist; verhindert doppeltes Zurück bei schnellem Tippen. */

@@ -79,6 +79,10 @@
     <string name="tours_open_details">Details öffnen</string>
     <string name="tours_row_meta">Jahr %1$d · %2$s</string>
     <string name="tours_row_meta_vehicle">Jahr %1$d · %2$s · %3$s</string>
+    <plurals name="tours_row_station_count">
+        <item quantity="one">%1$d Station</item>
+        <item quantity="other">%1$d Stationen</item>
+    </plurals>
     <string name="tours_empty">Noch keine Touren. Lege mit „Neue Tour“ die erste Fahrt an.</string>
     <string name="tours_no_match">Keine Tour passt zu Suche und Filter.</string>
     <string name="tours_deleted">„%1$s“ gelöscht</string>
@@ -589,4 +593,24 @@
         <item quantity="one">Genauigkeit %1$d Meter</item>
         <item quantity="other">Genauigkeit %1$d Meter</item>
     </plurals>
+
+    <!-- Untere Navigation: Stationen-Reiter -->
+    <string name="nav_stops">Stationen</string>
+
+    <!-- Stationen-Reiter (6.3) -->
+    <string name="stations_title">Stationen</string>
+    <string name="stations_search">Station suchen</string>
+    <string name="stations_filter_all">Alle</string>
+    <string name="stations_empty">Noch keine Stationen. Halte fest, wo du übernachtet, entsorgt oder getankt hast – mit „Neue Station“.</string>
+    <string name="stations_no_match">Keine Station passt zu Suche und Filter.</string>
+    <string name="stations_running_tour_title">Laufende Tour</string>
+    <string name="stations_running_tour_meta">%1$s · Tag %2$d von %3$d</string>
+    <string name="stations_whats_new_text">Neu: Stationen. Deine bisherigen Stellplatz-Angaben stehen jetzt als Schlafplätze in deinen Touren.</string>
+
+    <!-- Daten-Screen: Stationen-CSV-Export -->
+    <string name="stations_export_csv">Stationen als CSV exportieren</string>
+    <string name="export_stations_nothing">Noch keine Stationen zum Exportieren</string>
+    <string name="export_stations_failed">CSV-Export der Stationen fehlgeschlagen</string>
+    <string name="export_stations_subject">CamperLog-Stationen</string>
+    <string name="export_stations_chooser">Stationen exportieren</string>
 </resources>

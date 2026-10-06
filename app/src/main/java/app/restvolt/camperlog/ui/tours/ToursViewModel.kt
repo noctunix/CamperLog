@@ -5,10 +5,13 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.ui.VehicleScopeSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +33,8 @@ data class ToursUiState(
     val currentVehicleId: Long = 0,
     /** Ob gerade die Touren aller Fahrzeuge angezeigt werden statt nur die des aktuellen. */
     val showAllVehicles: Boolean = false,
+    /** Anzahl Stationen je Tour, für die Kartenzeile "· 9 Stationen" (6.1); fehlende Einträge heißen 0. */
+    val stationCounts: Map<Long, Int> = emptyMap(),
 )
 
 /** Zwischenergebnis der Fahrzeugfilterung, bevor Suche und Jahr angewendet werden. */
@@ -38,6 +43,7 @@ private data class VehicleFilter(
     val vehicles: List<Vehicle>,
     val currentVehicleId: Long,
     val allVehicles: Boolean,
+    val stationCounts: Map<Long, Int>,
 )
 
 /** Rückmeldungen, die die Tourenliste als Snackbar anzeigt. */
@@ -51,7 +57,8 @@ sealed interface ToursMessage {
 class ToursViewModel(
     private val repository: TourRepository,
     private val vehicles: VehicleRepository,
-    private val filterSettings: ToursFilterSettings,
+    private val stations: StationRepository,
+    private val filterSettings: VehicleScopeSettings,
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
@@ -64,7 +71,11 @@ class ToursViewModel(
             vehicles.observeVehicles(),
             vehicles.observeCurrentVehicle(),
             showAllVehicles,
-        ) { tours, vehicleList, current, allVehicles -> VehicleFilter(tours, vehicleList, current.id, allVehicles) },
+            stations.observeForVehicle(null),
+        ) { tours, vehicleList, current, allVehicles, allStations ->
+            val counts = allStations.mapNotNull(Station::tourId).groupingBy { it }.eachCount()
+            VehicleFilter(tours, vehicleList, current.id, allVehicles, counts)
+        },
         query,
         selectedYear,
     ) { filter, query, year ->
@@ -84,6 +95,7 @@ class ToursViewModel(
             vehicles = filter.vehicles,
             currentVehicleId = filter.currentVehicleId,
             showAllVehicles = filter.allVehicles,
+            stationCounts = filter.stationCounts,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ToursUiState())
 

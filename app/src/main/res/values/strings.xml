@@ -79,6 +79,10 @@
     <string name="tours_open_details">Open details</string>
     <string name="tours_row_meta">Year %1$d · %2$s</string>
     <string name="tours_row_meta_vehicle">Year %1$d · %2$s · %3$s</string>
+    <plurals name="tours_row_station_count">
+        <item quantity="one">%1$d stop</item>
+        <item quantity="other">%1$d stops</item>
+    </plurals>
     <string name="tours_empty">No tours yet. Tap “New tour” to add your first trip.</string>
     <string name="tours_no_match">No tours match your search and filters.</string>
     <string name="tours_deleted">“%1$s” deleted</string>
@@ -402,7 +406,7 @@
     <string name="vehicles_delete_confirm_title">Delete vehicle?</string>
     <string name="vehicles_delete_confirm_text">%1$s and all its data will be deleted permanently.</string>
     <string name="vehicles_delete_refused_title">Cannot delete vehicle</string>
-    <string name="vehicles_delete_refused_tours_text">%1$s still has tours assigned. Move or delete them first.</string>
+    <string name="vehicles_delete_refused_tours_text">%1$s still has tours or stops assigned. Move or delete them first.</string>
     <string name="vehicles_delete_refused_last_text">This is the last remaining vehicle. CamperLog needs at least one.</string>
     <string name="vehicles_deleted">%1$s deleted</string>
     <string name="vehicles_delete_failed">Could not delete vehicle.</string>
