@@ -562,6 +562,7 @@ private fun energyRows(vehicle: Vehicle, locale: Locale): List<Pair<String, Stri
 private fun maintenanceRows(vehicle: Vehicle, locale: Locale): List<Pair<String, String>> = buildList {
     vehicle.nextInspectionDate?.let { add(stringResource(R.string.field_next_inspection) to formatDate(it, locale)) }
     vehicle.nextGasCheckDate?.let { add(stringResource(R.string.field_next_gas_check) to formatDate(it, locale)) }
+    vehicle.nextLeakTestDate?.let { add(stringResource(R.string.field_next_leak_test) to formatDate(it, locale)) }
     vehicle.lastOilChangeDate?.let { add(stringResource(R.string.field_last_oil_change) to formatDate(it, locale)) }
     vehicle.lastOilChangeOdometerKm?.let { add(stringResource(R.string.field_last_oil_change_odometer) to stringResource(R.string.distance_km, it)) }
 }

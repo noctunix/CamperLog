@@ -420,6 +420,12 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 { date -> change { it.copy(nextGasCheckDate = date) } },
             )
             DateField(
+                stringResource(R.string.field_next_leak_test),
+                input.nextLeakTestDate,
+                null,
+                { date -> change { it.copy(nextLeakTestDate = date) } },
+            )
+            DateField(
                 stringResource(R.string.field_last_oil_change),
                 input.lastOilChangeDate,
                 errorOf(VehicleField.LAST_OIL_CHANGE_DATE),

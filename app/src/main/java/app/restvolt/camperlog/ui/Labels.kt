@@ -273,6 +273,7 @@ val ReminderKind.labelRes: Int
     get() = when (this) {
         ReminderKind.INSPECTION -> R.string.reminder_kind_inspection
         ReminderKind.GAS_CHECK -> R.string.reminder_kind_gas_check
+        ReminderKind.LEAK_TEST -> R.string.reminder_kind_leak_test
         ReminderKind.OIL_CHANGE -> R.string.reminder_kind_oil_change
     }
 

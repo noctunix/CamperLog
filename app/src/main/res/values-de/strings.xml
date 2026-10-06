@@ -321,6 +321,7 @@
     <string name="field_amount_with_currency">%1$s (%2$s)</string>
     <string name="field_next_inspection">Nächste HU (TÜV)</string>
     <string name="field_next_gas_check">Nächste Gasprüfung</string>
+    <string name="field_next_leak_test">Nächste Dichtheitsprüfung</string>
     <string name="field_last_oil_change">Letzter Ölwechsel</string>
     <string name="field_last_oil_change_odometer">km-Stand beim Ölwechsel</string>
     <string name="field_date">Datum</string>
@@ -387,6 +388,7 @@
     <!-- Erinnerungen -->
     <string name="reminder_kind_inspection">HU (TÜV)</string>
     <string name="reminder_kind_gas_check">Gasprüfung</string>
+    <string name="reminder_kind_leak_test">Dichtheitsprüfung</string>
     <string name="reminder_kind_oil_change">Ölwechsel</string>
     <string name="reminder_overdue">%1$s überfällig seit %2$s</string>
     <plurals name="reminder_due_soon">

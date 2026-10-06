@@ -321,6 +321,7 @@
     <string name="field_amount_with_currency">%1$s (%2$s)</string>
     <string name="field_next_inspection">Next inspection (MOT)</string>
     <string name="field_next_gas_check">Next gas check</string>
+    <string name="field_next_leak_test">Next leak test</string>
     <string name="field_last_oil_change">Last oil change</string>
     <string name="field_last_oil_change_odometer">Odometer at oil change</string>
     <string name="field_date">Date</string>
@@ -387,6 +388,7 @@
     <!-- Reminders -->
     <string name="reminder_kind_inspection">Inspection</string>
     <string name="reminder_kind_gas_check">Gas check</string>
+    <string name="reminder_kind_leak_test">Leak test</string>
     <string name="reminder_kind_oil_change">Oil change</string>
     <string name="reminder_overdue">%1$s overdue since %2$s</string>
     <plurals name="reminder_due_soon">
