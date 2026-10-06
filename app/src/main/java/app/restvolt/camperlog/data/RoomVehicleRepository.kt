@@ -57,7 +57,7 @@ class RoomVehicleRepository(
 
     override suspend fun delete(id: Long): VehicleDeleteResult {
         if (dao.countVehicles() <= 1) return VehicleDeleteResult.LAST_VEHICLE
-        if (dao.countToursForVehicle(id) > 0) return VehicleDeleteResult.HAS_TOURS
+        if (dao.countToursForVehicle(id) > 0 || dao.countStationsForVehicle(id) > 0) return VehicleDeleteResult.HAS_TOURS_OR_STATIONS
         dao.deleteById(id)
         return VehicleDeleteResult.DELETED
     }

@@ -50,7 +50,7 @@ class VehiclesViewModel(private val repository: VehicleRepository) : ViewModel()
             _message.value = try {
                 when (val result = repository.delete(vehicle.id)) {
                     VehicleDeleteResult.DELETED -> VehiclesMessage.Deleted(vehicle)
-                    VehicleDeleteResult.HAS_TOURS, VehicleDeleteResult.LAST_VEHICLE -> VehiclesMessage.DeleteRefused(vehicle, result)
+                    VehicleDeleteResult.HAS_TOURS_OR_STATIONS, VehicleDeleteResult.LAST_VEHICLE -> VehiclesMessage.DeleteRefused(vehicle, result)
                 }
             } catch (_: SQLException) {
                 VehiclesMessage.Failed

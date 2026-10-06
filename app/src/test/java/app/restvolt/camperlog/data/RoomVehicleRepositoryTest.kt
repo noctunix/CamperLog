@@ -123,10 +123,20 @@ class RoomVehicleRepositoryTest {
 
         val secondId = repository.save(vehicle(name = "Zweites"))
         addTourFor(onlyId)
-        assertEquals(VehicleDeleteResult.HAS_TOURS, repository.delete(onlyId))
+        assertEquals(VehicleDeleteResult.HAS_TOURS_OR_STATIONS, repository.delete(onlyId))
 
         assertEquals(VehicleDeleteResult.DELETED, repository.delete(secondId))
         assertNull(repository.observeVehicle(secondId).first())
+    }
+
+    @Test
+    fun deleteRefusesAVehicleWithStationsButWithoutTours() = runTest {
+        val onlyId = repository.save(vehicle(name = "Einzig"))
+        val secondId = repository.save(vehicle(name = "Zweites"))
+        addStationFor(onlyId)
+
+        assertEquals(VehicleDeleteResult.HAS_TOURS_OR_STATIONS, repository.delete(onlyId))
+        assertEquals(VehicleDeleteResult.DELETED, repository.delete(secondId))
     }
 
     @Test
@@ -203,6 +213,44 @@ class RoomVehicleRepositoryTest {
                 updatedAtMillis = 0,
             ),
             emptyList(),
+        )
+    }
+
+    private suspend fun addStationFor(vehicleId: Long) {
+        db.stationDao().insert(
+            StationEntity(
+                uuid = UUID.randomUUID().toString(),
+                vehicleId = vehicleId,
+                tourId = null,
+                type = "OTHER",
+                date = "2026-05-01",
+                time = null,
+                name = "",
+                place = "",
+                latitude = null,
+                longitude = null,
+                coordinateSource = null,
+                accuracyM = null,
+                mapLink = null,
+                notes = "",
+                nights = null,
+                siteKind = null,
+                pitchAssigned = null,
+                electricityFlatRate = null,
+                lteQuality = null,
+                pitchSlope = null,
+                levelingBlocksUsed = null,
+                services = "",
+                weatherTemperatureDeciC = null,
+                weatherCode = null,
+                weatherWindKmh = null,
+                weatherGustKmh = null,
+                weatherWindDirectionDeg = null,
+                weatherObservedAtMillis = null,
+                favorite = false,
+                createdAtMillis = 0,
+                updatedAtMillis = 0,
+            ),
         )
     }
 

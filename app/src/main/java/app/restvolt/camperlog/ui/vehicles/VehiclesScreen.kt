@@ -129,7 +129,7 @@ fun VehiclesScreen(viewModel: VehiclesViewModel, onBack: () -> Unit, onAdd: () -
             onDismissRequest = { refused = null },
             title = { Text(stringResource(R.string.vehicles_delete_refused_title)) },
             text = {
-                val text = if (result.reason == VehicleDeleteResult.HAS_TOURS) {
+                val text = if (result.reason == VehicleDeleteResult.HAS_TOURS_OR_STATIONS) {
                     stringResource(R.string.vehicles_delete_refused_tours_text, displayNameOf(result.vehicle))
                 } else {
                     stringResource(R.string.vehicles_delete_refused_last_text)

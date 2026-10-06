@@ -402,7 +402,7 @@
     <string name="vehicles_delete_confirm_title">Fahrzeug löschen?</string>
     <string name="vehicles_delete_confirm_text">%1$s wird mit allen Daten unwiderruflich gelöscht.</string>
     <string name="vehicles_delete_refused_title">Fahrzeug kann nicht gelöscht werden</string>
-    <string name="vehicles_delete_refused_tours_text">%1$s hat noch zugeordnete Touren. Verschiebe oder lösche sie zuerst.</string>
+    <string name="vehicles_delete_refused_tours_text">%1$s hat noch Touren oder Stationen. Verschiebe oder lösche sie zuerst.</string>
     <string name="vehicles_delete_refused_last_text">Das ist das letzte verbleibende Fahrzeug. CamperLog benötigt mindestens eines.</string>
     <string name="vehicles_deleted">%1$s gelöscht</string>
     <string name="vehicles_delete_failed">Fahrzeug konnte nicht gelöscht werden.</string>

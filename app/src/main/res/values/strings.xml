@@ -596,4 +596,24 @@
         <item quantity="one">accuracy %1$d metre</item>
         <item quantity="other">accuracy %1$d metres</item>
     </plurals>
+
+    <!-- Bottom navigation: Stops tab -->
+    <string name="nav_stops">Stops</string>
+
+    <!-- Stops tab (6.3) -->
+    <string name="stations_title">Stops</string>
+    <string name="stations_search">Search stops</string>
+    <string name="stations_filter_all">All</string>
+    <string name="stations_empty">No stops yet. Note where you slept, emptied or fuelled up – with “New stop”.</string>
+    <string name="stations_no_match">No stop matches search and filter.</string>
+    <string name="stations_running_tour_title">Current tour</string>
+    <string name="stations_running_tour_meta">%1$s · Day %2$d of %3$d</string>
+    <string name="stations_whats_new_text">New: stops. Your earlier pitch details are now overnight stops in your tours.</string>
+
+    <!-- Data screen: stops CSV export -->
+    <string name="stations_export_csv">Export stops as CSV</string>
+    <string name="export_stations_nothing">No stops to export yet</string>
+    <string name="export_stations_failed">CSV export of stops failed</string>
+    <string name="export_stations_subject">CamperLog stops</string>
+    <string name="export_stations_chooser">Export stops</string>
 </resources>
