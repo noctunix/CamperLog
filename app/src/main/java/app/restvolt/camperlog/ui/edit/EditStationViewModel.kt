@@ -26,6 +26,10 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.domain.WeatherCaptureController
+import app.restvolt.camperlog.domain.WeatherCaptureState
+import app.restvolt.camperlog.domain.WeatherProvider
+import app.restvolt.camperlog.domain.WeatherResult
 import app.restvolt.camperlog.domain.defaultStationDate
 import app.restvolt.camperlog.domain.parseLocationText
 import app.restvolt.camperlog.domain.toInput
@@ -85,6 +89,7 @@ class EditStationViewModel(
     prefillPlace: String? = null,
     locationProvider: LocationProvider = NoOpLocationProvider,
     locationPermissionGate: LocationPermissionGate = NoOpLocationPermissionGate,
+    weatherProvider: WeatherProvider = NoOpWeatherProvider,
     private val savedStateHandle: SavedStateHandle,
     private val today: () -> LocalDate = LocalDate::now,
     private val timeNow: () -> LocalTime = LocalTime::now,
@@ -92,6 +97,9 @@ class EditStationViewModel(
 
     /** Standortbestimmung für den Platzabschnitt (6.7), nur sichtbar, wenn die Oberfläche den Standort-Schalter an sieht. */
     val locationCapture = LocationCaptureController(locationProvider, locationPermissionGate, viewModelScope)
+
+    /** Wetterabfrage für die "Wetter"-Karte (6.8), nur sichtbar, wenn die Oberfläche den Wetter-Schalter an sieht. */
+    val weatherCapture = WeatherCaptureController(weatherProvider, viewModelScope)
 
     private val draft: StationDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)?.let { decodeFromSavedState(it) }
 
@@ -134,6 +142,14 @@ class EditStationViewModel(
                         )
                     }
                     locationCapture.clear()
+                }
+            }
+        }
+        viewModelScope.launch {
+            weatherCapture.state.collect { captureState ->
+                if (captureState is WeatherCaptureState.Success) {
+                    onInputChange { input -> input.copy(weather = captureState.snapshot) }
+                    weatherCapture.reset()
                 }
             }
         }
@@ -232,6 +248,17 @@ class EditStationViewModel(
         input.copy(latitude = null, longitude = null, coordinateSource = null, accuracyM = null)
     }
 
+    /** Tastendruck auf "Wetter abrufen"/"Aktualisieren" (6.8); ohne Koordinaten passiert nichts. */
+    fun onFetchWeather() {
+        val input = _uiState.value.input
+        val latitude = input.latitude ?: return
+        val longitude = input.longitude ?: return
+        weatherCapture.fetch(latitude, longitude)
+    }
+
+    /** "Entfernen" im Erfolgszustand der Wetterkarte (6.8). */
+    fun onRemoveWeather() = onInputChange { it.copy(weather = null) }
+
     /** Validiert und speichert; bei Erfolg wird [StationEditUiState.isSaved] gesetzt. */
     fun save() {
         val state = _uiState.value
@@ -288,4 +315,9 @@ private object NoOpLocationPermissionGate : LocationPermissionGate {
     override fun hasPermission(): Boolean = false
     override fun hasRequestedBefore(): Boolean = false
     override fun markRequested() = Unit
+}
+
+/** Platzhalter für Tests und Vorschauen ohne Netzwerk; liefert nie ein Ergebnis. */
+private object NoOpWeatherProvider : WeatherProvider {
+    override suspend fun fetchCurrent(latitude: Double, longitude: Double): WeatherResult = WeatherResult.Error
 }

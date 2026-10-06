@@ -100,6 +100,9 @@ import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LocationCaptureSection
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.WeatherFetchRow
+import app.restvolt.camperlog.ui.WeatherRefreshRow
+import app.restvolt.camperlog.ui.WeatherSummary
 import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
@@ -107,6 +110,7 @@ import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.locationFixSummary
 import app.restvolt.camperlog.ui.messageRes
 import app.restvolt.camperlog.ui.settings.LocationSettings
+import app.restvolt.camperlog.ui.settings.WeatherSettings
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.yesNoRes
 import java.time.LocalDate
@@ -120,11 +124,13 @@ import java.time.LocalTime
 fun EditStationScreen(
     viewModel: EditStationViewModel,
     locationSettings: LocationSettings,
+    weatherSettings: WeatherSettings,
     onDone: () -> Unit,
     onSaved: (Set<StationService>) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
+    val weatherEnabled by weatherSettings.values.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
@@ -165,6 +171,7 @@ fun EditStationScreen(
                 viewModel = viewModel,
                 locationEnabled = locationEnabled,
                 locationSettings = locationSettings,
+                weatherEnabled = weatherEnabled,
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
@@ -190,6 +197,7 @@ private fun StationForm(
     viewModel: EditStationViewModel,
     locationEnabled: Boolean,
     locationSettings: LocationSettings,
+    weatherEnabled: Boolean,
     modifier: Modifier,
 ) {
     val input = state.input
@@ -292,6 +300,9 @@ private fun StationForm(
                 onReveal = { revealCoordinates = true },
                 modifier = focusOf(StationField.COORDINATES),
             )
+            if (weatherEnabled && input.latitude == null) {
+                Text(stringResource(R.string.weather_no_coordinates_hint), style = MaterialTheme.typography.bodySmall)
+            }
         }
         val servicesError = errors[StationField.SERVICES]
         when (input.type) {
@@ -302,6 +313,9 @@ private fun StationForm(
             }
             StationType.FUEL -> FuelSection(input, change, servicesError)
             StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> Unit
+        }
+        if (weatherEnabled && input.latitude != null && input.longitude != null) {
+            WeatherSection(input, viewModel)
         }
         SectionCard {
             FormTextField(
@@ -421,6 +435,25 @@ private fun FuelSection(input: StationInput, change: ((StationInput) -> StationI
             summary = servicesSummary(SUPPLY_SERVICES, input.services),
         ) {
             ServicesChips(SUPPLY_SERVICES, input.services, servicesError) { service -> change { it.copy(services = it.services.toggled(service)) } }
+        }
+    }
+}
+
+/** "Wetter"-Karte (6.5, 6.8); nur sichtbar, wenn der Wetter-Schalter an ist und Koordinaten vorliegen. */
+@Composable
+private fun WeatherSection(input: StationInput, viewModel: EditStationViewModel) {
+    SectionCard {
+        SectionHeading(stringResource(R.string.station_section_weather))
+        if (input.date != LocalDate.now()) {
+            Text(stringResource(R.string.weather_date_not_today_body), style = MaterialTheme.typography.bodyMedium)
+        } else {
+            val weather = input.weather
+            if (weather != null) {
+                WeatherSummary(weather)
+                WeatherRefreshRow(viewModel.weatherCapture, onRefresh = viewModel::onFetchWeather, onRemove = viewModel::onRemoveWeather)
+            } else {
+                WeatherFetchRow(viewModel.weatherCapture, stringResource(R.string.weather_fetch_button), onFetch = viewModel::onFetchWeather)
+            }
         }
     }
 }

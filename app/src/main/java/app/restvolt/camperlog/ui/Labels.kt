@@ -36,6 +36,7 @@ import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleError
 import app.restvolt.camperlog.domain.VehicleField
+import app.restvolt.camperlog.domain.WeatherCondition
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.logRecency
 import java.time.LocalDate
@@ -373,6 +374,34 @@ fun stationSavedText(resources: android.content.res.Resources, loggedServices: S
     val names = loggedServices.sortedBy { it.ordinal }.joinToString(", ") { resources.getString(it.labelRes) }
     return resources.getString(R.string.station_saved_with_log, names)
 }
+
+/** Anzeigetext der Wetterlage (6.8). */
+@get:StringRes
+val WeatherCondition.labelRes: Int
+    get() = when (this) {
+        WeatherCondition.CLEAR -> R.string.weather_condition_clear
+        WeatherCondition.PARTLY_CLOUDY -> R.string.weather_condition_partly_cloudy
+        WeatherCondition.OVERCAST -> R.string.weather_condition_overcast
+        WeatherCondition.FOG -> R.string.weather_condition_fog
+        WeatherCondition.RAIN -> R.string.weather_condition_rain
+        WeatherCondition.FREEZING_RAIN -> R.string.weather_condition_freezing_rain
+        WeatherCondition.SNOW -> R.string.weather_condition_snow
+        WeatherCondition.THUNDERSTORM -> R.string.weather_condition_thunderstorm
+    }
+
+/** Symbol der Wetterlage (6.8), amtliche Material-Symbols-Pfaddaten auf das 24-Einheiten-Raster skaliert. */
+@get:DrawableRes
+val WeatherCondition.iconRes: Int
+    get() = when (this) {
+        WeatherCondition.CLEAR -> R.drawable.ic_clear_day
+        WeatherCondition.PARTLY_CLOUDY -> R.drawable.ic_partly_cloudy_day
+        WeatherCondition.OVERCAST -> R.drawable.ic_cloudy
+        WeatherCondition.FOG -> R.drawable.ic_foggy
+        WeatherCondition.RAIN -> R.drawable.ic_rainy
+        WeatherCondition.FREEZING_RAIN -> R.drawable.ic_weather_mix
+        WeatherCondition.SNOW -> R.drawable.ic_weather_snowy
+        WeatherCondition.THUNDERSTORM -> R.drawable.ic_thunderstorm
+    }
 
 /**
  * Sprechform von Koordinaten für TalkBack, z. B. „68,0912 Grad Nord, 13,1023 Grad Ost, Genauigkeit

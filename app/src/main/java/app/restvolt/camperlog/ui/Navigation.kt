@@ -39,9 +39,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.BuildConfig
 import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.data.AndroidLocationPermissionGate
 import app.restvolt.camperlog.data.AndroidLocationProvider
+import app.restvolt.camperlog.data.AndroidWeatherProvider
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.LocationProvider
@@ -53,12 +55,14 @@ import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.domain.WeatherProvider
 import app.restvolt.camperlog.domain.dueReminders
 import app.restvolt.camperlog.domain.shouldShowKeepAndroidOpen
 import app.restvolt.camperlog.ui.about.AboutScreen
 import app.restvolt.camperlog.ui.about.KeepAndroidOpenDialog
 import app.restvolt.camperlog.ui.about.KeepAndroidOpenSettings
 import app.restvolt.camperlog.ui.settings.LocationSettings
+import app.restvolt.camperlog.ui.settings.WeatherSettings
 import app.restvolt.camperlog.ui.data.AndroidDataFiles
 import app.restvolt.camperlog.ui.data.DataScreen
 import app.restvolt.camperlog.ui.data.DataViewModel
@@ -199,6 +203,8 @@ fun CamperLogNavHost(
     onGeoIntentHandled: () -> Unit = {},
     /** Standorthardware für das Stationsformular und "Wo bin ich?" (6.7); in Tests ein Fake. */
     locationProvider: LocationProvider = AndroidLocationProvider(LocalContext.current),
+    /** Wetterabfrage für die "Wetter"-Karte im Stationsformular (6.8); in Tests ein Fake. */
+    weatherProvider: WeatherProvider = AndroidWeatherProvider(userAgent = "CamperLog/${BuildConfig.VERSION_NAME} (+https://github.com/noctunix/CamperLog)"),
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -207,6 +213,7 @@ fun CamperLogNavHost(
     val reminderSettings = remember { ReminderSettings(context) }
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
     val locationSettings = remember { LocationSettings(context) }
+    val weatherSettings = remember { WeatherSettings(context) }
     val currentVehicleFlow = remember(vehicles) { vehicles.observeCurrentVehicle() }
     val currentVehicle by currentVehicleFlow.collectAsStateWithLifecycle(initialValue = null)
     val reminderCount = currentVehicle?.let { vehicle ->
@@ -238,6 +245,7 @@ fun CamperLogNavHost(
             onThemeModeChange = onThemeModeChange,
             reminderSettings = reminderSettings,
             locationSettings = locationSettings,
+            weatherSettings = weatherSettings,
             onFinished = {
                 introductionSettings.seen = true
                 showIntroductionTour = false
@@ -423,10 +431,12 @@ fun CamperLogNavHost(
                         prefillPlace = route.prefillPlace,
                         locationProvider = locationProvider,
                         locationPermissionGate = AndroidLocationPermissionGate(stationEditContext),
+                        weatherProvider = weatherProvider,
                         savedStateHandle = createSavedStateHandle(),
                     )
                 },
                 locationSettings = locationSettings,
+                weatherSettings = weatherSettings,
                 onDone = { navController.popFrom(entry) },
                 onSaved = { loggedServices ->
                     onStationSaved(loggedServices)
@@ -492,6 +502,7 @@ fun CamperLogNavHost(
                 onThemeModeChange = onThemeModeChange,
                 reminderSettings = reminderSettings,
                 locationSettings = locationSettings,
+                weatherSettings = weatherSettings,
                 onBack = { navController.popFrom(entry) },
                 onOpenRates = { navController.navigate(RatesRoute) },
                 onOpenAbout = { navController.navigate(AboutRoute) },

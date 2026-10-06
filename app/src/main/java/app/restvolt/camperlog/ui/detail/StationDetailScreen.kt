@@ -47,6 +47,7 @@ import app.restvolt.camperlog.share.openInMaps
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.WeatherSummary
 import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
@@ -177,6 +178,7 @@ private fun StationDetails(
 
             pitchDetailsText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
             servicesText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
+            station.weather?.let { WeatherSummary(it) }
         }
         if (station.notes.isNotBlank()) {
             SectionCard {
