@@ -27,12 +27,11 @@ data class BackupReminderInput(
 data class ReminderCheckOutcome(val backupWrittenAt: Instant? = null, val backupNotifiedBaseline: Instant? = null)
 
 /**
- * Logik des täglichen Hintergrund-Checks (1.9.0), losgelöst von [androidx.work.CoroutineWorker]:
+ * Logik des täglichen Hintergrund-Checks, losgelöst von [androidx.work.CoroutineWorker]:
  * liest alle Fahrzeuge, ermittelt fällige Wartungserinnerungen mit [dueReminders] und
  * [pendingReminderNotifications], benachrichtigt über [notifier] und aktualisiert [notificationStore].
  * Ist die Sicherung überfällig, schreibt sie bei aktivierter Automatik eine neue Sicherung in den
- * gewählten Ordner, sonst benachrichtigt sie stattdessen - nie beides, und nie stillschweigend nichts
- * (RESEARCH.md: nie fällige Posten unterschlagen).
+ * gewählten Ordner, sonst benachrichtigt sie stattdessen - nie beides, und nie stillschweigend nichts.
  */
 class ReminderCheckRunner(
     private val vehicles: VehicleRepository,

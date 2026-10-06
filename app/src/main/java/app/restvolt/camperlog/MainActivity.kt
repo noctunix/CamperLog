@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 /**
  * Einzige Activity; hostet die Compose-Navigation. `launchMode="singleTask"` (siehe Manifest) sorgt
  * dafür, dass ein `geo:`-Link auf eine bereits laufende Instanz trifft ([onNewIntent]) statt den
- * bestehenden Rückstapel zu verdoppeln (13.5 Nr. 4).
+ * bestehenden Rückstapel zu verdoppeln.
  */
 class MainActivity : ComponentActivity() {
 
@@ -86,5 +86,5 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** Fahrzeug-id einer getippten Wartungs-Benachrichtigung (1.9.0), oder `null` ohne diesen Extra. */
+/** Fahrzeug-id einer getippten Wartungs-Benachrichtigung, oder `null` ohne diesen Extra. */
 private fun Intent.openVehicleIdExtra(): Long? = getLongExtra(EXTRA_OPEN_VEHICLE_ID, -1L).takeIf { it > 0 }

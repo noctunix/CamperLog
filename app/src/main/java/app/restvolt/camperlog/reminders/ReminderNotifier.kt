@@ -34,7 +34,7 @@ private const val SUMMARY_NOTIFICATION_ID = Int.MAX_VALUE
 private const val BACKUP_NOTIFICATION_ID = Int.MAX_VALUE - 1
 
 /**
- * Postet die Benachrichtigungen des täglichen Hintergrund-Checks (1.9.0): fällige
+ * Postet die Benachrichtigungen des täglichen Hintergrund-Checks: fällige
  * Wartungserinnerungen (Kanal "Maintenance reminders / Wartungserinnerungen") und die
  * Sicherungs-Erinnerung.
  */

@@ -14,7 +14,7 @@ private const val REPEAT_INTERVAL_HOURS = 24L
 private const val FLEX_INTERVAL_HOURS = 4L
 
 /**
- * Plant oder stoppt den täglichen Hintergrund-Check (1.9.0); eigenes Interface, damit
+ * Plant oder stoppt den täglichen Hintergrund-Check; eigenes Interface, damit
  * [app.restvolt.camperlog.ui.settings.NotificationSettings] mit einem Fake testbar bleibt.
  */
 interface ReminderWorkScheduler {
@@ -27,7 +27,7 @@ interface ReminderWorkScheduler {
 
 /**
  * [ReminderWorkScheduler] über [WorkManager]: alle 24 h mit 4 h Spielraum, ohne Netzwerk-Constraint
- * (der Check liest nur die lokale Datenbank) und ohne exakte Alarme (ROADMAP.md 1.9.0).
+ * (der Check liest nur die lokale Datenbank) und ohne exakte Alarme.
  */
 class AndroidReminderWorkScheduler(private val context: Context) : ReminderWorkScheduler {
     override fun enqueue() {

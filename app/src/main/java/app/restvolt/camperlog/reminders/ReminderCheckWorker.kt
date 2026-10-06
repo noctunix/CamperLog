@@ -14,7 +14,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 /**
- * Android-Anbindung des täglichen Hintergrund-Checks (1.9.0): liest die aktuellen Einstellungen und
+ * Android-Anbindung des täglichen Hintergrund-Checks: liest die aktuellen Einstellungen und
  * delegiert die eigentliche Logik an [ReminderCheckRunner], die unabhängig von WorkManager testbar ist.
  */
 class ReminderCheckWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {

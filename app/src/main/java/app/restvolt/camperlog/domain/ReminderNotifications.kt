@@ -16,9 +16,9 @@ data class ReminderNotification(val vehicleId: Long, val kind: ReminderKind, val
  * Benachrichtigung brauchen, und liefert sie zusammen mit dem neuen Zustand je Erinnerungsart.
  *
  * Jede Erinnerung überschreitet im Lauf der Zeit bis zu zwei Schwellen: das Eintreten in den Vorlauf
- * (`overdue == false`) und das Überfälligwerden (`overdue == true`); jede wird genau einmal gemeldet
- * (RESEARCH.md: nie mehrere fällige Posten zu einem einzigen zusammenfassen oder stillschweigend
- * weglassen). Ändert sich [Reminder.dueDate] gegenüber [previousStates], gilt das als neuer Zyklus:
+ * (`overdue == false`) und das Überfälligwerden (`overdue == true`); jede wird genau einmal gemeldet,
+ * nie mehrere fällige Posten zu einem einzigen zusammengefasst oder stillschweigend weggelassen.
+ * Ändert sich [Reminder.dueDate] gegenüber [previousStates], gilt das als neuer Zyklus:
  * beide Schwellen gelten wieder als nicht gemeldet. Erinnerungsarten, die in [reminders] nicht mehr
  * vorkommen, fehlen auch im zurückgegebenen Zustand - der Aufrufer ersetzt den gespeicherten Zustand
  * des Fahrzeugs vollständig damit, statt ihn zusammenzuführen.
