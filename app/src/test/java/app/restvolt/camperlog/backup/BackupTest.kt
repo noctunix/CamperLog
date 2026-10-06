@@ -136,6 +136,7 @@ class BackupTest {
         solarPowerWp = 400,
         nextInspectionDate = LocalDate.of(2027, 4, 1),
         nextGasCheckDate = LocalDate.of(2027, 5, 1),
+        nextLeakTestDate = LocalDate.of(2027, 6, 1),
         lastOilChangeDate = LocalDate.of(2026, 1, 1),
         lastOilChangeOdometerKm = 12000,
         createdAt = Instant.parse("2018-05-01T08:00:00Z"),
@@ -219,6 +220,15 @@ class BackupTest {
         assertEquals(listOf(logEntry()), vehicle.logEntries)
         assertEquals(vehicleUuid, decoded.currentVehicleUuid)
         assertEquals(mapOf(tour().uuid to vehicleUuid), decoded.tourVehicleUuid)
+    }
+
+    @Test
+    fun read_importsOlderBackupsMissingTheLeakTestField() {
+        val text = vehicleEncodedWith("\"nextLeakTestDate\": \"2027-06-01\",", "")
+
+        val decoded = success(text)
+
+        assertEquals(null, decoded.vehicles.single().vehicle.nextLeakTestDate)
     }
 
     @Test
