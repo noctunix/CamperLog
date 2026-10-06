@@ -1,0 +1,3 @@
+• Costs on stops by category: pitch, electricity, toll, ferry, fuel and more – included in tour totals and the overview, with a breakdown by category
+• Electricity the way the site bills it: flat per night or stay, metered, base fee plus metered, coin meter – kWh and cost calculated for you
+• New stop type Toll, incl. vignettes with country and validity; ferries get a booking reference

@@ -1,0 +1,3 @@
+• Kosten an Stationen nach Kategorie: Stellplatz, Strom, Maut, Fähre, Tanken und mehr – in Tour-Summen und Übersicht, mit Aufschlüsselung nach Kategorie
+• Strom so, wie der Platz abrechnet: pauschal pro Nacht oder Aufenthalt, nach Verbrauch, Grundgebühr plus Verbrauch, Münzautomat – kWh und Kosten rechnet die App
+• Neuer Stationstyp Maut, auch Vignetten mit Land und Gültigkeit; Fähren bekommen eine Buchungsnummer
