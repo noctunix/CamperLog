@@ -2,8 +2,8 @@ package app.restvolt.camperlog.data
 
 import androidx.room.withTransaction
 import app.restvolt.camperlog.domain.LogEntry
-import app.restvolt.camperlog.domain.LogSyncAction
 import app.restvolt.camperlog.domain.LogRepository
+import app.restvolt.camperlog.domain.LogSyncAction
 import app.restvolt.camperlog.domain.SYNCED_SERVICE_LOG_TYPES
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
