@@ -39,6 +39,7 @@
     <string name="field_travel_days">Travel days</string>
     <string name="field_overnight_stays">Overnight stays</string>
     <string name="field_distance">Distance (km)</string>
+    <string name="label_distance">Distance</string>
     <string name="field_cost">Costs</string>
     <string name="field_notes">Notes</string>
     <string name="field_map_link">Map link</string>

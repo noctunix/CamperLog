@@ -74,7 +74,7 @@ private fun TotalsCard(title: String, row: TotalsRow) {
             color = MaterialTheme.colorScheme.primary,
         )
         LabeledValue(stringResource(R.string.overview_tours), totals.tours.toString())
-        LabeledValue(stringResource(R.string.field_distance), stringResource(R.string.distance_km, totals.distanceKm))
+        LabeledValue(stringResource(R.string.label_distance), stringResource(R.string.distance_km, totals.distanceKm))
         LabeledValue(stringResource(R.string.field_travel_days), totals.travelDays.toString())
         LabeledValue(stringResource(R.string.field_overnight_stays), totals.overnightStays.toString())
         LabeledValue(stringResource(R.string.field_cost), formatAmounts(totals.costs, locale))

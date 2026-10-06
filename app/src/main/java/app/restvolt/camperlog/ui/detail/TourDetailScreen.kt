@@ -227,7 +227,7 @@ private fun TourDetails(
                 LabeledValue(stringResource(R.string.field_tour_type), stringResource(tour.tourType.labelRes))
                 LabeledValue(stringResource(R.string.field_travel_days), tour.travelDays.toString())
                 LabeledValue(stringResource(R.string.field_overnight_stays), tour.overnightStays.toString())
-                LabeledValue(stringResource(R.string.field_distance), stringResource(R.string.distance_km, tour.distanceKm))
+                LabeledValue(stringResource(R.string.label_distance), stringResource(R.string.distance_km, tour.distanceKm))
                 LabeledValue(stringResource(R.string.field_cost), formatAmounts(tour.costs, locale))
             }
         }
