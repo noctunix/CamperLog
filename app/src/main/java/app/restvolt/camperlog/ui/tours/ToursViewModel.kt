@@ -35,7 +35,7 @@ data class ToursUiState(
     val currentVehicleId: Long = 0,
     /** Ob gerade die Touren aller Fahrzeuge angezeigt werden statt nur die des aktuellen. */
     val showAllVehicles: Boolean = false,
-    /** Anzahl Stationen je Tour, für die Kartenzeile "· 9 Stationen" (6.1); fehlende Einträge heißen 0. */
+    /** Anzahl Stationen je Tour, für die Kartenzeile "· 9 Stationen"; fehlende Einträge heißen 0. */
     val stationCounts: Map<Long, Int> = emptyMap(),
 )
 
@@ -52,7 +52,7 @@ private data class VehicleFilter(
 sealed interface ToursMessage {
     /**
      * [stations] sind die mit der Tour gelöschten Stationen, [linkedEntryIdsByStation] je Stations-id
-     * die davor mit ihr verknüpften Bordbuch-Einträge, für ein vollständiges Rückgängig (8.3, 13.4).
+     * die davor mit ihr verknüpften Bordbuch-Einträge, für ein vollständiges Rückgängig.
      */
     data class Deleted(
         val tour: Tour,
@@ -138,7 +138,7 @@ class ToursViewModel(
 
     /**
      * Löscht [tour] und explizit ihre Stationen (ihre verknüpften Bordbuch-Einträge bleiben, SET NULL).
-     * Bietet über [ToursMessage.Deleted] das vollständige Rückgängigmachen an (8.3, 13.4). Die Stationen
+     * Bietet über [ToursMessage.Deleted] das vollständige Rückgängigmachen an. Die Stationen
      * würden in Room auch über CASCADE verschwinden, das explizite Löschen bleibt aber unabhängig davon
      * richtig und macht aus dem Löschen hier dieselbe Reihenfolge wie beim Rückgängigmachen.
      */
@@ -156,7 +156,7 @@ class ToursViewModel(
         }
     }
 
-    /** Stellt eine über [delete] entfernte Tour samt ihren Stationen wieder her und verknüpft deren Bordbuch-Einträge erneut (13.4). */
+    /** Stellt eine über [delete] entfernte Tour samt ihren Stationen wieder her und verknüpft deren Bordbuch-Einträge erneut. */
     fun undoDelete(message: ToursMessage.Deleted) {
         viewModelScope.launch {
             try {

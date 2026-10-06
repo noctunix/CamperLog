@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-/** Die aktuell laufende Tour des aktuellen Fahrzeugs, für die Karte "Laufende Tour" (6.3). */
+/** Die aktuell laufende Tour des aktuellen Fahrzeugs, für die Karte "Laufende Tour". */
 data class RunningTour(val tourId: Long, val destination: String, val dayNumber: Int, val totalDays: Int)
 
 /** Zustand des Stationen-Reiters. [stations] ist bereits nach Fahrzeug, Suche und Filtern gefiltert. */
@@ -56,13 +56,13 @@ private data class StationsSource(
 
 /** Rückmeldungen, die der Stationen-Reiter als Snackbar anzeigt. */
 sealed interface StationsMessage {
-    /** [linkedEntryIds] sind die Bordbuch-Einträge, die vor dem Löschen mit der Station verknüpft waren (8.3, 13.4). */
+    /** [linkedEntryIds] sind die Bordbuch-Einträge, die vor dem Löschen mit der Station verknüpft waren. */
     data class Deleted(val station: Station, val linkedEntryIds: List<Long> = emptyList()) : StationsMessage
     data class Saved(val loggedServices: Set<StationService>) : StationsMessage
     data class Failed(@StringRes val text: Int) : StationsMessage
 }
 
-/** Liefert die gefilterte Stationenliste (6.3), löscht Stationen und beobachtet die laufende Tour. */
+/** Liefert die gefilterte Stationenliste, löscht Stationen und beobachtet die laufende Tour. */
 class StationsViewModel(
     private val stations: StationRepository,
     private val tours: TourRepository,
@@ -123,7 +123,7 @@ class StationsViewModel(
             station.notes.contains(query, ignoreCase = true)
     }
 
-    /** Die Tour von [vehicleId], deren Zeitraum [date] enthält (3.3), bei mehreren die mit dem spätesten Start. */
+    /** Die Tour von [vehicleId], deren Zeitraum [date] enthält, bei mehreren die mit dem spätesten Start. */
     private fun runningTourOf(tours: List<Tour>, vehicleId: Long, date: LocalDate): RunningTour? {
         val tour = tours
             .filter { it.vehicleId == vehicleId && date in it.startDate..it.endDate }
@@ -143,12 +143,12 @@ class StationsViewModel(
         selectedType.value = type
     }
 
-    /** Schaltet den Filter "Gerne wieder" um (13.5 Nr. 5). */
+    /** Schaltet den Filter "Gerne wieder" um. */
     fun onFavoriteOnlyChange(value: Boolean) {
         favoriteOnly.value = value
     }
 
-    /** Macht [id] zum aktuellen Fahrzeug und verlässt dabei die Ansicht „Alle Fahrzeuge" (2.4). */
+    /** Macht [id] zum aktuellen Fahrzeug und verlässt dabei die Ansicht „Alle Fahrzeuge". */
     fun onSelectVehicle(id: Long) {
         showAllVehicles.value = false
         filterSettings.allVehicles = false
@@ -172,7 +172,7 @@ class StationsViewModel(
     /** Einmalige Rückmeldung für die Snackbar der Liste; nach der Anzeige [onMessageShown] aufrufen. */
     val message: StateFlow<StationsMessage?> = _message.asStateFlow()
 
-    /** Löscht [station] und bietet über [StationsMessage.Deleted] das Rückgängigmachen an (8.3). */
+    /** Löscht [station] und bietet über [StationsMessage.Deleted] das Rückgängigmachen an. */
     fun deleteStation(station: Station) {
         viewModelScope.launch {
             _message.value = try {
@@ -185,7 +185,7 @@ class StationsViewModel(
         }
     }
 
-    /** Stellt eine über [deleteStation] entfernte Station wieder her und verknüpft ihre Bordbuch-Einträge erneut (8.3, 13.4). */
+    /** Stellt eine über [deleteStation] entfernte Station wieder her und verknüpft ihre Bordbuch-Einträge erneut. */
     fun undoDeleteStation(message: StationsMessage.Deleted) {
         viewModelScope.launch {
             try {
@@ -197,7 +197,7 @@ class StationsViewModel(
         }
     }
 
-    /** Meldet, dass eine neue Station gespeichert wurde, für die Snackbar der Liste (4.6). */
+    /** Meldet, dass eine neue Station gespeichert wurde, für die Snackbar der Liste. */
     fun onStationSaved(loggedServices: Set<StationService>) {
         _message.value = StationsMessage.Saved(loggedServices)
     }

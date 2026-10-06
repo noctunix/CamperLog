@@ -9,9 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Schalter "Standort" (6.11), aus bis der Nutzer ihn einschaltet (13). Beim Ausschalten entzieht
- * [revoker] die Berechtigung (6.7, 9); [approximateHintShown] merkt den einmaligen Hinweis zu einem
- * nur ungefähren Standort (6.7).
+ * Schalter "Standort", aus bis der Nutzer ihn einschaltet. Beim Ausschalten entzieht
+ * [revoker] die Berechtigung; [approximateHintShown] merkt den einmaligen Hinweis zu einem
+ * nur ungefähren Standort.
  */
 class LocationSettings(context: Context, private val revoker: LocationPermissionRevoker = AndroidLocationPermissionRevoker(context)) {
     private val preferences = context.getSharedPreferences("location", Context.MODE_PRIVATE)

@@ -66,7 +66,7 @@ import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.stationSavedText
 import java.util.Locale
 
-/** Stationen-Reiter (6.3): fahrzeugübergreifende Liste mit Suche, Filtern, laufender Tour und Hinweiskarte. */
+/** Stationen-Reiter: fahrzeugübergreifende Liste mit Suche, Filtern, laufender Tour und Hinweiskarte. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun StationsScreen(

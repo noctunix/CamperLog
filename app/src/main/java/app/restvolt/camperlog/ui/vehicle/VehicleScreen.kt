@@ -348,7 +348,7 @@ private fun RepairRow(repair: Repair, locale: Locale, onClick: () -> Unit) {
 
 /**
  * Karte „Panne & Unfall" am Kopf des Datenblatts; nur sichtbar, wenn [Vehicle.hasBreakdownInfo] gilt.
- * "Wo bin ich?" (13.5 Nr. 1) erscheint nur, wenn [locationEnabled] an ist.
+ * "Wo bin ich?" erscheint nur, wenn [locationEnabled] an ist.
  */
 @Composable
 private fun BreakdownAssistanceCard(vehicle: Vehicle, onCall: (String) -> Unit, locationEnabled: Boolean, onWhereAmI: () -> Unit) {

@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Schalter "Benachrichtigungen" unter Einstellungen → Erinnerungen (1.9.0), aus bis der Nutzer ihn
+ * Schalter "Benachrichtigungen" unter Einstellungen → Erinnerungen, aus bis der Nutzer ihn
  * einschaltet. Schaltet den täglichen Hintergrund-Check über [scheduler] mit ein bzw. aus; die
  * Berechtigungsabfrage (Android 13+) liegt in der Oberfläche, da sie eine Activity braucht (siehe
  * [app.restvolt.camperlog.ui.LocationCaptureSection] für das gleiche Muster bei Standort).

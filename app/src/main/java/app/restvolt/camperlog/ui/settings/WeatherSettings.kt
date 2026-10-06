@@ -8,10 +8,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Schalter "Wetter & Karte (Internet)" (6.11), aus bis der Nutzer ihn einschaltet (13). Die
+ * Schalter "Wetter & Karte (Internet)", aus bis der Nutzer ihn einschaltet. Die
  * Internet-Berechtigung selbst ist eine Install-Time-Berechtigung, die der Schalter nur in der
- * Nutzung einschränkt, nicht entzieht (9); beim Ausschalten wird aber der Kartenkachel-Cache
- * gelöscht, damit besuchte Gegenden nicht auf dem Gerät liegen bleiben (6.11).
+ * Nutzung einschränkt, nicht entzieht; beim Ausschalten wird aber der Kartenkachel-Cache
+ * gelöscht, damit besuchte Gegenden nicht auf dem Gerät liegen bleiben.
  */
 class WeatherSettings(context: Context, private val clearTileCache: () -> Unit = { TileHttpCache.clear(context) }) {
     private val preferences = context.getSharedPreferences("weather", Context.MODE_PRIVATE)

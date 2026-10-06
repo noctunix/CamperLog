@@ -254,7 +254,7 @@ private fun TourCard(tour: Tour, vehicleName: String?, stationCount: Int, onClic
                 } else {
                     stringResource(R.string.tours_row_meta, tour.year, stringResource(tour.tourType.labelRes))
                 }
-                // Stationsanzahl nur bei > 0 anfügen (6.1).
+                // Stationsanzahl nur bei > 0 anfügen.
                 val metaWithStations = if (stationCount > 0) {
                     "$meta · ${pluralStringResource(R.plurals.tours_row_station_count, stationCount, stationCount)}"
                 } else {

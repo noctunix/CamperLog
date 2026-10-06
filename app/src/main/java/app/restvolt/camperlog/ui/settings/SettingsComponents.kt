@@ -119,7 +119,7 @@ internal fun ReminderLeadDaysRow(leadDays: Int, onLeadDaysChange: (Int) -> Unit)
 
 /**
  * Ganze Zeile als Schalter (Role.Switch), Titel und Unterzeile links, [Switch] rechts; geteilt
- * zwischen den Einstellungen (6.11) und der Einführungstour (6.10).
+ * zwischen den Einstellungen und der Einführungstour.
  */
 @Composable
 internal fun SwitchSettingRow(title: String, supportingText: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
@@ -190,7 +190,7 @@ internal fun IntChoiceDialog(
     )
 }
 
-/** "Was übertragen wird ▸" (6.11): klappt den genauen Datenschutztext (9) ein/aus. */
+/** "Was übertragen wird ▸": klappt den genauen Datenschutztext ein/aus. */
 @Composable
 internal fun WeatherTransferDetailRow() {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -224,7 +224,7 @@ internal fun WeatherTransferDetailRow() {
     }
 }
 
-/** "Kartenspeicher: N MB [Leeren]" (6.11): löscht den HTTP-Kachel-Cache und den Session-Zwischenspeicher. */
+/** "Kartenspeicher: N MB [Leeren]": löscht den HTTP-Kachel-Cache und den Session-Zwischenspeicher. */
 @Composable
 internal fun MapStorageRow(snackbar: SnackbarHostState, scope: CoroutineScope) {
     val context = LocalContext.current

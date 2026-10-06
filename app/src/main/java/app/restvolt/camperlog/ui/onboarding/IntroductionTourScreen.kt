@@ -62,7 +62,7 @@ private const val PAGE_FINISH = 5
  * Einführungstour über [PAGE_COUNT] Seiten, erreichbar beim ersten Start und erneut über "Über
  * CamperLog". [reminderSettings], [locationSettings] und [weatherSettings] sind dieselben Instanzen
  * wie im übrigen Navigationsgraphen; [onThemeModeChange] wirkt sofort wie im Einstellungen-Bildschirm.
- * Die letzte Seite ist die Opt-in-Seite (6.10) mit den Schaltern "Standort" und "Wetter & Karte";
+ * Die letzte Seite ist die Opt-in-Seite mit den Schaltern "Standort" und "Wetter & Karte";
  * [onFinished] markiert die Tour als gesehen, egal ob sie zu Ende durchlaufen oder übersprungen wurde.
  */
 @Composable
@@ -207,9 +207,9 @@ private fun SettingsPage(
 }
 
 /**
- * Letzte Seite der Einführungstour (6.10): Opt-in für Standort und Wetter & Karte, ohne dass das
+ * Letzte Seite der Einführungstour: Opt-in für Standort und Wetter & Karte, ohne dass das
  * Einschalten hier schon einen Berechtigungsdialog auslöst (der kommt erst beim ersten Tastendruck
- * bzw. Wetterabruf, 6.7, 6.8).
+ * bzw. Wetterabruf).
  */
 @Composable
 private fun OptInPage(

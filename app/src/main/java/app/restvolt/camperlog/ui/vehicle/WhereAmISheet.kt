@@ -44,8 +44,8 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 /**
- * "Wo bin ich?" (6.12, 13.5 Nr. 1): öffnet mit einem automatisch angestoßenen Fix und zeigt dieselben
- * Zustände wie 6.7; gefunden wird die Position groß mit Kopieren und Teilen angezeigt.
+ * "Wo bin ich?": öffnet mit einem automatisch angestoßenen Fix und zeigt dieselben Zustände wie die
+ * Standortbestimmung im Stationsformular; gefunden wird die Position groß mit Kopieren und Teilen angezeigt.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
