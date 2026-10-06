@@ -565,10 +565,23 @@
     <string name="station_type_overnight">Overnight</string>
     <string name="station_type_supply">Water &amp; waste</string>
     <string name="station_type_fuel">Fuel &amp; charging</string>
+    <string name="station_type_toll">Toll</string>
     <string name="station_type_sight">Sightseeing</string>
     <string name="station_type_food">Food</string>
     <string name="station_type_ferry">Ferry</string>
     <string name="station_type_other">Other</string>
+    <string name="electricity_billing_none">not used</string>
+    <string name="electricity_billing_included">included in pitch price</string>
+    <string name="electricity_billing_flat_per_night">flat rate per night</string>
+    <string name="electricity_billing_flat_per_stay">flat rate for the stay</string>
+    <string name="electricity_billing_metered">metered</string>
+    <string name="electricity_billing_base_plus_metered">base fee + metered</string>
+    <string name="electricity_billing_coin">coin-operated</string>
+    <string name="toll_kind_motorway">Motorway</string>
+    <string name="toll_kind_tunnel">Tunnel</string>
+    <string name="toll_kind_bridge">Bridge</string>
+    <string name="toll_kind_vignette">Vignette</string>
+    <string name="toll_kind_other">Other</string>
     <string name="station_service_fresh_water">Fresh water</string>
     <string name="station_service_grey_water">Grey water</string>
     <string name="station_service_cassette">Cassette</string>
@@ -612,10 +625,12 @@
     <string name="field_nights">Nights</string>
     <string name="field_site_kind">Site kind</string>
     <string name="field_pitch_assigned">Pitch assigned</string>
-    <string name="field_electricity">Electricity flat rate</string>
+    <string name="field_electricity">Electricity</string>
     <string name="field_lte">LTE quality</string>
     <string name="field_pitch_slope">Pitch slope</string>
     <string name="field_leveling_blocks">Leveling blocks used</string>
+    <string name="field_toll_country">Country</string>
+    <string name="field_toll_valid_until">Valid until</string>
     <string name="station_no_tour">No tour</string>
     <string name="station_add_coordinates">Add coordinates</string>
     <string name="station_coordinates_recognized">Recognised: %1$s</string>
@@ -638,6 +653,7 @@
     <string name="error_nights_too_small">At least 1 night</string>
     <string name="error_text_too_long">Too long</string>
     <string name="error_station_service_future_date">Can\'t have happened in the future.</string>
+    <string name="error_invalid_country">Unknown country code</string>
 
     <!-- Stop detail -->
     <string name="station_detail_delete">Delete stop</string>

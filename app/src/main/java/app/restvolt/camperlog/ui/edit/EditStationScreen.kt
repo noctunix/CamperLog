@@ -73,7 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.CoordinateSource
-import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.FUEL_SERVICES
 import app.restvolt.camperlog.domain.LocationFix
 import app.restvolt.camperlog.domain.LteQuality
@@ -312,7 +312,7 @@ private fun StationForm(
                 ServicesChips(SUPPLY_SERVICES, input.services, servicesError) { service -> change { it.copy(services = it.services.toggled(service)) } }
             }
             StationType.FUEL -> FuelSection(input, change, servicesError)
-            StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> Unit
+            StationType.TOLL, StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> Unit
         }
         if (weatherEnabled && input.latitude != null && input.longitude != null) {
             WeatherSection(input, viewModel)
@@ -371,13 +371,13 @@ private fun OvernightSection(
 
         var pitchExpanded by rememberSaveable(input.type) {
             mutableStateOf(
-                input.pitchAssigned != null || input.electricityFlatRate != null ||
+                input.pitchAssigned != null || input.electricityBilling != null ||
                     input.lteQuality != null || input.pitchSlope != null || input.levelingBlocksUsed != null,
             )
         }
         val pitchSummary = listOfNotNull(
             input.pitchAssigned?.let { summaryPair(stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(it))) },
-            input.electricityFlatRate?.let { summaryPair(stringResource(R.string.field_electricity), stringResource(it.labelRes)) },
+            input.electricityBilling?.let { summaryPair(stringResource(R.string.field_electricity), stringResource(it.labelRes)) },
             input.lteQuality?.let { summaryPair(stringResource(R.string.field_lte), stringResource(it.labelRes)) },
             input.pitchSlope?.let { summaryPair(stringResource(R.string.field_pitch_slope), stringResource(it.labelRes)) },
             input.levelingBlocksUsed?.let { summaryPair(stringResource(R.string.field_leveling_blocks), stringResource(yesNoRes(it))) },
@@ -394,10 +394,10 @@ private fun OvernightSection(
             }
             NullableChoiceField(
                 stringResource(R.string.field_electricity),
-                ElectricityFlatRate.entries,
-                input.electricityFlatRate,
-                ElectricityFlatRate::labelRes,
-            ) { value -> change { it.copy(electricityFlatRate = value) } }
+                ElectricityBilling.entries,
+                input.electricityBilling,
+                ElectricityBilling::labelRes,
+            ) { value -> change { it.copy(electricityBilling = value) } }
             NullableChoiceField(stringResource(R.string.field_lte), LteQuality.entries, input.lteQuality, LteQuality::labelRes) { value ->
                 change { it.copy(lteQuality = value) }
             }

@@ -70,7 +70,7 @@ fun migrateLegacyPitch(
                 nights = overnightStays,
                 siteKind = null,
                 pitchAssigned = pitch.pitchAssigned,
-                electricityFlatRate = pitch.electricityFlatRate,
+                electricityBilling = migrateLegacyElectricityFlatRate(pitch.electricityFlatRate),
                 lteQuality = pitch.lteQuality,
                 pitchSlope = pitch.pitchSlope,
                 levelingBlocksUsed = pitch.levelingBlocksUsed,

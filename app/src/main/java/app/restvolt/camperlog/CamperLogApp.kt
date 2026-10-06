@@ -26,7 +26,7 @@ class CamperLogApp : Application() {
     }
 
     /** Gemeinsames Repository für alle Screens. */
-    val repository: TourRepository by lazy { RoomTourRepository(database.tourDao(), database.vehicleDao()) }
+    val repository: TourRepository by lazy { RoomTourRepository(database.tourDao(), database.stationDao(), database.vehicleDao()) }
 
     /** Wechselkurse und Hauptwährung. */
     val exchangeRates: ExchangeRateRepository by lazy { RoomExchangeRateRepository(database.exchangeRateDao()) }

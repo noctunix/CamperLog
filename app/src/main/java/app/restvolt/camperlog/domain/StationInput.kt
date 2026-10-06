@@ -1,15 +1,30 @@
 package app.restvolt.camperlog.domain
 
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
+import java.text.DecimalFormatSymbols
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.util.Currency
+import java.util.Locale
 
 /** Höchstlängen der Textfelder einer Station, wie bei Touren auch von der Sicherung wiederverwendet. */
 const val MAX_STATION_NAME_LENGTH = 500
 const val MAX_STATION_PLACE_LENGTH = 500
 const val MAX_STATION_NOTES_LENGTH = 20_000
 const val MAX_STATION_MAP_LINK_LENGTH = 4_000
+const val MAX_TOLL_PAYMENT_METHOD_LENGTH = 500
+const val MAX_FERRY_BOOKING_REFERENCE_LENGTH = 500
+
+/** Höchstwerte der Stromabrechnung, wie bei Touren auch von der Sicherung wiederverwendet. */
+const val MAX_ELECTRICITY_KWH = 100_000.0
+const val MAX_PRICE_PER_KWH = 100.0
+const val MAX_ELECTRICITY_COINS = 10_000
+
+/** Nachkommastellen der Eingabefelder für kWh/Zählerstände bzw. den Preis je kWh. */
+private const val ELECTRICITY_KWH_FRACTION_DIGITS = 3
+private const val PRICE_PER_KWH_FRACTION_DIGITS = 4
 
 /** WGS84-Wertebereiche gültiger Koordinaten. */
 val LATITUDE_RANGE = -90.0..90.0
@@ -37,10 +52,26 @@ data class StationInput(
     val nights: String = "",
     val siteKind: SiteKind? = null,
     val pitchAssigned: Boolean? = null,
-    val electricityFlatRate: ElectricityFlatRate? = null,
     val lteQuality: LteQuality? = null,
     val pitchSlope: PitchSlope? = null,
     val levelingBlocksUsed: Boolean? = null,
+    val electricityBilling: ElectricityBilling? = null,
+    @Serializable(with = CurrencySerializer::class) val electricityCurrency: Currency = EUR,
+    val electricityFlatAmount: String = "",
+    val electricityBaseFee: String = "",
+    val electricityPricePerKwh: String = "",
+    val electricityCoinPrice: String = "",
+    val electricityCoinsUsed: String = "",
+    val electricityKwhPerCoin: String = "",
+    val electricityMeterStart: String = "",
+    val electricityMeterEnd: String = "",
+    val electricityKwhUsed: String = "",
+    val tollKind: TollKind? = null,
+    val tollPaymentMethod: String = "",
+    val tollCountry: String = "",
+    @Serializable(with = LocalDateSerializer::class) val tollValidFrom: LocalDate? = null,
+    @Serializable(with = LocalDateSerializer::class) val tollValidUntil: LocalDate? = null,
+    val ferryBookingReference: String = "",
     val services: Set<StationService> = emptySet(),
     val favorite: Boolean = false,
     /** Rohtext des Felds "Koordinaten oder Kartenlink"; nur fürs Formular, nicht Teil der Station. */
@@ -49,7 +80,7 @@ data class StationInput(
 )
 
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
-enum class StationField { DATE, COORDINATES, NIGHTS, NAME, PLACE, NOTES, MAP_LINK, SERVICES }
+enum class StationField { DATE, COORDINATES, NIGHTS, NAME, PLACE, NOTES, MAP_LINK, SERVICES, ELECTRICITY, TOLL_COUNTRY, TOLL_VALID_UNTIL }
 
 /** Grund eines Validierungsfehlers. Den Text dazu liefert die UI aus den String-Ressourcen. */
 enum class StationError {
@@ -61,6 +92,8 @@ enum class StationError {
     TOO_LONG,
     NOT_A_WEB_LINK,
     FUTURE_DATE,
+    INVALID_COUNTRY,
+    END_BEFORE_START,
 }
 
 /**
@@ -69,9 +102,10 @@ enum class StationError {
  * [toStation] stillschweigend verworfen, falls der Typ zuvor gewechselt wurde.
  *
  * @param today Bezugsdatum für die Zukunftsprüfung der Ver-/Entsorgungs-Häkchen
+ * @param locale bestimmt, wie mehrdeutige Beträge und Dezimalzahlen der Stromabrechnung gelesen werden
  * @return Fehlergrund je fehlerhaftem Feld; leer, wenn die Eingabe gültig ist
  */
-fun StationInput.validate(today: LocalDate = LocalDate.now()): Map<StationField, StationError> = buildMap {
+fun StationInput.validate(today: LocalDate = LocalDate.now(), locale: Locale = Locale.getDefault()): Map<StationField, StationError> = buildMap {
     if (date == null) put(StationField.DATE, StationError.REQUIRED)
 
     if ((latitude == null) != (longitude == null)) {
@@ -103,19 +137,69 @@ fun StationInput.validate(today: LocalDate = LocalDate.now()): Map<StationField,
     if (date != null && date > today && services.any { it in SYNCED_SERVICE_LOG_TYPES }) {
         put(StationField.SERVICES, StationError.FUTURE_DATE)
     }
+
+    electricityError(locale)?.let { put(StationField.ELECTRICITY, it) }
+
+    if (type == StationType.TOLL) {
+        if (tollCountry.isNotBlank() && tollCountry.trim().uppercase(Locale.ROOT) !in ALL_COUNTRY_CODES) {
+            put(StationField.TOLL_COUNTRY, StationError.INVALID_COUNTRY)
+        }
+        if (tollValidFrom != null && tollValidUntil != null && tollValidUntil < tollValidFrom) {
+            put(StationField.TOLL_VALID_UNTIL, StationError.END_BEFORE_START)
+        }
+    }
+}
+
+/** Erster Fehler der Stromabrechnungs-Felder; nur bei [StationType.OVERNIGHT] geprüft, sonst immer `null`. */
+private fun StationInput.electricityError(locale: Locale): StationError? {
+    if (type != StationType.OVERNIGHT) return null
+    return moneyFieldError(electricityFlatAmount, electricityCurrency, locale)
+        ?: moneyFieldError(electricityBaseFee, electricityCurrency, locale)
+        ?: decimalBoundError(electricityPricePerKwh, locale, PRICE_PER_KWH_FRACTION_DIGITS, MAX_PRICE_PER_KWH)
+        ?: moneyFieldError(electricityCoinPrice, electricityCurrency, locale)
+        ?: intBoundError(electricityCoinsUsed, MAX_ELECTRICITY_COINS)
+        ?: decimalBoundError(electricityKwhPerCoin, locale, ELECTRICITY_KWH_FRACTION_DIGITS, MAX_ELECTRICITY_KWH)
+        ?: decimalBoundError(electricityMeterStart, locale, ELECTRICITY_KWH_FRACTION_DIGITS, MAX_ELECTRICITY_KWH)
+        ?: decimalBoundError(electricityMeterEnd, locale, ELECTRICITY_KWH_FRACTION_DIGITS, MAX_ELECTRICITY_KWH)
+        ?: decimalBoundError(electricityKwhUsed, locale, ELECTRICITY_KWH_FRACTION_DIGITS, MAX_ELECTRICITY_KWH)
+}
+
+private fun moneyFieldError(text: String, currency: Currency, locale: Locale): StationError? {
+    if (text.isBlank()) return null
+    return when (readAmount(text, currency, locale)) {
+        is AmountReading.Valid -> null
+        AmountReading.TooLarge, AmountReading.Invalid -> StationError.INVALID_NUMBER
+    }
+}
+
+private fun decimalBoundError(text: String, locale: Locale, fractionDigits: Int, max: Double): StationError? {
+    if (text.isBlank()) return null
+    val value = parseDecimal(text, locale, maxFractionDigits = fractionDigits) ?: return StationError.INVALID_NUMBER
+    return if (value.signum() < 0 || value > BigDecimal.valueOf(max)) StationError.INVALID_NUMBER else null
+}
+
+private fun intBoundError(text: String, max: Int): StationError? {
+    if (text.isBlank()) return null
+    val value = text.trim().toIntOrNull() ?: return StationError.INVALID_NUMBER
+    return if (value < 0 || value > max) StationError.INVALID_NUMBER else null
 }
 
 /**
  * Erzeugt aus einer gültigen Eingabe eine [Station]. Vorher muss [validate] leer sein.
  * Typspezifische Felder und nicht erlaubte [StationService]-Werte werden hier anhand von
- * [StationInput.type] verworfen: ein Typwechsel lässt nicht passende Werte fallen.
- * [mapLink] wird nur übernommen, wenn keine Koordinaten gesetzt sind.
+ * [StationInput.type] verworfen: ein Typwechsel lässt nicht passende Werte fallen. [costs] bleiben
+ * unverändert von [original], da das Formular sie (noch) nicht bearbeitet. [mapLink] wird nur
+ * übernommen, wenn keine Koordinaten gesetzt sind.
  *
  * @param original die bearbeitete Station oder `null` für eine neue Station
+ * @param locale bestimmt, wie mehrdeutige Beträge und Dezimalzahlen der Stromabrechnung gelesen werden
  */
-fun StationInput.toStation(original: Station?): Station {
+fun StationInput.toStation(original: Station?, locale: Locale = Locale.getDefault()): Station {
     val isOvernight = type == StationType.OVERNIGHT
+    val isToll = type == StationType.TOLL
+    val isFerry = type == StationType.FERRY
     val hasCoordinates = latitude != null && longitude != null
+    val billing = if (isOvernight) electricityBilling else null
     return Station(
         id = original?.id ?: 0,
         uuid = original?.uuid.orEmpty(),
@@ -135,10 +219,47 @@ fun StationInput.toStation(original: Station?): Station {
         nights = if (isOvernight) nights.trim().toIntOrNull()?.takeIf { it >= 1 } else null,
         siteKind = siteKind.takeIf { isOvernight },
         pitchAssigned = pitchAssigned.takeIf { isOvernight },
-        electricityFlatRate = electricityFlatRate.takeIf { isOvernight },
         lteQuality = lteQuality.takeIf { isOvernight },
         pitchSlope = pitchSlope.takeIf { isOvernight },
         levelingBlocksUsed = levelingBlocksUsed.takeIf { isOvernight },
+        electricityBilling = billing,
+        electricityCurrency = if (billing != null) electricityCurrency else null,
+        electricityFlatAmount = if (billing != null) parseMoneyField(electricityFlatAmount, electricityCurrency, locale) else null,
+        electricityBaseFee = if (billing != null) parseMoneyField(electricityBaseFee, electricityCurrency, locale) else null,
+        electricityPricePerKwh = if (billing != null) {
+            parseDecimalField(electricityPricePerKwh, locale, PRICE_PER_KWH_FRACTION_DIGITS)
+        } else {
+            null
+        },
+        electricityCoinPrice = if (billing != null) parseMoneyField(electricityCoinPrice, electricityCurrency, locale) else null,
+        electricityCoinsUsed = if (billing != null) electricityCoinsUsed.trim().toIntOrNull() else null,
+        electricityKwhPerCoin = if (billing != null) {
+            parseDecimalField(electricityKwhPerCoin, locale, ELECTRICITY_KWH_FRACTION_DIGITS)
+        } else {
+            null
+        },
+        electricityMeterStart = if (billing != null) {
+            parseDecimalField(electricityMeterStart, locale, ELECTRICITY_KWH_FRACTION_DIGITS)
+        } else {
+            null
+        },
+        electricityMeterEnd = if (billing != null) {
+            parseDecimalField(electricityMeterEnd, locale, ELECTRICITY_KWH_FRACTION_DIGITS)
+        } else {
+            null
+        },
+        electricityKwhUsed = if (billing != null) {
+            parseDecimalField(electricityKwhUsed, locale, ELECTRICITY_KWH_FRACTION_DIGITS)
+        } else {
+            null
+        },
+        tollKind = tollKind.takeIf { isToll },
+        tollPaymentMethod = if (isToll) tollPaymentMethod.trim() else "",
+        tollCountry = if (isToll) tollCountry.trim().uppercase(Locale.ROOT).ifEmpty { null } else null,
+        tollValidFrom = tollValidFrom.takeIf { isToll },
+        tollValidUntil = tollValidUntil.takeIf { isToll },
+        ferryBookingReference = if (isFerry) ferryBookingReference.trim() else "",
+        costs = original?.costs.orEmpty(),
         services = services.intersect(type.allowedServices),
         weather = weather,
         favorite = favorite && isOvernight,
@@ -147,8 +268,8 @@ fun StationInput.toStation(original: Station?): Station {
     )
 }
 
-/** Wandelt eine gespeicherte Station in editierbare Formulardaten um. */
-fun Station.toInput(): StationInput = StationInput(
+/** Wandelt eine gespeicherte Station in editierbare Formulardaten im Zahlenformat von [locale] um. */
+fun Station.toInput(locale: Locale = Locale.getDefault()): StationInput = StationInput(
     vehicleId = vehicleId,
     tourId = tourId,
     type = type,
@@ -165,12 +286,37 @@ fun Station.toInput(): StationInput = StationInput(
     nights = nights?.toString().orEmpty(),
     siteKind = siteKind,
     pitchAssigned = pitchAssigned,
-    electricityFlatRate = electricityFlatRate,
     lteQuality = lteQuality,
     pitchSlope = pitchSlope,
     levelingBlocksUsed = levelingBlocksUsed,
+    electricityBilling = electricityBilling,
+    electricityCurrency = electricityCurrency ?: EUR,
+    electricityFlatAmount = electricityFlatAmount.toInput(locale),
+    electricityBaseFee = electricityBaseFee.toInput(locale),
+    electricityPricePerKwh = decimalToInput(electricityPricePerKwh, locale),
+    electricityCoinPrice = electricityCoinPrice.toInput(locale),
+    electricityCoinsUsed = electricityCoinsUsed?.toString().orEmpty(),
+    electricityKwhPerCoin = decimalToInput(electricityKwhPerCoin, locale),
+    electricityMeterStart = decimalToInput(electricityMeterStart, locale),
+    electricityMeterEnd = decimalToInput(electricityMeterEnd, locale),
+    electricityKwhUsed = decimalToInput(electricityKwhUsed, locale),
+    tollKind = tollKind,
+    tollPaymentMethod = tollPaymentMethod,
+    tollCountry = tollCountry.orEmpty(),
+    tollValidFrom = tollValidFrom,
+    tollValidUntil = tollValidUntil,
+    ferryBookingReference = ferryBookingReference,
     services = services,
     favorite = favorite,
     locationText = mapLink ?: if (latitude != null && longitude != null) "$latitude, $longitude" else "",
     weather = weather,
 )
+
+private fun parseMoneyField(text: String, currency: Currency, locale: Locale): Money? =
+    if (text.isBlank()) null else parseAmount(text, currency, locale)?.let { Money(it, currency) }
+
+private fun parseDecimalField(text: String, locale: Locale, maxFractionDigits: Int): BigDecimal? =
+    if (text.isBlank()) null else parseDecimal(text, locale, maxFractionDigits)
+
+private fun decimalToInput(value: BigDecimal?, locale: Locale): String =
+    value?.toPlainString()?.replace('.', DecimalFormatSymbols.getInstance(locale).decimalSeparator).orEmpty()

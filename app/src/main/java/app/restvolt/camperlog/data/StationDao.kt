@@ -3,42 +3,71 @@ package app.restvolt.camperlog.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
-/** Room-Zugriff auf die Tabelle `stations`. */
+/** Room-Zugriff auf die Tabellen `stations` und `station_costs`. */
 @Dao
 interface StationDao {
 
     /** Aufsteigend nach `(date, time NULLS LAST, created_at)`, die Zeitleiste einer Tour. */
+    @Transaction
     @Query("SELECT * FROM stations WHERE tour_id = :tourId ORDER BY date ASC, (time IS NULL) ASC, time ASC, created_at ASC")
-    fun observeForTour(tourId: Long): Flow<List<StationEntity>>
+    fun observeForTour(tourId: Long): Flow<List<StationWithCosts>>
 
     /** Neueste zuerst; `:vehicleId` `NULL` liefert die Stationen aller Fahrzeuge ("Alle Fahrzeuge"). */
+    @Transaction
     @Query(
         "SELECT * FROM stations WHERE :vehicleId IS NULL OR vehicle_id = :vehicleId " +
             "ORDER BY date DESC, (time IS NULL) ASC, time DESC, created_at DESC",
     )
-    fun observeForVehicle(vehicleId: Long?): Flow<List<StationEntity>>
+    fun observeForVehicle(vehicleId: Long?): Flow<List<StationWithCosts>>
 
+    @Transaction
     @Query("SELECT * FROM stations WHERE id = :id")
-    fun observeById(id: Long): Flow<StationEntity?>
+    fun observeById(id: Long): Flow<StationWithCosts?>
 
     /** Einmaliger Lesezugriff auf eine Station, für den Vorher-Stand beim Speichern. */
+    @Transaction
     @Query("SELECT * FROM stations WHERE id = :id")
-    suspend fun getById(id: Long): StationEntity?
+    suspend fun getById(id: Long): StationWithCosts?
 
+    @Transaction
     @Query("SELECT * FROM stations WHERE tour_id = :tourId")
-    suspend fun getForTour(tourId: Long): List<StationEntity>
+    suspend fun getForTour(tourId: Long): List<StationWithCosts>
 
+    @Transaction
     @Query("SELECT * FROM stations")
-    suspend fun getAll(): List<StationEntity>
+    suspend fun getAll(): List<StationWithCosts>
 
     @Insert
     suspend fun insert(station: StationEntity): Long
 
     @Update
     suspend fun update(station: StationEntity)
+
+    @Insert
+    suspend fun insertCosts(costs: List<StationCostEntity>)
+
+    @Query("DELETE FROM station_costs WHERE station_id = :stationId")
+    suspend fun deleteCosts(stationId: Long)
+
+    /** Legt [station] samt [costs] an; die Kosten erhalten die neue id. */
+    @Transaction
+    suspend fun insertWithCosts(station: StationEntity, costs: List<StationCostEntity>): Long {
+        val id = insert(station)
+        insertCosts(costs.map { it.copy(stationId = id) })
+        return id
+    }
+
+    /** Aktualisiert [station] und ersetzt ihre Kosten vollständig durch [costs]. */
+    @Transaction
+    suspend fun updateWithCosts(station: StationEntity, costs: List<StationCostEntity>) {
+        update(station)
+        deleteCosts(station.id)
+        insertCosts(costs)
+    }
 
     @Query("DELETE FROM stations WHERE id = :id")
     suspend fun deleteById(id: Long)

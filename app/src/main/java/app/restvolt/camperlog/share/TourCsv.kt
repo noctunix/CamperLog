@@ -6,6 +6,7 @@ import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.amountToDecimal
 import app.restvolt.camperlog.domain.sumMinor
+import app.restvolt.camperlog.domain.totalCosts
 import java.time.LocalTime
 
 /** Spaltenreihenfolge des CSV-Exports. Neue Spalten nur am Ende anfügen. */
@@ -30,23 +31,29 @@ val CSV_HEADER = listOf(
     "geaendert",
     "kosten",
     "fahrzeug",
+    "kosten_gesamt",
 )
 
 /**
  * Erzeugt eine CSV-Datei nach RFC 4180 (Komma, CRLF) mit Kopfzeile.
  * Datumswerte sind ISO-8601, Kosten exakte Dezimalzahlen mit Punkt. `kosten_eur` enthält nur den
- * Euro-Anteil, `kosten` alle Beträge mit ISO-Code, z. B. `120.00 EUR; 1450.00 NOK; 3500 ISK`.
- * Die Stellplatz-Spalten `stellplatz_zugewiesen` … `keile_genutzt` kommen aus der ersten
- * Übernachtungs-Station jeder Tour nach Datum ([firstOvernightStationsByTour]); ohne eine solche
- * Station bleiben sie leer. `fahrzeug` enthält den Anzeigenamen des Fahrzeugs aus [vehicleNames];
- * ein leeres oder fehlendes Fahrzeug ergibt [defaultVehicleName]. Freitextfelder werden per
- * [neutralizeFormula] gegen Formel-Injection entschärft.
+ * Euro-Anteil, `kosten` alle manuell erfassten Tourkosten mit ISO-Code, z. B.
+ * `120.00 EUR; 1450.00 NOK; 3500 ISK`; `kosten_gesamt` zusätzlich dazu die Kosten aller Stationen der
+ * Tour (inklusive abgeleiteter Stromkosten), im selben Format. Die Stellplatz-Spalten
+ * `stellplatz_zugewiesen` … `keile_genutzt` kommen aus der ersten Übernachtungs-Station jeder Tour
+ * nach Datum ([firstOvernightStationsByTour]); ohne eine solche Station bleiben sie leer. `fahrzeug`
+ * enthält den Anzeigenamen des Fahrzeugs aus [vehicleNames]; ein leeres oder fehlendes Fahrzeug
+ * ergibt [defaultVehicleName]. Freitextfelder werden per [neutralizeFormula] gegen Formel-Injection
+ * entschärft.
  */
 fun toursToCsv(tours: List<Tour>, stations: List<Station>, vehicleNames: Map<Long, String>, defaultVehicleName: String): String {
     val firstOvernightStation = firstOvernightStationsByTour(stations)
+    val stationsByTour = stations.filter { it.tourId != null }.groupBy { it.tourId as Long }
     return buildString {
         appendCsvRow(CSV_HEADER)
-        tours.forEach { appendCsvRow(it.csvFields(firstOvernightStation[it.id], vehicleNames, defaultVehicleName)) }
+        tours.forEach { tour ->
+            appendCsvRow(tour.csvFields(firstOvernightStation[tour.id], stationsByTour[tour.id].orEmpty(), vehicleNames, defaultVehicleName))
+        }
     }
 }
 
@@ -86,28 +93,30 @@ private fun StringBuilder.appendCsvRow(fields: List<String>) {
     append("\r\n")
 }
 
-private fun Tour.csvFields(station: Station?, vehicleNames: Map<Long, String>, defaultVehicleName: String): List<String> = listOf(
-    id.toString(),
-    startDate.toString(),
-    endDate.toString(),
-    neutralizeFormula(destination),
-    tourType.csvValue,
-    travelDays.toString(),
-    overnightStays.toString(),
-    distanceKm.toString(),
-    amountToDecimal(costs.filter { it.currency == EUR }.sumMinor(), EUR),
-    yesNoOrEmpty(station?.pitchAssigned),
-    station?.electricityFlatRate?.csvValue.orEmpty(),
-    station?.lteQuality?.csvValue.orEmpty(),
-    station?.pitchSlope?.csvValue.orEmpty(),
-    yesNoOrEmpty(station?.levelingBlocksUsed),
-    neutralizeFormula(notes),
-    neutralizeFormula(mapLink.orEmpty()),
-    createdAt.toString(),
-    updatedAt.toString(),
-    costs.joinToString("; ") { "${amountToDecimal(it.minor, it.currency)} ${it.currency.currencyCode}" },
-    neutralizeFormula(vehicleNames[vehicleId]?.takeIf(String::isNotBlank) ?: defaultVehicleName),
-)
+private fun Tour.csvFields(station: Station?, tourStations: List<Station>, vehicleNames: Map<Long, String>, defaultVehicleName: String): List<String> =
+    listOf(
+        id.toString(),
+        startDate.toString(),
+        endDate.toString(),
+        neutralizeFormula(destination),
+        tourType.csvValue,
+        travelDays.toString(),
+        overnightStays.toString(),
+        distanceKm.toString(),
+        amountToDecimal(costs.filter { it.currency == EUR }.sumMinor(), EUR),
+        yesNoOrEmpty(station?.pitchAssigned),
+        station?.electricityBilling?.csvValue.orEmpty(),
+        station?.lteQuality?.csvValue.orEmpty(),
+        station?.pitchSlope?.csvValue.orEmpty(),
+        yesNoOrEmpty(station?.levelingBlocksUsed),
+        neutralizeFormula(notes),
+        neutralizeFormula(mapLink.orEmpty()),
+        createdAt.toString(),
+        updatedAt.toString(),
+        costs.joinToString("; ") { "${amountToDecimal(it.minor, it.currency)} ${it.currency.currencyCode}" },
+        neutralizeFormula(vehicleNames[vehicleId]?.takeIf(String::isNotBlank) ?: defaultVehicleName),
+        totalCosts(tourStations).joinToString("; ") { "${amountToDecimal(it.minor, it.currency)} ${it.currency.currencyCode}" },
+    )
 
 private fun yesNoOrEmpty(value: Boolean?) = when (value) {
     true -> "ja"

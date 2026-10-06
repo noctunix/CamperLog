@@ -164,10 +164,33 @@ internal data class StationDto(
     val nights: Int? = null,
     val siteKind: String? = null,
     val pitchAssigned: Boolean? = null,
-    val electricityFlatRate: String? = null,
     val lteQuality: String? = null,
     val pitchSlope: String? = null,
     val levelingBlocksUsed: Boolean? = null,
+    /**
+     * Nur in Sicherungen vor Formatversion 5: die alte Strompauschale der Station, beim Import nach
+     * [app.restvolt.camperlog.domain.migrateLegacyElectricityFlatRate] auf [electricityBilling]
+     * umgelegt. Neue Sicherungen lassen sie leer.
+     */
+    val electricityFlatRate: String? = null,
+    val electricityBilling: String? = null,
+    val electricityCurrency: String? = null,
+    val electricityFlatAmount: String? = null,
+    val electricityBaseFee: String? = null,
+    val electricityPricePerKwh: String? = null,
+    val electricityCoinPrice: String? = null,
+    val electricityCoinsUsed: Int? = null,
+    val electricityKwhPerCoin: String? = null,
+    val electricityMeterStart: String? = null,
+    val electricityMeterEnd: String? = null,
+    val electricityKwhUsed: String? = null,
+    val tollKind: String? = null,
+    val tollPaymentMethod: String = "",
+    val tollCountry: String? = null,
+    val tollValidFrom: String? = null,
+    val tollValidUntil: String? = null,
+    val ferryBookingReference: String = "",
+    val costs: List<StationCostDto> = emptyList(),
     val services: List<String> = emptyList(),
     val weather: WeatherDto? = null,
     val favorite: Boolean = false,
@@ -177,6 +200,14 @@ internal data class StationDto(
     val vehicleUuid: String,
     /** uuid der Tour dieser Station; `null` bei einer eigenständigen Station ohne Tour. */
     val tourUuid: String? = null,
+)
+
+@Serializable
+internal data class StationCostDto(
+    val category: String,
+    val currency: String,
+    val amount: String,
+    val note: String = "",
 )
 
 @Serializable

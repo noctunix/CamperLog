@@ -31,15 +31,15 @@ class RoomStationRepository(
     private val dao get() = database.stationDao()
 
     override fun observeForTour(tourId: Long): Flow<List<Station>> =
-        dao.observeForTour(tourId).map { rows -> rows.map(StationEntity::toDomain) }
+        dao.observeForTour(tourId).map { rows -> rows.map(StationWithCosts::toDomain) }
 
     override fun observeForVehicle(vehicleId: Long?): Flow<List<Station>> =
-        dao.observeForVehicle(vehicleId).map { rows -> rows.map(StationEntity::toDomain) }
+        dao.observeForVehicle(vehicleId).map { rows -> rows.map(StationWithCosts::toDomain) }
 
     override fun observeStation(id: Long): Flow<Station?> =
         dao.observeById(id).distinctUntilChanged().map { it?.toDomain() }
 
-    override suspend fun allStations(): List<Station> = dao.getAll().map(StationEntity::toDomain)
+    override suspend fun allStations(): List<Station> = dao.getAll().map(StationWithCosts::toDomain)
 
     override suspend fun save(station: Station): Long = database.withTransaction {
         val old = if (station.id != 0L) dao.getById(station.id)?.toDomain() else null
@@ -47,10 +47,10 @@ class RoomStationRepository(
         val saved = if (station.id == 0L) {
             val uuid = station.uuid.ifEmpty { newUuid() }
             val withTimestamps = station.copy(uuid = uuid, createdAt = now, updatedAt = now)
-            withTimestamps.copy(id = dao.insert(withTimestamps.toEntity()))
+            withTimestamps.copy(id = dao.insertWithCosts(withTimestamps.toEntity(), withTimestamps.toCostEntities()))
         } else {
             val withTimestamp = station.copy(updatedAt = now)
-            dao.update(withTimestamp.toEntity())
+            dao.updateWithCosts(withTimestamp.toEntity(), withTimestamp.toCostEntities())
             withTimestamp
         }
         applyLogSync(old, saved)
@@ -60,7 +60,7 @@ class RoomStationRepository(
     override suspend fun delete(id: Long) = dao.deleteById(id)
 
     override suspend fun restore(station: Station) {
-        dao.insert(station.toEntity())
+        dao.insertWithCosts(station.toEntity(), station.toCostEntities())
     }
 
     override suspend fun defaultTourId(vehicleId: Long, date: LocalDate): Long? = dao.defaultTourId(vehicleId, date.toString())

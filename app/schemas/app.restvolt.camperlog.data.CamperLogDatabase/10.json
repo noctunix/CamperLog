@@ -1,0 +1,1175 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 10,
+    "identityHash": "1e91bde7e336ecd620afcc8e550a1d68",
+    "entities": [
+      {
+        "tableName": "tours",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL DEFAULT '', `vehicle_id` INTEGER NOT NULL, `start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, `tour_type` TEXT NOT NULL, `travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, `notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "vehicleId",
+            "columnName": "vehicle_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startDate",
+            "columnName": "start_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endDate",
+            "columnName": "end_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destination",
+            "columnName": "destination",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tourType",
+            "columnName": "tour_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "travelDays",
+            "columnName": "travel_days",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "overnightStays",
+            "columnName": "overnight_stays",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distanceKm",
+            "columnName": "distance_km",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mapLink",
+            "columnName": "map_link",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAtMillis",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMillis",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_tours_start_date",
+            "unique": false,
+            "columnNames": [
+              "start_date"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `${TABLE_NAME}` (`start_date`)"
+          },
+          {
+            "name": "index_tours_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_tours_uuid` ON `${TABLE_NAME}` (`uuid`)"
+          },
+          {
+            "name": "index_tours_vehicle_id",
+            "unique": false,
+            "columnNames": [
+              "vehicle_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tours_vehicle_id` ON `${TABLE_NAME}` (`vehicle_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "vehicles",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vehicle_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "tour_costs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tour_id` INTEGER NOT NULL, `currency` TEXT NOT NULL, `amount_minor` INTEGER NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`tour_id`, `currency`), FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "tourId",
+            "columnName": "tour_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amountMinor",
+            "columnName": "amount_minor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tour_id",
+            "currency"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "tours",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tour_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "exchange_rates",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`currency` TEXT NOT NULL, `per_euro` TEXT NOT NULL, `rate_date` TEXT NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`currency`))",
+        "fields": [
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "perEuro",
+            "columnName": "per_euro",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rateDate",
+            "columnName": "rate_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "currency"
+          ]
+        }
+      },
+      {
+        "tableName": "settings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `main_currency` TEXT NOT NULL, `current_vehicle_id` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mainCurrency",
+            "columnName": "main_currency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentVehicleId",
+            "columnName": "current_vehicle_id",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "vehicles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `license_plate` TEXT NOT NULL, `manufacturer` TEXT NOT NULL, `model` TEXT NOT NULL, `vin` TEXT NOT NULL, `first_registration` TEXT, `notes` TEXT NOT NULL, `purchase_date` TEXT, `purchase_price_currency` TEXT, `purchase_price_minor` INTEGER, `purchase_odometer_km` INTEGER, `sale_date` TEXT, `sale_price_currency` TEXT, `sale_price_minor` INTEGER, `insurer` TEXT NOT NULL, `insurance_policy_number` TEXT NOT NULL, `insurance_premium_per_year_currency` TEXT, `insurance_premium_per_year_minor` INTEGER, `vehicle_tax_per_year_currency` TEXT, `vehicle_tax_per_year_minor` INTEGER, `length_cm` INTEGER, `width_cm` INTEGER, `height_cm` INTEGER, `gross_weight_kg` INTEGER, `measured_empty_weight_kg` INTEGER, `breakdown_provider` TEXT NOT NULL, `breakdown_membership_number` TEXT NOT NULL, `breakdown_phone` TEXT NOT NULL, `travel_protection_provider` TEXT NOT NULL, `travel_protection_contract_number` TEXT NOT NULL, `travel_protection_phone` TEXT NOT NULL, `insurer_claims_phone` TEXT NOT NULL, `power_kw` INTEGER, `tire_size` TEXT NOT NULL, `tire_pressure_front_mbar` INTEGER, `tire_pressure_rear_mbar` INTEGER, `fuel_tank_dl` INTEGER, `ad_blue_tank_dl` INTEGER, `fresh_water_tank_dl` INTEGER, `grey_water_tank_dl` INTEGER, `boiler_dl` INTEGER, `cassette_dl` INTEGER, `battery_capacity_ah` INTEGER, `solar_power_wp` INTEGER, `next_inspection_date` TEXT, `next_gas_check_date` TEXT, `next_leak_test_date` TEXT, `last_oil_change_date` TEXT, `last_oil_change_odometer_km` INTEGER, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "licensePlate",
+            "columnName": "license_plate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "manufacturer",
+            "columnName": "manufacturer",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "model",
+            "columnName": "model",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vin",
+            "columnName": "vin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstRegistration",
+            "columnName": "first_registration",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "purchaseDate",
+            "columnName": "purchase_date",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "purchasePriceCurrency",
+            "columnName": "purchase_price_currency",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "purchasePriceMinor",
+            "columnName": "purchase_price_minor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "purchaseOdometerKm",
+            "columnName": "purchase_odometer_km",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "saleDate",
+            "columnName": "sale_date",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "salePriceCurrency",
+            "columnName": "sale_price_currency",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "salePriceMinor",
+            "columnName": "sale_price_minor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "insurer",
+            "columnName": "insurer",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "insurancePolicyNumber",
+            "columnName": "insurance_policy_number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "insurancePremiumPerYearCurrency",
+            "columnName": "insurance_premium_per_year_currency",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "insurancePremiumPerYearMinor",
+            "columnName": "insurance_premium_per_year_minor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "vehicleTaxPerYearCurrency",
+            "columnName": "vehicle_tax_per_year_currency",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vehicleTaxPerYearMinor",
+            "columnName": "vehicle_tax_per_year_minor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lengthCm",
+            "columnName": "length_cm",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "widthCm",
+            "columnName": "width_cm",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "heightCm",
+            "columnName": "height_cm",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "grossWeightKg",
+            "columnName": "gross_weight_kg",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "measuredEmptyWeightKg",
+            "columnName": "measured_empty_weight_kg",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "breakdownProvider",
+            "columnName": "breakdown_provider",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "breakdownMembershipNumber",
+            "columnName": "breakdown_membership_number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "breakdownPhone",
+            "columnName": "breakdown_phone",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "travelProtectionProvider",
+            "columnName": "travel_protection_provider",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "travelProtectionContractNumber",
+            "columnName": "travel_protection_contract_number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "travelProtectionPhone",
+            "columnName": "travel_protection_phone",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "insurerClaimsPhone",
+            "columnName": "insurer_claims_phone",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "powerKw",
+            "columnName": "power_kw",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tireSize",
+            "columnName": "tire_size",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tirePressureFrontMbar",
+            "columnName": "tire_pressure_front_mbar",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tirePressureRearMbar",
+            "columnName": "tire_pressure_rear_mbar",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "fuelTankDl",
+            "columnName": "fuel_tank_dl",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "adBlueTankDl",
+            "columnName": "ad_blue_tank_dl",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "freshWaterTankDl",
+            "columnName": "fresh_water_tank_dl",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "greyWaterTankDl",
+            "columnName": "grey_water_tank_dl",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "boilerDl",
+            "columnName": "boiler_dl",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "cassetteDl",
+            "columnName": "cassette_dl",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "batteryCapacityAh",
+            "columnName": "battery_capacity_ah",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "solarPowerWp",
+            "columnName": "solar_power_wp",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "nextInspectionDate",
+            "columnName": "next_inspection_date",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nextGasCheckDate",
+            "columnName": "next_gas_check_date",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nextLeakTestDate",
+            "columnName": "next_leak_test_date",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastOilChangeDate",
+            "columnName": "last_oil_change_date",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastOilChangeOdometerKm",
+            "columnName": "last_oil_change_odometer_km",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdAtMillis",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMillis",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_vehicles_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_vehicles_uuid` ON `${TABLE_NAME}` (`uuid`)"
+          }
+        ]
+      },
+      {
+        "tableName": "repairs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `date` TEXT NOT NULL, `description` TEXT NOT NULL, `odometer_km` INTEGER, `cost_currency` TEXT, `cost_minor` INTEGER, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vehicleId",
+            "columnName": "vehicle_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "odometerKm",
+            "columnName": "odometer_km",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "costCurrency",
+            "columnName": "cost_currency",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "costMinor",
+            "columnName": "cost_minor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdAtMillis",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMillis",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_repairs_vehicle_id",
+            "unique": false,
+            "columnNames": [
+              "vehicle_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_repairs_vehicle_id` ON `${TABLE_NAME}` (`vehicle_id`)"
+          },
+          {
+            "name": "index_repairs_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_repairs_uuid` ON `${TABLE_NAME}` (`uuid`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "vehicles",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vehicle_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "log_entries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `type` TEXT NOT NULL, `date` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `station_id` INTEGER, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`station_id`) REFERENCES `stations`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vehicleId",
+            "columnName": "vehicle_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtMillis",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stationId",
+            "columnName": "station_id",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_log_entries_vehicle_id_type_date",
+            "unique": false,
+            "columnNames": [
+              "vehicle_id",
+              "type",
+              "date"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_log_entries_vehicle_id_type_date` ON `${TABLE_NAME}` (`vehicle_id`, `type`, `date`)"
+          },
+          {
+            "name": "index_log_entries_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_log_entries_uuid` ON `${TABLE_NAME}` (`uuid`)"
+          },
+          {
+            "name": "index_log_entries_station_id",
+            "unique": false,
+            "columnNames": [
+              "station_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_log_entries_station_id` ON `${TABLE_NAME}` (`station_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "vehicles",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vehicle_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "stations",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "station_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "stations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `tour_id` INTEGER, `type` TEXT NOT NULL, `date` TEXT NOT NULL, `time` TEXT, `name` TEXT NOT NULL, `place` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, `coordinate_source` TEXT, `accuracy_m` INTEGER, `map_link` TEXT, `notes` TEXT NOT NULL, `nights` INTEGER, `site_kind` TEXT, `pitch_assigned` INTEGER, `lte_quality` TEXT, `pitch_slope` TEXT, `leveling_blocks_used` INTEGER, `electricity_billing` TEXT, `electricity_currency` TEXT, `electricity_flat_amount_minor` INTEGER, `electricity_base_fee_minor` INTEGER, `electricity_price_per_kwh` TEXT, `electricity_coin_price_minor` INTEGER, `electricity_coins_used` INTEGER, `electricity_kwh_per_coin` TEXT, `electricity_meter_start` TEXT, `electricity_meter_end` TEXT, `electricity_kwh_used` TEXT, `toll_kind` TEXT, `toll_payment_method` TEXT NOT NULL, `toll_country` TEXT, `toll_valid_from` TEXT, `toll_valid_until` TEXT, `ferry_booking_reference` TEXT NOT NULL, `services` TEXT NOT NULL, `weather_temperature_deci_c` INTEGER, `weather_code` INTEGER, `weather_wind_kmh` INTEGER, `weather_gust_kmh` INTEGER, `weather_wind_direction_deg` INTEGER, `weather_observed_at` INTEGER, `favorite` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vehicleId",
+            "columnName": "vehicle_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tourId",
+            "columnName": "tour_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "time",
+            "columnName": "time",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "place",
+            "columnName": "place",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "coordinateSource",
+            "columnName": "coordinate_source",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "accuracyM",
+            "columnName": "accuracy_m",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "mapLink",
+            "columnName": "map_link",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nights",
+            "columnName": "nights",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "siteKind",
+            "columnName": "site_kind",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pitchAssigned",
+            "columnName": "pitch_assigned",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lteQuality",
+            "columnName": "lte_quality",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pitchSlope",
+            "columnName": "pitch_slope",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "levelingBlocksUsed",
+            "columnName": "leveling_blocks_used",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "electricityBilling",
+            "columnName": "electricity_billing",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "electricityCurrency",
+            "columnName": "electricity_currency",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "electricityFlatAmountMinor",
+            "columnName": "electricity_flat_amount_minor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "electricityBaseFeeMinor",
+            "columnName": "electricity_base_fee_minor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "electricityPricePerKwh",
+            "columnName": "electricity_price_per_kwh",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "electricityCoinPriceMinor",
+            "columnName": "electricity_coin_price_minor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "electricityCoinsUsed",
+            "columnName": "electricity_coins_used",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "electricityKwhPerCoin",
+            "columnName": "electricity_kwh_per_coin",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "electricityMeterStart",
+            "columnName": "electricity_meter_start",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "electricityMeterEnd",
+            "columnName": "electricity_meter_end",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "electricityKwhUsed",
+            "columnName": "electricity_kwh_used",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tollKind",
+            "columnName": "toll_kind",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tollPaymentMethod",
+            "columnName": "toll_payment_method",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tollCountry",
+            "columnName": "toll_country",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tollValidFrom",
+            "columnName": "toll_valid_from",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tollValidUntil",
+            "columnName": "toll_valid_until",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ferryBookingReference",
+            "columnName": "ferry_booking_reference",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "services",
+            "columnName": "services",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weatherTemperatureDeciC",
+            "columnName": "weather_temperature_deci_c",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "weatherCode",
+            "columnName": "weather_code",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "weatherWindKmh",
+            "columnName": "weather_wind_kmh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "weatherGustKmh",
+            "columnName": "weather_gust_kmh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "weatherWindDirectionDeg",
+            "columnName": "weather_wind_direction_deg",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "weatherObservedAtMillis",
+            "columnName": "weather_observed_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "favorite",
+            "columnName": "favorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtMillis",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMillis",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_stations_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_stations_uuid` ON `${TABLE_NAME}` (`uuid`)"
+          },
+          {
+            "name": "index_stations_vehicle_id",
+            "unique": false,
+            "columnNames": [
+              "vehicle_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_stations_vehicle_id` ON `${TABLE_NAME}` (`vehicle_id`)"
+          },
+          {
+            "name": "index_stations_tour_id",
+            "unique": false,
+            "columnNames": [
+              "tour_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_stations_tour_id` ON `${TABLE_NAME}` (`tour_id`)"
+          },
+          {
+            "name": "index_stations_date",
+            "unique": false,
+            "columnNames": [
+              "date"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_stations_date` ON `${TABLE_NAME}` (`date`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "vehicles",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vehicle_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "tours",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tour_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "station_costs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`station_id` INTEGER NOT NULL, `category` TEXT NOT NULL, `currency` TEXT NOT NULL, `amount_minor` INTEGER NOT NULL, `note` TEXT NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`station_id`, `category`, `currency`), FOREIGN KEY(`station_id`) REFERENCES `stations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "stationId",
+            "columnName": "station_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amountMinor",
+            "columnName": "amount_minor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "station_id",
+            "category",
+            "currency"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "stations",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "station_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1e91bde7e336ecd620afcc8e550a1d68')"
+    ]
+  }
+}

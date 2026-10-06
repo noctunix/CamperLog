@@ -5,6 +5,8 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TourTotals
 import app.restvolt.camperlog.domain.YearTotals
+import app.restvolt.camperlog.domain.stationCostTotals
+import app.restvolt.camperlog.domain.sumByCurrency
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -16,10 +18,13 @@ import java.util.UUID
 /**
  * [TourRepository] auf Basis von Room. [clock] liefert die Zeitstempel für Anlage und Änderung,
  * [newUuid] die Kennung neuer Touren ohne eigene UUID. [vehicleDao] löst bei neuen Touren mit
- * [Tour.vehicleId] 0 das aktuelle Fahrzeug auf.
+ * [Tour.vehicleId] 0 das aktuelle Fahrzeug auf. [stationDao] liefert die Stationskosten (inklusive
+ * abgeleiteter Stromkosten), die in die Gesamt- und Jahreskennzahlen einfließen; Stationen ohne Tour
+ * zählen dort mit, siehe [observeTotals] und [observeYearTotals].
  */
 class RoomTourRepository(
     private val dao: TourDao,
+    private val stationDao: StationDao,
     private val vehicleDao: VehicleDao,
     private val newUuid: () -> String = { UUID.randomUUID().toString() },
     private val clock: () -> Instant = Instant::now,
@@ -59,13 +64,20 @@ class RoomTourRepository(
     override suspend fun lastUsedCurrency(): Currency? = dao.lastUsedCurrency()?.let(Currency::getInstance)
 
     override fun observeTotals(vehicleId: Long?): Flow<TourTotals> =
-        combine(dao.observeTotals(vehicleId), dao.observeCostSums(vehicleId)) { totals, sums ->
-            totals.toDomain(sums.map(CostSumRow::toDomain).filter { it.minor != 0L })
+        combine(dao.observeTotals(vehicleId), dao.observeCostSums(vehicleId), stationDao.observeForVehicle(vehicleId)) { totals, sums, stations ->
+            val tourCosts = sums.map(CostSumRow::toDomain)
+            val costs = (tourCosts + stations.map(StationWithCosts::toDomain).stationCostTotals()).sumByCurrency()
+            totals.toDomain(costs)
         }
 
     override fun observeYearTotals(vehicleId: Long?): Flow<List<YearTotals>> =
-        combine(dao.observeYearTotals(vehicleId), dao.observeYearCostSums(vehicleId)) { years, sums ->
-            val costsByYear = sums.groupBy(YearCostSumRow::year) { Money(it.amountMinor, Currency.getInstance(it.currency)) }
-            years.map { row -> row.toDomain(costsByYear[row.year].orEmpty().filter { it.minor != 0L }) }
+        combine(dao.observeYearTotals(vehicleId), dao.observeYearCostSums(vehicleId), stationDao.observeForVehicle(vehicleId)) { years, sums, stationRows ->
+            val tourCostsByYear = sums.groupBy(YearCostSumRow::year) { Money(it.amountMinor, Currency.getInstance(it.currency)) }
+            val stationCostsByYear = stationRows.map(StationWithCosts::toDomain).groupBy { it.date.year }
+                .mapValues { (_, stations) -> stations.stationCostTotals() }
+            years.map { row ->
+                val costs = (tourCostsByYear[row.year].orEmpty() + stationCostsByYear[row.year].orEmpty()).sumByCurrency()
+                row.toDomain(costs)
+            }
         }
 }

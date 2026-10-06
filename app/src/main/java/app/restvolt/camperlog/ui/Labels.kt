@@ -7,7 +7,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import app.restvolt.camperlog.R
-import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.LogRecency
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
@@ -30,6 +30,7 @@ import app.restvolt.camperlog.domain.StationError
 import app.restvolt.camperlog.domain.StationField
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
@@ -54,15 +55,6 @@ val TourType.labelRes: Int
         TourType.DAY_TRIP -> R.string.tour_type_day_trip
         TourType.WEEKEND -> R.string.tour_type_weekend
         TourType.VACATION -> R.string.tour_type_vacation
-    }
-
-/** Anzeigetext der Strompauschale. */
-@get:StringRes
-val ElectricityFlatRate.labelRes: Int
-    get() = when (this) {
-        ElectricityFlatRate.YES -> R.string.electricity_yes
-        ElectricityFlatRate.NO -> R.string.electricity_no
-        ElectricityFlatRate.NOT_USED -> R.string.electricity_not_used
     }
 
 /** Anzeigetext der Netzqualität. */
@@ -298,6 +290,7 @@ val StationType.labelRes: Int
         StationType.OVERNIGHT -> R.string.station_type_overnight
         StationType.SUPPLY -> R.string.station_type_supply
         StationType.FUEL -> R.string.station_type_fuel
+        StationType.TOLL -> R.string.station_type_toll
         StationType.SIGHT -> R.string.station_type_sight
         StationType.FOOD -> R.string.station_type_food
         StationType.FERRY -> R.string.station_type_ferry
@@ -311,10 +304,35 @@ val StationType.iconRes: Int
         StationType.OVERNIGHT -> R.drawable.ic_bed
         StationType.SUPPLY -> R.drawable.ic_rv_hookup
         StationType.FUEL -> R.drawable.ic_local_gas_station
+        StationType.TOLL -> R.drawable.ic_toll
         StationType.SIGHT -> R.drawable.ic_photo_camera
         StationType.FOOD -> R.drawable.ic_restaurant
         StationType.FERRY -> R.drawable.ic_directions_boat
         StationType.OTHER -> R.drawable.ic_place
+    }
+
+/** Anzeigetext der Stromabrechnung. */
+@get:StringRes
+val ElectricityBilling.labelRes: Int
+    get() = when (this) {
+        ElectricityBilling.NONE -> R.string.electricity_billing_none
+        ElectricityBilling.INCLUDED -> R.string.electricity_billing_included
+        ElectricityBilling.FLAT_PER_NIGHT -> R.string.electricity_billing_flat_per_night
+        ElectricityBilling.FLAT_PER_STAY -> R.string.electricity_billing_flat_per_stay
+        ElectricityBilling.METERED -> R.string.electricity_billing_metered
+        ElectricityBilling.BASE_PLUS_METERED -> R.string.electricity_billing_base_plus_metered
+        ElectricityBilling.COIN -> R.string.electricity_billing_coin
+    }
+
+/** Anzeigetext der Maut-Art. */
+@get:StringRes
+val TollKind.labelRes: Int
+    get() = when (this) {
+        TollKind.MOTORWAY -> R.string.toll_kind_motorway
+        TollKind.TUNNEL -> R.string.toll_kind_tunnel
+        TollKind.BRIDGE -> R.string.toll_kind_bridge
+        TollKind.VIGNETTE -> R.string.toll_kind_vignette
+        TollKind.OTHER -> R.string.toll_kind_other
     }
 
 /** Anzeigetext der vor Ort genutzten Versorgung. */
@@ -353,6 +371,9 @@ val StationField.labelRes: Int
         StationField.NOTES -> R.string.field_notes
         StationField.MAP_LINK -> R.string.field_coordinates
         StationField.SERVICES -> R.string.station_section_used_here
+        StationField.ELECTRICITY -> R.string.field_electricity
+        StationField.TOLL_COUNTRY -> R.string.field_toll_country
+        StationField.TOLL_VALID_UNTIL -> R.string.field_toll_valid_until
     }
 
 /** Fehlermeldung zu [this] am Feld [field]. */
@@ -366,6 +387,8 @@ fun StationError.messageRes(field: StationField): Int = when (this) {
     StationError.TOO_LONG -> R.string.error_text_too_long
     StationError.NOT_A_WEB_LINK -> R.string.error_not_a_web_link
     StationError.FUTURE_DATE -> R.string.error_station_service_future_date
+    StationError.INVALID_COUNTRY -> R.string.error_invalid_country
+    StationError.END_BEFORE_START -> R.string.error_end_before_start
 }
 
 /** Text der "Station gespeichert"-Snackbar: Grundtext, ergänzt um die ins Bordbuch eingetragenen Dienste. */

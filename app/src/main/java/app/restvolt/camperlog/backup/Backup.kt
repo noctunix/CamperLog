@@ -1,9 +1,12 @@
 package app.restvolt.camperlog.backup
 
+import app.restvolt.camperlog.domain.ALL_COUNTRY_CODES
 import app.restvolt.camperlog.domain.ALL_CURRENCIES
 import app.restvolt.camperlog.domain.AmountReading
 import app.restvolt.camperlog.domain.CoordinateSource
+import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.EUR
+import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.LATITUDE_RANGE
@@ -14,8 +17,12 @@ import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.MAX_BATTERY_AH
 import app.restvolt.camperlog.domain.MAX_DIMENSION_M
+import app.restvolt.camperlog.domain.MAX_ELECTRICITY_COINS
+import app.restvolt.camperlog.domain.MAX_ELECTRICITY_KWH
+import app.restvolt.camperlog.domain.MAX_FERRY_BOOKING_REFERENCE_LENGTH
 import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
 import app.restvolt.camperlog.domain.MAX_POWER_KW
+import app.restvolt.camperlog.domain.MAX_PRICE_PER_KWH
 import app.restvolt.camperlog.domain.MAX_SOLAR_WP
 import app.restvolt.camperlog.domain.MAX_STATION_MAP_LINK_LENGTH
 import app.restvolt.camperlog.domain.MAX_STATION_NAME_LENGTH
@@ -23,6 +30,7 @@ import app.restvolt.camperlog.domain.MAX_STATION_NOTES_LENGTH
 import app.restvolt.camperlog.domain.MAX_STATION_PLACE_LENGTH
 import app.restvolt.camperlog.domain.MAX_TANK_L
 import app.restvolt.camperlog.domain.MAX_TIRE_PRESSURE_BAR
+import app.restvolt.camperlog.domain.MAX_TOLL_PAYMENT_METHOD_LENGTH
 import app.restvolt.camperlog.domain.MAX_WEIGHT_KG
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
@@ -30,8 +38,10 @@ import app.restvolt.camperlog.domain.RATE_FRACTION_DIGITS
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.SiteKind
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
@@ -41,6 +51,7 @@ import app.restvolt.camperlog.domain.amountReading
 import app.restvolt.camperlog.domain.fractionDigits
 import app.restvolt.camperlog.domain.isValidPhone
 import app.restvolt.camperlog.domain.isWebUrl
+import app.restvolt.camperlog.domain.migrateLegacyElectricityFlatRate
 import app.restvolt.camperlog.domain.migrateLegacyPitch
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
@@ -65,7 +76,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 4
+const val BACKUP_SCHEMA_VERSION = 5
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -76,6 +87,7 @@ internal const val MAX_VEHICLES = 100
 internal const val MAX_REPAIRS_PER_VEHICLE = 5_000
 internal const val MAX_LOG_ENTRIES_PER_VEHICLE = 50_000
 internal const val MAX_STATIONS = 200_000
+internal const val MAX_COSTS_PER_STATION = 100
 internal const val MAX_DESTINATION_LENGTH = 500
 internal const val MAX_NOTES_LENGTH = 20_000
 internal const val MAX_LINK_LENGTH = 4_000
@@ -733,10 +745,6 @@ private fun StationDto.toStation(): Station? {
     if (nights != null && (nights < 1 || stationType != StationType.OVERNIGHT)) return null
     val kind = siteKind?.let { if (stationType != StationType.OVERNIGHT) return null else enumOrNull<SiteKind>(it) ?: return null }
     val assigned = pitchAssigned?.also { if (stationType != StationType.OVERNIGHT) return null }
-    val electricity = electricityFlatRate?.let {
-        if (stationType != StationType.OVERNIGHT) return null
-        enumOrNull<ElectricityFlatRate>(it) ?: return null
-    }
     val lte = lteQuality?.let {
         if (stationType != StationType.OVERNIGHT) return null
         enumOrNull<LteQuality>(it) ?: return null
@@ -746,6 +754,81 @@ private fun StationDto.toStation(): Station? {
         enumOrNull<PitchSlope>(it) ?: return null
     }
     val blocks = levelingBlocksUsed?.also { if (stationType != StationType.OVERNIGHT) return null }
+
+    val billing = when {
+        electricityBilling != null -> {
+            if (stationType != StationType.OVERNIGHT) return null
+            enumOrNull<ElectricityBilling>(electricityBilling) ?: return null
+        }
+        electricityFlatRate != null -> {
+            if (stationType != StationType.OVERNIGHT) return null
+            migrateLegacyElectricityFlatRate(enumOrNull<ElectricityFlatRate>(electricityFlatRate) ?: return null)
+        }
+        else -> null
+    }
+    val electricityCurrencyValue = electricityCurrency?.let {
+        if (billing == null) return null
+        parseCurrency(it) ?: return null
+    }
+    if (billing != null && electricityCurrencyValue == null) return null
+    val flatAmountMoney = electricityFlatAmount?.let {
+        if (billing == null) return null
+        it.toMoneyWith(checkNotNull(electricityCurrencyValue)) ?: return null
+    }
+    val baseFeeMoney = electricityBaseFee?.let {
+        if (billing == null) return null
+        it.toMoneyWith(checkNotNull(electricityCurrencyValue)) ?: return null
+    }
+    val pricePerKwhValue = electricityPricePerKwh?.let {
+        if (billing == null) return null
+        parseKwh(it, MAX_PRICE_PER_KWH) ?: return null
+    }
+    val coinPriceMoney = electricityCoinPrice?.let {
+        if (billing == null) return null
+        it.toMoneyWith(checkNotNull(electricityCurrencyValue)) ?: return null
+    }
+    val coinsUsedValue = electricityCoinsUsed?.also {
+        if (billing == null || it < 0 || it > MAX_ELECTRICITY_COINS) return null
+    }
+    val kwhPerCoinValue = electricityKwhPerCoin?.let {
+        if (billing == null) return null
+        parseKwh(it, MAX_ELECTRICITY_KWH) ?: return null
+    }
+    val meterStartValue = electricityMeterStart?.let {
+        if (billing == null) return null
+        parseKwh(it, MAX_ELECTRICITY_KWH) ?: return null
+    }
+    val meterEndValue = electricityMeterEnd?.let {
+        if (billing == null) return null
+        parseKwh(it, MAX_ELECTRICITY_KWH) ?: return null
+    }
+    val kwhUsedValue = electricityKwhUsed?.let {
+        if (billing == null) return null
+        parseKwh(it, MAX_ELECTRICITY_KWH) ?: return null
+    }
+
+    if (stationType != StationType.TOLL) {
+        if (tollKind != null || tollPaymentMethod.isNotEmpty() || tollCountry != null || tollValidFrom != null || tollValidUntil != null) {
+            return null
+        }
+    }
+    val tollKindValue = tollKind?.let { enumOrNull<TollKind>(it) ?: return null }
+    if (tollPaymentMethod.length > MAX_TOLL_PAYMENT_METHOD_LENGTH) return null
+    val tollCountryValue = tollCountry?.let { if (it in ALL_COUNTRY_CODES) it else return null }
+    val tollValidFromValue = tollValidFrom?.let { parseDate(it) ?: return null }
+    val tollValidUntilValue = tollValidUntil?.let {
+        val value = parseDate(it) ?: return null
+        if (tollValidFromValue != null && value < tollValidFromValue) return null
+        value
+    }
+
+    if (stationType != StationType.FERRY && ferryBookingReference.isNotEmpty()) return null
+    if (ferryBookingReference.length > MAX_FERRY_BOOKING_REFERENCE_LENGTH) return null
+
+    if (costs.size > MAX_COSTS_PER_STATION) return null
+    val stationCosts = costs.map { it.toStationCost() ?: return null }
+    if (stationCosts.map { it.category to it.amount.currency }.distinct().size != stationCosts.size) return null
+
     val allowed = stationType.allowedServices
     val stationServices = services.map { enumOrNull<StationService>(it) ?: return null }.toSet()
     if (!allowed.containsAll(stationServices)) return null
@@ -768,16 +851,54 @@ private fun StationDto.toStation(): Station? {
         nights = nights,
         siteKind = kind,
         pitchAssigned = assigned,
-        electricityFlatRate = electricity,
         lteQuality = lte,
         pitchSlope = slope,
         levelingBlocksUsed = blocks,
+        electricityBilling = billing,
+        electricityCurrency = electricityCurrencyValue,
+        electricityFlatAmount = flatAmountMoney,
+        electricityBaseFee = baseFeeMoney,
+        electricityPricePerKwh = pricePerKwhValue,
+        electricityCoinPrice = coinPriceMoney,
+        electricityCoinsUsed = coinsUsedValue,
+        electricityKwhPerCoin = kwhPerCoinValue,
+        electricityMeterStart = meterStartValue,
+        electricityMeterEnd = meterEndValue,
+        electricityKwhUsed = kwhUsedValue,
+        tollKind = tollKindValue,
+        tollPaymentMethod = tollPaymentMethod,
+        tollCountry = tollCountryValue,
+        tollValidFrom = tollValidFromValue,
+        tollValidUntil = tollValidUntilValue,
+        ferryBookingReference = ferryBookingReference,
+        costs = stationCosts,
         services = stationServices,
         weather = weatherSnapshot,
         favorite = favorite,
         createdAt = parseInstant(createdAt) ?: return null,
         updatedAt = parseInstant(updatedAt) ?: return null,
     )
+}
+
+/** Dezimalzahl mit höchstens 6 Nachkommastellen, nicht negativ und höchstens [max]. */
+private fun parseKwh(text: String, max: Double): BigDecimal? {
+    val value = parseDecimal(text, maxFractionDigits = 6) ?: return null
+    return value.takeIf { it.signum() >= 0 && it <= BigDecimal.valueOf(max) }
+}
+
+/** Wie [CostDto.toMoney], aber mit extern vorgegebener [currency] statt einem eigenen Feld dafür. */
+private fun String.toMoneyWith(currency: Currency): Money? {
+    val value = parseDecimal(this, currency.fractionDigits) ?: return null
+    val reading = amountReading(value.movePointRight(currency.fractionDigits)) as? AmountReading.Valid ?: return null
+    return Money(reading.minor, currency)
+}
+
+private fun StationCostDto.toStationCost(): StationCost? {
+    val categoryValue = enumOrNull<CostCategory>(category) ?: return null
+    val currencyValue = parseCurrency(currency) ?: return null
+    val money = amount.toMoneyWith(currencyValue) ?: return null
+    if (note.length > MAX_NOTES_LENGTH) return null
+    return StationCost(categoryValue, money, note)
 }
 
 private fun WeatherDto.toWeather(): WeatherSnapshot? {
@@ -812,10 +933,28 @@ private fun Station.toDto(vehicleUuid: String, tourUuid: String?) = StationDto(
     nights = nights,
     siteKind = siteKind?.name,
     pitchAssigned = pitchAssigned,
-    electricityFlatRate = electricityFlatRate?.name,
     lteQuality = lteQuality?.name,
     pitchSlope = pitchSlope?.name,
     levelingBlocksUsed = levelingBlocksUsed,
+    electricityFlatRate = null,
+    electricityBilling = electricityBilling?.name,
+    electricityCurrency = electricityCurrency?.currencyCode,
+    electricityFlatAmount = electricityFlatAmount?.toCostDto()?.amount,
+    electricityBaseFee = electricityBaseFee?.toCostDto()?.amount,
+    electricityPricePerKwh = electricityPricePerKwh?.stripTrailingZeros()?.toPlainString(),
+    electricityCoinPrice = electricityCoinPrice?.toCostDto()?.amount,
+    electricityCoinsUsed = electricityCoinsUsed,
+    electricityKwhPerCoin = electricityKwhPerCoin?.stripTrailingZeros()?.toPlainString(),
+    electricityMeterStart = electricityMeterStart?.stripTrailingZeros()?.toPlainString(),
+    electricityMeterEnd = electricityMeterEnd?.stripTrailingZeros()?.toPlainString(),
+    electricityKwhUsed = electricityKwhUsed?.stripTrailingZeros()?.toPlainString(),
+    tollKind = tollKind?.name,
+    tollPaymentMethod = tollPaymentMethod,
+    tollCountry = tollCountry,
+    tollValidFrom = tollValidFrom?.toString(),
+    tollValidUntil = tollValidUntil?.toString(),
+    ferryBookingReference = ferryBookingReference,
+    costs = costs.map { it.toDto() },
     services = services.map { it.name },
     weather = weather?.toDto(),
     favorite = favorite,
@@ -824,6 +963,8 @@ private fun Station.toDto(vehicleUuid: String, tourUuid: String?) = StationDto(
     vehicleUuid = vehicleUuid,
     tourUuid = tourUuid,
 )
+
+private fun StationCost.toDto() = StationCostDto(category.name, amount.currency.currencyCode, amount.toCostDto().amount, note)
 
 private fun WeatherSnapshot.toDto() = WeatherDto(
     temperatureDeciC = temperatureDeciC,

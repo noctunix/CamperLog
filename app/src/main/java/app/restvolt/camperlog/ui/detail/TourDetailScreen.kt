@@ -378,7 +378,7 @@ private fun stationSupportingText(station: Station, locale: Locale): String {
         StationType.OVERNIGHT -> station.nights?.let { pluralStringResource(R.plurals.station_nights, it, it) }
         StationType.SUPPLY -> servicesLabel(SUPPLY_SERVICES, station.services)
         StationType.FUEL -> servicesLabel(FUEL_SERVICES + SUPPLY_SERVICES, station.services)
-        StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> null
+        StationType.TOLL, StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> null
     }
     return listOfNotNull(dateTime, detail).joinToString(" · ")
 }

@@ -175,7 +175,8 @@ class RoomBackupImporter(
         val stationLocalIdByUuid = HashMap<String, Long>()
         if (mode == ImportMode.REPLACE) {
             importedStations.forEach { station ->
-                stationLocalIdByUuid[station.uuid] = stationDao.insert(station.copy(id = 0).toEntity())
+                val withId = station.copy(id = 0)
+                stationLocalIdByUuid[station.uuid] = stationDao.insertWithCosts(withId.toEntity(), withId.toCostEntities())
                 addedStations++
             }
         } else {
@@ -184,12 +185,14 @@ class RoomBackupImporter(
                 val existing = storedStations[station.uuid]
                 val localId = when {
                     existing == null -> {
-                        val id = stationDao.insert(station.copy(id = 0).toEntity())
+                        val withId = station.copy(id = 0)
+                        val id = stationDao.insertWithCosts(withId.toEntity(), withId.toCostEntities())
                         addedStations++
                         id
                     }
                     station.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
-                        stationDao.update(station.copy(id = existing.id).toEntity())
+                        val withId = station.copy(id = existing.id)
+                        stationDao.updateWithCosts(withId.toEntity(), withId.toCostEntities())
                         updatedStations++
                         existing.id
                     }
@@ -273,6 +276,6 @@ private suspend fun untouchedSoleVehicleId(vehicles: VehicleDao, logs: LogDao, s
     val untouched = only.toDomain().copy(id = 0, uuid = "", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH) == blank
     return only.id.takeIf {
         untouched && vehicles.countToursForVehicle(it) == 0 && vehicles.countRepairsForVehicle(it) == 0 &&
-            logs.countForVehicle(it) == 0 && stations.getAll().none { station -> station.vehicleId == it }
+            logs.countForVehicle(it) == 0 && stations.getAll().none { row -> row.station.vehicleId == it }
     }
 }

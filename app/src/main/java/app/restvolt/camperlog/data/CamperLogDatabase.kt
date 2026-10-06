@@ -28,8 +28,9 @@ import java.util.UUID
         RepairEntity::class,
         LogEntryEntity::class,
         StationEntity::class,
+        StationCostEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -56,7 +57,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
             Room.databaseBuilder(context.applicationContext, CamperLogDatabase::class.java, "camperlog.db")
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
-                    MIGRATION_7_8, MIGRATION_8_9,
+                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                 )
                 .build()
     }
@@ -330,7 +331,7 @@ internal fun migration6To7(context: Context, onToursMigrated: () -> Unit = {}): 
                         "NULL, NULL, NULL, NULL, NULL, NULL, 0, ?, ?)",
                     arrayOf<Any?>(
                         station.uuid, station.vehicleId, station.tourId, station.type.name, station.date.toString(),
-                        station.name, station.nights, station.pitchAssigned?.toSqlInt(), station.electricityFlatRate?.name,
+                        station.name, station.nights, station.pitchAssigned?.toSqlInt(), pitch.electricityFlatRate.name,
                         station.lteQuality?.name, station.pitchSlope?.name, station.levelingBlocksUsed?.toSqlInt(),
                         station.createdAt.toEpochMilli(), station.updatedAt.toEpochMilli(),
                     ),
@@ -447,5 +448,71 @@ internal val MIGRATION_7_8 = object : Migration(7, 8) {
 internal val MIGRATION_8_9 = object : Migration(8, 9) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `next_leak_test_date` TEXT")
+    }
+}
+
+/**
+ * Version 10: Stationskosten ([CostCategory]) kommen in der neuen Tabelle `station_costs` hinzu, dazu
+ * die Stromabrechnung ([ElectricityBilling]), Maut- und Fähre-Felder auf `stations`. Die alte Spalte
+ * `electricity_flat_rate` entfällt dafür: `YES` wird zu `FLAT_PER_STAY`, `NO` zu `METERED`, `NOT_USED`
+ * zu `NONE`, `NULL` bleibt `NULL` (siehe [app.restvolt.camperlog.domain.migrateLegacyElectricityFlatRate]).
+ * SQLite kann ab API 26 keine Spalten löschen, daher wird `stations` wie schon in [MIGRATION_1_2] neu
+ * aufgebaut; alle übrigen neuen Spalten bleiben für bestehende Stationen `NULL` bzw. leer.
+ */
+internal val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE `stations_new` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, " +
+                "`vehicle_id` INTEGER NOT NULL, `tour_id` INTEGER, `type` TEXT NOT NULL, `date` TEXT NOT NULL, " +
+                "`time` TEXT, `name` TEXT NOT NULL, `place` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, " +
+                "`coordinate_source` TEXT, `accuracy_m` INTEGER, `map_link` TEXT, `notes` TEXT NOT NULL, " +
+                "`nights` INTEGER, `site_kind` TEXT, `pitch_assigned` INTEGER, `lte_quality` TEXT, " +
+                "`pitch_slope` TEXT, `leveling_blocks_used` INTEGER, " +
+                "`electricity_billing` TEXT, `electricity_currency` TEXT, `electricity_flat_amount_minor` INTEGER, " +
+                "`electricity_base_fee_minor` INTEGER, `electricity_price_per_kwh` TEXT, " +
+                "`electricity_coin_price_minor` INTEGER, `electricity_coins_used` INTEGER, " +
+                "`electricity_kwh_per_coin` TEXT, `electricity_meter_start` TEXT, `electricity_meter_end` TEXT, " +
+                "`electricity_kwh_used` TEXT, `toll_kind` TEXT, `toll_payment_method` TEXT NOT NULL DEFAULT '', " +
+                "`toll_country` TEXT, `toll_valid_from` TEXT, `toll_valid_until` TEXT, " +
+                "`ferry_booking_reference` TEXT NOT NULL DEFAULT '', `services` TEXT NOT NULL, " +
+                "`weather_temperature_deci_c` INTEGER, `weather_code` INTEGER, `weather_wind_kmh` INTEGER, " +
+                "`weather_gust_kmh` INTEGER, `weather_wind_direction_deg` INTEGER, `weather_observed_at` INTEGER, " +
+                "`favorite` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL(
+            "INSERT INTO `stations_new` (`id`, `uuid`, `vehicle_id`, `tour_id`, `type`, `date`, `time`, `name`, " +
+                "`place`, `latitude`, `longitude`, `coordinate_source`, `accuracy_m`, `map_link`, `notes`, " +
+                "`nights`, `site_kind`, `pitch_assigned`, `lte_quality`, `pitch_slope`, `leveling_blocks_used`, " +
+                "`electricity_billing`, `services`, `weather_temperature_deci_c`, `weather_code`, " +
+                "`weather_wind_kmh`, `weather_gust_kmh`, `weather_wind_direction_deg`, `weather_observed_at`, " +
+                "`favorite`, `created_at`, `updated_at`) " +
+                "SELECT `id`, `uuid`, `vehicle_id`, `tour_id`, `type`, `date`, `time`, `name`, `place`, " +
+                "`latitude`, `longitude`, `coordinate_source`, `accuracy_m`, `map_link`, `notes`, `nights`, " +
+                "`site_kind`, `pitch_assigned`, `lte_quality`, `pitch_slope`, `leveling_blocks_used`, " +
+                "CASE `electricity_flat_rate` WHEN 'YES' THEN 'FLAT_PER_STAY' WHEN 'NO' THEN 'METERED' " +
+                "WHEN 'NOT_USED' THEN 'NONE' ELSE NULL END, " +
+                "`services`, `weather_temperature_deci_c`, `weather_code`, `weather_wind_kmh`, " +
+                "`weather_gust_kmh`, `weather_wind_direction_deg`, `weather_observed_at`, `favorite`, " +
+                "`created_at`, `updated_at` FROM `stations`",
+        )
+        db.execSQL("DROP TABLE `stations`")
+        db.execSQL("ALTER TABLE `stations_new` RENAME TO `stations`")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_stations_uuid` ON `stations` (`uuid`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_stations_vehicle_id` ON `stations` (`vehicle_id`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_stations_tour_id` ON `stations` (`tour_id`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_stations_date` ON `stations` (`date`)")
+
+        db.execSQL(
+            "CREATE TABLE `station_costs` (`station_id` INTEGER NOT NULL, `category` TEXT NOT NULL, " +
+                "`currency` TEXT NOT NULL, `amount_minor` INTEGER NOT NULL, `note` TEXT NOT NULL, " +
+                "`position` INTEGER NOT NULL, PRIMARY KEY(`station_id`, `category`, `currency`), " +
+                "FOREIGN KEY(`station_id`) REFERENCES `stations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+
+        db.query("PRAGMA foreign_key_check").use { cursor ->
+            check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 9→10" }
+        }
     }
 }

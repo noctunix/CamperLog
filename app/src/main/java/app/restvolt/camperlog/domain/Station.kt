@@ -2,20 +2,36 @@ package app.restvolt.camperlog.domain
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.util.Currency
+import java.util.Locale
 
 /** Art einer Station; die Reihenfolge ist die Reihenfolge in der Auswahl. Mit stabilem Exportwert [csvValue]. */
 enum class StationType(val csvValue: String) {
     OVERNIGHT("schlafplatz"),
     SUPPLY("ver_entsorgung"),
     FUEL("tanken_laden"),
+    TOLL("maut"),
     SIGHT("sehenswertes"),
     FOOD("essen"),
     FERRY("faehre"),
     OTHER("sonstiges"),
 }
+
+/** Art einer Maut-Station, mit stabilem Exportwert [csvValue]. Abschnitt/Name kommen über den Stationsnamen. */
+enum class TollKind(val csvValue: String) {
+    MOTORWAY("autobahn"),
+    TUNNEL("tunnel"),
+    BRIDGE("bruecke"),
+    VIGNETTE("vignette"),
+    OTHER("sonstiges"),
+}
+
+/** Gültige ISO-3166-1-alpha-2-Ländercodes für die Vignetten-Länderauswahl, aus der Java-Locale-Liste. */
+val ALL_COUNTRY_CODES: Set<String> by lazy { Locale.getISOCountries().toSet() }
 
 /**
  * Vor Ort genutzte Versorgung. Die "Ver-/Entsorgung"-Gruppe ist auf [StationType.OVERNIGHT],
@@ -45,7 +61,7 @@ val StationType.allowedServices: Set<StationService>
     get() = when (this) {
         StationType.OVERNIGHT, StationType.SUPPLY -> SUPPLY_SERVICES
         StationType.FUEL -> SUPPLY_SERVICES + FUEL_SERVICES
-        StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> emptySet()
+        StationType.TOLL, StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> emptySet()
     }
 
 /** Art des Platzes einer Übernachtungs-Station, mit stabilem Exportwert [csvValue]. */
@@ -80,6 +96,14 @@ data class WeatherSnapshot(
  * [date] und [time] sind Wanduhrzeiten am Ort; nur [WeatherSnapshot.observedAt] ist ein [Instant].
  * Die typspezifischen Felder ([nights] bis [levelingBlocksUsed]) sind nur bei [StationType.OVERNIGHT]
  * gesetzt, `null` bedeutet dort "nicht angegeben". [favorite] markiert "gerne wieder".
+ *
+ * Die Stromabrechnung ([electricityBilling] bis [electricityKwhUsed]) gilt nur bei [StationType.OVERNIGHT]:
+ * [electricityBilling] `null` bedeutet "nicht angegeben", alle Beträge teilen sich [electricityCurrency];
+ * kWh kommen aus [electricityMeterStart]/[electricityMeterEnd] oder direkt aus [electricityKwhUsed]
+ * (siehe [electricityCost] und [electricityKwh]). Die Maut-Felder ([tollKind] bis [tollValidUntil])
+ * gelten nur bei [StationType.TOLL], [ferryBookingReference] nur bei [StationType.FERRY]. [costs] sind
+ * manuell erfasste Kostenposten unabhängig vom Stationstyp (siehe [CostCategory]); die Stromkosten
+ * zählen nicht doppelt dazu, siehe [effectiveCosts].
  */
 data class Station(
     val id: Long = 0,
@@ -100,10 +124,27 @@ data class Station(
     val nights: Int? = null,
     val siteKind: SiteKind? = null,
     val pitchAssigned: Boolean? = null,
-    val electricityFlatRate: ElectricityFlatRate? = null,
     val lteQuality: LteQuality? = null,
     val pitchSlope: PitchSlope? = null,
     val levelingBlocksUsed: Boolean? = null,
+    val electricityBilling: ElectricityBilling? = null,
+    val electricityCurrency: Currency? = null,
+    val electricityFlatAmount: Money? = null,
+    val electricityBaseFee: Money? = null,
+    val electricityPricePerKwh: BigDecimal? = null,
+    val electricityCoinPrice: Money? = null,
+    val electricityCoinsUsed: Int? = null,
+    val electricityKwhPerCoin: BigDecimal? = null,
+    val electricityMeterStart: BigDecimal? = null,
+    val electricityMeterEnd: BigDecimal? = null,
+    val electricityKwhUsed: BigDecimal? = null,
+    val tollKind: TollKind? = null,
+    val tollPaymentMethod: String = "",
+    val tollCountry: String? = null,
+    val tollValidFrom: LocalDate? = null,
+    val tollValidUntil: LocalDate? = null,
+    val ferryBookingReference: String = "",
+    val costs: List<StationCost> = emptyList(),
     val services: Set<StationService> = emptySet(),
     val weather: WeatherSnapshot? = null,
     val favorite: Boolean = false,

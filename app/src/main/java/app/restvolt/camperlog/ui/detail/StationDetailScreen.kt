@@ -199,7 +199,7 @@ private fun pitchDetailsText(station: Station): String? {
         station.pitchAssigned?.let {
             stringResource(R.string.station_summary_field, stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(it)))
         },
-        station.electricityFlatRate?.let {
+        station.electricityBilling?.let {
             stringResource(R.string.station_summary_field, stringResource(R.string.field_electricity), stringResource(it.labelRes))
         },
         station.lteQuality?.let { stringResource(R.string.station_summary_field, stringResource(R.string.field_lte), stringResource(it.labelRes)) },

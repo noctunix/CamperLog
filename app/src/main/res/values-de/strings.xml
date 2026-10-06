@@ -556,10 +556,23 @@
     <string name="station_type_overnight">Schlafplatz</string>
     <string name="station_type_supply">Ver-/Entsorgung</string>
     <string name="station_type_fuel">Tanken &amp; Laden</string>
+    <string name="station_type_toll">Maut</string>
     <string name="station_type_sight">Sehenswertes</string>
     <string name="station_type_food">Essen</string>
     <string name="station_type_ferry">Fähre</string>
     <string name="station_type_other">Sonstiges</string>
+    <string name="electricity_billing_none">nicht genutzt</string>
+    <string name="electricity_billing_included">im Stellplatzpreis enthalten</string>
+    <string name="electricity_billing_flat_per_night">Pauschale pro Nacht</string>
+    <string name="electricity_billing_flat_per_stay">Pauschale für den Aufenthalt</string>
+    <string name="electricity_billing_metered">nach Verbrauch</string>
+    <string name="electricity_billing_base_plus_metered">Grundgebühr + Verbrauch</string>
+    <string name="electricity_billing_coin">Münzautomat</string>
+    <string name="toll_kind_motorway">Autobahn</string>
+    <string name="toll_kind_tunnel">Tunnel</string>
+    <string name="toll_kind_bridge">Brücke</string>
+    <string name="toll_kind_vignette">Vignette</string>
+    <string name="toll_kind_other">Sonstiges</string>
     <string name="station_service_fresh_water">Frischwasser</string>
     <string name="station_service_grey_water">Grauwasser</string>
     <string name="station_service_cassette">Kassette</string>
@@ -603,10 +616,12 @@
     <string name="field_nights">Nächte</string>
     <string name="field_site_kind">Art des Platzes</string>
     <string name="field_pitch_assigned">Stellplatz zugewiesen</string>
-    <string name="field_electricity">Strompauschale</string>
+    <string name="field_electricity">Strom</string>
     <string name="field_lte">LTE-Qualität</string>
     <string name="field_pitch_slope">Neigung des Platzes</string>
     <string name="field_leveling_blocks">Keile genutzt</string>
+    <string name="field_toll_country">Land</string>
+    <string name="field_toll_valid_until">Gültig bis</string>
     <string name="station_no_tour">Keine Tour</string>
     <string name="station_add_coordinates">Koordinaten eingeben</string>
     <string name="station_coordinates_recognized">Erkannt: %1$s</string>
@@ -629,6 +644,7 @@
     <string name="error_nights_too_small">Mindestens 1 Nacht</string>
     <string name="error_text_too_long">Zu lang</string>
     <string name="error_station_service_future_date">Kann nicht in der Zukunft passiert sein.</string>
+    <string name="error_invalid_country">Unbekannter Ländercode</string>
 
     <!-- Stationsdetail -->
     <string name="station_detail_delete">Station löschen</string>
