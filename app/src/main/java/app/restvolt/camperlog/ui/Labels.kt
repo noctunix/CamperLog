@@ -374,5 +374,9 @@ fun coordinatesContentDescription(latitude: Double, longitude: Double, accuracyM
     val latDirection = stringResource(if (latitude < 0) R.string.direction_south else R.string.direction_north)
     val lonDirection = stringResource(if (longitude < 0) R.string.direction_west else R.string.direction_east)
     val base = stringResource(R.string.station_coordinates_description, latValue, latDirection, lonValue, lonDirection)
-    return if (accuracyM != null) "$base, ${stringResource(R.string.station_coordinates_accuracy, accuracyM)}" else base
+    return if (accuracyM != null) {
+        "$base, ${pluralStringResource(R.plurals.station_coordinates_accuracy, accuracyM, accuracyM)}"
+    } else {
+        base
+    }
 }

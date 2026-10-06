@@ -584,5 +584,8 @@
     <string name="direction_east">Ost</string>
     <string name="direction_west">West</string>
     <string name="station_coordinates_description">%1$s Grad %2$s, %3$s Grad %4$s</string>
-    <string name="station_coordinates_accuracy">Genauigkeit %1$d Meter</string>
+    <plurals name="station_coordinates_accuracy">
+        <item quantity="one">Genauigkeit %1$d Meter</item>
+        <item quantity="other">Genauigkeit %1$d Meter</item>
+    </plurals>
 </resources>

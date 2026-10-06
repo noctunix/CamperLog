@@ -292,7 +292,7 @@ private fun StationForm(state: StationEditUiState, viewModel: EditStationViewMod
 private fun OvernightSection(
     input: StationInput,
     change: ((StationInput) -> StationInput) -> Unit,
-    nightsFocus: Modifier,
+    modifier: Modifier,
     nightsError: String?,
 ) {
     SectionCard {
@@ -303,7 +303,7 @@ private fun OvernightSection(
             error = nightsError,
             onValueChange = { value -> change { it.copy(nights = value) } },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-            modifier = nightsFocus,
+            modifier = modifier,
         )
         SiteKindField(input.siteKind) { kind -> change { it.copy(siteKind = kind) } }
         FavoriteRow(input.favorite) { value -> change { it.copy(favorite = value) } }

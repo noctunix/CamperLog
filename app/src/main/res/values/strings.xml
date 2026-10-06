@@ -591,5 +591,8 @@
     <string name="direction_east">east</string>
     <string name="direction_west">west</string>
     <string name="station_coordinates_description">%1$s degrees %2$s, %3$s degrees %4$s</string>
-    <string name="station_coordinates_accuracy">accuracy %1$d metres</string>
+    <plurals name="station_coordinates_accuracy">
+        <item quantity="one">accuracy %1$d metre</item>
+        <item quantity="other">accuracy %1$d metres</item>
+    </plurals>
 </resources>
