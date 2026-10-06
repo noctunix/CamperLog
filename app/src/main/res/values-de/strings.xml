@@ -516,7 +516,7 @@
     <string name="about_privacy_bullet_notifications">Benachrichtigungen (optional): aus, bis du sie einschaltest. Das Einschalten fragt nach der Benachrichtigungsberechtigung und startet einen täglichen Hintergrund-Check für fällige Wartung und deine Sicherungs-Erinnerung, vollständig auf deinem Gerät. Dafür kommt die Berechtigung für den Neustart-Empfang hinzu, damit der Check einen Neustart überlebt; es wird dabei nichts irgendwohin gesendet.</string>
     <string name="about_privacy_bullet_no_tracking">Kein Konto, keine Werbung, keine Analyse. Sonst verlässt nichts dein Gerät.</string>
     <string name="about_privacy_bullet_local">Alle Daten bleiben auf diesem Gerät.</string>
-    <string name="about_privacy_bullet_backup">Sicherungen entstehen nur, wenn du sie exportierst.</string>
+    <string name="about_privacy_bullet_backup">Sicherungen entstehen nur, wenn du sie exportierst oder automatische Sicherungen in deinen gewählten Sicherungsordner einschaltest.</string>
     <string name="about_privacy_bullet_uninstall">Beim Deinstallieren werden alle Daten gelöscht.</string>
     <string name="cd_expand_about_section">Abschnitt \"%1$s\" anzeigen</string>
     <string name="cd_collapse_about_section">Abschnitt \"%1$s\" ausblenden</string>

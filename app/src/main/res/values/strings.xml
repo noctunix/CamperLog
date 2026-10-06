@@ -524,7 +524,7 @@
     <string name="about_privacy_bullet_notifications">Notifications (optional): off by default. Turning them on asks for the notification permission and runs a daily background check for due maintenance and your backup reminder, entirely on your device. This adds the boot-completed permission so the check survives a restart; nothing is ever sent anywhere.</string>
     <string name="about_privacy_bullet_no_tracking">No account, no ads, no analytics. Nothing else ever leaves your device.</string>
     <string name="about_privacy_bullet_local">All data stays on this device.</string>
-    <string name="about_privacy_bullet_backup">Backups are only created when you export them.</string>
+    <string name="about_privacy_bullet_backup">Backups are only created when you export them, or when you turn on automatic backups into your chosen backup folder.</string>
     <string name="about_privacy_bullet_uninstall">Uninstalling the app deletes all its data.</string>
     <string name="cd_expand_about_section">Show \"%1$s\" section</string>
     <string name="cd_collapse_about_section">Hide \"%1$s\" section</string>
