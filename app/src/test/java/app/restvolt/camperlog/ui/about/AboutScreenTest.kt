@@ -92,9 +92,9 @@ class AboutScreenTest {
 
         compose.onNodeWithText("Datenschutz").performScrollTo().performClick()
         compose.onNodeWithText(
-            "Wetter (optional): CamperLog hat die Internet-Berechtigung, nutzt sie aber nur, wenn du das einschaltest. " +
-                "Beim Wetterabruf gehen die Koordinaten der Station, auf etwa 1 km gerundet, an Open-Meteo; " +
-                "der Dienst sieht dabei deine IP-Adresse.",
+            "Wetter & Karte (optional): CamperLog hat die Internet-Berechtigung, nutzt sie aber nur, wenn du das einschaltest. " +
+                "Beim Wetterabruf gehen die Koordinaten der Station, auf etwa 1 km gerundet, an Open-Meteo. " +
+                "Die Karte lädt den angezeigten Ausschnitt von OpenStreetMap. Beide Dienste sehen deine IP-Adresse.",
         ).assertExists()
     }
 

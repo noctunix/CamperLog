@@ -42,10 +42,19 @@ class PrivacyStringsTest {
         assertTrue(de.contains("Internet-Berechtigung"))
     }
 
+    /** ROADMAP 1.8.0: die Kartenanteile wurden wiederhergestellt, nachdem die Karte fehlte (phase F). */
+    @Test
+    fun weatherSwitchAndPrivacyBulletMentionTheMap() {
+        assertTrue(en.contains("Weather &amp; map (internet)"))
+        assertTrue(de.contains("Wetter &amp; Karte (Internet)"))
+        assertTrue(en.contains("The map loads the area you are looking at from OpenStreetMap."))
+        assertTrue(de.contains("Die Karte lädt den angezeigten Ausschnitt von OpenStreetMap."))
+    }
+
     @Test
     fun optInWordingCoversBothSwitches() {
-        assertTrue(en.contains("Optional: location and weather"))
-        assertTrue(de.contains("Optional: Standort und Wetter"))
+        assertTrue(en.contains("Optional: location, weather, map"))
+        assertTrue(de.contains("Optional: Standort, Wetter, Karte"))
     }
 
     @Test

@@ -173,7 +173,7 @@ class IntroductionTourFlowTest {
                 compose.waitForIdle()
             }
 
-            compose.onNodeWithText("Optional: Standort und Wetter").assertExists()
+            compose.onNodeWithText("Optional: Standort, Wetter, Karte").assertExists()
             compose.onNodeWithText("Aktuellen Standort nutzen").performClick()
 
             assertTrue(LocationSettings(context).values.value)
@@ -193,7 +193,7 @@ class IntroductionTourFlowTest {
                 compose.waitForIdle()
             }
 
-            compose.onNodeWithText("Wetter (Internet)").performClick()
+            compose.onNodeWithText("Wetter & Karte (Internet)").performClick()
 
             assertTrue(WeatherSettings(context).values.value)
             // Der Standort-Schalter bleibt von der Wetter-Umschaltung unberührt (6.10: zwei unabhängige Schalter).

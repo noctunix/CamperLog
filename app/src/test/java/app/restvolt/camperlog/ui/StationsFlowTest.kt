@@ -192,4 +192,27 @@ class StationsFlowTest {
 
         compose.onNodeWithText("Schlafplatz").assertExists()
     }
+
+    /** ROADMAP 1.8.0: der Einstellungen-Verweis war aus dem Hinweistext verschwunden und ist zurück. */
+    @Test
+    fun whatsNewCard_showsTheFullTextAndOpensSettings() {
+        val preferences = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("stations_whats_new", android.content.Context.MODE_PRIVATE)
+        preferences.edit().putBoolean("pending", true).commit()
+        try {
+            start()
+            openStationsTab()
+
+            compose.onNodeWithText(
+                "Neu: Stationen. Deine bisherigen Stellplatz-Angaben stehen jetzt als Schlafplätze in deinen Touren. " +
+                    "Standort, Wetter und Karte kannst du in den Einstellungen einschalten.",
+            ).assertExists()
+
+            compose.onNodeWithText("Einstellungen").performClick()
+
+            compose.onNodeWithText("Standort & Internet").assertExists()
+        } finally {
+            preferences.edit().clear().commit()
+        }
+    }
 }
