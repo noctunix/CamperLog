@@ -12,12 +12,17 @@ import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.RepairError
 import app.restvolt.camperlog.domain.RepairField
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationError
+import app.restvolt.camperlog.domain.StationField
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.VehicleError
 import app.restvolt.camperlog.domain.VehicleField
+import app.restvolt.camperlog.ui.edit.EditStationViewModel
 import app.restvolt.camperlog.ui.edit.EditTourViewModel
 import app.restvolt.camperlog.ui.edit.EditVehicleViewModel
 import app.restvolt.camperlog.ui.edit.RepairEditViewModel
@@ -345,6 +350,85 @@ class DraftRestorationTest {
         assertTrue(before.uiState.value.isSaved)
         assertTrue(handle.keys().isEmpty())
     }
+
+    @Test
+    fun newStationInputSurvivesProcessDeath() {
+        val handle = SavedStateHandle()
+        val before = EditStationViewModel(
+            repository = FakeStationRepository(),
+            tours = FakeTourRepository(),
+            vehicles = vehicles,
+            stationId = 0,
+            savedStateHandle = handle,
+        )
+        before.onInputChange { it.copy(name = "Camping Moskenes", place = "Moskenes, Norwegen") }
+        before.onLocationTextChange("68.0912, 13.1023")
+
+        val after = EditStationViewModel(
+            repository = FakeStationRepository(),
+            tours = FakeTourRepository(),
+            vehicles = vehicles,
+            stationId = 0,
+            savedStateHandle = handle.afterProcessDeath(),
+        )
+
+        val state = after.uiState.value
+        assertEquals(before.uiState.value.input, state.input)
+        assertEquals(68.0912, state.input.latitude)
+        assertTrue(state.isDirty)
+        assertTrue(state.errors.isEmpty())
+    }
+
+    @Test
+    fun stationDraftWinsOverStoredStation() {
+        val stations = FakeStationRepository(listOf(station()))
+        val handle = SavedStateHandle()
+        EditStationViewModel(stations, FakeTourRepository(), vehicles, 1, savedStateHandle = handle)
+            .onInputChange { it.copy(name = "Anderer Name") }
+
+        val after = EditStationViewModel(stations, FakeTourRepository(), vehicles, 1, savedStateHandle = handle.afterProcessDeath())
+
+        val state = after.uiState.value
+        assertFalse(state.isLoading)
+        assertEquals("Anderer Name", state.input.name)
+        assertTrue(state.isDirty)
+    }
+
+    @Test
+    fun stationVisibleErrorsSurviveProcessDeath() {
+        val handle = SavedStateHandle()
+        val before = EditStationViewModel(FakeStationRepository(), FakeTourRepository(), vehicles, 0, savedStateHandle = handle)
+        before.onInputChange { it.copy(date = null) }
+        before.save()
+
+        val after = EditStationViewModel(FakeStationRepository(), FakeTourRepository(), vehicles, 0, savedStateHandle = handle.afterProcessDeath())
+
+        assertEquals(StationError.REQUIRED, after.uiState.value.errors[StationField.DATE])
+        after.onInputChange { it.copy(date = LocalDate.of(2026, 7, 4)) }
+        assertFalse(StationField.DATE in after.uiState.value.errors)
+    }
+
+    @Test
+    fun savedStationLeavesNoDraft() {
+        val stations = FakeStationRepository(listOf(station()))
+        val handle = SavedStateHandle()
+        val before = EditStationViewModel(stations, FakeTourRepository(), vehicles, 1, savedStateHandle = handle)
+        before.onInputChange { it.copy(name = "Neu") }
+        before.save()
+
+        assertTrue(before.uiState.value.isSaved)
+        assertTrue(handle.keys().isEmpty())
+    }
+
+    private fun station() = Station(
+        id = 1,
+        vehicleId = vehicles.currentVehicleId,
+        type = StationType.OVERNIGHT,
+        date = LocalDate.of(2026, 7, 4),
+        name = "Alt",
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
 
     private fun rate(currency: Currency) = ExchangeRate(currency, BigDecimal("11.5"), LocalDate.of(2026, 9, 1), "EZB")
 
