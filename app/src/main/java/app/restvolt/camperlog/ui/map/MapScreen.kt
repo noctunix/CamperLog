@@ -236,12 +236,19 @@ private fun MapCanvas(
     totalStopCount: Int,
     locale: Locale,
 ) {
+    // Beim Verschieben ändert sich die Kachelmenge ständig; ohne diesen Zwischenspeicher würden bei
+    // jeder Änderung alle sichtbaren PNGs erneut auf dem UI-Thread dekodiert.
+    val decoded = remember { HashMap<TileCoord, Pair<ByteArray, ImageBitmap>>() }
     val bitmaps = remember(tiles) {
-        tiles.mapNotNull { (coord, state) ->
-            (state as? TileState.Loaded)?.let { loaded ->
-                decodeTile(loaded.pngBytes)?.let { coord to it }
+        decoded.keys.retainAll(tiles.keys)
+        buildMap {
+            tiles.forEach { (coord, state) ->
+                val loaded = state as? TileState.Loaded ?: return@forEach
+                val image = decoded[coord]?.takeIf { it.first === loaded.pngBytes }?.second
+                    ?: decodeTile(loaded.pngBytes)?.also { decoded[coord] = loaded.pngBytes to it }
+                if (image != null) put(coord, image)
             }
-        }.toMap()
+        }
     }
     // pointerInput(Unit) läuft über die gesamte Lebensdauer des Canvas weiter (kein Neustart der
     // Gestenerkennung bei jedem Kamerawechsel); die Callbacks brauchen daher den aktuellen Wert
