@@ -208,7 +208,7 @@
     <string name="data_import_description">Liest eine CamperLog-Sicherung ein. Bevor etwas geändert wird, siehst du, was sie enthält.</string>
     <string name="data_import_choose">Sicherungsdatei wählen</string>
     <string name="import_preview_title">Sicherung einspielen?</string>
-    <string name="import_preview_summary">Sicherung vom %1$s mit %2$s, %3$s, %4$s, %5$s und %6$s. Hauptwährung: %7$s.</string>
+    <string name="import_preview_summary">Sicherung vom %1$s mit %2$s, %3$s, %4$s, %5$s, %6$s und %7$s. Hauptwährung: %8$s.</string>
     <plurals name="import_tours">
         <item quantity="one">%1$d Tour</item>
         <item quantity="other">%1$d Touren</item>
@@ -216,6 +216,10 @@
     <plurals name="import_vehicles">
         <item quantity="one">%1$d Fahrzeug</item>
         <item quantity="other">%1$d Fahrzeuge</item>
+    </plurals>
+    <plurals name="import_stops">
+        <item quantity="one">%1$d Station</item>
+        <item quantity="other">%1$d Stationen</item>
     </plurals>
     <plurals name="import_repairs">
         <item quantity="one">%1$d Reparatur</item>
@@ -241,7 +245,7 @@
     </plurals>
     <string name="import_replace_text_no_tours">Alle gespeicherten Fahrzeuge, Reparaturen, Bordbuch-Einträge, Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen.</string>
     <string name="import_replace_confirm">Alles ersetzen</string>
-    <string name="import_done">Sicherung eingespielt. Touren neu: %1$d, aktualisiert: %2$d, unverändert: %3$d. Fahrzeuge neu: %4$d, aktualisiert: %5$d. Reparaturen neu: %6$d, aktualisiert: %7$d. %8$s %9$s</string>
+    <string name="import_done">Sicherung eingespielt. Touren neu: %1$d, aktualisiert: %2$d, unverändert: %3$d. Fahrzeuge neu: %4$d, aktualisiert: %5$d. Stationen neu: %6$d, aktualisiert: %7$d. Reparaturen neu: %8$d, aktualisiert: %9$d. %10$s %11$s</string>
     <plurals name="import_done_log_entries">
         <item quantity="one">%1$d Bordbuch-Eintrag übernommen</item>
         <item quantity="other">%1$d Bordbuch-Einträge übernommen</item>
@@ -262,6 +266,7 @@
     <string name="import_error_invalid_vehicle">Fahrzeug %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
     <string name="import_error_invalid_vehicle_repair">Fahrzeug %1$d, Reparatur %2$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
     <string name="import_error_invalid_vehicle_log_entry">Fahrzeug %1$d, Bordbuch-Eintrag %2$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
+    <string name="import_error_invalid_station">Station %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
 
     <!-- Fahrzeugfelder -->
     <string name="field_name">Name</string>

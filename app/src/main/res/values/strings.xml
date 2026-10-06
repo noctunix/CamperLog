@@ -208,7 +208,7 @@
     <string name="data_import_description">Reads a CamperLog backup file. You will see what it contains before anything is changed.</string>
     <string name="data_import_choose">Choose backup file</string>
     <string name="import_preview_title">Restore backup?</string>
-    <string name="import_preview_summary">Backup from %1$s with %2$s, %3$s, %4$s, %5$s and %6$s. Main currency: %7$s.</string>
+    <string name="import_preview_summary">Backup from %1$s with %2$s, %3$s, %4$s, %5$s, %6$s and %7$s. Main currency: %8$s.</string>
     <plurals name="import_tours">
         <item quantity="one">%1$d tour</item>
         <item quantity="other">%1$d tours</item>
@@ -216,6 +216,10 @@
     <plurals name="import_vehicles">
         <item quantity="one">%1$d vehicle</item>
         <item quantity="other">%1$d vehicles</item>
+    </plurals>
+    <plurals name="import_stops">
+        <item quantity="one">%1$d stop</item>
+        <item quantity="other">%1$d stops</item>
     </plurals>
     <plurals name="import_repairs">
         <item quantity="one">%1$d repair</item>
@@ -241,7 +245,7 @@
     </plurals>
     <string name="import_replace_text_no_tours">All saved vehicles, repairs, logbook entries, exchange rates and the main currency will be deleted and replaced by the backup. This cannot be undone.</string>
     <string name="import_replace_confirm">Replace everything</string>
-    <string name="import_done">Backup restored. Tours new: %1$d, updated: %2$d, unchanged: %3$d. Vehicles new: %4$d, updated: %5$d. Repairs new: %6$d, updated: %7$d. %8$s %9$s</string>
+    <string name="import_done">Backup restored. Tours new: %1$d, updated: %2$d, unchanged: %3$d. Vehicles new: %4$d, updated: %5$d. Stops new: %6$d, updated: %7$d. Repairs new: %8$d, updated: %9$d. %10$s %11$s</string>
     <plurals name="import_done_log_entries">
         <item quantity="one">%1$d logbook entry imported</item>
         <item quantity="other">%1$d logbook entries imported</item>
@@ -262,6 +266,7 @@
     <string name="import_error_invalid_vehicle">Vehicle %1$d in the backup contains invalid data. Nothing was changed.</string>
     <string name="import_error_invalid_vehicle_repair">Vehicle %1$d, repair %2$d in the backup contains invalid data. Nothing was changed.</string>
     <string name="import_error_invalid_vehicle_log_entry">Vehicle %1$d, logbook entry %2$d in the backup contains invalid data. Nothing was changed.</string>
+    <string name="import_error_invalid_station">Stop %1$d in the backup contains invalid data. Nothing was changed.</string>
 
     <!-- Vehicle fields -->
     <string name="field_name">Name</string>

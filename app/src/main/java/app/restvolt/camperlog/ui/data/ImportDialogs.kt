@@ -77,6 +77,7 @@ fun ImportDialog(pending: PendingImport, onImport: (ImportMode) -> Unit, onCance
                         formatDateTime(backup.exportedAt),
                         pluralStringResource(R.plurals.import_tours, backup.tours.size, backup.tours.size),
                         pluralStringResource(R.plurals.import_vehicles, backup.vehicles.size, backup.vehicles.size),
+                        pluralStringResource(R.plurals.import_stops, backup.stations.size, backup.stations.size),
                         pluralStringResource(R.plurals.import_repairs, repairCount, repairCount),
                         pluralStringResource(R.plurals.import_log_entries, logEntryCount, logEntryCount),
                         pluralStringResource(R.plurals.import_rates, backup.rates.size, backup.rates.size),
