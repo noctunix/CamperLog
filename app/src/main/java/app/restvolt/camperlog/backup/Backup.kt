@@ -2,9 +2,13 @@ package app.restvolt.camperlog.backup
 
 import app.restvolt.camperlog.domain.ALL_CURRENCIES
 import app.restvolt.camperlog.domain.AmountReading
+import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.LATITUDE_RANGE
+import app.restvolt.camperlog.domain.LONGITUDE_RANGE
+import app.restvolt.camperlog.domain.LegacyPitchFields
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
@@ -13,6 +17,10 @@ import app.restvolt.camperlog.domain.MAX_DIMENSION_M
 import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
 import app.restvolt.camperlog.domain.MAX_POWER_KW
 import app.restvolt.camperlog.domain.MAX_SOLAR_WP
+import app.restvolt.camperlog.domain.MAX_STATION_MAP_LINK_LENGTH
+import app.restvolt.camperlog.domain.MAX_STATION_NAME_LENGTH
+import app.restvolt.camperlog.domain.MAX_STATION_NOTES_LENGTH
+import app.restvolt.camperlog.domain.MAX_STATION_PLACE_LENGTH
 import app.restvolt.camperlog.domain.MAX_TANK_L
 import app.restvolt.camperlog.domain.MAX_TIRE_PRESSURE_BAR
 import app.restvolt.camperlog.domain.MAX_WEIGHT_KG
@@ -20,13 +28,20 @@ import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.RATE_FRACTION_DIGITS
 import app.restvolt.camperlog.domain.Repair
+import app.restvolt.camperlog.domain.SiteKind
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationService
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.WeatherSnapshot
+import app.restvolt.camperlog.domain.allowedServices
 import app.restvolt.camperlog.domain.amountReading
 import app.restvolt.camperlog.domain.fractionDigits
 import app.restvolt.camperlog.domain.isValidPhone
 import app.restvolt.camperlog.domain.isWebUrl
+import app.restvolt.camperlog.domain.migrateLegacyPitch
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -42,6 +57,7 @@ import java.nio.charset.CharacterCodingException
 import java.nio.charset.CodingErrorAction
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.Currency
 import java.util.UUID
 
@@ -49,7 +65,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 2
+const val BACKUP_SCHEMA_VERSION = 3
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -59,11 +75,16 @@ internal const val MAX_RATES = 500
 internal const val MAX_VEHICLES = 100
 internal const val MAX_REPAIRS_PER_VEHICLE = 5_000
 internal const val MAX_LOG_ENTRIES_PER_VEHICLE = 50_000
+internal const val MAX_STATIONS = 200_000
 internal const val MAX_DESTINATION_LENGTH = 500
 internal const val MAX_NOTES_LENGTH = 20_000
 internal const val MAX_LINK_LENGTH = 4_000
 internal const val MAX_SOURCE_LENGTH = 500
 private val MAX_RATE = BigDecimal("1000000000")
+private const val MAX_WEATHER_TEMPERATURE_DECI_C = 1_000
+private const val MAX_WEATHER_CODE = 99
+private const val MAX_WEATHER_WIND_KMH = 500
+private const val MAX_WEATHER_WIND_DIRECTION_DEG = 359
 
 /** Höchstwerte der Fahrzeugfelder in der gespeicherten Einheit, abgeleitet von den Formulargrenzen. */
 private val MAX_LENGTH_CM = (MAX_DIMENSION_M * 100).toInt()
@@ -85,7 +106,10 @@ private val MAX_INSTANT = Instant.parse("2199-12-31T00:00:00Z")
  * werden über ihre UUID wiedererkannt. [tourVehicleUuid] ordnet einer Tour-UUID die UUID ihres
  * Fahrzeugs zu; fehlt eine Tour hier, gehört sie keinem bestimmten Fahrzeug (Formatversion 1) und
  * bekommt beim Import das aktuelle Fahrzeug zugewiesen. [currentVehicleUuid] nennt das beim Export
- * aktuelle Fahrzeug.
+ * aktuelle Fahrzeug. [stations] enthält sowohl aus dem Sicherungsformat gelesene als auch aus den
+ * alten Stellplatz-Feldern einer Tour vor Formatversion 3 abgeleitete Stationen (3.4); [stationVehicleUuid]
+ * ordnet einer Stations-UUID die UUID ihres Fahrzeugs zu (fehlt bei einer aus einer Tour abgeleiteten
+ * Station: ihr Fahrzeug ist das der Tour), [stationTourUuid] die UUID ihrer Tour, falls sie zu einer gehört.
  */
 data class Backup(
     val exportedAt: Instant,
@@ -95,6 +119,9 @@ data class Backup(
     val tourVehicleUuid: Map<String, String> = emptyMap(),
     val vehicles: List<BackupVehicle> = emptyList(),
     val currentVehicleUuid: String? = null,
+    val stations: List<Station> = emptyList(),
+    val stationVehicleUuid: Map<String, String> = emptyMap(),
+    val stationTourUuid: Map<String, String> = emptyMap(),
 )
 
 /** Ein Fahrzeug einer Sicherung mit seinen Reparaturen und Bordbuch-Einträgen. */
@@ -133,6 +160,7 @@ sealed interface BackupReadResult {
         val vehicleNumber: Int? = null,
         val repairNumber: Int? = null,
         val logEntryNumber: Int? = null,
+        val stationNumber: Int? = null,
     ) : BackupReadResult
 }
 
@@ -157,6 +185,13 @@ fun encodeBackup(backup: Backup): String = json.encodeToString(
         },
         vehicles = backup.vehicles.map { json.encodeToJsonElement(VehicleDto.serializer(), it.toDto()) },
         currentVehicle = backup.currentVehicleUuid,
+        stations = backup.stations.map { station ->
+            val dto = station.toDto(
+                vehicleUuid = checkNotNull(backup.stationVehicleUuid[station.uuid]) { "Station ohne Fahrzeug-UUID: ${station.uuid}" },
+                tourUuid = backup.stationTourUuid[station.uuid],
+            )
+            json.encodeToJsonElement(StationDto.serializer(), dto)
+        },
     ),
 )
 
@@ -236,7 +271,9 @@ fun decodeBackup(text: String): BackupReadResult {
 
 private fun BackupDto.toBackup(): BackupReadResult {
     val invalid = BackupReadResult.Failure(BackupError.INVALID_DATA)
-    if (tours.size > MAX_TOURS || exchangeRates.size > MAX_RATES || vehicles.size > MAX_VEHICLES) return invalid
+    if (tours.size > MAX_TOURS || exchangeRates.size > MAX_RATES || vehicles.size > MAX_VEHICLES || stations.size > MAX_STATIONS) {
+        return invalid
+    }
     val exportedAt = parseInstant(exportedAt) ?: return invalid
     val mainCurrency = parseCurrency(mainCurrency) ?: return invalid
 
@@ -287,7 +324,10 @@ private fun BackupDto.toBackup(): BackupReadResult {
     }
 
     val seenTourUuids = HashSet<String>()
+    val seenStationUuids = HashSet<String>()
     val tourVehicleUuid = HashMap<String, String>()
+    val legacyStations = ArrayList<Station>()
+    val legacyStationTourUuid = HashMap<String, String>()
     val tours = tours.mapIndexed { index, element ->
         val tourNumber = index + 1
         val dto = decodeJson(TourDto.serializer(), element) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
@@ -300,9 +340,70 @@ private fun BackupDto.toBackup(): BackupReadResult {
             }
             tourVehicleUuid[tour.uuid] = normalized
         }
+        if (dto.hasAnyLegacyPitchField()) {
+            val pitch = dto.legacyPitch() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
+            val stationUuid = UUID.nameUUIDFromBytes("camperlog-legacy-pitch:${tour.uuid}".toByteArray()).toString()
+            val migration = migrateLegacyPitch(
+                uuid = stationUuid,
+                vehicleId = 0,
+                tourId = null,
+                startDate = tour.startDate,
+                destination = tour.destination,
+                overnightStays = tour.overnightStays,
+                pitch = pitch,
+                createdAt = tour.createdAt,
+                updatedAt = tour.updatedAt,
+            )
+            migration.overnightStation?.let { station ->
+                if (!seenStationUuids.add(station.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
+                legacyStations += station
+                legacyStationTourUuid[station.uuid] = tour.uuid
+            }
+            // Die Notiz-Zeile eines Tagestrips mit abweichenden Werten (3.4, Punkt 3) braucht
+            // lokalisierte Texte und bleibt dem Room-Import vorbehalten (siehe CamperLogDatabase).
+        }
         tour
     }
-    return BackupReadResult.Success(Backup(exportedAt, mainCurrency, rates, tours, tourVehicleUuid, backupVehicles, currentVehicleUuid))
+
+    val stationVehicleUuid = HashMap<String, String>()
+    val stationTourUuid = HashMap<String, String>(legacyStationTourUuid)
+    val decodedStations = stations.mapIndexed { index, element ->
+        val stationNumber = index + 1
+        val dto = decodeJson(StationDto.serializer(), element)
+            ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
+        val station = dto.toStation() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
+        if (!seenStationUuids.add(station.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
+        val vehicleUuid = parseUuid(dto.vehicleUuid) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
+        if (backupVehicles.none { it.vehicle.uuid == vehicleUuid }) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
+        }
+        stationVehicleUuid[station.uuid] = vehicleUuid
+        dto.tourUuid?.let { candidate ->
+            val normalized = parseUuid(candidate) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
+            if (normalized !in seenTourUuids) return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
+            stationTourUuid[station.uuid] = normalized
+        }
+        station
+    }
+
+    val allStations = legacyStations + decodedStations
+    return BackupReadResult.Success(
+        Backup(exportedAt, mainCurrency, rates, tours, tourVehicleUuid, backupVehicles, currentVehicleUuid, allStations, stationVehicleUuid, stationTourUuid),
+    )
+}
+
+/** Ob mindestens eines der fünf alten Stellplatz-Felder gesetzt ist (Sicherung vor Formatversion 3). */
+private fun TourDto.hasAnyLegacyPitchField(): Boolean =
+    listOf(pitchAssigned, electricityFlatRate, lteQuality, pitchSlope, levelingBlocksUsed).any { it != null }
+
+/** Alle fünf alten Stellplatz-Felder, sofern sie vollständig und gültig gesetzt sind; sonst `null`. */
+private fun TourDto.legacyPitch(): LegacyPitchFields? {
+    val assigned = pitchAssigned ?: return null
+    val electricity = electricityFlatRate?.let { enumOrNull<ElectricityFlatRate>(it) } ?: return null
+    val lte = lteQuality?.let { enumOrNull<LteQuality>(it) } ?: return null
+    val slope = pitchSlope?.let { enumOrNull<PitchSlope>(it) } ?: return null
+    val blocks = levelingBlocksUsed ?: return null
+    return LegacyPitchFields(assigned, electricity, lte, slope, blocks)
 }
 
 private fun <T> decodeJson(serializer: KSerializer<T>, element: JsonElement): T? = try {
@@ -342,11 +443,6 @@ private fun TourDto.toTour(): Tour? {
         overnightStays = overnightStays,
         distanceKm = distanceKm,
         costs = money,
-        pitchAssigned = pitchAssigned,
-        electricityFlatRate = enumOrNull<ElectricityFlatRate>(electricityFlatRate) ?: return null,
-        lteQuality = enumOrNull<LteQuality>(lteQuality) ?: return null,
-        pitchSlope = enumOrNull<PitchSlope>(pitchSlope) ?: return null,
-        levelingBlocksUsed = levelingBlocksUsed,
         notes = notes,
         mapLink = link,
         createdAt = parseInstant(createdAt) ?: return null,
@@ -491,11 +587,6 @@ private fun Tour.toDto(vehicleUuid: String?) = TourDto(
     overnightStays = overnightStays,
     distanceKm = distanceKm,
     costs = costs.map { it.toCostDto() },
-    pitchAssigned = pitchAssigned,
-    electricityFlatRate = electricityFlatRate.name,
-    lteQuality = lteQuality.name,
-    pitchSlope = pitchSlope.name,
-    levelingBlocksUsed = levelingBlocksUsed,
     notes = notes,
     mapLink = mapLink,
     createdAt = createdAt.toString(),
@@ -592,3 +683,123 @@ private fun parseInstant(text: String): Instant? =
     runCatching { Instant.parse(text) }.getOrNull()?.takeIf { it in MIN_INSTANT..MAX_INSTANT }
 
 private inline fun <reified E : Enum<E>> enumOrNull(name: String): E? = enumValues<E>().firstOrNull { it.name == name }
+
+private fun parseTime(text: String): LocalTime? = runCatching { LocalTime.parse(text) }.getOrNull()
+
+private fun StationDto.toStation(): Station? {
+    val uuid = parseUuid(uuid) ?: return null
+    val stationType = enumOrNull<StationType>(type) ?: return null
+    val stationDate = parseDate(date) ?: return null
+    val stationTime = time?.let { parseTime(it) ?: return null }
+    if (name.length > MAX_STATION_NAME_LENGTH || place.length > MAX_STATION_PLACE_LENGTH || notes.length > MAX_STATION_NOTES_LENGTH) {
+        return null
+    }
+    if ((latitude == null) != (longitude == null)) return null
+    if (latitude != null && longitude != null && (latitude !in LATITUDE_RANGE || longitude !in LONGITUDE_RANGE)) return null
+    val source = coordinateSource?.let { enumOrNull<CoordinateSource>(it) ?: return null }
+    if (accuracyM != null && (accuracyM < 0 || latitude == null)) return null
+    val link = mapLink?.trim()?.ifEmpty { null }
+    if (link != null && (link.length > MAX_STATION_MAP_LINK_LENGTH || !isWebUrl(link) || latitude != null)) return null
+    if (nights != null && (nights < 1 || stationType != StationType.OVERNIGHT)) return null
+    val kind = siteKind?.let { if (stationType != StationType.OVERNIGHT) return null else enumOrNull<SiteKind>(it) ?: return null }
+    val assigned = pitchAssigned?.also { if (stationType != StationType.OVERNIGHT) return null }
+    val electricity = electricityFlatRate?.let {
+        if (stationType != StationType.OVERNIGHT) return null
+        enumOrNull<ElectricityFlatRate>(it) ?: return null
+    }
+    val lte = lteQuality?.let {
+        if (stationType != StationType.OVERNIGHT) return null
+        enumOrNull<LteQuality>(it) ?: return null
+    }
+    val slope = pitchSlope?.let {
+        if (stationType != StationType.OVERNIGHT) return null
+        enumOrNull<PitchSlope>(it) ?: return null
+    }
+    val blocks = levelingBlocksUsed?.also { if (stationType != StationType.OVERNIGHT) return null }
+    val allowed = stationType.allowedServices
+    val stationServices = services.map { enumOrNull<StationService>(it) ?: return null }.toSet()
+    if (!allowed.containsAll(stationServices)) return null
+    val weatherSnapshot = weather?.let { it.toWeather() ?: return null }
+    return Station(
+        uuid = uuid,
+        vehicleId = 0,
+        tourId = null,
+        type = stationType,
+        date = stationDate,
+        time = stationTime,
+        name = name,
+        place = place,
+        latitude = latitude,
+        longitude = longitude,
+        coordinateSource = source,
+        accuracyM = accuracyM,
+        mapLink = link,
+        notes = notes,
+        nights = nights,
+        siteKind = kind,
+        pitchAssigned = assigned,
+        electricityFlatRate = electricity,
+        lteQuality = lte,
+        pitchSlope = slope,
+        levelingBlocksUsed = blocks,
+        services = stationServices,
+        weather = weatherSnapshot,
+        favorite = favorite,
+        createdAt = parseInstant(createdAt) ?: return null,
+        updatedAt = parseInstant(updatedAt) ?: return null,
+    )
+}
+
+private fun WeatherDto.toWeather(): WeatherSnapshot? {
+    if (temperatureDeciC !in -MAX_WEATHER_TEMPERATURE_DECI_C..MAX_WEATHER_TEMPERATURE_DECI_C) return null
+    if (weatherCode < 0 || weatherCode > MAX_WEATHER_CODE) return null
+    if (windKmh < 0 || windKmh > MAX_WEATHER_WIND_KMH) return null
+    if (gustKmh != null && (gustKmh < 0 || gustKmh > MAX_WEATHER_WIND_KMH)) return null
+    if (windDirectionDeg != null && (windDirectionDeg < 0 || windDirectionDeg > MAX_WEATHER_WIND_DIRECTION_DEG)) return null
+    return WeatherSnapshot(
+        temperatureDeciC = temperatureDeciC,
+        weatherCode = weatherCode,
+        windKmh = windKmh,
+        gustKmh = gustKmh,
+        windDirectionDeg = windDirectionDeg,
+        observedAt = parseInstant(observedAt) ?: return null,
+    )
+}
+
+private fun Station.toDto(vehicleUuid: String, tourUuid: String?) = StationDto(
+    uuid = uuid,
+    type = type.name,
+    date = date.toString(),
+    time = time?.toString(),
+    name = name,
+    place = place,
+    latitude = latitude,
+    longitude = longitude,
+    coordinateSource = coordinateSource?.name,
+    accuracyM = accuracyM,
+    mapLink = mapLink,
+    notes = notes,
+    nights = nights,
+    siteKind = siteKind?.name,
+    pitchAssigned = pitchAssigned,
+    electricityFlatRate = electricityFlatRate?.name,
+    lteQuality = lteQuality?.name,
+    pitchSlope = pitchSlope?.name,
+    levelingBlocksUsed = levelingBlocksUsed,
+    services = services.map { it.name },
+    weather = weather?.toDto(),
+    favorite = favorite,
+    createdAt = createdAt.toString(),
+    updatedAt = updatedAt.toString(),
+    vehicleUuid = vehicleUuid,
+    tourUuid = tourUuid,
+)
+
+private fun WeatherSnapshot.toDto() = WeatherDto(
+    temperatureDeciC = temperatureDeciC,
+    weatherCode = weatherCode,
+    windKmh = windKmh,
+    gustKmh = gustKmh,
+    windDirectionDeg = windDirectionDeg,
+    observedAt = observedAt.toString(),
+)

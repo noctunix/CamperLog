@@ -6,10 +6,12 @@ import app.restvolt.camperlog.data.CamperLogDatabase
 import app.restvolt.camperlog.data.RoomBackupImporter
 import app.restvolt.camperlog.data.RoomExchangeRateRepository
 import app.restvolt.camperlog.data.RoomLogRepository
+import app.restvolt.camperlog.data.RoomStationRepository
 import app.restvolt.camperlog.data.RoomTourRepository
 import app.restvolt.camperlog.data.RoomVehicleRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
+import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 
@@ -27,6 +29,9 @@ class CamperLogApp : Application() {
 
     /** Bordbuch-Einträge. */
     val logbook: LogRepository by lazy { RoomLogRepository(database.logDao()) }
+
+    /** Stationen (Übernachtungen, Ver-/Entsorgung, Tanken, …). */
+    val stations: StationRepository by lazy { RoomStationRepository(database.stationDao()) }
 
     /** Einspielen von JSON-Sicherungen. */
     val backupImporter: BackupImporter by lazy { RoomBackupImporter(database) }

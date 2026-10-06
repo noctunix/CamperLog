@@ -15,6 +15,7 @@ import app.restvolt.camperlog.backup.encodeBackup
 import app.restvolt.camperlog.backup.readBackup
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
+import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import kotlinx.coroutines.CoroutineDispatcher
@@ -71,6 +72,7 @@ class DataViewModel(
     private val exchangeRates: ExchangeRateRepository,
     private val vehicles: VehicleRepository,
     private val logs: LogRepository,
+    private val stations: StationRepository,
     private val importer: BackupImporter,
     private val files: DataFiles,
     private val clock: () -> Instant = Instant::now,
@@ -125,7 +127,8 @@ class DataViewModel(
             DataMessage.Text(R.string.export_nothing)
         } else {
             val vehicleNames = vehicles.allVehicles().associate { it.id to it.name }
-            _share.value = ShareRequest.Csv(files.writeCsvExport(tours, vehicleNames, defaultVehicleName))
+            val allStations = stations.allStations()
+            _share.value = ShareRequest.Csv(files.writeCsvExport(tours, allStations, vehicleNames, defaultVehicleName))
             null
         }
     }
@@ -157,9 +160,11 @@ class DataViewModel(
     suspend fun backupJson(): String {
         val tours = repository.allTours()
         val allVehicles = vehicles.allVehicles()
+        val allStations = stations.allStations()
         val repairsByVehicle = vehicles.allRepairs().groupBy { it.vehicleId }
         val logEntriesByVehicle = logs.allEntries().groupBy { it.vehicleId }
         val vehicleUuidById = allVehicles.associate { it.id to it.uuid }
+        val tourUuidById = tours.associate { it.id to it.uuid }
         val backup = Backup(
             exportedAt = clock(),
             mainCurrency = exchangeRates.observeMainCurrency().first(),
@@ -174,6 +179,11 @@ class DataViewModel(
                 )
             },
             currentVehicleUuid = vehicles.observeCurrentVehicle().first().uuid,
+            stations = allStations,
+            stationVehicleUuid = allStations.mapNotNull { station -> vehicleUuidById[station.vehicleId]?.let { station.uuid to it } }.toMap(),
+            stationTourUuid = allStations.mapNotNull { station ->
+                station.tourId?.let { tourUuidById[it] }?.let { station.uuid to it }
+            }.toMap(),
         )
         return withContext(background) { encodeBackup(backup) }
     }

@@ -38,10 +38,19 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
             }
             CamperLogTheme(darkTheme = darkTheme) {
-                CamperLogNavHost(app.repository, app.vehicles, app.logbook, app.exchangeRates, app.backupImporter, themeMode) { selected ->
-                    themeSettings.mode = selected
-                    themeMode = selected
-                }
+                CamperLogNavHost(
+                    repository = app.repository,
+                    vehicles = app.vehicles,
+                    logbook = app.logbook,
+                    exchangeRates = app.exchangeRates,
+                    backupImporter = app.backupImporter,
+                    themeMode = themeMode,
+                    stations = app.stations,
+                    onThemeModeChange = { selected ->
+                        themeSettings.mode = selected
+                        themeMode = selected
+                    },
+                )
             }
         }
     }

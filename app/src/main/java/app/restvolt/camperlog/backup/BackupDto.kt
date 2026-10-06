@@ -23,6 +23,8 @@ internal data class BackupDto(
     val vehicles: List<JsonElement> = emptyList(),
     /** uuid des aktuellen Fahrzeugs; fehlt in Sicherungen der Formatversion 1. */
     val currentVehicle: String? = null,
+    /** Einzeln als [StationDto] gelesen; fehlt in Sicherungen vor Formatversion 3. */
+    val stations: List<JsonElement> = emptyList(),
 )
 
 @Serializable
@@ -50,17 +52,22 @@ internal data class TourDto(
     val overnightStays: Int,
     val distanceKm: Int,
     val costs: List<CostDto> = emptyList(),
-    val pitchAssigned: Boolean,
-    val electricityFlatRate: String,
-    val lteQuality: String,
-    val pitchSlope: String,
-    val levelingBlocksUsed: Boolean,
     val notes: String = "",
     val mapLink: String? = null,
     val createdAt: String,
     val updatedAt: String,
     /** uuid des Fahrzeugs dieser Tour; `null` bedeutet beim Import „aktuelles Fahrzeug" (Formatversion 1). */
     val vehicleUuid: String? = null,
+    /**
+     * Nur in Sicherungen vor Formatversion 3: die alten Stellplatz-Felder der Tour, zusammen
+     * gelesen und beim Import nach [app.restvolt.camperlog.domain.migrateLegacyPitch] in eine
+     * Übernachtungs-Station umgewandelt (3.4). Neue Sicherungen lassen sie leer.
+     */
+    val pitchAssigned: Boolean? = null,
+    val electricityFlatRate: String? = null,
+    val lteQuality: String? = null,
+    val pitchSlope: String? = null,
+    val levelingBlocksUsed: Boolean? = null,
 )
 
 @Serializable
@@ -135,4 +142,46 @@ internal data class LogEntryDto(
     val type: String,
     val date: String,
     val createdAt: String,
+)
+
+@Serializable
+internal data class StationDto(
+    val uuid: String,
+    val type: String,
+    val date: String,
+    val time: String? = null,
+    val name: String = "",
+    val place: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val coordinateSource: String? = null,
+    val accuracyM: Int? = null,
+    val mapLink: String? = null,
+    val notes: String = "",
+    val nights: Int? = null,
+    val siteKind: String? = null,
+    val pitchAssigned: Boolean? = null,
+    val electricityFlatRate: String? = null,
+    val lteQuality: String? = null,
+    val pitchSlope: String? = null,
+    val levelingBlocksUsed: Boolean? = null,
+    val services: List<String> = emptyList(),
+    val weather: WeatherDto? = null,
+    val favorite: Boolean = false,
+    val createdAt: String,
+    val updatedAt: String,
+    /** uuid des Fahrzeugs dieser Station; anders als bei Touren immer gesetzt. */
+    val vehicleUuid: String,
+    /** uuid der Tour dieser Station; `null` bei einer eigenständigen Station ohne Tour. */
+    val tourUuid: String? = null,
+)
+
+@Serializable
+internal data class WeatherDto(
+    val temperatureDeciC: Int,
+    val weatherCode: Int,
+    val windKmh: Int,
+    val gustKmh: Int? = null,
+    val windDirectionDeg: Int? = null,
+    val observedAt: String,
 )

@@ -7,16 +7,15 @@ import app.restvolt.camperlog.backup.BackupReadResult
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.decodeBackup
 import app.restvolt.camperlog.backup.encodeBackup
-import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.ExchangeRate
-import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
-import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.FakeBackupImporter
 import app.restvolt.camperlog.ui.FakeExchangeRateRepository
 import app.restvolt.camperlog.ui.FakeLogRepository
+import app.restvolt.camperlog.ui.FakeStationRepository
 import app.restvolt.camperlog.ui.FakeTourRepository
 import app.restvolt.camperlog.ui.FakeVehicleRepository
 import app.restvolt.camperlog.ui.defaultVehicle
@@ -67,11 +66,6 @@ class DataViewModelTest {
         overnightStays = 2,
         distanceKm = 800,
         costs = listOf(Money(320000, nok)),
-        pitchAssigned = false,
-        electricityFlatRate = ElectricityFlatRate.NOT_USED,
-        lteQuality = LteQuality.OK,
-        pitchSlope = PitchSlope.SLOPED,
-        levelingBlocksUsed = false,
         notes = "",
         mapLink = null,
         createdAt = Instant.parse("2026-07-04T08:00:00Z"),
@@ -87,6 +81,7 @@ class DataViewModelTest {
             FakeExchangeRateRepository(listOf(rate), mainCurrency = nok),
             FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1).copy(uuid = VEHICLE_UUID))),
             FakeLogRepository(),
+            FakeStationRepository(),
             FakeBackupImporter(),
             files,
             clock = { exportedAt },
@@ -113,6 +108,7 @@ class DataViewModelTest {
             FakeExchangeRateRepository(),
             FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1, name = "Standard").copy(uuid = VEHICLE_UUID))),
             FakeLogRepository(),
+            FakeStationRepository(),
             importer,
             files,
             background = dispatcher,
@@ -293,7 +289,12 @@ private class FakeDataFiles : DataFiles {
     var failure: IOException? = null
     private var backups = 0
 
-    override suspend fun writeCsvExport(tours: List<Tour>, vehicleNames: Map<Long, String>, defaultVehicleName: String): String {
+    override suspend fun writeCsvExport(
+        tours: List<Tour>,
+        stations: List<Station>,
+        vehicleNames: Map<Long, String>,
+        defaultVehicleName: String,
+    ): String {
         gate?.await()
         failure?.let { throw it }
         csvExports += Triple(tours, vehicleNames, defaultVehicleName)
