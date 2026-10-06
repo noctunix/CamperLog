@@ -88,7 +88,7 @@ internal fun StationCostFields(
                 onPickCurrency = { pickerFor = index },
                 onNoteChange = { onNoteChange(index, it) },
                 onRemove = { onRemove(index) },
-                amountModifier = if (index == focusIndex) Modifier.focusRequester(focusRequester) else Modifier,
+                modifier = if (index == focusIndex) Modifier.focusRequester(focusRequester) else Modifier,
             )
         }
         TextButton(onClick = onAdd) {
@@ -122,7 +122,7 @@ private fun StationCostRow(
     onPickCurrency: () -> Unit,
     onNoteChange: (String) -> Unit,
     onRemove: () -> Unit,
-    amountModifier: Modifier,
+    modifier: Modifier,
 ) {
     val currency = cost.currency
     val categoryLabel = stringResource(cost.category.labelRes)
@@ -135,7 +135,7 @@ private fun StationCostRow(
             OutlinedTextField(
                 value = cost.amount,
                 onValueChange = onAmountChange,
-                modifier = amountModifier
+                modifier = modifier
                     .weight(1f)
                     .semantics { contentDescription = amountDescription },
                 label = { Text(stringResource(R.string.edit_cost_amount, currency.getSymbol(locale))) },
