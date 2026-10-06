@@ -162,6 +162,28 @@ internal fun mapIntents(tour: Tour): List<Intent> = buildList {
     add(browsable("https://www.google.com/maps/search/?api=1&query=$query".toUri()))
 }
 
+/**
+ * Öffnet eine Station in einer Karten-App: mit Koordinaten direkt dorthin, sonst über ihren
+ * gespeicherten Kartenlink, sonst über eine Suche nach Name oder Ort (5.1).
+ *
+ * @return `false`, wenn keine App den Link öffnen kann
+ */
+fun Context.openInMaps(station: Station): Boolean = mapIntents(station).any(::tryStart)
+
+/** Kandidaten zum Öffnen von [station] in einer Karten-App, in absteigender Priorität. */
+internal fun mapIntents(station: Station): List<Intent> = buildList {
+    val label = station.name.ifBlank { station.place }
+    if (station.latitude != null && station.longitude != null) {
+        val query = "${station.latitude},${station.longitude}" + if (label.isNotBlank()) "(${Uri.encode(label)})" else ""
+        add(Intent(Intent.ACTION_VIEW, "geo:${station.latitude},${station.longitude}?q=$query".toUri()))
+    }
+    station.mapLink?.takeIf(::isWebUrl)?.let { add(browsable(it.toUri())) }
+    if (label.isNotBlank()) {
+        add(Intent(Intent.ACTION_VIEW, "geo:0,0?q=${Uri.encode(label)}".toUri()))
+        add(browsable("https://www.google.com/maps/search/?api=1&query=${Uri.encode(label)}".toUri()))
+    }
+}
+
 private fun browsable(uri: Uri) = Intent(Intent.ACTION_VIEW, uri).addCategory(Intent.CATEGORY_BROWSABLE)
 
 /** Startet [intent]; fehlende Ziel-App oder verweigerte Berechtigung ergeben `false` statt Absturz. */

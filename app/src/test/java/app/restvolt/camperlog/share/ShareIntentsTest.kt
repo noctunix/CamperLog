@@ -6,6 +6,8 @@ import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import org.junit.Assert.assertEquals
@@ -55,6 +57,49 @@ class ShareIntentsTest {
     @Test
     fun nonWebMapLinkIsIgnored() {
         val intents = mapIntents(tour.copy(mapLink = "intent://evil#Intent;end"))
+
+        assertEquals(listOf("geo", "https"), intents.map { it.data?.scheme })
+    }
+
+    private fun station(
+        name: String = "",
+        place: String = "",
+        latitude: Double? = null,
+        longitude: Double? = null,
+        mapLink: String? = null,
+    ) = Station(
+        vehicleId = 1,
+        type = StationType.OVERNIGHT,
+        date = LocalDate.of(2026, 7, 4),
+        name = name,
+        place = place,
+        latitude = latitude,
+        longitude = longitude,
+        mapLink = mapLink,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
+
+    @Test
+    fun stationWithCoordinatesOpensGeoUriWithLabel() {
+        val intents = mapIntents(station(name = "Camping Moskenes", latitude = 68.0912, longitude = 13.1023))
+
+        assertEquals("geo", intents.first().data?.scheme)
+        assertTrue(intents.first().dataString!!.contains("68.0912,13.1023"))
+        assertTrue(intents.first().dataString!!.contains("Camping"))
+    }
+
+    @Test
+    fun stationWithoutCoordinatesFallsBackToMapLinkThenSearch() {
+        val intents = mapIntents(station(name = "Camping Moskenes", mapLink = "https://example.org/platz"))
+
+        assertEquals("https://example.org/platz", intents.first().dataString)
+        assertEquals(listOf("https", "geo", "https"), intents.map { it.data?.scheme })
+    }
+
+    @Test
+    fun stationWithoutCoordinatesOrLinkSearchesByPlace() {
+        val intents = mapIntents(station(place = "Moskenes, Norwegen"))
 
         assertEquals(listOf("geo", "https"), intents.map { it.data?.scheme })
     }
