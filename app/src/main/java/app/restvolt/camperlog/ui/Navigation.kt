@@ -4,6 +4,7 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
@@ -557,11 +558,14 @@ private fun CamperLogBottomBar(navController: NavController, current: NavDestina
  */
 @Composable
 private fun NavLabel(text: String) {
+    // maxFontSize muss auf die reguläre Labelgröße gedeckelt werden: ohne das wächst autoSize
+    // auf seinen Standard von 112.sp, weil NavigationBarItem dem Label keine feste Breite vorgibt.
+    val labelSize = MaterialTheme.typography.labelMedium.fontSize
     Text(
         text,
         maxLines = 1,
         softWrap = false,
-        autoSize = TextAutoSize.StepBased(minFontSize = 9.sp),
+        autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = labelSize),
     )
 }
 

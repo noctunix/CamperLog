@@ -91,6 +91,8 @@ class ReadmeScreenshots {
         capture("5_vehicle")
         compose.onNodeWithText("Logbook").performClick()
         capture("6_logbook")
+        compose.onNodeWithText("Stops").performClick()
+        capture("7_stops")
     }
 
     private fun capture(name: String) {
