@@ -228,7 +228,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 3" in text)
+        assert("\"schemaVersion\": 4" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -263,13 +263,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 3", "\"schemaVersion\": 4"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 4", "\"schemaVersion\": 5"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 3", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 4", it))?.error)
         }
     }
 
@@ -559,6 +559,24 @@ class BackupTest {
         assertEquals(listOf(station()), decoded.stations)
         assertEquals(mapOf(stationUuid to vehicleUuid), decoded.stationVehicleUuid)
         assertEquals(mapOf(stationUuid to tour().uuid), decoded.stationTourUuid)
+    }
+
+    private val stationLinkedLogEntryBackup = stationBackup.copy(logEntryStationUuid = mapOf(logEntryUuid to stationUuid))
+
+    @Test
+    fun roundTrip_keepsLogEntryStationLink() {
+        val decoded = success(encodeBackup(stationLinkedLogEntryBackup))
+
+        assertEquals(mapOf(logEntryUuid to stationUuid), decoded.logEntryStationUuid)
+    }
+
+    @Test
+    fun decode_rejectsLogEntryWithUnknownStationUuid() {
+        val text = encodeBackup(stationLinkedLogEntryBackup)
+        check("\"stationUuid\": \"$stationUuid\"" in text) { "stationUuid nicht in der Sicherung" }
+        val replaced = text.replaceFirst("\"stationUuid\": \"$stationUuid\"", "\"stationUuid\": \"00000000-0000-4000-8000-000000000099\"")
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1, logEntryNumber = 1), failure(replaced))
     }
 
     @Test
