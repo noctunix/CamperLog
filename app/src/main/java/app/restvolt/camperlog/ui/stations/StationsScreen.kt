@@ -214,6 +214,7 @@ private fun RunningTourCard(runningTour: RunningTour, onClick: () -> Unit) {
         Column(
             Modifier
                 .fillMaxWidth()
+                .heightIn(min = 48.dp)
                 .clickable(onClickLabel = openLabel, onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
