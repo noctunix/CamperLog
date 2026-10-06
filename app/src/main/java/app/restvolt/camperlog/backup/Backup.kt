@@ -107,11 +107,11 @@ private val MAX_INSTANT = Instant.parse("2199-12-31T00:00:00Z")
  * Fahrzeugs zu; fehlt eine Tour hier, gehört sie keinem bestimmten Fahrzeug (Formatversion 1) und
  * bekommt beim Import das aktuelle Fahrzeug zugewiesen. [currentVehicleUuid] nennt das beim Export
  * aktuelle Fahrzeug. [stations] enthält sowohl aus dem Sicherungsformat gelesene als auch aus den
- * alten Stellplatz-Feldern einer Tour vor Formatversion 3 abgeleitete Stationen (3.4); [stationVehicleUuid]
+ * alten Stellplatz-Feldern einer Tour vor Formatversion 3 abgeleitete Stationen; [stationVehicleUuid]
  * ordnet einer Stations-UUID die UUID ihres Fahrzeugs zu (fehlt bei einer aus einer Tour abgeleiteten
  * Station: ihr Fahrzeug ist das der Tour), [stationTourUuid] die UUID ihrer Tour, falls sie zu einer
  * gehört. [logEntryStationUuid] ordnet einer Bordbuch-Eintrags-UUID die UUID ihrer verknüpften
- * Station zu (4); fehlt ein Eintrag hier, ist er nicht verknüpft.
+ * Station zu; fehlt ein Eintrag hier, ist er nicht verknüpft.
  */
 data class Backup(
     val exportedAt: Instant,
@@ -374,7 +374,7 @@ private fun BackupDto.toBackup(): BackupReadResult {
                 legacyStations += station
                 legacyStationTourUuid[station.uuid] = tour.uuid
             }
-            // Die Notiz-Zeile eines Tagestrips mit abweichenden Werten (3.4, Punkt 3) braucht
+            // Die Notiz-Zeile eines Tagestrips mit abweichenden Werten braucht
             // lokalisierte Texte und bleibt dem Room-Import vorbehalten (siehe CamperLogDatabase).
         }
         tour

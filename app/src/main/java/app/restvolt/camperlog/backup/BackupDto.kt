@@ -61,7 +61,7 @@ internal data class TourDto(
     /**
      * Nur in Sicherungen vor Formatversion 3: die alten Stellplatz-Felder der Tour, zusammen
      * gelesen und beim Import nach [app.restvolt.camperlog.domain.migrateLegacyPitch] in eine
-     * Übernachtungs-Station umgewandelt (3.4). Neue Sicherungen lassen sie leer.
+     * Übernachtungs-Station umgewandelt. Neue Sicherungen lassen sie leer.
      */
     val pitchAssigned: Boolean? = null,
     val electricityFlatRate: String? = null,

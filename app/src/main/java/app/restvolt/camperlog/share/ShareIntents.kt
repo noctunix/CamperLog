@@ -184,7 +184,7 @@ private fun Context.startChooser(send: Intent, title: String): Boolean =
     tryStart(Intent.createChooser(send, title))
 
 /**
- * Öffnet das Sharesheet mit den Koordinaten eines einmaligen GPS-Fixes (13.5 Nr. 1): Klartext mit
+ * Öffnet das Sharesheet mit den Koordinaten eines einmaligen GPS-Fixes: Klartext mit
  * Koordinaten und einem `geo:`-Link.
  *
  * @return `false`, wenn kein Sharesheet geöffnet werden konnte
@@ -201,14 +201,14 @@ fun Context.shareLocation(latitude: Double, longitude: Double, locale: Locale): 
 fun locationShareText(latitude: Double, longitude: Double, locale: Locale): String =
     "${formatCoordinates(latitude, longitude, locale)}\ngeo:$latitude,$longitude"
 
-/** Öffnet die App-Info-Einstellungen von CamperLog (6.7: dauerhaft abgelehnte Standortberechtigung). */
+/** Öffnet die App-Info-Einstellungen von CamperLog (dauerhaft abgelehnte Standortberechtigung). */
 fun Context.openAppDetailsSettings(): Boolean =
     tryStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
 
-/** Öffnet die Standorteinstellungen des Geräts (6.7: Standort ist ausgeschaltet). */
+/** Öffnet die Standorteinstellungen des Geräts (Standort ist ausgeschaltet). */
 fun Context.openLocationSourceSettings(): Boolean = tryStart(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
 
-/** Öffnet die Benachrichtigungseinstellungen von CamperLog (1.9.0: abgelehnte POST_NOTIFICATIONS-Berechtigung). */
+/** Öffnet die Benachrichtigungseinstellungen von CamperLog (abgelehnte POST_NOTIFICATIONS-Berechtigung). */
 fun Context.openNotificationSettings(): Boolean =
     tryStart(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
 
@@ -230,7 +230,7 @@ internal fun mapIntents(tour: Tour): List<Intent> = buildList {
 
 /**
  * Öffnet eine Station in einer Karten-App: mit Koordinaten direkt dorthin, sonst über ihren
- * gespeicherten Kartenlink, sonst über eine Suche nach Name oder Ort (5.1).
+ * gespeicherten Kartenlink, sonst über eine Suche nach Name oder Ort.
  *
  * @return `false`, wenn keine App den Link öffnen kann
  */
