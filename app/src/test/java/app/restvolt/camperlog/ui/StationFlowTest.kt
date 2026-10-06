@@ -22,6 +22,7 @@ import androidx.compose.ui.test.performTextInput
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.FakeLocationProvider
+import app.restvolt.camperlog.domain.FakeWeatherProvider
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.LocationFix
 import app.restvolt.camperlog.domain.LocationProvider
@@ -33,6 +34,9 @@ import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.WeatherProvider
+import app.restvolt.camperlog.domain.WeatherResult
+import app.restvolt.camperlog.domain.WeatherSnapshot
 import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeMode
@@ -61,6 +65,7 @@ class StationFlowTest {
         pendingGeoIntent: GeoIntentLocation? = null,
         logs: FakeLogRepository = FakeLogRepository(),
         locationProvider: LocationProvider = FakeLocationProvider(),
+        weatherProvider: WeatherProvider = FakeWeatherProvider(WeatherResult.Error),
     ): Triple<FakeTourRepository, FakeStationRepository, FakeLogRepository> {
         val tourRepository = FakeTourRepository(tours)
         val stationRepository = FakeStationRepository(stations, logs)
@@ -77,6 +82,7 @@ class StationFlowTest {
                     canShowStartDialogs = false,
                     pendingGeoIntent = pendingGeoIntent,
                     locationProvider = locationProvider,
+                    weatherProvider = weatherProvider,
                 ) { }
             }
         }
@@ -87,6 +93,13 @@ class StationFlowTest {
     private fun setLocationEnabled(enabled: Boolean) {
         ApplicationProvider.getApplicationContext<android.content.Context>()
             .getSharedPreferences("location", android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean("enabled", enabled).commit()
+    }
+
+    /** Schreibt den Wetter-Schalter direkt in die Geräteeinstellungen (6.11), wie [setLocationEnabled]. */
+    private fun setWeatherEnabled(enabled: Boolean) {
+        ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("weather", android.content.Context.MODE_PRIVATE)
             .edit().putBoolean("enabled", enabled).commit()
     }
 
@@ -371,5 +384,60 @@ class StationFlowTest {
         assertEquals(13.1023, saved.longitude)
         assertEquals(CoordinateSource.GPS, saved.coordinateSource)
         assertEquals(8, saved.accuracyM)
+    }
+
+    @Test
+    fun weatherOff_showsNothingWeatherRelatedInTheStopForm() {
+        setWeatherEnabled(false)
+        start()
+
+        compose.onNodeWithText("Stationen").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Koordinaten eingeben").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Koordinaten oder Kartenlink")).performTextInput("68.0912, 13.1023")
+
+        compose.onNodeWithText("Wetter").assertDoesNotExist()
+        compose.onNodeWithText("Wetter abrufen").assertDoesNotExist()
+    }
+
+    @Test
+    fun weatherOn_withoutCoordinates_showsTheHintInsteadOfTheCard() {
+        setWeatherEnabled(true)
+        start()
+
+        compose.onNodeWithText("Stationen").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+
+        compose.onNodeWithText("Mit Koordinaten kannst du auch das Wetter abrufen.").assertExists()
+        compose.onNodeWithText("Wetter abrufen").assertDoesNotExist()
+    }
+
+    @Test
+    fun weatherOn_fetchingWeather_attachesSnapshotToTheSavedStop() {
+        setWeatherEnabled(true)
+        val snapshot = WeatherSnapshot(
+            temperatureDeciC = 143,
+            weatherCode = 1,
+            windKmh = 18,
+            gustKmh = 35,
+            windDirectionDeg = 270,
+            observedAt = Instant.EPOCH,
+        )
+        val (_, stationRepository) = start(weatherProvider = FakeWeatherProvider(WeatherResult.Success(snapshot)))
+
+        compose.onNodeWithText("Stationen").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Koordinaten eingeben").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Koordinaten oder Kartenlink")).performTextInput("68.0912, 13.1023")
+        compose.onNodeWithText("Wetter abrufen").performScrollTo().performClick()
+        compose.onNodeWithText("14 °C · Leicht bewölkt").assertExists()
+
+        clickSave()
+
+        val saved = stationRepository.stations.single()
+        assertEquals(snapshot, saved.weather)
     }
 }
