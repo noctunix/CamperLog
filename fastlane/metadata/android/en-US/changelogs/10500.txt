@@ -1,0 +1,4 @@
+• Optional location, off by default: turn it on in Settings or at the end of the introduction
+• "Use current location" fills a stop's coordinates with one tap – no tracking, never in the background
+• "Where am I?" in the breakdown card shows your coordinates to copy or share
+• Works without Google Play services

@@ -1,0 +1,4 @@
+• Optionaler Standort, standardmäßig aus: einschalten in den Einstellungen oder am Ende der Einführung
+• „Aktuellen Standort verwenden“ trägt die Koordinaten einer Station mit einem Tipp ein – kein Tracking, nie im Hintergrund
+• „Wo bin ich?“ in der Pannenkarte zeigt deine Koordinaten zum Kopieren oder Teilen
+• Funktioniert ohne Google-Play-Dienste
