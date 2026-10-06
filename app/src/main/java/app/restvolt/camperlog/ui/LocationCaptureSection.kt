@@ -1,7 +1,7 @@
 package app.restvolt.camperlog.ui
 
 import android.Manifest
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -52,7 +52,7 @@ data class LocationCaptureHandlers(val onTap: () -> Unit, val onContinueRational
  */
 @Composable
 fun rememberLocationCaptureHandlers(controller: LocationCaptureController): LocationCaptureHandlers {
-    val activity = LocalContext.current as Activity
+    val activity = checkNotNull(LocalActivity.current) { "Standortanfrage braucht eine Activity" }
     fun shouldShowRationale() =
         ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.ACCESS_FINE_LOCATION) ||
             ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.ACCESS_COARSE_LOCATION)

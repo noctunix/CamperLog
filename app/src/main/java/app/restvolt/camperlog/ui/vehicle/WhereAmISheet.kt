@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -54,6 +55,7 @@ fun WhereAmISheet(viewModel: WhereAmIViewModel, onDismiss: () -> Unit) {
     val handlers = rememberLocationCaptureHandlers(controller)
     val locale = currentLocale()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -85,7 +87,7 @@ fun WhereAmISheet(viewModel: WhereAmIViewModel, onDismiss: () -> Unit) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = {
                             context.copyLocationToClipboard(current.fix.latitude, current.fix.longitude, locale)
-                            scope.launch { snackbar.showSnackbar(context.getString(R.string.where_am_i_copied)) }
+                            scope.launch { snackbar.showSnackbar(resources.getString(R.string.where_am_i_copied)) }
                         }) { Text(stringResource(R.string.where_am_i_copy)) }
                         Button(onClick = { context.shareLocation(current.fix.latitude, current.fix.longitude, locale) }) {
                             Text(stringResource(R.string.where_am_i_share))
