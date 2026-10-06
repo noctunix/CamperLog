@@ -1,6 +1,10 @@
 package app.restvolt.camperlog.domain
 
 import java.net.URI
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Locale
+import kotlin.math.abs
 
 /** Ergebnis von [parseLocationText] (5.1). */
 sealed interface ParsedLocation {
@@ -117,3 +121,17 @@ private fun linkCoordinates(text: String): ParsedLocation? {
 
 private fun validCoordinates(latitude: Double, longitude: Double): ParsedLocation? =
     if (latitude in LATITUDE_RANGE && longitude in LONGITUDE_RANGE) ParsedLocation.Coordinates(latitude, longitude) else null
+
+/**
+ * Lesbare Darstellung von Koordinaten, z. B. „68,0912° N · 13,1023° E" (6.6). Die Himmelsrichtungen
+ * bleiben sprachunabhängig N/S/E/W; nur das Zahlenformat richtet sich nach [locale].
+ */
+fun formatCoordinates(latitude: Double, longitude: Double, locale: Locale): String {
+    val lat = "${formatDegrees(abs(latitude), locale)}° ${if (latitude < 0) "S" else "N"}"
+    val lon = "${formatDegrees(abs(longitude), locale)}° ${if (longitude < 0) "W" else "E"}"
+    return "$lat · $lon"
+}
+
+/** Betrag von [latitude]/[longitude] auf vier Nachkommastellen, lokalisiertes Dezimaltrennzeichen. */
+fun formatDegrees(value: Double, locale: Locale): String =
+    DecimalFormat("0.0000", DecimalFormatSymbols.getInstance(locale)).format(value)

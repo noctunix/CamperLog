@@ -19,11 +19,17 @@ import app.restvolt.camperlog.domain.MAX_SOLAR_WP
 import app.restvolt.camperlog.domain.MAX_TANK_L
 import app.restvolt.camperlog.domain.MAX_TIRE_PRESSURE_BAR
 import app.restvolt.camperlog.domain.MAX_WEIGHT_KG
+import androidx.annotation.DrawableRes
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Reminder
 import app.restvolt.camperlog.domain.ReminderKind
 import app.restvolt.camperlog.domain.RepairError
 import app.restvolt.camperlog.domain.RepairField
+import app.restvolt.camperlog.domain.SiteKind
+import app.restvolt.camperlog.domain.StationError
+import app.restvolt.camperlog.domain.StationField
+import app.restvolt.camperlog.domain.StationService
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
@@ -280,4 +286,93 @@ fun Reminder.text(today: LocalDate, locale: Locale): String {
         val days = java.time.temporal.ChronoUnit.DAYS.between(today, dueDate).toInt()
         pluralStringResource(R.plurals.reminder_due_soon, days, kindLabel, days, date)
     }
+}
+
+/** Anzeigename der Stationsart (3.2); auch Fallback-Überschrift, wenn [app.restvolt.camperlog.domain.Station.name] leer ist. */
+@get:StringRes
+val StationType.labelRes: Int
+    get() = when (this) {
+        StationType.OVERNIGHT -> R.string.station_type_overnight
+        StationType.SUPPLY -> R.string.station_type_supply
+        StationType.FUEL -> R.string.station_type_fuel
+        StationType.SIGHT -> R.string.station_type_sight
+        StationType.FOOD -> R.string.station_type_food
+        StationType.FERRY -> R.string.station_type_ferry
+        StationType.OTHER -> R.string.station_type_other
+    }
+
+/** Symbol der Stationsart (3.2), amtliche Material-Symbols-Pfaddaten auf das 24-Einheiten-Raster skaliert. */
+@get:DrawableRes
+val StationType.iconRes: Int
+    get() = when (this) {
+        StationType.OVERNIGHT -> R.drawable.ic_bed
+        StationType.SUPPLY -> R.drawable.ic_rv_hookup
+        StationType.FUEL -> R.drawable.ic_local_gas_station
+        StationType.SIGHT -> R.drawable.ic_photo_camera
+        StationType.FOOD -> R.drawable.ic_restaurant
+        StationType.FERRY -> R.drawable.ic_directions_boat
+        StationType.OTHER -> R.drawable.ic_place
+    }
+
+/** Anzeigetext der vor Ort genutzten Versorgung. */
+@get:StringRes
+val StationService.labelRes: Int
+    get() = when (this) {
+        StationService.FRESH_WATER -> R.string.station_service_fresh_water
+        StationService.GREY_WATER -> R.string.station_service_grey_water
+        StationService.CASSETTE -> R.string.station_service_cassette
+        StationService.GAS -> R.string.station_service_gas
+        StationService.DIESEL -> R.string.station_service_diesel
+        StationService.PETROL -> R.string.station_service_petrol
+        StationService.ADBLUE -> R.string.station_service_adblue
+        StationService.LPG -> R.string.station_service_lpg
+        StationService.ELECTRICITY -> R.string.station_service_electricity
+    }
+
+/** Anzeigetext der Platzart einer Übernachtungsstation. */
+@get:StringRes
+val SiteKind.labelRes: Int
+    get() = when (this) {
+        SiteKind.CAMPSITE -> R.string.site_kind_campsite
+        SiteKind.MOTORHOME_AREA -> R.string.site_kind_motorhome_area
+        SiteKind.WILD -> R.string.site_kind_wild
+    }
+
+/** Bezeichnung des Formularfelds, z. B. für die Fehlerzusammenfassung. */
+@get:StringRes
+val StationField.labelRes: Int
+    get() = when (this) {
+        StationField.DATE -> R.string.field_date
+        StationField.COORDINATES -> R.string.field_coordinates
+        StationField.NIGHTS -> R.string.field_nights
+        StationField.NAME -> R.string.field_name
+        StationField.PLACE -> R.string.field_place
+        StationField.NOTES -> R.string.field_notes
+        StationField.MAP_LINK -> R.string.field_coordinates
+    }
+
+/** Fehlermeldung zu [this] am Feld [field]. */
+@StringRes
+fun StationError.messageRes(field: StationField): Int = when (this) {
+    StationError.REQUIRED -> R.string.error_date_required
+    StationError.INVALID_NUMBER -> R.string.error_invalid_number
+    StationError.TOO_SMALL -> R.string.error_nights_too_small
+    StationError.COORDINATES_INCOMPLETE -> R.string.error_coordinates_incomplete
+    StationError.COORDINATES_OUT_OF_RANGE -> R.string.error_coordinates_out_of_range
+    StationError.TOO_LONG -> R.string.error_text_too_long
+    StationError.NOT_A_WEB_LINK -> R.string.error_not_a_web_link
+}
+
+/**
+ * Sprechform von Koordinaten für TalkBack, z. B. „68,0912 Grad Nord, 13,1023 Grad Ost, Genauigkeit
+ * 8 Meter" (7); [accuracyM] wird nur bei einer GPS-Herkunft mitgesprochen.
+ */
+@Composable
+fun coordinatesContentDescription(latitude: Double, longitude: Double, accuracyM: Int?, locale: Locale): String {
+    val latValue = app.restvolt.camperlog.domain.formatDegrees(kotlin.math.abs(latitude), locale)
+    val lonValue = app.restvolt.camperlog.domain.formatDegrees(kotlin.math.abs(longitude), locale)
+    val latDirection = stringResource(if (latitude < 0) R.string.direction_south else R.string.direction_north)
+    val lonDirection = stringResource(if (longitude < 0) R.string.direction_west else R.string.direction_east)
+    val base = stringResource(R.string.station_coordinates_description, latValue, latDirection, lonValue, lonDirection)
+    return if (accuracyM != null) "$base, ${stringResource(R.string.station_coordinates_accuracy, accuracyM)}" else base
 }

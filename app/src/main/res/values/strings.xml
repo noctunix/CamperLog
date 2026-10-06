@@ -500,4 +500,95 @@
     <string name="migration_pitch_note_electricity">electricity flat rate: %1$s</string>
     <string name="migration_pitch_note_lte">LTE: %1$s</string>
     <string name="migration_pitch_note_blocks">leveling blocks used</string>
+
+    <!-- Station types and services (3.2) -->
+    <string name="station_type_overnight">Overnight</string>
+    <string name="station_type_supply">Water &amp; waste</string>
+    <string name="station_type_fuel">Fuel &amp; charging</string>
+    <string name="station_type_sight">Sightseeing</string>
+    <string name="station_type_food">Food</string>
+    <string name="station_type_ferry">Ferry</string>
+    <string name="station_type_other">Other</string>
+    <string name="station_service_fresh_water">Fresh water</string>
+    <string name="station_service_grey_water">Grey water</string>
+    <string name="station_service_cassette">Cassette</string>
+    <string name="station_service_gas">Gas</string>
+    <string name="station_service_diesel">Diesel</string>
+    <string name="station_service_petrol">Petrol</string>
+    <string name="station_service_adblue">AdBlue</string>
+    <string name="station_service_lpg">LPG</string>
+    <string name="station_service_electricity">Electricity</string>
+    <string name="site_kind_campsite">Campsite</string>
+    <string name="site_kind_motorhome_area">Motorhome area</string>
+    <string name="site_kind_wild">Wild camping</string>
+
+    <!-- Tour detail: stops timeline (6.2) -->
+    <string name="stations_section_title">Stops (%1$d)</string>
+    <string name="stations_timeline_empty">No stops yet.</string>
+    <string name="stations_add_stop">Add stop</string>
+    <string name="station_fab_add">Add stop</string>
+    <string name="station_would_return">Would return</string>
+    <plurals name="station_nights">
+        <item quantity="one">%1$d night</item>
+        <item quantity="other">%1$d nights</item>
+    </plurals>
+
+    <!-- Add stop: type picker (6.4) -->
+    <string name="station_type_picker_title">What kind of stop?</string>
+
+    <!-- Stop form (6.5) -->
+    <string name="station_edit_title_new">New stop</string>
+    <string name="station_edit_title_existing">Edit stop</string>
+    <string name="station_edit_save_failed">Stop couldn\'t be saved.</string>
+    <string name="field_type">Type</string>
+    <string name="field_place">Place or address</string>
+    <string name="field_coordinates">Coordinates or map link</string>
+    <string name="field_time">Time</string>
+    <string name="field_tour">Tour</string>
+    <string name="field_nights">Nights</string>
+    <string name="field_site_kind">Site kind</string>
+    <string name="field_pitch_assigned">Pitch assigned</string>
+    <string name="field_electricity">Electricity flat rate</string>
+    <string name="field_lte">LTE quality</string>
+    <string name="field_pitch_slope">Pitch slope</string>
+    <string name="field_leveling_blocks">Leveling blocks used</string>
+    <string name="station_no_tour">No tour</string>
+    <string name="station_add_coordinates">Add coordinates</string>
+    <string name="station_coordinates_recognized">Recognised: %1$s</string>
+    <string name="station_coordinates_link_saved">Link saved, no coordinates found.</string>
+    <string name="station_coordinates_short_link">Short links can\'t be read offline. Copy the coordinates instead.</string>
+    <string name="station_coordinates_not_found">No coordinates found.</string>
+    <string name="station_section_overnight">Overnight</string>
+    <string name="station_section_used_here">Used here</string>
+    <string name="station_section_fuelled">Fuelled</string>
+    <string name="station_section_pitch_details">Pitch details</string>
+    <string name="station_date_outside_tour">Outside the tour dates (%1$s)</string>
+    <string name="station_summary_field">%1$s: %2$s</string>
+    <string name="station_summary_none">–</string>
+    <string name="cd_expand_section">Show \"%1$s\" section</string>
+    <string name="cd_collapse_section">Hide \"%1$s\" section</string>
+
+    <!-- Stop validation -->
+    <string name="error_coordinates_incomplete">Enter both coordinates, or none</string>
+    <string name="error_coordinates_out_of_range">Coordinates out of range</string>
+    <string name="error_nights_too_small">At least 1 night</string>
+    <string name="error_text_too_long">Too long</string>
+
+    <!-- Stop detail (6.6) -->
+    <string name="station_detail_delete">Delete stop</string>
+    <string name="station_detail_edit">Edit stop</string>
+    <string name="station_detail_open_maps">Open in maps app</string>
+    <string name="station_detail_no_maps_app">No maps app found</string>
+    <string name="station_not_found">This stop no longer exists.</string>
+    <string name="station_open_tour">%1$s · %2$s</string>
+    <string name="station_deleted">\"%1$s\" deleted</string>
+    <string name="station_delete_failed">Could not delete stop.</string>
+    <string name="station_restore_failed">Could not restore stop.</string>
+    <string name="station_fallback_title">Stop</string>
+    <string name="direction_north">north</string>
+    <string name="direction_south">south</string>
+    <string name="direction_east">east</string>
+    <string name="direction_west">west</string>
+    <string name="station_coordinates_description">%1$s degrees %2$s, %3$s degrees %4$s</string>
+    <string name="station_coordinates_accuracy">accuracy %1$d metres</string>
 </resources>
