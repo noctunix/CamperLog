@@ -143,9 +143,10 @@ class RoomBackupImporterTest {
         stations: List<Station> = emptyList(),
         stationVehicleUuid: Map<String, String> = emptyMap(),
         stationTourUuid: Map<String, String> = emptyMap(),
+        logEntryStationUuid: Map<String, String> = emptyMap(),
     ) = Backup(
         Instant.parse("2026-10-04T12:00:00Z"), main, rates, tours, tourVehicleUuid, vehicles, currentVehicleUuid,
-        stations, stationVehicleUuid, stationTourUuid,
+        stations, stationVehicleUuid, stationTourUuid, logEntryStationUuid,
     )
 
     /** Gespeicherte Touren ohne Datenbank-id, damit sie mit Sicherungs-Touren vergleichbar sind. */
@@ -616,6 +617,58 @@ class RoomBackupImporterTest {
         val storedStation = storedStations().single()
         assertEquals(vehicleId, storedStation.vehicleId)
         assertEquals(tours.allTours().single().id, storedStation.tourId)
+    }
+
+    @Test
+    fun merge_resolvesLogEntryStationLinkByUuid() = runTest {
+        val result = importer.import(
+            backup(
+                tours = emptyList(),
+                vehicles = listOf(BackupVehicle(vehicle(1), emptyList(), listOf(logEntry(1)))),
+                stations = listOf(station(1)),
+                stationVehicleUuid = mapOf(stationUuid(1) to vehicleUuid(1)),
+                logEntryStationUuid = mapOf(logEntryUuid(1) to stationUuid(1)),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(1, result.addedStations)
+        assertEquals(1, result.addedLogEntries)
+        val storedStation = RoomStationRepository(db, logs).allStations().single()
+        val importedEntry = logs.allEntries().single { it.uuid == logEntryUuid(1) }
+        assertEquals(storedStation.id, importedEntry.stationId)
+    }
+
+    @Test
+    fun merge_logEntryWithoutAStationLink_staysUnlinked() = runTest {
+        importer.import(
+            backup(
+                tours = emptyList(),
+                vehicles = listOf(BackupVehicle(vehicle(1), emptyList(), listOf(logEntry(1)))),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(null, logs.allEntries().single { it.uuid == logEntryUuid(1) }.stationId)
+    }
+
+    @Test
+    fun replace_resolvesLogEntryStationLinkByUuid() = runTest {
+        val result = importer.import(
+            backup(
+                tours = emptyList(),
+                vehicles = listOf(BackupVehicle(vehicle(1), emptyList(), listOf(logEntry(1)))),
+                stations = listOf(station(1)),
+                stationVehicleUuid = mapOf(stationUuid(1) to vehicleUuid(1)),
+                logEntryStationUuid = mapOf(logEntryUuid(1) to stationUuid(1)),
+            ),
+            ImportMode.REPLACE,
+        )
+
+        assertEquals(1, result.addedStations)
+        val storedStation = RoomStationRepository(db, logs).allStations().single()
+        val importedEntry = logs.allEntries().single { it.uuid == logEntryUuid(1) }
+        assertEquals(storedStation.id, importedEntry.stationId)
     }
 
     @Test
