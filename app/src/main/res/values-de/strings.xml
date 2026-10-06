@@ -114,9 +114,11 @@
         <item quantity="one">%1$d Monat</item>
         <item quantity="other">%1$d Monate</item>
     </plurals>
-    <string name="settings_location_section">Standort</string>
+    <string name="settings_location_section">Standort &amp; Internet</string>
     <string name="settings_location_switch_support">Zeigt bei Stationen „Aktuellen Standort verwenden“. Die Position wird nur auf Knopfdruck einmal bestimmt, nie im Hintergrund.</string>
     <string name="settings_location_revoked_hint">Der Zugriff wird nach dem nächsten Neustart der App vollständig entfernt.</string>
+    <string name="settings_weather_switch_support">Wetter von Open-Meteo und eine Karte von OpenStreetMap, beides nur auf Knopfdruck bzw. beim Öffnen der Karte.</string>
+    <string name="settings_weather_off_hint">Gespeicherte Positionen und Wetterdaten bleiben bei deinen Stationen.</string>
     <string name="settings_open_about">Über CamperLog</string>
 
     <!-- Detail -->
@@ -445,7 +447,7 @@
     <!-- Über -->
     <string name="about_title">Über CamperLog</string>
     <string name="about_version">Version %1$s (%2$d)</string>
-    <string name="about_claim">Dein Wohnmobil-Logbuch – privat, offline, Open Source.</string>
+    <string name="about_claim">Dein Wohnmobil-Logbuch – privat, offline nutzbar, Open Source.</string>
     <string name="about_action_feedback">Feedback senden</string>
     <string name="about_no_mail_app">Keine E-Mail-App verfügbar</string>
     <string name="about_copy_address">Adresse kopieren</string>
@@ -464,9 +466,14 @@
     <string name="info_license_loading">Lizenztext wird geladen…</string>
     <string name="err_license_load_failed">Lizenztext konnte nicht geladen werden.</string>
     <string name="about_section_third_party">Drittanbieter-Bibliotheken</string>
+    <string name="about_section_data_sources">Datenquellen</string>
+    <string name="about_link_osm_attribution">Kartendaten © OpenStreetMap-Mitwirkende (ODbL)</string>
+    <string name="about_link_open_meteo_attribution">Wetterdaten von Open-Meteo.com (CC BY 4.0)</string>
     <string name="about_section_privacy">Datenschutz</string>
-    <string name="about_privacy_bullet_no_permissions">Standort ist optional und standardmäßig ausgeschaltet. Ohne ihn braucht CamperLog keine Berechtigungen.</string>
-    <string name="about_privacy_bullet_no_network">Kein Netzwerkzugriff.</string>
+    <string name="about_privacy_bullet_opt_in">Standort- und Internetfunktionen sind ausgeschaltet. Ohne sie arbeitet CamperLog vollständig offline.</string>
+    <string name="about_privacy_bullet_location">Standort (optional): Nur wenn du auf „Aktuellen Standort verwenden“ tippst, liest CamperLog deine Position einmal und speichert sie bei der Station. Nie im Hintergrund, nie übertragen.</string>
+    <string name="about_privacy_bullet_weather_map">Wetter &amp; Karte (optional): CamperLog hat die Internet-Berechtigung, nutzt sie aber nur, wenn du das einschaltest. Beim Wetterabruf gehen die Koordinaten der Station, auf etwa 1 km gerundet, an Open-Meteo. Die Karte lädt den angezeigten Ausschnitt von OpenStreetMap. Beide Dienste sehen deine IP-Adresse.</string>
+    <string name="about_privacy_bullet_no_tracking">Kein Konto, keine Werbung, keine Analyse. Sonst verlässt nichts dein Gerät.</string>
     <string name="about_privacy_bullet_local">Alle Daten bleiben auf diesem Gerät.</string>
     <string name="about_privacy_bullet_backup">Sicherungen entstehen nur, wenn du sie exportierst.</string>
     <string name="about_privacy_bullet_uninstall">Beim Deinstallieren werden alle Daten gelöscht.</string>
@@ -482,13 +489,13 @@
 
     <!-- Introduction tour -->
     <string name="title_intro_welcome">Willkommen bei CamperLog</string>
-    <string name="body_intro_welcome">Erfasse deine Touren und ihre Kosten – in jeder Währung. CamperLog behält im Blick, wo du warst und was es gekostet hat.</string>
+    <string name="body_intro_welcome">Erfasse deine Touren mit ihren Stationen und Kosten – in jeder Währung. CamperLog behält im Blick, wo du warst und was es gekostet hat.</string>
     <string name="title_intro_logbook">Bordbuch</string>
     <string name="body_intro_logbook">Ein Tipp auf „Heute“ trägt Kassette, Grauwasser oder Heizung ein – genau dann, wenn du sie leerst oder laufen lässt.</string>
     <string name="title_intro_vehicle">Fahrzeug</string>
     <string name="body_intro_vehicle">Führe ein Datenblatt und Wartungstermine mit Erinnerungen in der App. CamperLog verwaltet auch mehrere Fahrzeuge.</string>
     <string name="title_intro_data">Deine Daten</string>
-    <string name="body_intro_data">Standort bleibt aus, bis du ihn einschaltest, und es gibt keinen Netzwerkzugriff – alles bleibt auf diesem Gerät. Sicherungen erstellst du jederzeit über Daten.</string>
+    <string name="body_intro_data">Deine Touren, Stationen und Fahrzeugdaten bleiben auf diesem Gerät. Kein Konto, keine Werbung, keine Analyse. Standort und Internet bleiben aus, bis du sie selbst einschaltest. Sicherungen erstellst du jederzeit über Daten.</string>
     <string name="title_intro_settings">Einstellungen</string>
     <string name="body_intro_settings">Wähle ein Erscheinungsbild und wie früh Erinnerungen erscheinen sollen. Beides lässt sich später jederzeit in den Einstellungen ändern.</string>
     <string name="btn_intro_skip">Überspringen</string>
@@ -626,8 +633,8 @@
     <!-- Standort (Phase E, 6.7, 6.10, 6.11, 6.12, 9) -->
     <string name="location_switch_title">Aktuellen Standort nutzen</string>
     <string name="location_switch_support_intro">Position nur auf Knopfdruck, nie im Hintergrund. Bleibt auf dem Gerät.</string>
-    <string name="title_intro_optin">Optional: Standort</string>
-    <string name="body_intro_optin">Er ist aus. CamperLog funktioniert vollständig ohne ihn.</string>
+    <string name="title_intro_optin">Optional: Standort, Wetter, Karte</string>
+    <string name="body_intro_optin">Beides ist aus. CamperLog funktioniert vollständig ohne.</string>
     <string name="body_intro_optin_footer">Jederzeit änderbar in den Einstellungen.</string>
     <string name="location_use_current_button">Aktuellen Standort verwenden</string>
     <string name="location_rationale_body">CamperLog liest deine Position einmal, nur jetzt, und speichert sie bei dieser Station. Es wird nichts übertragen.</string>
@@ -658,4 +665,40 @@
     <string name="where_am_i_copied">Koordinaten kopiert</string>
     <string name="where_am_i_share">Koordinaten teilen</string>
     <string name="where_am_i_share_chooser">Koordinaten teilen</string>
+
+    <!-- Wetter (Phase F, 6.8, 6.10, 6.11, 9) -->
+    <string name="weather_switch_title">Wetter &amp; Karte (Internet)</string>
+    <string name="weather_switch_support_intro">Wetter von Open-Meteo, Karte von OpenStreetMap. Dabei erhalten diese Dienste Koordinaten bzw. den Kartenausschnitt und deine IP-Adresse.</string>
+    <string name="station_section_weather">Wetter</string>
+    <string name="weather_no_coordinates_hint">Mit Koordinaten kannst du auch das Wetter abrufen.</string>
+    <string name="weather_date_not_today_body">Wetter lässt sich nur für Stationen von heute abrufen.</string>
+    <string name="weather_fetch_button">Wetter abrufen</string>
+    <string name="weather_loading_body">Wetter wird abgerufen …</string>
+    <string name="weather_offline_body">Keine Internetverbindung. Du kannst es heute später noch einmal versuchen.</string>
+    <string name="weather_service_unavailable_body">Wetterdienst gerade nicht erreichbar.</string>
+    <string name="weather_action_retry">Erneut</string>
+    <string name="weather_action_refresh">Aktualisieren</string>
+    <string name="weather_action_remove">Entfernen</string>
+    <string name="weather_temperature_c">%1$d °C</string>
+    <string name="weather_wind_full">Wind %1$d km/h aus %2$s, Böen %3$d</string>
+    <string name="weather_wind_no_gust">Wind %1$d km/h aus %2$s</string>
+    <string name="weather_wind_no_direction_full">Wind %1$d km/h, Böen %2$d</string>
+    <string name="weather_wind_plain">Wind %1$d km/h</string>
+    <string name="weather_attribution">Wetterdaten: Open-Meteo.com</string>
+    <string name="weather_condition_clear">Klar</string>
+    <string name="weather_condition_partly_cloudy">Leicht bewölkt</string>
+    <string name="weather_condition_overcast">Bedeckt</string>
+    <string name="weather_condition_fog">Nebel</string>
+    <string name="weather_condition_rain">Regen</string>
+    <string name="weather_condition_freezing_rain">Gefrierender Regen</string>
+    <string name="weather_condition_snow">Schnee</string>
+    <string name="weather_condition_thunderstorm">Gewitter</string>
+    <string name="wind_direction_n">N</string>
+    <string name="wind_direction_ne">NO</string>
+    <string name="wind_direction_e">O</string>
+    <string name="wind_direction_se">SO</string>
+    <string name="wind_direction_s">S</string>
+    <string name="wind_direction_sw">SW</string>
+    <string name="wind_direction_w">W</string>
+    <string name="wind_direction_nw">NW</string>
 </resources>
