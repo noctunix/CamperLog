@@ -8,6 +8,11 @@ import androidx.savedstate.SavedState
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import app.restvolt.camperlog.domain.CoordinateSource
+import app.restvolt.camperlog.domain.LocationCaptureController
+import app.restvolt.camperlog.domain.LocationCaptureState
+import app.restvolt.camperlog.domain.LocationFix
+import app.restvolt.camperlog.domain.LocationPermissionGate
+import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.ParsedLocation
 import app.restvolt.camperlog.domain.SYNCED_SERVICE_LOG_TYPES
 import app.restvolt.camperlog.domain.Station
@@ -78,10 +83,15 @@ class EditStationViewModel(
     prefillLatitude: Double? = null,
     prefillLongitude: Double? = null,
     prefillPlace: String? = null,
+    locationProvider: LocationProvider = NoOpLocationProvider,
+    locationPermissionGate: LocationPermissionGate = NoOpLocationPermissionGate,
     private val savedStateHandle: SavedStateHandle,
     private val today: () -> LocalDate = LocalDate::now,
     private val timeNow: () -> LocalTime = LocalTime::now,
 ) : ViewModel() {
+
+    /** Standortbestimmung für den Platzabschnitt (6.7), nur sichtbar, wenn die Oberfläche den Standort-Schalter an sieht. */
+    val locationCapture = LocationCaptureController(locationProvider, locationPermissionGate, viewModelScope)
 
     private val draft: StationDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)?.let { decodeFromSavedState(it) }
 
@@ -112,6 +122,21 @@ class EditStationViewModel(
 
     init {
         if (showErrors) _uiState.update { it.withErrors() }
+        viewModelScope.launch {
+            locationCapture.state.collect { captureState ->
+                if (captureState is LocationCaptureState.Found) {
+                    onInputChange { input ->
+                        input.copy(
+                            latitude = captureState.fix.latitude,
+                            longitude = captureState.fix.longitude,
+                            coordinateSource = CoordinateSource.GPS,
+                            accuracyM = captureState.fix.accuracyM,
+                        )
+                    }
+                    locationCapture.clear()
+                }
+            }
+        }
         viewModelScope.launch {
             vehicles.observeVehicles().collect { list -> _uiState.update { it.copy(vehicles = list) } }
         }
@@ -202,6 +227,11 @@ class EditStationViewModel(
         }
     }
 
+    /** Entfernt vom GPS gesetzte Koordinaten wieder ("Koordinaten entfernen", 6.7 Erfolgszustand). */
+    fun onRemoveGpsCoordinates() = onInputChange { input ->
+        input.copy(latitude = null, longitude = null, coordinateSource = null, accuracyM = null)
+    }
+
     /** Validiert und speichert; bei Erfolg wird [StationEditUiState.isSaved] gesetzt. */
     fun save() {
         val state = _uiState.value
@@ -245,3 +275,17 @@ class EditStationViewModel(
 }
 
 private const val DRAFT_KEY = "station_draft"
+
+/** Platzhalter für Tests und Vorschauen ohne Standorthardware; liefert nie einen Fix. */
+private object NoOpLocationProvider : LocationProvider {
+    override suspend fun requestFreshFix(): LocationFix? = null
+    override suspend fun lastKnownFix(maxAgeMillis: Long): LocationFix? = null
+    override fun isLocationEnabled(): Boolean = false
+}
+
+/** Platzhalter für Tests und Vorschauen ohne Standorthardware; hat nie eine Berechtigung. */
+private object NoOpLocationPermissionGate : LocationPermissionGate {
+    override fun hasPermission(): Boolean = false
+    override fun hasRequestedBefore(): Boolean = false
+    override fun markRequested() = Unit
+}

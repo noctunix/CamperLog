@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -36,6 +37,7 @@ import app.restvolt.camperlog.ui.rates.MainCurrencyCard
 import app.restvolt.camperlog.ui.rates.RatesViewModel
 import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -43,6 +45,7 @@ fun SettingsScreen(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
     reminderSettings: ReminderSettings,
+    locationSettings: LocationSettings,
     onBack: () -> Unit,
     onOpenRates: () -> Unit,
     onOpenAbout: () -> Unit,
@@ -51,8 +54,10 @@ fun SettingsScreen(
     val locale = currentLocale()
     val resources = LocalResources.current
     val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     var pickMainCurrency by rememberSaveable { mutableStateOf(false) }
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
+    val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
     var pickOilInterval by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
@@ -112,6 +117,27 @@ fun SettingsScreen(
                             reminderPreferences.oilChangeIntervalMonths,
                         ),
                         onClick = { pickOilInterval = true },
+                    )
+                }
+            }
+            item {
+                SectionCard {
+                    Text(
+                        stringResource(R.string.settings_location_section),
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    SwitchSettingRow(
+                        title = stringResource(R.string.location_switch_title),
+                        supportingText = stringResource(R.string.settings_location_switch_support),
+                        checked = locationEnabled,
+                        onCheckedChange = { enabled ->
+                            locationSettings.enabled = enabled
+                            if (!enabled) {
+                                scope.launch { snackbar.showSnackbar(resources.getString(R.string.settings_location_revoked_hint)) }
+                            }
+                        },
                     )
                 }
             }

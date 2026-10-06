@@ -71,8 +71,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.FUEL_SERVICES
+import app.restvolt.camperlog.domain.LocationFix
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.SUPPLY_SERVICES
@@ -93,10 +95,12 @@ import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.LocationCaptureSection
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
 import app.restvolt.camperlog.ui.labelRes
+import app.restvolt.camperlog.ui.locationFixSummary
 import app.restvolt.camperlog.ui.messageRes
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.yesNoRes
@@ -108,7 +112,12 @@ import java.time.LocalTime
  * dem Speichern mit den gerade ins Bordbuch eingetragenen Ver-/Entsorgungs-Häkchen (4.6).
  */
 @Composable
-fun EditStationScreen(viewModel: EditStationViewModel, onDone: () -> Unit, onSaved: (Set<StationService>) -> Unit) {
+fun EditStationScreen(
+    viewModel: EditStationViewModel,
+    locationEnabled: Boolean,
+    onDone: () -> Unit,
+    onSaved: (Set<StationService>) -> Unit,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
@@ -148,6 +157,7 @@ fun EditStationScreen(viewModel: EditStationViewModel, onDone: () -> Unit, onSav
             else -> StationForm(
                 state = state,
                 viewModel = viewModel,
+                locationEnabled = locationEnabled,
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
@@ -168,7 +178,7 @@ fun EditStationScreen(viewModel: EditStationViewModel, onDone: () -> Unit, onSav
 }
 
 @Composable
-private fun StationForm(state: StationEditUiState, viewModel: EditStationViewModel, modifier: Modifier) {
+private fun StationForm(state: StationEditUiState, viewModel: EditStationViewModel, locationEnabled: Boolean, modifier: Modifier) {
     val input = state.input
     val errors = state.errors.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
     val change = viewModel::onInputChange
@@ -234,6 +244,7 @@ private fun StationForm(state: StationEditUiState, viewModel: EditStationViewMod
             }
         }
         SectionCard {
+            var revealCoordinates by rememberSaveable { mutableStateOf(input.locationText.isNotBlank()) }
             FormTextField(
                 label = stringResource(R.string.field_place),
                 value = input.place,
@@ -242,6 +253,20 @@ private fun StationForm(state: StationEditUiState, viewModel: EditStationViewMod
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
                 modifier = focusOf(StationField.PLACE),
             )
+            if (locationEnabled) {
+                if (input.coordinateSource == CoordinateSource.GPS && input.latitude != null && input.longitude != null) {
+                    GpsSuccessRow(
+                        fix = LocationFix(input.latitude, input.longitude, input.accuracyM),
+                        onRemove = viewModel::onRemoveGpsCoordinates,
+                    )
+                } else {
+                    LocationCaptureSection(
+                        controller = viewModel.locationCapture,
+                        buttonLabel = stringResource(R.string.location_use_current_button),
+                        onEnterManually = { revealCoordinates = true },
+                    )
+                }
+            }
             CoordinatesField(
                 locationText = input.locationText,
                 latitude = input.latitude,
@@ -249,6 +274,8 @@ private fun StationForm(state: StationEditUiState, viewModel: EditStationViewMod
                 mapLink = input.mapLink,
                 error = errors[StationField.COORDINATES] ?: errors[StationField.MAP_LINK],
                 onValueChange = viewModel::onLocationTextChange,
+                revealed = revealCoordinates,
+                onReveal = { revealCoordinates = true },
                 modifier = focusOf(StationField.COORDINATES),
             )
         }
@@ -516,11 +543,12 @@ private fun CoordinatesField(
     mapLink: String?,
     error: String?,
     onValueChange: (String) -> Unit,
+    revealed: Boolean,
+    onReveal: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var revealed by rememberSaveable { mutableStateOf(locationText.isNotBlank()) }
     if (!revealed) {
-        TextButton(onClick = { revealed = true }) { Text(stringResource(R.string.station_add_coordinates)) }
+        TextButton(onClick = onReveal) { Text(stringResource(R.string.station_add_coordinates)) }
         return
     }
     val locale = currentLocale()
@@ -542,6 +570,18 @@ private fun CoordinatesField(
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         shape = MaterialTheme.shapes.medium,
     )
+}
+
+/** Erfolgszustand der Standortbestimmung (6.7): Koordinaten, Genauigkeit und "Koordinaten entfernen". */
+@Composable
+private fun GpsSuccessRow(fix: LocationFix, onRemove: () -> Unit) {
+    val locale = currentLocale()
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(locationFixSummary(fix, locale), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        IconButton(onClick = onRemove) {
+            Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.location_remove_coordinates))
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

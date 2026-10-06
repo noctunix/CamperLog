@@ -114,6 +114,9 @@
         <item quantity="one">%1$d month</item>
         <item quantity="other">%1$d months</item>
     </plurals>
+    <string name="settings_location_section">Location</string>
+    <string name="settings_location_switch_support">Shows "Use current location" on stops. The position is only determined once, on tap, never in the background.</string>
+    <string name="settings_location_revoked_hint">Access is fully removed after the app restarts.</string>
     <string name="settings_open_about">About CamperLog</string>
 
     <!-- Detail -->
@@ -466,7 +469,7 @@
     <string name="err_license_load_failed">Could not load the license text.</string>
     <string name="about_section_third_party">Third-party libraries</string>
     <string name="about_section_privacy">Privacy</string>
-    <string name="about_privacy_bullet_no_permissions">No permissions requested.</string>
+    <string name="about_privacy_bullet_no_permissions">Location is optional and off by default. Without it, CamperLog needs no permissions.</string>
     <string name="about_privacy_bullet_no_network">No network access.</string>
     <string name="about_privacy_bullet_local">All data stays on this device.</string>
     <string name="about_privacy_bullet_backup">Backups are only created when you export them.</string>
@@ -490,11 +493,9 @@
     <string name="title_intro_vehicle">Vehicle</string>
     <string name="body_intro_vehicle">Keep a data sheet and maintenance dates, with in-app reminders when something is due. CamperLog also handles several vehicles.</string>
     <string name="title_intro_data">Your data</string>
-    <string name="body_intro_data">No permissions, no network access – everything stays on this device. Make backups anytime via Data.</string>
+    <string name="body_intro_data">Location stays off until you turn it on, and there\'s no network access – everything stays on this device. Make backups anytime via Data.</string>
     <string name="title_intro_settings">Settings</string>
     <string name="body_intro_settings">Pick an appearance and how early reminders should show up. You can change both later anytime in Settings.</string>
-    <string name="title_intro_finish">All set!</string>
-    <string name="body_intro_finish">Add your first tour or your vehicle\'s data to get started.</string>
     <string name="btn_intro_skip">Skip</string>
     <string name="btn_intro_back">Back</string>
     <string name="btn_intro_next">Next</string>
@@ -626,4 +627,40 @@
     <string name="export_stations_failed">CSV export of stops failed</string>
     <string name="export_stations_subject">CamperLog stops</string>
     <string name="export_stations_chooser">Export stops</string>
+
+    <!-- Location (phase E, 6.7, 6.10, 6.11, 6.12, 9) -->
+    <string name="location_switch_title">Use current location</string>
+    <string name="location_switch_support_intro">Position only when you tap, never in the background. Stays on this device.</string>
+    <string name="title_intro_optin">Optional: location</string>
+    <string name="body_intro_optin">It\'s off. CamperLog works completely without it.</string>
+    <string name="body_intro_optin_footer">You can change this anytime in Settings.</string>
+    <string name="location_use_current_button">Use current location</string>
+    <string name="location_rationale_body">CamperLog reads your position once, only now, and saves it with this stop. Nothing is sent.</string>
+    <string name="location_rationale_continue">Continue</string>
+    <string name="location_rationale_not_now">Not now</string>
+    <string name="location_permanently_denied_body">Location access is blocked for CamperLog. You can allow it in the app settings, or enter coordinates by hand.</string>
+    <string name="location_action_app_settings">App settings</string>
+    <string name="location_action_enter_coordinates">Enter coordinates</string>
+    <string name="location_services_off_body">Location is turned off on this device.</string>
+    <string name="location_action_turn_on">Turn on</string>
+    <string name="location_searching_body">Finding position … up to 30 s</string>
+    <string name="location_not_found_body">No position found. It usually works better outdoors.</string>
+    <string name="location_action_retry">Retry</string>
+    <string name="location_use_last_known">Use last position (%1$s, %2$s)</string>
+    <string name="location_minutes_ago_short">%1$d min ago</string>
+    <string name="location_accuracy_meters">±%1$d m</string>
+    <string name="location_accuracy_km">±%1$d km</string>
+    <string name="location_fix_summary">%1$s · GPS %2$s</string>
+    <string name="location_fix_summary_approximate">%1$s · GPS %2$s (approximate)</string>
+    <string name="location_fix_summary_last_known">%1$s · GPS %2$s · last known %3$s</string>
+    <string name="location_remove_coordinates">Remove coordinates</string>
+    <string name="location_approximate_hint_body">For exact positions, allow \"Precise location\" in the app settings.</string>
+
+    <!-- Where am I? (breakdown card, 6.12, 13.5 idea #1) -->
+    <string name="vehicle_where_am_i">Where am I?</string>
+    <string name="where_am_i_title">Current position</string>
+    <string name="where_am_i_copy">Copy coordinates</string>
+    <string name="where_am_i_copied">Coordinates copied</string>
+    <string name="where_am_i_share">Share coordinates</string>
+    <string name="where_am_i_share_chooser">Share coordinates</string>
 </resources>

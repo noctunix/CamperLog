@@ -44,7 +44,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.settings.ReminderLeadDaysRow
+import app.restvolt.camperlog.ui.settings.SwitchSettingRow
 import app.restvolt.camperlog.ui.settings.ThemeModeRadioGroup
 import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
@@ -57,20 +59,23 @@ private const val PAGE_FINISH = 5
 
 /**
  * Einführungstour über [PAGE_COUNT] Seiten, erreichbar beim ersten Start und erneut über "Über
- * CamperLog". [reminderSettings] ist dieselbe Instanz wie im übrigen Navigationsgraphen;
- * [onThemeModeChange] wirkt sofort wie im Einstellungen-Bildschirm. [onFinished] markiert die
- * Tour als gesehen, egal ob sie zu Ende durchlaufen oder übersprungen wurde.
+ * CamperLog". [reminderSettings] und [locationSettings] sind dieselben Instanzen wie im übrigen
+ * Navigationsgraphen; [onThemeModeChange] wirkt sofort wie im Einstellungen-Bildschirm. Die letzte
+ * Seite ist die Opt-in-Seite (6.10) mit dem Schalter "Standort"; [onFinished] markiert die Tour als
+ * gesehen, egal ob sie zu Ende durchlaufen oder übersprungen wurde.
  */
 @Composable
 fun IntroductionTourScreen(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
     reminderSettings: ReminderSettings,
+    locationSettings: LocationSettings,
     onFinished: () -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
     val scope = rememberCoroutineScope()
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
+    val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
 
     BackHandler {
         if (pagerState.currentPage > 0) {
@@ -112,7 +117,7 @@ fun IntroductionTourScreen(
                         leadDays = reminderPreferences.leadDays,
                         onLeadDaysChange = { reminderSettings.reminderLeadDays = it },
                     )
-                    PAGE_FINISH -> TourPage(R.drawable.ic_check, R.string.title_intro_finish, R.string.body_intro_finish)
+                    PAGE_FINISH -> OptInPage(locationEnabled = locationEnabled, onLocationEnabledChange = { locationSettings.enabled = it })
                 }
             }
 
@@ -190,6 +195,45 @@ private fun SettingsPage(
             color = MaterialTheme.colorScheme.primary,
         )
         ReminderLeadDaysRow(leadDays, onLeadDaysChange)
+    }
+}
+
+/**
+ * Letzte Seite der Einführungstour (6.10): Opt-in für Standort, ohne dass das Einschalten hier
+ * schon einen Berechtigungsdialog auslöst (der kommt erst beim ersten Tastendruck, 6.7). Phase F
+ * ergänzt hier den zweiten Schalter "Wetter & Karte".
+ */
+@Composable
+private fun OptInPage(locationEnabled: Boolean, onLocationEnabledChange: (Boolean) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        Text(
+            stringResource(R.string.title_intro_optin),
+            modifier = Modifier.semantics { heading() }.padding(bottom = 8.dp),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            stringResource(R.string.body_intro_optin),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 24.dp),
+        )
+        SwitchSettingRow(
+            title = stringResource(R.string.location_switch_title),
+            supportingText = stringResource(R.string.location_switch_support_intro),
+            checked = locationEnabled,
+            onCheckedChange = onLocationEnabledChange,
+        )
+        Text(
+            stringResource(R.string.body_intro_optin_footer),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 16.dp),
+        )
     }
 }
 

@@ -38,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,6 +87,8 @@ import kotlin.math.abs
 @Composable
 fun VehicleScreen(
     viewModel: VehicleViewModel,
+    whereAmIViewModel: WhereAmIViewModel,
+    locationEnabled: Boolean,
     reminderSettings: ReminderSettings,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -110,6 +113,7 @@ fun VehicleScreen(
     val context = LocalContext.current
     val noDialerApp = stringResource(R.string.vehicle_no_dialer)
     val copyNumber = stringResource(R.string.vehicle_copy_number)
+    var showWhereAmI by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -144,6 +148,8 @@ fun VehicleScreen(
                 reminders = reminders,
                 today = today,
                 repairs = state.repairs,
+                locationEnabled = locationEnabled,
+                onWhereAmI = { showWhereAmI = true },
                 onAddDetails = { onEditVehicle(vehicle.id) },
                 onOpenReminder = { onEditVehicle(vehicle.id) },
                 onAddRepair = { onAddRepair(vehicle.id) },
@@ -154,6 +160,10 @@ fun VehicleScreen(
                     .fillMaxSize(),
             )
         }
+    }
+
+    if (showWhereAmI) {
+        WhereAmISheet(viewModel = whereAmIViewModel, onDismiss = { showWhereAmI = false })
     }
 
     LaunchedEffect(message) {
@@ -180,6 +190,8 @@ private fun VehicleSheet(
     reminders: List<Reminder>,
     today: LocalDate,
     repairs: List<Repair>,
+    locationEnabled: Boolean,
+    onWhereAmI: () -> Unit,
     onAddDetails: () -> Unit,
     onOpenReminder: () -> Unit,
     onAddRepair: () -> Unit,
@@ -210,7 +222,7 @@ private fun VehicleSheet(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        if (vehicle.hasBreakdownInfo) BreakdownAssistanceCard(vehicle, onCall)
+        if (vehicle.hasBreakdownInfo) BreakdownAssistanceCard(vehicle, onCall, locationEnabled, onWhereAmI)
         reminders.forEach { reminder -> ReminderCard(reminder, today, onClick = onOpenReminder) }
         if (!hasAnyValue) {
             EmptyHint(stringResource(R.string.vehicle_sheet_empty_hint))
@@ -334,9 +346,12 @@ private fun RepairRow(repair: Repair, locale: Locale, onClick: () -> Unit) {
     }
 }
 
-/** Karte „Panne & Unfall" am Kopf des Datenblatts; nur sichtbar, wenn [Vehicle.hasBreakdownInfo] gilt. */
+/**
+ * Karte „Panne & Unfall" am Kopf des Datenblatts; nur sichtbar, wenn [Vehicle.hasBreakdownInfo] gilt.
+ * "Wo bin ich?" (13.5 Nr. 1) erscheint nur, wenn [locationEnabled] an ist.
+ */
 @Composable
-private fun BreakdownAssistanceCard(vehicle: Vehicle, onCall: (String) -> Unit) {
+private fun BreakdownAssistanceCard(vehicle: Vehicle, onCall: (String) -> Unit, locationEnabled: Boolean, onWhereAmI: () -> Unit) {
     val showBreakdown = vehicle.breakdownProvider.isNotBlank() || vehicle.breakdownMembershipNumber.isNotBlank() ||
         vehicle.breakdownPhone.isNotBlank()
     val showTravelProtection = vehicle.travelProtectionProvider.isNotBlank() ||
@@ -381,6 +396,12 @@ private fun BreakdownAssistanceCard(vehicle: Vehicle, onCall: (String) -> Unit) 
                 fallbackSubject = stringResource(R.string.field_insurer_claims_phone),
                 onCall = onCall,
             )
+        }
+        if (locationEnabled) {
+            TextButton(onClick = onWhereAmI) {
+                Icon(painterResource(R.drawable.ic_my_location), contentDescription = null)
+                Text(stringResource(R.string.vehicle_where_am_i), Modifier.padding(start = 8.dp))
+            }
         }
     }
 }
@@ -457,7 +478,7 @@ private fun dialOrOfferCopy(
     }
 }
 
-private fun Context.copyToClipboard(label: String, text: String) {
+internal fun Context.copyToClipboard(label: String, text: String) {
     val clipboard = getSystemService(ClipboardManager::class.java)
     clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
 }

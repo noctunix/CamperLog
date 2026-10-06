@@ -5,12 +5,15 @@ import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.formatCoordinates
 import app.restvolt.camperlog.domain.isWebUrl
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -179,6 +182,31 @@ fun Context.shareTour(tour: Tour): Boolean {
 
 private fun Context.startChooser(send: Intent, title: String): Boolean =
     tryStart(Intent.createChooser(send, title))
+
+/**
+ * Öffnet das Sharesheet mit den Koordinaten eines einmaligen GPS-Fixes (13.5 Nr. 1): Klartext mit
+ * Koordinaten und einem `geo:`-Link.
+ *
+ * @return `false`, wenn kein Sharesheet geöffnet werden konnte
+ */
+fun Context.shareLocation(latitude: Double, longitude: Double, locale: Locale): Boolean {
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, locationShareText(latitude, longitude, locale))
+    }
+    return startChooser(send, getString(R.string.where_am_i_share_chooser))
+}
+
+/** Klartext für [shareLocation] bzw. zum Kopieren: lesbare Koordinaten plus `geo:`-Link. */
+fun locationShareText(latitude: Double, longitude: Double, locale: Locale): String =
+    "${formatCoordinates(latitude, longitude, locale)}\ngeo:$latitude,$longitude"
+
+/** Öffnet die App-Info-Einstellungen von CamperLog (6.7: dauerhaft abgelehnte Standortberechtigung). */
+fun Context.openAppDetailsSettings(): Boolean =
+    tryStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+
+/** Öffnet die Standorteinstellungen des Geräts (6.7: Standort ist ausgeschaltet). */
+fun Context.openLocationSourceSettings(): Boolean = tryStart(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
 
 /**
  * Öffnet den Kartenlink der Tour oder sucht das Ziel in einer Karten-App.

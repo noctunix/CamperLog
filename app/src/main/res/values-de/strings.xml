@@ -114,6 +114,9 @@
         <item quantity="one">%1$d Monat</item>
         <item quantity="other">%1$d Monate</item>
     </plurals>
+    <string name="settings_location_section">Standort</string>
+    <string name="settings_location_switch_support">Zeigt bei Stationen „Aktuellen Standort verwenden“. Die Position wird nur auf Knopfdruck einmal bestimmt, nie im Hintergrund.</string>
+    <string name="settings_location_revoked_hint">Der Zugriff wird nach dem nächsten Neustart der App vollständig entfernt.</string>
     <string name="settings_open_about">Über CamperLog</string>
 
     <!-- Detail -->
@@ -460,7 +463,7 @@
     <string name="err_license_load_failed">Lizenztext konnte nicht geladen werden.</string>
     <string name="about_section_third_party">Drittanbieter-Bibliotheken</string>
     <string name="about_section_privacy">Datenschutz</string>
-    <string name="about_privacy_bullet_no_permissions">Keine Berechtigungen erforderlich.</string>
+    <string name="about_privacy_bullet_no_permissions">Standort ist optional und standardmäßig ausgeschaltet. Ohne ihn braucht CamperLog keine Berechtigungen.</string>
     <string name="about_privacy_bullet_no_network">Kein Netzwerkzugriff.</string>
     <string name="about_privacy_bullet_local">Alle Daten bleiben auf diesem Gerät.</string>
     <string name="about_privacy_bullet_backup">Sicherungen entstehen nur, wenn du sie exportierst.</string>
@@ -483,11 +486,9 @@
     <string name="title_intro_vehicle">Fahrzeug</string>
     <string name="body_intro_vehicle">Führe ein Datenblatt und Wartungstermine mit Erinnerungen in der App. CamperLog verwaltet auch mehrere Fahrzeuge.</string>
     <string name="title_intro_data">Deine Daten</string>
-    <string name="body_intro_data">Keine Berechtigungen, kein Netzwerkzugriff – alles bleibt auf diesem Gerät. Sicherungen erstellst du jederzeit über Daten.</string>
+    <string name="body_intro_data">Standort bleibt aus, bis du ihn einschaltest, und es gibt keinen Netzwerkzugriff – alles bleibt auf diesem Gerät. Sicherungen erstellst du jederzeit über Daten.</string>
     <string name="title_intro_settings">Einstellungen</string>
     <string name="body_intro_settings">Wähle ein Erscheinungsbild und wie früh Erinnerungen erscheinen sollen. Beides lässt sich später jederzeit in den Einstellungen ändern.</string>
-    <string name="title_intro_finish">Fertig!</string>
-    <string name="body_intro_finish">Lege jetzt deine erste Tour an oder trage die Daten deines Fahrzeugs ein.</string>
     <string name="btn_intro_skip">Überspringen</string>
     <string name="btn_intro_back">Zurück</string>
     <string name="btn_intro_next">Weiter</string>
@@ -619,4 +620,40 @@
     <string name="export_stations_failed">CSV-Export der Stationen fehlgeschlagen</string>
     <string name="export_stations_subject">CamperLog-Stationen</string>
     <string name="export_stations_chooser">Stationen exportieren</string>
+
+    <!-- Standort (Phase E, 6.7, 6.10, 6.11, 6.12, 9) -->
+    <string name="location_switch_title">Aktuellen Standort nutzen</string>
+    <string name="location_switch_support_intro">Position nur auf Knopfdruck, nie im Hintergrund. Bleibt auf dem Gerät.</string>
+    <string name="title_intro_optin">Optional: Standort</string>
+    <string name="body_intro_optin">Er ist aus. CamperLog funktioniert vollständig ohne ihn.</string>
+    <string name="body_intro_optin_footer">Jederzeit änderbar in den Einstellungen.</string>
+    <string name="location_use_current_button">Aktuellen Standort verwenden</string>
+    <string name="location_rationale_body">CamperLog liest deine Position einmal, nur jetzt, und speichert sie bei dieser Station. Es wird nichts übertragen.</string>
+    <string name="location_rationale_continue">Weiter</string>
+    <string name="location_rationale_not_now">Nicht jetzt</string>
+    <string name="location_permanently_denied_body">Standortzugriff ist für CamperLog gesperrt. Du kannst ihn in den App-Einstellungen erlauben oder Koordinaten von Hand eingeben.</string>
+    <string name="location_action_app_settings">App-Einstellungen</string>
+    <string name="location_action_enter_coordinates">Koordinaten eingeben</string>
+    <string name="location_services_off_body">Standort ist auf diesem Gerät ausgeschaltet.</string>
+    <string name="location_action_turn_on">Einschalten</string>
+    <string name="location_searching_body">Position wird bestimmt … bis zu 30 s</string>
+    <string name="location_not_found_body">Keine Position gefunden. Unter freiem Himmel klappt\'s meist besser.</string>
+    <string name="location_action_retry">Erneut</string>
+    <string name="location_use_last_known">Letzte Position verwenden (%1$s, %2$s)</string>
+    <string name="location_minutes_ago_short">vor %1$d Min.</string>
+    <string name="location_accuracy_meters">±%1$d m</string>
+    <string name="location_accuracy_km">±%1$d km</string>
+    <string name="location_fix_summary">%1$s · GPS %2$s</string>
+    <string name="location_fix_summary_approximate">%1$s · GPS %2$s (ungefähr)</string>
+    <string name="location_fix_summary_last_known">%1$s · GPS %2$s · zuletzt bekannt %3$s</string>
+    <string name="location_remove_coordinates">Koordinaten entfernen</string>
+    <string name="location_approximate_hint_body">Für genaue Positionen erlaube in den App-Einstellungen „Genauer Standort“.</string>
+
+    <!-- Wo bin ich? (Panne-&-Unfall-Karte, 6.12, 13.5 Nr. 1) -->
+    <string name="vehicle_where_am_i">Wo bin ich?</string>
+    <string name="where_am_i_title">Aktuelle Position</string>
+    <string name="where_am_i_copy">Koordinaten kopieren</string>
+    <string name="where_am_i_copied">Koordinaten kopiert</string>
+    <string name="where_am_i_share">Koordinaten teilen</string>
+    <string name="where_am_i_share_chooser">Koordinaten teilen</string>
 </resources>

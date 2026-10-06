@@ -40,8 +40,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.backup.BackupImporter
+import app.restvolt.camperlog.data.AndroidLocationPermissionGate
+import app.restvolt.camperlog.data.AndroidLocationProvider
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
+import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Station
@@ -55,6 +58,7 @@ import app.restvolt.camperlog.domain.shouldShowKeepAndroidOpen
 import app.restvolt.camperlog.ui.about.AboutScreen
 import app.restvolt.camperlog.ui.about.KeepAndroidOpenDialog
 import app.restvolt.camperlog.ui.about.KeepAndroidOpenSettings
+import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.data.AndroidDataFiles
 import app.restvolt.camperlog.ui.data.DataScreen
 import app.restvolt.camperlog.ui.data.DataViewModel
@@ -92,6 +96,7 @@ import app.restvolt.camperlog.ui.tours.ToursScreen
 import app.restvolt.camperlog.ui.tours.ToursViewModel
 import app.restvolt.camperlog.ui.vehicle.VehicleScreen
 import app.restvolt.camperlog.ui.vehicle.VehicleViewModel
+import app.restvolt.camperlog.ui.vehicle.WhereAmIViewModel
 import app.restvolt.camperlog.ui.vehicles.VehiclesScreen
 import app.restvolt.camperlog.ui.vehicles.VehiclesViewModel
 import kotlinx.serialization.Serializable
@@ -192,6 +197,8 @@ fun CamperLogNavHost(
     pendingGeoIntent: GeoIntentLocation? = null,
     /** [pendingGeoIntent] wurde übernommen und soll nicht erneut ausgelöst werden, z. B. bei einer Drehung. */
     onGeoIntentHandled: () -> Unit = {},
+    /** Standorthardware für das Stationsformular und "Wo bin ich?" (6.7); in Tests ein Fake. */
+    locationProvider: LocationProvider = AndroidLocationProvider(LocalContext.current),
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -199,6 +206,7 @@ fun CamperLogNavHost(
     val context = LocalContext.current
     val reminderSettings = remember { ReminderSettings(context) }
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
+    val locationSettings = remember { LocationSettings(context) }
     val currentVehicleFlow = remember(vehicles) { vehicles.observeCurrentVehicle() }
     val currentVehicle by currentVehicleFlow.collectAsStateWithLifecycle(initialValue = null)
     val reminderCount = currentVehicle?.let { vehicle ->
@@ -229,6 +237,7 @@ fun CamperLogNavHost(
             themeMode = themeMode,
             onThemeModeChange = onThemeModeChange,
             reminderSettings = reminderSettings,
+            locationSettings = locationSettings,
             onFinished = {
                 introductionSettings.seen = true
                 showIntroductionTour = false
@@ -304,8 +313,12 @@ fun CamperLogNavHost(
             )
         }
         composable<VehicleRoute> {
+            val vehicleContext = LocalContext.current
+            val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
             VehicleScreen(
                 viewModel = viewModel { VehicleViewModel(vehicles) },
+                whereAmIViewModel = viewModel { WhereAmIViewModel(locationProvider, AndroidLocationPermissionGate(vehicleContext)) },
+                locationEnabled = locationEnabled,
                 reminderSettings = reminderSettings,
                 onOpenData = { navController.navigate(DataRoute) },
                 onOpenSettings = { navController.navigate(SettingsRoute) },
@@ -382,6 +395,8 @@ fun CamperLogNavHost(
         }
         composable<StationEditRoute> { entry ->
             val route = entry.toRoute<StationEditRoute>()
+            val stationEditContext = LocalContext.current
+            val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
             // Wohin die Speichermeldung geht, hängt davon ab, von wo das Formular geöffnet wurde (4.6):
             // eine bestehende Station kam vom Stationsdetail, eine neue von der Tourdetailseite (dann
             // trägt die Route eine tourId) oder vom Stationen-Reiter. Ein `geo:`-Link (13.5 Nr. 4) öffnet
@@ -407,9 +422,12 @@ fun CamperLogNavHost(
                         prefillLatitude = route.prefillLatitude,
                         prefillLongitude = route.prefillLongitude,
                         prefillPlace = route.prefillPlace,
+                        locationProvider = locationProvider,
+                        locationPermissionGate = AndroidLocationPermissionGate(stationEditContext),
                         savedStateHandle = createSavedStateHandle(),
                     )
                 },
+                locationEnabled = locationEnabled,
                 onDone = { navController.popFrom(entry) },
                 onSaved = { loggedServices ->
                     onStationSaved(loggedServices)
@@ -474,6 +492,7 @@ fun CamperLogNavHost(
                 themeMode = themeMode,
                 onThemeModeChange = onThemeModeChange,
                 reminderSettings = reminderSettings,
+                locationSettings = locationSettings,
                 onBack = { navController.popFrom(entry) },
                 onOpenRates = { navController.navigate(RatesRoute) },
                 onOpenAbout = { navController.navigate(AboutRoute) },
