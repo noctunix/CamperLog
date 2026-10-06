@@ -117,7 +117,7 @@
     <string name="settings_location_section">Location &amp; internet</string>
     <string name="settings_location_switch_support">Shows "Use current location" on stops. The position is only determined once, on tap, never in the background.</string>
     <string name="settings_location_revoked_hint">Access is fully removed after the app restarts.</string>
-    <string name="settings_weather_switch_support">Weather from Open-Meteo and a map from OpenStreetMap, both only on tap or when opening the map.</string>
+    <string name="settings_weather_switch_support">Weather from Open-Meteo, only when you tap “Add current weather”.</string>
     <string name="settings_weather_off_hint">Saved positions and weather stay with your stops.</string>
     <string name="settings_open_about">About CamperLog</string>
 
@@ -480,7 +480,7 @@
     <string name="about_section_privacy">Privacy</string>
     <string name="about_privacy_bullet_opt_in">Location and internet features are off by default. Without them, CamperLog works completely offline.</string>
     <string name="about_privacy_bullet_location">Location (optional): only when you tap “Use current location”, CamperLog reads your position once and saves it with the stop. Never in the background, never sent anywhere.</string>
-    <string name="about_privacy_bullet_weather_map">Weather &amp; map (optional): CamperLog has the internet permission but only uses it when you turn this on. Getting the weather sends the stop’s coordinates, rounded to about 1 km, to Open-Meteo. The map loads the area you are looking at from OpenStreetMap. Both services see your IP address.</string>
+    <string name="about_privacy_bullet_weather_map">Weather (optional): CamperLog has the internet permission but only uses it when you turn this on. Getting the weather sends the stop’s coordinates, rounded to about 1 km, to Open-Meteo, which also sees your IP address.</string>
     <string name="about_privacy_bullet_no_tracking">No account, no ads, no analytics. Nothing else ever leaves your device.</string>
     <string name="about_privacy_bullet_local">All data stays on this device.</string>
     <string name="about_privacy_bullet_backup">Backups are only created when you export them.</string>
@@ -642,7 +642,7 @@
     <!-- Location (phase E, 6.7, 6.10, 6.11, 6.12, 9) -->
     <string name="location_switch_title">Use current location</string>
     <string name="location_switch_support_intro">Position only when you tap, never in the background. Stays on this device.</string>
-    <string name="title_intro_optin">Optional: location, weather, map</string>
+    <string name="title_intro_optin">Optional: location and weather</string>
     <string name="body_intro_optin">Both are off. CamperLog works fully without them.</string>
     <string name="body_intro_optin_footer">You can change this anytime in Settings.</string>
     <string name="location_use_current_button">Use current location</string>
@@ -676,8 +676,8 @@
     <string name="where_am_i_share_chooser">Share coordinates</string>
 
     <!-- Weather (phase F, 6.8, 6.10, 6.11, 9) -->
-    <string name="weather_switch_title">Weather &amp; map (internet)</string>
-    <string name="weather_switch_support_intro">Weather from Open-Meteo, map from OpenStreetMap. These services receive coordinates or the map area, and your IP address.</string>
+    <string name="weather_switch_title">Weather (internet)</string>
+    <string name="weather_switch_support_intro">Weather from Open-Meteo. It receives the stop’s coordinates, rounded to about 1 km, and your IP address.</string>
     <string name="station_section_weather">Weather</string>
     <string name="weather_no_coordinates_hint">With coordinates you can also get the weather.</string>
     <string name="weather_date_not_today_body">Weather can only be fetched for today\'s stops.</string>

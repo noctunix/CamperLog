@@ -44,8 +44,8 @@ class PrivacyStringsTest {
 
     @Test
     fun optInWordingCoversBothSwitches() {
-        assertTrue(en.contains("Optional: location, weather, map"))
-        assertTrue(de.contains("Optional: Standort, Wetter, Karte"))
+        assertTrue(en.contains("Optional: location and weather"))
+        assertTrue(de.contains("Optional: Standort und Wetter"))
     }
 
     @Test
