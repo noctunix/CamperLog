@@ -1,0 +1,5 @@
+• Stops: tours now hold several stops – overnight places, water & waste, fuel & charging, sightseeing, food, ferries
+• Your earlier pitch details became overnight stops automatically
+• New Stops tab with search, filters, "would return" and CSV export
+• Paste coordinates or map links; geo: links from map apps open a new stop
+• Cassette, grey water and gas on a stop go into the logbook; new tile "Gas bottle swapped"

@@ -1,0 +1,5 @@
+• Stationen: Touren haben jetzt mehrere Stopps – Schlafplätze, Ver- und Entsorgung, Tanken und Laden, Sehenswertes, Essen, Fähren
+• Deine bisherigen Stellplatz-Angaben wurden automatisch zu Schlafplätzen
+• Neuer Reiter Stationen mit Suche, Filtern, „Gerne wieder“ und CSV-Export
+• Koordinaten oder Kartenlinks einfügen; geo:-Links aus Karten-Apps öffnen eine neue Station
+• Kassette, Grauwasser und Gas an einer Station landen im Bordbuch; neue Kachel „Gasflasche gewechselt“
