@@ -2,6 +2,7 @@ package app.restvolt.camperlog.ui.settings
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -42,6 +43,37 @@ class WeatherSettingsTest {
             settings.enabled = true
 
             assertTrue(settings.values.value)
+        } finally {
+            clear()
+        }
+    }
+
+    @Test
+    fun settingToOff_clearsTheTileCache() {
+        clear()
+        try {
+            var clearCalls = 0
+            val settings = WeatherSettings(context, clearTileCache = { clearCalls++ })
+            settings.enabled = true
+
+            settings.enabled = false
+
+            assertEquals(1, clearCalls)
+        } finally {
+            clear()
+        }
+    }
+
+    @Test
+    fun settingToOn_doesNotClearTheTileCache() {
+        clear()
+        try {
+            var clearCalls = 0
+            val settings = WeatherSettings(context, clearTileCache = { clearCalls++ })
+
+            settings.enabled = true
+
+            assertEquals(0, clearCalls)
         } finally {
             clear()
         }
