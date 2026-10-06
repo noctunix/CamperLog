@@ -102,6 +102,12 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        allWarningsAsErrors = true
+    }
+}
+
 room {
     schemaDirectory("$projectDir/schemas")
 }
