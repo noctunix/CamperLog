@@ -1,6 +1,8 @@
 package app.restvolt.camperlog.share
 
 import app.restvolt.camperlog.domain.EUR
+import app.restvolt.camperlog.domain.ElectricityBilling
+import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
@@ -105,7 +107,7 @@ private fun Tour.csvFields(station: Station?, tourStations: List<Station>, vehic
         distanceKm.toString(),
         amountToDecimal(costs.filter { it.currency == EUR }.sumMinor(), EUR),
         yesNoOrEmpty(station?.pitchAssigned),
-        station?.electricityBilling?.csvValue.orEmpty(),
+        station?.electricityBilling?.let(::legacyFlatRate)?.csvValue.orEmpty(),
         station?.lteQuality?.csvValue.orEmpty(),
         station?.pitchSlope?.csvValue.orEmpty(),
         yesNoOrEmpty(station?.levelingBlocksUsed),
@@ -122,4 +124,14 @@ private fun yesNoOrEmpty(value: Boolean?) = when (value) {
     true -> "ja"
     false -> "nein"
     null -> ""
+}
+
+/**
+ * Die Spalte `strompauschale` behält ihr bisheriges Vokabular (ja/nein/nicht genutzt), damit Tabellen,
+ * die ältere Exporte auswerten, weiter funktionieren; die genaue Abrechnungsart steht in der Stations-CSV.
+ */
+private fun legacyFlatRate(billing: ElectricityBilling): ElectricityFlatRate = when (billing) {
+    ElectricityBilling.NONE -> ElectricityFlatRate.NOT_USED
+    ElectricityBilling.INCLUDED, ElectricityBilling.FLAT_PER_NIGHT, ElectricityBilling.FLAT_PER_STAY -> ElectricityFlatRate.YES
+    ElectricityBilling.METERED, ElectricityBilling.BASE_PLUS_METERED, ElectricityBilling.COIN -> ElectricityFlatRate.NO
 }

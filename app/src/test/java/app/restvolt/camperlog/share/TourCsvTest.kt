@@ -3,6 +3,7 @@ package app.restvolt.camperlog.share
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityBilling
+import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
@@ -77,7 +78,7 @@ class TourCsvTest {
         assertEquals(CSV_HEADER.joinToString(","), lines[0])
         assertEquals(
             "3,2026-07-10,2026-07-12,\"Bodensee, Nordufer\",${tour.tourType.csvValue},3,2,412,89.50,ja," +
-                "${ElectricityBilling.NONE.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
+                "${ElectricityFlatRate.NOT_USED.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
                 "\"Sagte: \"\"toll\"\"\",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z,\"89.50 EUR; 1450.00 NOK\",Bulli," +
                 "\"89.50 EUR; 1450.00 NOK\"",
             lines[1],
@@ -135,7 +136,7 @@ class TourCsvTest {
 
         assertEquals(
             "1,2026-07-10,2026-07-10,'=cmd|' /C calc'!A0,${TourType.DAY_TRIP.csvValue},1,0,80,0.00,nein," +
-                "${ElectricityBilling.METERED.csvValue},${LteQuality.OK.csvValue},${PitchSlope.SLOPED.csvValue},ja," +
+                "${ElectricityFlatRate.NO.csvValue},${LteQuality.OK.csvValue},${PitchSlope.SLOPED.csvValue},ja," +
                 "\"'@Kontakt, bitte\",,2026-07-10T08:00:00Z,2026-07-10T08:00:00Z,,$DEFAULT_NAME,",
             row,
         )
