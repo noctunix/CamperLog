@@ -172,8 +172,8 @@ class DataViewModel(
     }
 
     /**
-     * Schreibt eine neue, zeitgestempelte Sicherung in den gewählten Sicherungsordner [folderUri]
-     * (6.11: "Backup folder"). Ist der Ordner nicht mehr zugreifbar, meldet [DataMessage.Text] mit
+     * Schreibt eine neue, zeitgestempelte Sicherung in den gewählten Sicherungsordner [folderUri].
+     * Ist der Ordner nicht mehr zugreifbar, meldet [DataMessage.Text] mit
      * [R.string.data_backup_folder_failed], ohne [onBackupSaved] aufzurufen.
      */
     fun backUpToFolder(folderUri: String) = launchTask(R.string.backup_failed) {

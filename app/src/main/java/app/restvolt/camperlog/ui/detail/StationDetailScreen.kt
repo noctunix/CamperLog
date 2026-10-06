@@ -57,7 +57,7 @@ import app.restvolt.camperlog.ui.yesNoRes
 import kotlinx.coroutines.launch
 
 /**
- * Schreibgeschützte Ansicht einer Station (6.6). [onDelete] löscht ohne Rückfrage; die Tourdetailseite
+ * Schreibgeschützte Ansicht einer Station. [onDelete] löscht ohne Rückfrage; die Tourdetailseite
  * bietet danach „Rückgängig" an. [onOpenTour] navigiert zur zugehörigen Tour, sofern vorhanden.
  */
 @Composable

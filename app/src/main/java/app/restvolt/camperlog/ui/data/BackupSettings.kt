@@ -8,11 +8,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import java.time.Instant
 
-/** Standard-Vorlauf der Sicherungs-Erinnerung in Wochen (ROADMAP.md 1.9.0); `0` bedeutet "aus". */
+/** Standard-Vorlauf der Sicherungs-Erinnerung in Wochen; `0` bedeutet "aus". */
 const val DEFAULT_BACKUP_REMINDER_WEEKS = 4
 
 /**
- * Einstellungen und Zustand der Sicherungs-Erinnerung und des Sicherungsordners (1.9.0).
+ * Einstellungen und Zustand der Sicherungs-Erinnerung und des Sicherungsordners.
  * [lastNotifiedBackupBaseline] wird nur vom täglichen Hintergrund-Check gelesen/geschrieben, siehe
  * [app.restvolt.camperlog.domain.shouldNotifyBackupOverdue].
  */

@@ -58,7 +58,7 @@ data class StationEditUiState(
     val isDirty: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
-    /** Welche Ver-/Entsorgungs-Häkchen beim letzten erfolgreichen Speichern ins Bordbuch eingetragen wurden (4.6). */
+    /** Welche Ver-/Entsorgungs-Häkchen beim letzten erfolgreichen Speichern ins Bordbuch eingetragen wurden. */
     val loggedServices: Set<StationService> = emptySet(),
     /** Der letzte Speicherversuch ist an der Datenbank gescheitert; Meldung steht noch aus. */
     val saveFailed: Boolean = false,
@@ -73,7 +73,7 @@ internal data class StationDraft(val input: StationInput, val showErrors: Boolea
 /**
  * Lädt, validiert und speichert eine Station. [stationId] 0 legt eine neue Station an; dafür
  * entscheiden [initialTourId]/[initialType]/[prefillLatitude]/[prefillLongitude]/[prefillPlace]
- * über die Vorbelegung (aus der Tourdetailseite bzw. aus einem `geo:`-Link, 13.5 Nr. 4).
+ * über die Vorbelegung (aus der Tourdetailseite bzw. aus einem `geo:`-Link).
  * Geänderte Eingaben liegen zusätzlich in [savedStateHandle] und werden nach einem Neustart des
  * Prozesses statt der gespeicherten Station angezeigt.
  */
@@ -95,10 +95,10 @@ class EditStationViewModel(
     private val timeNow: () -> LocalTime = LocalTime::now,
 ) : ViewModel() {
 
-    /** Standortbestimmung für den Platzabschnitt (6.7), nur sichtbar, wenn die Oberfläche den Standort-Schalter an sieht. */
+    /** Standortbestimmung für den Platzabschnitt, nur sichtbar, wenn die Oberfläche den Standort-Schalter an sieht. */
     val locationCapture = LocationCaptureController(locationProvider, locationPermissionGate, viewModelScope)
 
-    /** Wetterabfrage für die "Wetter"-Karte (6.8), nur sichtbar, wenn die Oberfläche den Wetter-Schalter an sieht. */
+    /** Wetterabfrage für die "Wetter"-Karte, nur sichtbar, wenn die Oberfläche den Wetter-Schalter an sieht. */
     val weatherCapture = WeatherCaptureController(weatherProvider, viewModelScope)
 
     private val draft: StationDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)?.let { decodeFromSavedState(it) }
@@ -174,7 +174,7 @@ class EditStationViewModel(
         }
     }
 
-    /** Vorbelegung einer neuen Station nach 3.3: Datum/Uhrzeit aus der Tour bzw. dem aktuellen Fahrzeug und Tag. */
+    /** Vorbelegung einer neuen Station: Datum/Uhrzeit aus der Tour bzw. dem aktuellen Fahrzeug und Tag. */
     private suspend fun applyNewStationDefaults(tourId: Long?) {
         if (tourId != null) {
             val tour = tours.observeTour(tourId).first() ?: return
@@ -204,19 +204,19 @@ class EditStationViewModel(
         saveDraft()
     }
 
-    /** Wechselt die Stationsart; bei einem Wechsel zu Übernachtung wird "Nächte" auf 1 vorbelegt, sofern noch leer (3.2). */
+    /** Wechselt die Stationsart; bei einem Wechsel zu Übernachtung wird "Nächte" auf 1 vorbelegt, sofern noch leer. */
     fun onTypeChange(type: StationType) = onInputChange { input ->
         val nights = if (type == StationType.OVERNIGHT && input.nights.isBlank()) "1" else input.nights
         input.copy(type = type, nights = nights)
     }
 
-    /** Wählt eine Tour (oder "Keine Tour" bei `null`); das Fahrzeug folgt dann der Tour (2.4). */
+    /** Wählt eine Tour (oder "Keine Tour" bei `null`); das Fahrzeug folgt dann der Tour. */
     fun onTourChange(tourId: Long?) {
         val tour = _uiState.value.tours.firstOrNull { it.id == tourId }
         onInputChange { input -> input.copy(tourId = tourId, vehicleId = tour?.vehicleId ?: input.vehicleId) }
     }
 
-    /** Liest den eingefügten Text offline (5.1); erkannte Koordinaten oder ein Link werden übernommen. */
+    /** Liest den eingefügten Text offline; erkannte Koordinaten oder ein Link werden übernommen. */
     fun onLocationTextChange(text: String) = onInputChange { input ->
         when (val parsed = parseLocationText(text)) {
             is ParsedLocation.Coordinates -> input.copy(
@@ -243,12 +243,12 @@ class EditStationViewModel(
         }
     }
 
-    /** Entfernt vom GPS gesetzte Koordinaten wieder ("Koordinaten entfernen", 6.7 Erfolgszustand). */
+    /** Entfernt vom GPS gesetzte Koordinaten wieder ("Koordinaten entfernen" im Erfolgszustand). */
     fun onRemoveGpsCoordinates() = onInputChange { input ->
         input.copy(latitude = null, longitude = null, coordinateSource = null, accuracyM = null)
     }
 
-    /** Tastendruck auf "Wetter abrufen"/"Aktualisieren" (6.8); ohne Koordinaten passiert nichts. */
+    /** Tastendruck auf "Wetter abrufen"/"Aktualisieren"; ohne Koordinaten passiert nichts. */
     fun onFetchWeather() {
         val input = _uiState.value.input
         val latitude = input.latitude ?: return
@@ -256,7 +256,7 @@ class EditStationViewModel(
         weatherCapture.fetch(latitude, longitude)
     }
 
-    /** "Entfernen" im Erfolgszustand der Wetterkarte (6.8). */
+    /** "Entfernen" im Erfolgszustand der Wetterkarte. */
     fun onRemoveWeather() = onInputChange { it.copy(weather = null) }
 
     /** Validiert und speichert; bei Erfolg wird [StationEditUiState.isSaved] gesetzt. */

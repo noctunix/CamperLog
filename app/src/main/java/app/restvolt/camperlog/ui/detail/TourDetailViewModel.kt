@@ -32,7 +32,7 @@ sealed interface DetailUiState {
 
 /** Rückmeldung zu einer Station aus der Zeitleiste; die Detailseite zeigt sie als Snackbar. */
 sealed interface StationMessage {
-    /** [linkedEntryIds] sind die Bordbuch-Einträge, die vor dem Löschen mit der Station verknüpft waren (8.3, 13.4). */
+    /** [linkedEntryIds] sind die Bordbuch-Einträge, die vor dem Löschen mit der Station verknüpft waren. */
     data class Deleted(val station: Station, val linkedEntryIds: List<Long> = emptyList()) : StationMessage
     data class Saved(val loggedServices: Set<StationService>) : StationMessage
     data class Failed(@StringRes val text: Int) : StationMessage
@@ -63,7 +63,7 @@ class TourDetailViewModel(
     /** Einmalige Rückmeldung für die Snackbar der Detailseite; nach der Anzeige [onMessageShown] aufrufen. */
     val message: StateFlow<StationMessage?> = _message.asStateFlow()
 
-    /** Löscht [station] und bietet über [StationMessage.Deleted] das Rückgängigmachen an (8.3). */
+    /** Löscht [station] und bietet über [StationMessage.Deleted] das Rückgängigmachen an. */
     fun deleteStation(station: Station) {
         viewModelScope.launch {
             _message.value = try {
@@ -76,7 +76,7 @@ class TourDetailViewModel(
         }
     }
 
-    /** Stellt eine über [deleteStation] entfernte Station wieder her und verknüpft ihre Bordbuch-Einträge erneut (8.3, 13.4). */
+    /** Stellt eine über [deleteStation] entfernte Station wieder her und verknüpft ihre Bordbuch-Einträge erneut. */
     fun undoDeleteStation(message: StationMessage.Deleted) {
         viewModelScope.launch {
             try {
@@ -88,7 +88,7 @@ class TourDetailViewModel(
         }
     }
 
-    /** Meldet, dass eine neue Station gespeichert wurde, für die Snackbar der Detailseite (4.6). */
+    /** Meldet, dass eine neue Station gespeichert wurde, für die Snackbar der Detailseite. */
     fun onStationSaved(loggedServices: Set<StationService>) {
         _message.value = StationMessage.Saved(loggedServices)
     }

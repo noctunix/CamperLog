@@ -117,8 +117,8 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 /**
- * Formular zum Anlegen und Bearbeiten einer Station (6.5). [onDone] verlässt es ohne, [onSaved] nach
- * dem Speichern mit den gerade ins Bordbuch eingetragenen Ver-/Entsorgungs-Häkchen (4.6).
+ * Formular zum Anlegen und Bearbeiten einer Station. [onDone] verlässt es ohne, [onSaved] nach
+ * dem Speichern mit den gerade ins Bordbuch eingetragenen Ver-/Entsorgungs-Häkchen.
  */
 @Composable
 fun EditStationScreen(
@@ -439,7 +439,7 @@ private fun FuelSection(input: StationInput, change: ((StationInput) -> StationI
     }
 }
 
-/** "Wetter"-Karte (6.5, 6.8); nur sichtbar, wenn der Wetter-Schalter an ist und Koordinaten vorliegen. */
+/** "Wetter"-Karte; nur sichtbar, wenn der Wetter-Schalter an ist und Koordinaten vorliegen. */
 @Composable
 private fun WeatherSection(input: StationInput, viewModel: EditStationViewModel) {
     SectionCard {
@@ -498,7 +498,7 @@ private fun FavoriteRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
 
 /**
  * Chip-Reihe der Ver-/Entsorgung oder des Tankens. Wenn [allowed] mindestens einen mit dem Bordbuch
- * synchronisierten Dienst enthält (4), zeigt sie darunter den Hinweistext bzw. [error] (4.6, Regel 5).
+ * synchronisierten Dienst enthält, zeigt sie darunter den Hinweistext bzw. [error].
  */
 @Composable
 private fun ServicesChips(allowed: Set<StationService>, selected: Set<StationService>, error: String?, onToggle: (StationService) -> Unit) {
@@ -620,7 +620,7 @@ private fun CoordinatesField(
 }
 
 /**
- * Erfolgszustand der Standortbestimmung (6.7): Koordinaten, Genauigkeit und "Koordinaten entfernen".
+ * Erfolgszustand der Standortbestimmung: Koordinaten, Genauigkeit und "Koordinaten entfernen".
  * Bei nur ungefährer Genauigkeit zeigt sie einmalig den Hinweis auf "Genauer Standort".
  */
 @Composable
@@ -728,7 +728,7 @@ private fun TypeField(selected: StationType, onSelect: (StationType) -> Unit) {
     }
 }
 
-/** Tourauswahl des Formulars; "Keine Tour" steht an erster Stelle (2.4). */
+/** Tourauswahl des Formulars; "Keine Tour" steht an erster Stelle. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TourField(tours: List<Tour>, selectedId: Long?, onSelect: (Long?) -> Unit) {
@@ -769,7 +769,7 @@ private fun TourField(tours: List<Tour>, selectedId: Long?, onSelect: (Long?) ->
     }
 }
 
-/** Fahrzeugauswahl des Formulars; wird nur bei mehr als einem Fahrzeug und ohne gewählte Tour angezeigt (2.4). */
+/** Fahrzeugauswahl des Formulars; wird nur bei mehr als einem Fahrzeug und ohne gewählte Tour angezeigt. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VehicleField(vehicles: List<Vehicle>, selectedId: Long, onSelect: (Long) -> Unit) {

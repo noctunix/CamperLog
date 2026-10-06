@@ -17,14 +17,14 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-/** Zustand der Stationsdetailansicht (6.6). [Loaded.tour] ist nur gesetzt, wenn die Station zu einer Tour gehört. */
+/** Zustand der Stationsdetailansicht. [Loaded.tour] ist nur gesetzt, wenn die Station zu einer Tour gehört. */
 sealed interface StationDetailUiState {
     data object Loading : StationDetailUiState
     data object NotFound : StationDetailUiState
     data class Loaded(val station: Station, val tour: Tour? = null) : StationDetailUiState
 }
 
-/** Rückmeldung zum Bearbeiten der Station; die Detailseite zeigt sie als Snackbar (4.6). */
+/** Rückmeldung zum Bearbeiten der Station; die Detailseite zeigt sie als Snackbar. */
 data class StationDetailMessage(val loggedServices: Set<StationService>)
 
 /** Beobachtet eine einzelne Station mit ihrer Tour, damit Änderungen aus dem Formular sofort sichtbar sind. */
@@ -44,7 +44,7 @@ class StationDetailViewModel(stations: StationRepository, tours: TourRepository,
     /** Einmalige Rückmeldung für die Snackbar der Detailseite; nach der Anzeige [onMessageShown] aufrufen. */
     val message: StateFlow<StationDetailMessage?> = _message.asStateFlow()
 
-    /** Meldet, dass die Station gerade bearbeitet und gespeichert wurde, für die Snackbar der Detailseite (4.6). */
+    /** Meldet, dass die Station gerade bearbeitet und gespeichert wurde, für die Snackbar der Detailseite. */
     fun onStationSaved(loggedServices: Set<StationService>) {
         _message.value = StationDetailMessage(loggedServices)
     }

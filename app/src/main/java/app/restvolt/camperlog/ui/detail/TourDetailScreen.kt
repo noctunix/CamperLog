@@ -77,7 +77,7 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 /**
- * Schreibgeschützte Ansicht einer Tour mit Zeitleiste der Stationen (6.2). [onDelete] löscht die
+ * Schreibgeschützte Ansicht einer Tour mit Zeitleiste der Stationen. [onDelete] löscht die
  * Tour ohne Rückfrage; die Liste bietet anschließend „Rückgängig" an.
  */
 @Composable
