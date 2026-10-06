@@ -5,6 +5,7 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TourTotals
 import app.restvolt.camperlog.domain.YearTotals
+import app.restvolt.camperlog.domain.costsByCategory
 import app.restvolt.camperlog.domain.stationCostTotals
 import app.restvolt.camperlog.domain.sumByCurrency
 import kotlinx.coroutines.flow.Flow
@@ -64,23 +65,24 @@ class RoomTourRepository(
     override suspend fun lastUsedCurrency(): Currency? = dao.lastUsedCurrency()?.let(Currency::getInstance)
 
     override fun observeTotals(vehicleId: Long?): Flow<TourTotals> =
-        combine(dao.observeTotals(vehicleId), dao.observeCostSums(vehicleId), stationDao.observeForVehicle(vehicleId)) { totals, sums, stations ->
+        combine(dao.observeTotals(vehicleId), dao.observeCostSums(vehicleId), stationDao.observeForVehicle(vehicleId)) { totals, sums, stationRows ->
+            val stations = stationRows.map(StationWithCosts::toDomain)
             val tourCosts = sums.map(CostSumRow::toDomain)
-            val costs = (tourCosts + stations.map(StationWithCosts::toDomain).stationCostTotals()).sumByCurrency()
-            totals.toDomain(costs)
+            val costs = (tourCosts + stations.stationCostTotals()).sumByCurrency()
+            totals.toDomain(costs, stations.costsByCategory())
         }
 
     override fun observeYearTotals(vehicleId: Long?): Flow<List<YearTotals>> =
         combine(dao.observeYearTotals(vehicleId), dao.observeYearCostSums(vehicleId), stationDao.observeForVehicle(vehicleId)) { years, sums, stationRows ->
+            val stationsByYear = stationRows.map(StationWithCosts::toDomain).groupBy { it.date.year }
             val tourCostsByYear = sums.groupBy(YearCostSumRow::year) { Money(it.amountMinor, Currency.getInstance(it.currency)) }
-            val stationCostsByYear = stationRows.map(StationWithCosts::toDomain).groupBy { it.date.year }
-                .mapValues { (_, stations) -> stations.stationCostTotals() }
+            val stationCostsByYear = stationsByYear.mapValues { (_, stations) -> stations.stationCostTotals() }
             val rowsByYear = years.associateBy(YearTotalsRow::year)
             // Ein Jahr ganz ohne Tour (nur Stationen) hat keine Zeile aus dao.observeYearTotals; es zählt trotzdem mit.
-            (rowsByYear.keys + stationCostsByYear.keys).sortedDescending().map { year ->
+            (rowsByYear.keys + stationsByYear.keys).sortedDescending().map { year ->
                 val row = rowsByYear[year] ?: YearTotalsRow(year, tours = 0, distanceKm = 0, travelDays = 0, overnightStays = 0)
                 val costs = (tourCostsByYear[year].orEmpty() + stationCostsByYear[year].orEmpty()).sumByCurrency()
-                row.toDomain(costs)
+                row.toDomain(costs, stationsByYear[year].orEmpty().costsByCategory())
             }
         }
 }

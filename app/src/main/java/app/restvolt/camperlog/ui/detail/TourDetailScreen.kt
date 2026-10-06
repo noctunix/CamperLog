@@ -51,19 +51,25 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.Conversion
+import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.effectiveCosts
 import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.FUEL_SERVICES
 import app.restvolt.camperlog.domain.isMapAvailable
 import app.restvolt.camperlog.domain.SUPPLY_SERVICES
+import app.restvolt.camperlog.domain.sumByCurrency
 import app.restvolt.camperlog.share.openInMaps
 import app.restvolt.camperlog.share.shareTour
 import app.restvolt.camperlog.ui.BackTopBar
+import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LabeledValue
 import app.restvolt.camperlog.ui.SectionCard
@@ -160,6 +166,10 @@ fun TourDetailScreen(
                 tour = current.tour,
                 vehicle = current.vehicle,
                 stations = current.stations,
+                stopCosts = current.stopCosts,
+                totalCosts = current.totalCosts,
+                categoryCosts = current.categoryCosts,
+                conversion = current.conversion,
                 weatherMapEnabled = weatherMapEnabled,
                 modifier = Modifier.fillMaxSize(),
                 padding = padding,
@@ -206,6 +216,10 @@ private fun TourDetails(
     tour: Tour,
     vehicle: Vehicle?,
     stations: List<Station>,
+    stopCosts: List<Money>,
+    totalCosts: List<Money>,
+    categoryCosts: Map<CostCategory, List<Money>>,
+    conversion: Conversion?,
     weatherMapEnabled: Boolean,
     modifier: Modifier,
     padding: PaddingValues,
@@ -237,9 +251,9 @@ private fun TourDetails(
                 LabeledValue(stringResource(R.string.field_travel_days), tour.travelDays.toString())
                 LabeledValue(stringResource(R.string.field_overnight_stays), tour.overnightStays.toString())
                 LabeledValue(stringResource(R.string.label_distance), stringResource(R.string.distance_km, tour.distanceKm))
-                LabeledValue(stringResource(R.string.field_cost), formatAmounts(tour.costs, locale))
             }
         }
+        item { CostsCard(tour.costs, stopCosts, totalCosts, categoryCosts, conversion, locale) }
         item {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -298,6 +312,56 @@ private fun TourDetails(
                         )
                         Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Kostenkarte der Tourdetailseite: manuelle Tourkosten ("Sonstige Kosten"), die Summe der
+ * Stationskosten ("Stationen"), die Gesamtsumme je Währung, eine Umrechnung in die Hauptwährung
+ * (siehe [Conversion]) sowie eine aufklappbare Aufschlüsselung der Stationskosten nach Kategorie.
+ */
+@Composable
+private fun CostsCard(
+    otherCosts: List<Money>,
+    stopCosts: List<Money>,
+    totalCosts: List<Money>,
+    categoryCosts: Map<CostCategory, List<Money>>,
+    conversion: Conversion?,
+    locale: Locale,
+) {
+    SectionCard {
+        LabeledValue(stringResource(R.string.tour_section_other_costs), formatAmounts(otherCosts, locale))
+        LabeledValue(stringResource(R.string.tour_section_stops_costs), formatAmounts(stopCosts, locale))
+        LabeledValue(stringResource(R.string.tour_section_total_costs), formatAmounts(totalCosts, locale))
+        if (conversion != null) {
+            val converted = conversion.total
+            if (converted != null) {
+                LabeledValue(stringResource(R.string.overview_converted, converted.currency.currencyCode), formatAmounts(listOf(converted), locale))
+            } else {
+                Text(
+                    if (conversion.tooLarge) {
+                        stringResource(R.string.overview_conversion_too_large)
+                    } else {
+                        stringResource(R.string.overview_missing_rates, conversion.missing.joinToString(", ") { it.currencyCode })
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (categoryCosts.isNotEmpty()) {
+            var expanded by rememberSaveable { mutableStateOf(false) }
+            CollapsibleSection(
+                title = stringResource(R.string.cost_breakdown_by_category),
+                expanded = expanded,
+                onToggle = { expanded = !expanded },
+                summary = null,
+            ) {
+                categoryCosts.entries.sortedBy { it.key.ordinal }.forEach { (category, amounts) ->
+                    LabeledValue(stringResource(category.labelRes), formatAmounts(amounts, locale))
                 }
             }
         }
@@ -380,7 +444,8 @@ private fun stationSupportingText(station: Station, locale: Locale): String {
         StationType.FUEL -> servicesLabel(FUEL_SERVICES + SUPPLY_SERVICES, station.services)
         StationType.TOLL, StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> null
     }
-    return listOfNotNull(dateTime, detail).joinToString(" · ")
+    val costs = station.effectiveCosts().map { it.amount }.sumByCurrency().takeIf { it.isNotEmpty() }?.let { formatAmounts(it, locale) }
+    return listOfNotNull(dateTime, detail, costs).joinToString(" · ")
 }
 
 @Composable

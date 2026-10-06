@@ -40,9 +40,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.allowedServices
+import app.restvolt.camperlog.domain.countryDisplayName
+import app.restvolt.camperlog.domain.effectiveCosts
+import app.restvolt.camperlog.domain.electricityCost
+import app.restvolt.camperlog.domain.electricityKwh
+import app.restvolt.camperlog.domain.formatAmount
 import app.restvolt.camperlog.domain.formatCoordinates
 import app.restvolt.camperlog.domain.formatDate
+import app.restvolt.camperlog.domain.formatKwh
 import app.restvolt.camperlog.share.openInMaps
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.EmptyHint
@@ -180,13 +188,90 @@ private fun StationDetails(
             servicesText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
             station.weather?.let { WeatherSummary(it) }
         }
+        if (station.electricityBilling != null) {
+            SectionCard {
+                DetailHeading(stringResource(R.string.station_section_electricity))
+                Text(
+                    stringResource(R.string.station_summary_field, stringResource(R.string.field_electricity), stringResource(station.electricityBilling.labelRes)),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                val cost = electricityCost(station)
+                val kwh = electricityKwh(station)
+                if (cost != null || kwh != null) {
+                    val parts = listOfNotNull(cost?.let { formatAmount(it.minor, it.currency, locale) }, kwh?.let { formatKwh(it, locale) })
+                    Text(stringResource(R.string.electricity_result_value, parts.joinToString(" · ")), style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
+        if (station.type == StationType.TOLL) {
+            SectionCard {
+                DetailHeading(stringResource(R.string.station_section_toll))
+                station.tollKind?.let {
+                    Text(stringResource(R.string.station_summary_field, stringResource(R.string.field_toll_kind), stringResource(it.labelRes)), style = MaterialTheme.typography.bodyLarge)
+                }
+                if (station.tollKind == TollKind.VIGNETTE) {
+                    station.tollCountry?.let {
+                        Text(
+                            stringResource(R.string.station_summary_field, stringResource(R.string.field_toll_country), countryDisplayName(it, locale)),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
+                    station.tollValidFrom?.let {
+                        Text(
+                            stringResource(R.string.station_summary_field, stringResource(R.string.field_toll_valid_from), formatDate(it, locale)),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
+                    station.tollValidUntil?.let {
+                        Text(
+                            stringResource(R.string.station_summary_field, stringResource(R.string.field_toll_valid_until), formatDate(it, locale)),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
+                }
+                if (station.tollPaymentMethod.isNotBlank()) {
+                    Text(
+                        stringResource(R.string.station_summary_field, stringResource(R.string.field_toll_payment_method), station.tollPaymentMethod),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
+        }
+        if (station.type == StationType.FERRY && station.ferryBookingReference.isNotBlank()) {
+            SectionCard {
+                DetailHeading(stringResource(R.string.station_section_ferry))
+                Text(
+                    stringResource(R.string.station_summary_field, stringResource(R.string.field_ferry_booking_reference), station.ferryBookingReference),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+        }
+        val costs = station.effectiveCosts()
+        if (costs.isNotEmpty()) {
+            SectionCard {
+                DetailHeading(stringResource(R.string.station_section_costs))
+                costs.sortedBy { it.category.ordinal }.forEach { cost ->
+                    val amountText = formatAmount(cost.amount.minor, cost.amount.currency, locale)
+                    val valueText = if (cost.note.isBlank()) amountText else "$amountText · ${cost.note}"
+                    Text(
+                        stringResource(R.string.station_summary_field, stringResource(cost.category.labelRes), valueText),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
+        }
         if (station.notes.isNotBlank()) {
             SectionCard {
-                Text(stringResource(R.string.field_notes), modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
+                DetailHeading(stringResource(R.string.field_notes))
                 Text(station.notes, style = MaterialTheme.typography.bodyLarge)
             }
         }
     }
+}
+
+@Composable
+private fun DetailHeading(title: String) {
+    Text(title, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
 }
 
 private fun hasMapTarget(station: Station): Boolean =
@@ -198,9 +283,6 @@ private fun pitchDetailsText(station: Station): String? {
         station.siteKind?.let { stringResource(it.labelRes) },
         station.pitchAssigned?.let {
             stringResource(R.string.station_summary_field, stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(it)))
-        },
-        station.electricityBilling?.let {
-            stringResource(R.string.station_summary_field, stringResource(R.string.field_electricity), stringResource(it.labelRes))
         },
         station.lteQuality?.let { stringResource(R.string.station_summary_field, stringResource(R.string.field_lte), stringResource(it.labelRes)) },
         station.pitchSlope?.let { stringResource(it.labelRes) },

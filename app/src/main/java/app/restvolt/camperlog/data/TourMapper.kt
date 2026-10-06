@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.data
 
+import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourTotals
@@ -53,8 +54,8 @@ internal fun Tour.toCostEntities(): List<TourCostEntity> =
 
 internal fun CostSumRow.toDomain(): Money = Money(amountMinor, Currency.getInstance(currency))
 
-internal fun TotalsRow.toDomain(costs: List<Money>): TourTotals =
-    TourTotals(tours, distanceKm, travelDays, overnightStays, costs)
+internal fun TotalsRow.toDomain(costs: List<Money>, categoryCosts: Map<CostCategory, List<Money>> = emptyMap()): TourTotals =
+    TourTotals(tours, distanceKm, travelDays, overnightStays, costs, categoryCosts)
 
-internal fun YearTotalsRow.toDomain(costs: List<Money>): YearTotals =
-    YearTotals(year, TourTotals(tours, distanceKm, travelDays, overnightStays, costs))
+internal fun YearTotalsRow.toDomain(costs: List<Money>, categoryCosts: Map<CostCategory, List<Money>> = emptyMap()): YearTotals =
+    YearTotals(year, TourTotals(tours, distanceKm, travelDays, overnightStays, costs, categoryCosts))

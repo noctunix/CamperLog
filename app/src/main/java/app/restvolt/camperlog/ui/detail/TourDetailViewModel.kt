@@ -5,6 +5,10 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.Conversion
+import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.ExchangeRateRepository
+import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.StationService
@@ -12,6 +16,10 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.domain.convert
+import app.restvolt.camperlog.domain.costsByCategory
+import app.restvolt.camperlog.domain.stationCostTotals
+import app.restvolt.camperlog.domain.totalCosts
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,11 +31,23 @@ import kotlinx.coroutines.launch
 /**
  * Zustand der Detailansicht. [Loaded.vehicle] ist nur gesetzt, wenn es mehr als ein Fahrzeug gibt.
  * [Loaded.stations] ist die Zeitleiste, aufsteigend nach `(date, time NULLS LAST, createdAt)`.
+ * [Loaded.stopCosts] ist die Summe der Stationskosten je Währung, [Loaded.totalCosts] die
+ * Gesamtsumme (manuelle Tourkosten plus Stationskosten) je Währung, [Loaded.categoryCosts] deren
+ * Aufschlüsselung nach Kategorie. [Loaded.conversion] ist `null`, wenn alle Kosten bereits in der
+ * Hauptwährung vorliegen und eine Umrechnung nichts Neues zeigen würde.
  */
 sealed interface DetailUiState {
     data object Loading : DetailUiState
     data object NotFound : DetailUiState
-    data class Loaded(val tour: Tour, val vehicle: Vehicle? = null, val stations: List<Station> = emptyList()) : DetailUiState
+    data class Loaded(
+        val tour: Tour,
+        val vehicle: Vehicle? = null,
+        val stations: List<Station> = emptyList(),
+        val stopCosts: List<Money> = emptyList(),
+        val totalCosts: List<Money> = emptyList(),
+        val categoryCosts: Map<CostCategory, List<Money>> = emptyMap(),
+        val conversion: Conversion? = null,
+    ) : DetailUiState
 }
 
 /** Rückmeldung zu einer Station aus der Zeitleiste; die Detailseite zeigt sie als Snackbar. */
@@ -43,6 +63,7 @@ class TourDetailViewModel(
     private val repository: TourRepository,
     vehicles: VehicleRepository,
     private val stations: StationRepository,
+    exchangeRates: ExchangeRateRepository,
     tourId: Long,
 ) : ViewModel() {
 
@@ -50,11 +71,21 @@ class TourDetailViewModel(
         repository.observeTour(tourId),
         vehicles.observeVehicles(),
         stations.observeForTour(tourId),
-    ) { tour, vehicleList, stationList ->
-        when {
-            tour == null -> DetailUiState.NotFound
-            vehicleList.size > 1 -> DetailUiState.Loaded(tour, vehicleList.firstOrNull { it.id == tour.vehicleId }, stationList)
-            else -> DetailUiState.Loaded(tour, stations = stationList)
+        combine(exchangeRates.observeMainCurrency(), exchangeRates.observeRates()) { main, rates -> main to rates },
+    ) { tour, vehicleList, stationList, (main, rates) ->
+        if (tour == null) {
+            DetailUiState.NotFound
+        } else {
+            val totalCosts = tour.totalCosts(stationList)
+            DetailUiState.Loaded(
+                tour = tour,
+                vehicle = vehicleList.firstOrNull { it.id == tour.vehicleId }.takeIf { vehicleList.size > 1 },
+                stations = stationList,
+                stopCosts = stationList.stationCostTotals(),
+                totalCosts = totalCosts,
+                categoryCosts = stationList.costsByCategory(),
+                conversion = if (totalCosts.all { it.currency == main }) null else convert(totalCosts, main, rates),
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailUiState.Loading)
 

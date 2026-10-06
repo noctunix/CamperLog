@@ -57,13 +57,18 @@ enum class PitchSlope(val csvValue: String) {
     SLOPED("abschüssig"),
 }
 
-/** Aufsummierte Kennzahlen über eine Menge von Touren; [costs] je Währung, sortiert nach Code. */
+/**
+ * Aufsummierte Kennzahlen über eine Menge von Touren; [costs] je Währung, sortiert nach Code.
+ * [categoryCosts] ist die Aufschlüsselung der enthaltenen Stationskosten nach Kategorie, für eine
+ * aufklappbare Anzeige; manuelle Tourkosten haben keine Kategorie und stecken nur in [costs].
+ */
 data class TourTotals(
     val tours: Int,
     val distanceKm: Long,
     val travelDays: Long,
     val overnightStays: Long,
     val costs: List<Money>,
+    val categoryCosts: Map<CostCategory, List<Money>> = emptyMap(),
 )
 
 /** Kennzahlen [totals] aller Touren, die im Jahr [year] beginnen. */

@@ -21,6 +21,11 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.CoordinateSource
+import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.electricityCost
+import app.restvolt.camperlog.domain.electricityKwh
+import app.restvolt.camperlog.domain.formatAmount
+import app.restvolt.camperlog.domain.formatKwh
 import app.restvolt.camperlog.domain.FakeLocationProvider
 import app.restvolt.camperlog.domain.FakeWeatherProvider
 import app.restvolt.camperlog.domain.GeoIntentLocation
@@ -32,11 +37,13 @@ import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.WeatherProvider
 import app.restvolt.camperlog.domain.WeatherResult
 import app.restvolt.camperlog.domain.WeatherSnapshot
+import java.math.BigDecimal
 import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeMode
@@ -49,6 +56,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.time.Instant
+import java.util.Locale
 import java.time.LocalDate
 
 /** End-to-End-Abläufe rund um Stationen: Zeitleiste, Formular, Detail und `geo:`-Link. */
@@ -162,6 +170,15 @@ class StationFlowTest {
     /** Speichert über den Button am Formularende, nicht über die Aktion in der App-Leiste (siehe TourFlowTest). */
     private fun clickSave() =
         compose.onNode(hasText("Speichern") and hasAnyAncestor(hasScrollAction())).performScrollTo().performClick()
+
+    /** Kalenderzelle des Tages; das Datumsfeld im Formular trägt dasselbe Datum (siehe TourFlowTest). */
+    private fun dayCell(day: Int) = hasText(", $day. ", substring = true) and hasClickAction() and hasAnyAncestor(isDialog())
+
+    private fun pickDay(fieldLabel: String, day: Int) {
+        compose.onNodeWithContentDescription("$fieldLabel wählen").performScrollTo().performClick()
+        compose.onNode(dayCell(day)).performClick()
+        compose.onNodeWithText("OK").performClick()
+    }
 
     @Test
     fun addOvernightStop_withoutExistingStations_defaultsDateToTourStart() {
@@ -439,5 +456,96 @@ class StationFlowTest {
 
         val saved = stationRepository.stations.single()
         assertEquals(snapshot, saved.weather)
+    }
+
+    @Test
+    fun overnightStop_withMeteredElectricity_showsLiveResultAndSavedCost() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+        val locale = Locale.GERMANY
+        val expectedResult = "≈ ${formatAmount(1_000, EUR, locale)} · ${formatKwh(BigDecimal("20"), locale)}"
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+
+        compose.onNodeWithText("Strom").performScrollTo().performClick()
+        compose.onNodeWithText("nach Verbrauch").performScrollTo().performClick()
+        compose.onNode(hasSetTextAction() and hasText("Preis je kWh (€)")).performScrollTo().performTextInput("0,50")
+        compose.onNode(hasSetTextAction() and hasText("Zählerstand Anfang (kWh)")).performScrollTo().performTextInput("100")
+        compose.onNode(hasSetTextAction() and hasText("Zählerstand Ende (kWh)")).performScrollTo().performTextInput("120")
+
+        compose.onNodeWithText(expectedResult).assertExists()
+
+        clickSave()
+
+        val saved = stationRepository.stations.single()
+        assertEquals(Money(1_000, EUR), electricityCost(saved))
+        assertEquals(BigDecimal("20"), electricityKwh(saved))
+
+        compose.onNodeWithText("Schlafplatz").performClick()
+        compose.onNodeWithText("Strom: nach Verbrauch").assertExists()
+        compose.onNodeWithText(expectedResult).assertExists()
+
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText(formatAmount(1_000, EUR, locale)).assertExists()
+        compose.onNodeWithText(formatAmount(49_650, EUR, locale)).assertExists()
+    }
+
+    /**
+     * Die Länderauswahl selbst (Dialog mit Suche über alle ISO-Codes) wird gesondert in
+     * [CountryPickerTest] abgedeckt; hier reicht die Vignetten-Art mit Gültigkeitsdaten und
+     * Zahlweise, da das Öffnen des Länder-Dialogs in diesem vollen Navigationsbaum unter Robolectric
+     * nicht stabil zur Ruhe kommt.
+     */
+    @Test
+    fun tollVignetteStop_withDatesAndPaymentMethod_isSavedAndShownInDetail() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Maut").performClick()
+
+        compose.onNodeWithText("Vignette").performClick()
+        pickDay("Gültig ab", 1)
+        pickDay("Gültig bis", 15)
+        compose.onNode(hasSetTextAction() and hasText("Zahlungsart")).performScrollTo().performTextInput("App")
+
+        clickSave()
+
+        val saved = stationRepository.stations.single()
+        assertEquals(TollKind.VIGNETTE, saved.tollKind)
+        assertEquals(1, saved.tollValidFrom?.dayOfMonth)
+        assertEquals(15, saved.tollValidUntil?.dayOfMonth)
+        assertEquals("App", saved.tollPaymentMethod)
+
+        compose.onNodeWithText("Maut").performClick()
+        compose.onNodeWithText("Zahlungsart: App").assertExists()
+    }
+
+    @Test
+    fun manualCostLine_isSavedAndCountedInTourTotals() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+        val locale = Locale.GERMANY
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Essen").performClick()
+
+        compose.onNodeWithText("Kosten hinzufügen").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Essen-Kosten (€)").assertExists()
+        compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performScrollTo().performTextInput("12,50")
+
+        clickSave()
+
+        val saved = stationRepository.stations.single()
+        assertEquals(CostCategory.FOOD, saved.costs.single().category)
+        assertEquals(Money(1_250, EUR), saved.costs.single().amount)
+
+        compose.onNodeWithText("Essen").performClick()
+        compose.onNodeWithText("Essen: ${formatAmount(1_250, EUR, locale)}").assertExists()
+
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText(formatAmount(1_250, EUR, locale)).assertExists()
+        compose.onNodeWithText(formatAmount(49_900, EUR, locale)).assertExists()
     }
 }

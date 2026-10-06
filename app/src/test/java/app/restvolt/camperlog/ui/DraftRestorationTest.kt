@@ -3,6 +3,8 @@ package app.restvolt.camperlog.ui
 import android.os.Bundle
 import android.os.Parcel
 import androidx.lifecycle.SavedStateHandle
+import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ExchangeRate
@@ -13,9 +15,11 @@ import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.RepairError
 import app.restvolt.camperlog.domain.RepairField
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationCostInput
 import app.restvolt.camperlog.domain.StationError
 import app.restvolt.camperlog.domain.StationField
 import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
@@ -377,6 +381,41 @@ class DraftRestorationTest {
         assertEquals(68.0912, state.input.latitude)
         assertTrue(state.isDirty)
         assertTrue(state.errors.isEmpty())
+    }
+
+    @Test
+    fun newStationInputWithCostsElectricityAndTollSurvivesProcessDeath() {
+        val handle = SavedStateHandle()
+        val before = EditStationViewModel(
+            repository = FakeStationRepository(),
+            tours = FakeTourRepository(),
+            vehicles = vehicles,
+            stationId = 0,
+            savedStateHandle = handle,
+        )
+        before.onInputChange {
+            it.copy(
+                costs = listOf(StationCostInput(CostCategory.PITCH, "15", EUR, "Platz 12")),
+                electricityBilling = ElectricityBilling.METERED,
+                electricityCurrency = chf,
+                electricityPricePerKwh = "0.45",
+                electricityMeterStart = "100",
+                electricityMeterEnd = "120",
+                type = StationType.TOLL,
+                tollKind = TollKind.VIGNETTE,
+                tollCountry = "AT",
+            )
+        }
+
+        val after = EditStationViewModel(
+            repository = FakeStationRepository(),
+            tours = FakeTourRepository(),
+            vehicles = vehicles,
+            stationId = 0,
+            savedStateHandle = handle.afterProcessDeath(),
+        )
+
+        assertEquals(before.uiState.value.input, after.uiState.value.input)
     }
 
     @Test

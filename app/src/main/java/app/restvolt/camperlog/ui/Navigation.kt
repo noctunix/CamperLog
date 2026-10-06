@@ -440,7 +440,7 @@ fun CamperLogNavHost(
             val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations)
             val weatherMapEnabled by weatherSettings.values.collectAsStateWithLifecycle()
             TourDetailScreen(
-                viewModel = viewModel { TourDetailViewModel(repository, vehicles, stations, tourId) },
+                viewModel = viewModel { TourDetailViewModel(repository, vehicles, stations, exchangeRates, tourId) },
                 weatherMapEnabled = weatherMapEnabled,
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(EditRoute(tourId)) },
@@ -459,7 +459,7 @@ fun CamperLogNavHost(
         }
         composable<TourMapRoute> { entry ->
             val route = entry.toRoute<TourMapRoute>()
-            val tourDetailViewModel = navController.tourDetailViewModel(entry, repository, vehicles, stations)
+            val tourDetailViewModel = navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates)
             val detailState by tourDetailViewModel.uiState.collectAsStateWithLifecycle()
             val loaded = detailState as? DetailUiState.Loaded
             MapScreen(
@@ -492,7 +492,7 @@ fun CamperLogNavHost(
                 route.stationId != 0L && navController.hasRoute<StationDetailRoute>() ->
                     navController.stationDetailViewModel(entry, stations, repository, route.stationId)::onStationSaved
                 route.tourId != null && navController.hasRoute<DetailRoute>() ->
-                    navController.tourDetailViewModel(entry, repository, vehicles, stations)::onStationSaved
+                    navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates)::onStationSaved
                 navController.hasRoute<StationsRoute>() ->
                     navController.stationsViewModel(entry, stations, repository, vehicles)::onStationSaved
                 else -> { _ -> }
@@ -531,7 +531,7 @@ fun CamperLogNavHost(
                 val stationsViewModel = navController.stationsViewModel(entry, stations, repository, vehicles)
                 stationsViewModel::deleteStation
             } else {
-                val tourDetailViewModel = navController.tourDetailViewModel(entry, repository, vehicles, stations)
+                val tourDetailViewModel = navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates)
                 tourDetailViewModel::deleteStation
             }
             StationDetailScreen(
@@ -756,10 +756,11 @@ private fun NavController.tourDetailViewModel(
     tours: TourRepository,
     vehicles: VehicleRepository,
     stations: StationRepository,
+    exchangeRates: ExchangeRateRepository,
 ): TourDetailViewModel {
     val detailEntry = remember(entry) { getBackStackEntry<DetailRoute>() }
     val tourId = detailEntry.toRoute<DetailRoute>().tourId
-    return viewModel(viewModelStoreOwner = detailEntry) { TourDetailViewModel(tours, vehicles, stations, tourId) }
+    return viewModel(viewModelStoreOwner = detailEntry) { TourDetailViewModel(tours, vehicles, stations, exchangeRates, tourId) }
 }
 
 /**

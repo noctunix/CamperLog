@@ -11,6 +11,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -20,10 +23,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.ui.BackTopBar
+import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LabeledValue
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.labelRes
 
 /** Kennzahlen über alle Touren und je Jahr, neuestes Jahr zuerst. */
 @Composable
@@ -78,26 +83,41 @@ private fun TotalsCard(title: String, row: TotalsRow) {
         LabeledValue(stringResource(R.string.field_travel_days), totals.travelDays.toString())
         LabeledValue(stringResource(R.string.field_overnight_stays), totals.overnightStays.toString())
         LabeledValue(stringResource(R.string.field_cost), formatAmounts(totals.costs, locale))
-        val conversion = row.conversion ?: return@SectionCard
-        val converted = conversion.total
-        if (converted != null) {
-            LabeledValue(
-                stringResource(R.string.overview_converted, converted.currency.currencyCode),
-                formatAmounts(listOf(converted), locale),
-            )
-        } else {
-            Text(
-                if (conversion.tooLarge) {
-                    stringResource(R.string.overview_conversion_too_large)
-                } else {
-                    stringResource(
-                        R.string.overview_missing_rates,
-                        conversion.missing.joinToString(", ") { it.currencyCode },
-                    )
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        val conversion = row.conversion
+        if (conversion != null) {
+            val converted = conversion.total
+            if (converted != null) {
+                LabeledValue(
+                    stringResource(R.string.overview_converted, converted.currency.currencyCode),
+                    formatAmounts(listOf(converted), locale),
+                )
+            } else {
+                Text(
+                    if (conversion.tooLarge) {
+                        stringResource(R.string.overview_conversion_too_large)
+                    } else {
+                        stringResource(
+                            R.string.overview_missing_rates,
+                            conversion.missing.joinToString(", ") { it.currencyCode },
+                        )
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (totals.categoryCosts.isNotEmpty()) {
+            var expanded by rememberSaveable { mutableStateOf(false) }
+            CollapsibleSection(
+                title = stringResource(R.string.cost_breakdown_by_category),
+                expanded = expanded,
+                onToggle = { expanded = !expanded },
+                summary = null,
+            ) {
+                totals.categoryCosts.entries.sortedBy { it.key.ordinal }.forEach { (category, amounts) ->
+                    LabeledValue(stringResource(category.labelRes), formatAmounts(amounts, locale))
+                }
+            }
         }
     }
 }
