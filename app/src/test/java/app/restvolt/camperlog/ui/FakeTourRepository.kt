@@ -1,13 +1,21 @@
 package app.restvolt.camperlog.ui
 
 import android.database.sqlite.SQLiteException
+import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.Money
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TourTotals
 import app.restvolt.camperlog.domain.YearTotals
+import app.restvolt.camperlog.domain.costsByCategory
+import app.restvolt.camperlog.domain.stationCostTotals
 import app.restvolt.camperlog.domain.sumByCurrency
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.util.Currency
@@ -15,9 +23,12 @@ import java.util.Currency
 /**
  * Synchrones In-Memory-Repository für UI-Tests; die Room-Anbindung testet RoomTourRepositoryTest.
  * Wie Room ordnet es Touren ohne Fahrzeug ([Tour.vehicleId] 0) dem Fahrzeug [currentVehicleId] zu.
+ * [stations] lässt [observeTotals]/[observeYearTotals] wie bei [app.restvolt.camperlog.data.RoomTourRepository]
+ * auch Stationskosten einrechnen; ohne Angabe zählen dort nur die manuellen Tourkosten.
  */
 class FakeTourRepository(
     initial: List<Tour> = emptyList(),
+    private val stations: StationRepository? = null,
     private val currentVehicleId: () -> Long = { 1L },
 ) : TourRepository {
 
@@ -81,19 +92,32 @@ class FakeTourRepository(
 
     private fun List<Tour>.filterByVehicle(vehicleId: Long?) = filter { vehicleId == null || it.vehicleId == vehicleId }
 
+    private fun stationsForVehicle(vehicleId: Long?): Flow<List<Station>> =
+        stations?.observeForVehicle(vehicleId) ?: flowOf(emptyList())
+
     override fun observeTotals(vehicleId: Long?): Flow<TourTotals> =
-        state.map { list -> totalsOf(list.filterByVehicle(vehicleId)) }
+        combine(state, stationsForVehicle(vehicleId)) { list, stationList ->
+            totalsOf(list.filterByVehicle(vehicleId), stationList)
+        }
 
-    override fun observeYearTotals(vehicleId: Long?): Flow<List<YearTotals>> = state.map { list ->
-        list.filterByVehicle(vehicleId)
-            .groupBy { it.year }.toSortedMap(reverseOrder()).map { (year, tours) -> YearTotals(year, totalsOf(tours)) }
+    override fun observeYearTotals(vehicleId: Long?): Flow<List<YearTotals>> =
+        combine(state, stationsForVehicle(vehicleId)) { list, stationList ->
+            val toursByYear = list.filterByVehicle(vehicleId).groupBy { it.year }
+            val stationsByYear = stationList.groupBy { it.date.year }
+            (toursByYear.keys + stationsByYear.keys).sortedDescending()
+                .map { year -> YearTotals(year, totalsOf(toursByYear[year].orEmpty(), stationsByYear[year].orEmpty())) }
+        }
+
+    private fun totalsOf(tours: List<Tour>, stationList: List<Station> = emptyList()): TourTotals {
+        val costs: List<Money> = (tours.flatMap(Tour::costs) + stationList.stationCostTotals()).sumByCurrency()
+        val categoryCosts: Map<CostCategory, List<Money>> = stationList.costsByCategory()
+        return TourTotals(
+            tours = tours.size,
+            distanceKm = tours.sumOf { it.distanceKm.toLong() },
+            travelDays = tours.sumOf { it.travelDays.toLong() },
+            overnightStays = tours.sumOf { it.overnightStays.toLong() },
+            costs = costs,
+            categoryCosts = categoryCosts,
+        )
     }
-
-    private fun totalsOf(tours: List<Tour>) = TourTotals(
-        tours = tours.size,
-        distanceKm = tours.sumOf { it.distanceKm.toLong() },
-        travelDays = tours.sumOf { it.travelDays.toLong() },
-        overnightStays = tours.sumOf { it.overnightStays.toLong() },
-        costs = tours.flatMap(Tour::costs).sumByCurrency(),
-    )
 }

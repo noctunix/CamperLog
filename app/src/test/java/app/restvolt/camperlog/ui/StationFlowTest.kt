@@ -75,8 +75,8 @@ class StationFlowTest {
         locationProvider: LocationProvider = FakeLocationProvider(),
         weatherProvider: WeatherProvider = FakeWeatherProvider(WeatherResult.Error),
     ): Triple<FakeTourRepository, FakeStationRepository, FakeLogRepository> {
-        val tourRepository = FakeTourRepository(tours)
         val stationRepository = FakeStationRepository(stations, logs)
+        val tourRepository = FakeTourRepository(tours, stations = stationRepository)
         compose.setContent {
             CamperLogTheme {
                 CamperLogNavHost(
@@ -563,5 +563,13 @@ class StationFlowTest {
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText(formatAmount(1_250, EUR, locale)).assertExists()
         compose.onNodeWithText(formatAmount(49_900, EUR, locale)).assertExists()
+
+        // Die Übersicht rechnet Stationskosten ebenfalls ein und schlüsselt sie nach Kategorie auf.
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithContentDescription("Übersicht").performClick()
+        // Mit nur einer Tour zeigen "Gesamt" und das Jahr 2026 denselben Betrag doppelt an.
+        compose.onAllNodesWithText(formatAmount(49_900, EUR, locale)).onFirst().assertExists()
+        compose.onAllNodesWithText("Nach Kategorie").onFirst().performScrollTo().performClick()
+        compose.onNodeWithText(formatAmount(1_250, EUR, locale)).assertExists()
     }
 }

@@ -62,13 +62,14 @@ class ReadmeScreenshots {
             ExchangeRate(NOK, BigDecimal("11.485"), LocalDate.of(2026, 9, 1), "ECB"),
             ExchangeRate(CHF, BigDecimal("0.9372"), LocalDate.of(2026, 9, 1), "ECB"),
         )
+        val stations = FakeStationRepository(sampleStations())
         compose.setContent {
             CamperLogTheme(darkTheme = false) {
                 CamperLogNavHost(
-                    FakeTourRepository(sampleTours),
+                    FakeTourRepository(sampleTours, stations = stations),
                     FakeVehicleRepository(listOf(sampleVehicle)),
                     FakeLogRepository(sampleLogEntries()),
-                    FakeStationRepository(sampleStations()),
+                    stations,
                     FakeExchangeRateRepository(rates),
                     FakeBackupImporter(),
                     ThemeMode.LIGHT,
