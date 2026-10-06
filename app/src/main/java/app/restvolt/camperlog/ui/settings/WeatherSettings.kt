@@ -2,16 +2,18 @@ package app.restvolt.camperlog.ui.settings
 
 import android.content.Context
 import androidx.core.content.edit
+import app.restvolt.camperlog.data.TileHttpCache
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Schalter "Wetter & Karte (Internet)" (6.11), aus bis der Nutzer ihn einschaltet (13). Anders als
- * [LocationSettings] gibt es beim Ausschalten nichts zurückzunehmen: die Internet-Berechtigung ist
- * eine Install-Time-Berechtigung, die der Schalter nur in der Nutzung einschränkt, nicht entzieht (9).
+ * Schalter "Wetter & Karte (Internet)" (6.11), aus bis der Nutzer ihn einschaltet (13). Die
+ * Internet-Berechtigung selbst ist eine Install-Time-Berechtigung, die der Schalter nur in der
+ * Nutzung einschränkt, nicht entzieht (9); beim Ausschalten wird aber der Kartenkachel-Cache
+ * gelöscht, damit besuchte Gegenden nicht auf dem Gerät liegen bleiben (6.11).
  */
-class WeatherSettings(context: Context) {
+class WeatherSettings(context: Context, private val clearTileCache: () -> Unit = { TileHttpCache.clear(context) }) {
     private val preferences = context.getSharedPreferences("weather", Context.MODE_PRIVATE)
 
     private val state = MutableStateFlow(preferences.getBoolean(KEY_ENABLED, false))
@@ -24,6 +26,7 @@ class WeatherSettings(context: Context) {
         set(value) {
             preferences.edit { putBoolean(KEY_ENABLED, value) }
             state.value = value
+            if (!value) clearTileCache()
         }
 
     private companion object {

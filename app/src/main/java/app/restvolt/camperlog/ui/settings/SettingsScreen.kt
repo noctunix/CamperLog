@@ -152,6 +152,10 @@ fun SettingsScreen(
                             }
                         },
                     )
+                    if (weatherEnabled) {
+                        WeatherTransferDetailRow()
+                        MapStorageRow(snackbar, scope)
+                    }
                 }
             }
             item {

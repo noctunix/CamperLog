@@ -11,26 +11,38 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.data.TileHttpCache
+import app.restvolt.camperlog.domain.tileCacheMegabytes
 import app.restvolt.camperlog.ui.theme.ThemeMode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 internal val REMINDER_LEAD_DAYS_OPTIONS = listOf(7, 14, 30, 60, 90)
 
@@ -157,4 +169,60 @@ internal fun IntChoiceDialog(
         confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
+}
+
+/** "Was übertragen wird ▸" (6.11): klappt den genauen Datenschutztext (9) ein/aus. */
+@Composable
+internal fun WeatherTransferDetailRow() {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val title = stringResource(R.string.settings_weather_detail_toggle)
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clickable(onClick = { expanded = !expanded })
+                .semantics { role = Role.Button },
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Icon(
+                painterResource(R.drawable.ic_arrow_drop_down),
+                contentDescription = stringResource(if (expanded) R.string.cd_collapse_section else R.string.cd_expand_section, title),
+                modifier = Modifier.rotate(if (expanded) 180f else 0f),
+                tint = MaterialTheme.colorScheme.outline,
+            )
+        }
+        if (expanded) {
+            Text(
+                stringResource(R.string.about_privacy_bullet_weather_map),
+                modifier = Modifier.padding(bottom = 8.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** "Kartenspeicher: N MB [Leeren]" (6.11): löscht den HTTP-Kachel-Cache und den Session-Zwischenspeicher. */
+@Composable
+internal fun MapStorageRow(snackbar: SnackbarHostState, scope: CoroutineScope) {
+    val context = LocalContext.current
+    var sizeMb by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) { sizeMb = tileCacheMegabytes(TileHttpCache.sizeBytes(context)) }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(stringResource(R.string.settings_map_storage, sizeMb), style = MaterialTheme.typography.bodyLarge)
+        TextButton(
+            onClick = {
+                TileHttpCache.clear(context)
+                sizeMb = 0
+                scope.launch { snackbar.showSnackbar(context.getString(R.string.settings_map_storage_cleared_hint)) }
+            },
+        ) { Text(stringResource(R.string.settings_map_storage_clear)) }
+    }
 }
