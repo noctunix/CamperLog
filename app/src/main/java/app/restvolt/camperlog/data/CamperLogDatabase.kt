@@ -528,8 +528,9 @@ internal val MIGRATION_9_10 = object : Migration(9, 10) {
  * Fahrzeugdokumente ([app.restvolt.camperlog.domain.VehicleDocument]) in `vehicle_documents`
  * (Fremdschlüssel `vehicle_id` CASCADE). `attachments` hat keinen Fremdschlüssel: `owner_id` zeigt je
  * `owner_type` in eine andere Tabelle (`stations`, `repairs`, `log_entries` oder `vehicle_documents`),
- * siehe [app.restvolt.camperlog.domain.AttachmentRepository]. Beide Tabellen sind neu, daher reicht
- * `CREATE TABLE` ohne Datenübernahme.
+ * siehe [app.restvolt.camperlog.domain.AttachmentRepository]. `latitude`/`longitude`/`taken_at` kommen
+ * aus dem EXIF eines importierten Fotos; Dokumente lassen sie `NULL`. Beide Tabellen sind neu, daher
+ * reicht `CREATE TABLE` ohne Datenübernahme.
  */
 internal val MIGRATION_10_11 = object : Migration(10, 11) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -537,7 +538,8 @@ internal val MIGRATION_10_11 = object : Migration(10, 11) {
             "CREATE TABLE IF NOT EXISTS `attachments` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                 "`uuid` TEXT NOT NULL, `owner_type` TEXT NOT NULL, `owner_id` INTEGER NOT NULL, " +
                 "`file_name` TEXT NOT NULL, `mime_type` TEXT NOT NULL, `size_bytes` INTEGER NOT NULL, " +
-                "`width` INTEGER, `height` INTEGER, `caption` TEXT NOT NULL, `created_at` INTEGER NOT NULL)",
+                "`width` INTEGER, `height` INTEGER, `latitude` REAL, `longitude` REAL, `taken_at` TEXT, " +
+                "`caption` TEXT NOT NULL, `created_at` INTEGER NOT NULL)",
         )
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_attachments_uuid` ON `attachments` (`uuid`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_attachments_owner_type_owner_id` ON `attachments` (`owner_type`, `owner_id`)")

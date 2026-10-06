@@ -15,6 +15,7 @@ import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -425,17 +426,42 @@ class MigrationTest {
             assertEquals(listOf("Fahrzeugschein"), documents.map { it.title })
             assertEquals(LocalDate.of(2030, 1, 1), documents.single().expiryDate)
 
-            val attachments = RoomAttachmentRepository(db.attachmentDao()).allAttachments()
+            val attachmentDao = db.attachmentDao()
+            val attachments = RoomAttachmentRepository(attachmentDao, FakeAttachmentFileStore()).allAttachments()
             assertEquals(1, attachments.size)
             assertEquals(AttachmentOwnerType.VEHICLE_DOCUMENT, attachments.single().ownerType)
             assertEquals(DocumentKind.REGISTRATION, documents.single().kind)
+            assertEquals(null, attachments.single().latitude)
+            assertEquals(null, attachments.single().takenAt)
 
             // `vehicle_documents` kaskadiert über den Fremdschlüssel auf `vehicles`; `attachments` kennt
             // keinen Fremdschlüssel auf das Dokument (siehe KDoc von RoomVehicleRepository) und bleibt
             // deshalb stehen - genau deshalb räumt die App das selbst beim Löschen eines Dokuments auf.
             db.openHelper.writableDatabase.execSQL("DELETE FROM vehicles WHERE id = 1")
             assertEquals(emptyList<String>(), RoomVehicleDocumentRepository(db).allDocuments().map { it.title })
-            assertEquals(1, RoomAttachmentRepository(db.attachmentDao()).allAttachments().size)
+            assertEquals(1, RoomAttachmentRepository(attachmentDao, FakeAttachmentFileStore()).allAttachments().size)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun migration10To11AttachmentsHaveLocationAndTakenAtColumns() = runTest {
+        createVersion10(defaultVehicleInsert)
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            db.openHelper.writableDatabase.execSQL(
+                "INSERT INTO attachments (uuid, owner_type, owner_id, file_name, mime_type, size_bytes, width, height, " +
+                    "latitude, longitude, taken_at, caption, created_at) VALUES " +
+                    "('att-2', 'STATION', 1, 'att-2.jpg', 'image/jpeg', 1024, 800, 600, 47.5, 11.0, " +
+                    "'2026-05-03T14:22:01', '', 1000)",
+            )
+
+            val attachment = RoomAttachmentRepository(db.attachmentDao(), FakeAttachmentFileStore()).allAttachments().single()
+            assertEquals(47.5, attachment.latitude)
+            assertEquals(11.0, attachment.longitude)
+            assertEquals(java.time.LocalDateTime.of(2026, 5, 3, 14, 22, 1), attachment.takenAt)
         } finally {
             db.close()
         }

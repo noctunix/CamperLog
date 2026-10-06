@@ -49,11 +49,11 @@ class CamperLogApp : Application() {
     /** Fahrzeugdokumente (Fahrzeugschein, Versicherung, Garantie, …). */
     val vehicleDocuments: VehicleDocumentRepository by lazy { RoomVehicleDocumentRepository(database) }
 
-    /** Fotos und Dokumentdateien zu Stationen, Reparaturen, Bordbuch-Einträgen und Fahrzeugdokumenten. */
-    val attachments: AttachmentRepository by lazy { RoomAttachmentRepository(database.attachmentDao()) }
-
     /** Dateizugriff für [attachments]: Import von einer Content-Uri, Löschen, Aufräumen verwaister Dateien. */
     val attachmentFileStore: AttachmentFileStore by lazy { AndroidAttachmentFileStore(this) }
+
+    /** Fotos und Dokumentdateien zu Stationen, Reparaturen, Bordbuch-Einträgen und Fahrzeugdokumenten. */
+    val attachments: AttachmentRepository by lazy { RoomAttachmentRepository(database.attachmentDao(), attachmentFileStore) }
 
     /** Einspielen von JSON- oder ZIP-Sicherungen (Datenbankteil; das Verschieben von ZIP-Dateien übernimmt der Aufrufer). */
     val backupImporter: BackupImporter by lazy { RoomBackupImporter(database) }

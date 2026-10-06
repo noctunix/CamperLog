@@ -21,6 +21,13 @@ interface AttachmentDao {
     @Insert
     suspend fun insert(attachment: AttachmentEntity): Long
 
+    /** Dateiname des Anhangs [id], für [app.restvolt.camperlog.domain.AttachmentRepository.setLocation]; `null`, wenn er nicht (mehr) existiert. */
+    @Query("SELECT file_name FROM attachments WHERE id = :id")
+    suspend fun getFileName(id: Long): String?
+
+    @Query("UPDATE attachments SET latitude = :latitude, longitude = :longitude WHERE id = :id")
+    suspend fun updateLocation(id: Long, latitude: Double, longitude: Double)
+
     @Query("DELETE FROM attachments WHERE id = :id")
     suspend fun deleteById(id: Long)
 

@@ -21,6 +21,9 @@ data class AttachmentEntity(
     @ColumnInfo(name = "size_bytes") val sizeBytes: Long,
     val width: Int? = null,
     val height: Int? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    @ColumnInfo(name = "taken_at") val takenAt: String? = null,
     val caption: String = "",
     @ColumnInfo(name = "created_at") val createdAtMillis: Long,
 )

@@ -28,6 +28,10 @@ class FakeAttachmentRepository(initial: List<Attachment> = emptyList()) : Attach
         return id
     }
 
+    override suspend fun setLocation(id: Long, latitude: Double, longitude: Double) {
+        state.value = state.value.map { if (it.id == id) it.copy(latitude = latitude, longitude = longitude) else it }
+    }
+
     override suspend fun delete(id: Long) {
         state.value = state.value.filterNot { it.id == id }
     }

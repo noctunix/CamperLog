@@ -3,6 +3,8 @@ package app.restvolt.camperlog.data
 import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.AttachmentRepository
+import app.restvolt.camperlog.domain.LATITUDE_RANGE
+import app.restvolt.camperlog.domain.LONGITUDE_RANGE
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
@@ -10,12 +12,13 @@ import java.util.UUID
 
 /**
  * [AttachmentRepository] auf Basis von Room. [clock] liefert die Anlagezeit, [newUuid] die Kennung
- * neuer Anhänge ohne eigene UUID. Das kaskadierende Löschen eines Eintrags (Station, Reparatur,
- * Bordbuch-Eintrag, Fahrzeugdokument) entfernt seine Anhänge selbst, siehe die jeweiligen
- * `Room*Repository`-Implementierungen.
+ * neuer Anhänge ohne eigene UUID, [fileStore] schreibt die GPS-EXIF-Tags von [setLocation] in die
+ * Datei. Das kaskadierende Löschen eines Eintrags (Station, Reparatur, Bordbuch-Eintrag,
+ * Fahrzeugdokument) entfernt seine Anhänge selbst, siehe die jeweiligen `Room*Repository`-Implementierungen.
  */
 class RoomAttachmentRepository(
     private val dao: AttachmentDao,
+    private val fileStore: AttachmentFileStore,
     private val newUuid: () -> String = { UUID.randomUUID().toString() },
     private val clock: () -> Instant = Instant::now,
 ) : AttachmentRepository {
@@ -31,6 +34,13 @@ class RoomAttachmentRepository(
     override suspend fun add(attachment: Attachment): Long {
         val uuid = attachment.uuid.ifEmpty { newUuid() }
         return dao.insert(attachment.copy(uuid = uuid, createdAt = clock()).toEntity())
+    }
+
+    override suspend fun setLocation(id: Long, latitude: Double, longitude: Double) {
+        require(latitude in LATITUDE_RANGE && longitude in LONGITUDE_RANGE) { "Koordinaten außerhalb des gültigen Bereichs" }
+        val fileName = dao.getFileName(id) ?: return
+        dao.updateLocation(id, latitude, longitude)
+        fileStore.writeLocation(fileName, latitude, longitude)
     }
 
     override suspend fun delete(id: Long) = dao.deleteById(id)

@@ -2,6 +2,7 @@ package app.restvolt.camperlog.domain
 
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
+import java.time.LocalDateTime
 
 /** Woran ein Anhang hängt. */
 enum class AttachmentOwnerType { STATION, REPAIR, LOG_ENTRY, VEHICLE_DOCUMENT }
@@ -11,8 +12,11 @@ enum class AttachmentOwnerType { STATION, REPAIR, LOG_ENTRY, VEHICLE_DOCUMENT }
  * eines Fremdschlüssels je Zieltabelle - [ownerId] bedeutet je nach [ownerType] eine Stations-, Reparatur-,
  * Bordbuch- oder Fahrzeugdokument-id. [fileName] ist `<uuid>.<ext>` relativ zum Anhangs-Ordner
  * (`AttachmentFileStore.ATTACHMENTS_DIR`). Fotos sind nach dem Import auf höchstens 2048 px
- * herunterskalierte, EXIF-freie JPEGs mit gesetztem [width]/[height]; Dokumente werden unverändert mit
- * ihrem ursprünglichen [mimeType] übernommen und haben keine Abmessungen.
+ * herunterskalierte JPEGs mit gesetztem [width]/[height], Aufnahmeort ([latitude]/[longitude], immer
+ * beide oder keines) und -zeitpunkt ([takenAt]) aus dem Original-EXIF, sonst EXIF-frei; Dokumente
+ * werden unverändert mit ihrem ursprünglichen [mimeType] übernommen und haben keine Abmessungen oder
+ * Koordinaten. [takenAt] ist ein [LocalDateTime] statt eines [Instant]: EXIF `DateTimeOriginal` ist eine
+ * Wanduhrzeit der Kamera ohne verlässliche Zeitzone.
  */
 data class Attachment(
     val id: Long = 0,
@@ -24,6 +28,9 @@ data class Attachment(
     val sizeBytes: Long,
     val width: Int? = null,
     val height: Int? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val takenAt: LocalDateTime? = null,
     val caption: String = "",
     val createdAt: Instant,
 )
@@ -51,6 +58,17 @@ interface AttachmentRepository {
 
     /** Legt [attachment] an und liefert seine neue id; die Datei muss bereits importiert sein. */
     suspend fun add(attachment: Attachment): Long
+
+    /**
+     * Setzt [latitude]/[longitude] eines vorhandenen Anhangs nachträglich (UI-Aktion "Standort der
+     * Station übernehmen") und schreibt dieselben Koordinaten als GPS-EXIF in seine Datei, damit Zeile
+     * und Datei übereinstimmen. Nie automatisch beim Import aufgerufen.
+     *
+     * @param id id des Anhangs
+     * @param latitude Breitengrad, muss in [LATITUDE_RANGE] liegen
+     * @param longitude Längengrad, muss in [LONGITUDE_RANGE] liegen
+     */
+    suspend fun setLocation(id: Long, latitude: Double, longitude: Double)
 
     /** Löscht die Datenbankzeile mit [id]; die Datei bleibt bis zum nächsten Aufräumlauf liegen. */
     suspend fun delete(id: Long)

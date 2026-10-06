@@ -7,12 +7,17 @@ import android.graphics.Matrix
 import android.net.Uri
 import androidx.core.graphics.scale
 import androidx.exifinterface.media.ExifInterface
+import app.restvolt.camperlog.domain.LATITUDE_RANGE
+import app.restvolt.camperlog.domain.LONGITUDE_RANGE
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
@@ -34,13 +39,20 @@ sealed interface ImportedAttachment {
     val mimeType: String
     val sizeBytes: Long
 
-    /** Foto nach Herunterskalieren, Entfernen der EXIF-Daten und Anwenden der EXIF-Drehung auf die Pixel. */
+    /**
+     * Foto nach Herunterskalieren und Anwenden der EXIF-Drehung auf die Pixel; die Datei behält nur die
+     * GPS- und Aufnahmezeit-EXIF-Tags des Originals, alles andere entfällt (siehe [applyExifOrientation]
+     * und [copyLocationAndCaptureTimeExif]). [latitude]/[longitude]/[takenAt] sind aus denselben Tags gelesen.
+     */
     data class Photo(
         override val fileName: String,
         override val mimeType: String,
         override val sizeBytes: Long,
         val width: Int,
         val height: Int,
+        val latitude: Double? = null,
+        val longitude: Double? = null,
+        val takenAt: LocalDateTime? = null,
     ) : ImportedAttachment
 
     /** Dokument, unverändert übernommen. */
@@ -91,6 +103,13 @@ interface AttachmentFileStore {
     /** Die Datei zu [fileName], relativ zum Anhangs-Ordner. */
     fun file(fileName: String): File
 
+    /**
+     * Schreibt [latitude]/[longitude] als GPS-EXIF in die Datei [fileName] (für
+     * [app.restvolt.camperlog.domain.AttachmentRepository.setLocation]); ein No-op, wenn die Datei
+     * nicht existiert.
+     */
+    suspend fun writeLocation(fileName: String, latitude: Double, longitude: Double)
+
     /** Löscht die Datei zu [fileName], falls noch vorhanden. */
     suspend fun delete(fileName: String)
 
@@ -117,17 +136,30 @@ class AndroidAttachmentFileStore(context: Context) : AttachmentFileStore {
         val bounds = decodeBounds(source) ?: return@withContext decodeFailed()
         val sampleSize = calculateInSampleSize(bounds.first, bounds.second, MAX_PHOTO_DIMENSION)
         var bitmap = decodeSampled(source, sampleSize) ?: return@withContext decodeFailed()
-        bitmap = applyExifOrientation(bitmap, readOrientation(source))
+        val sourceExif = readSourceExif(source)
+        bitmap = applyExifOrientation(bitmap, sourceExif.orientation)
         bitmap = downscaleIfNeeded(bitmap, MAX_PHOTO_DIMENSION)
 
         val fileName = "${UUID.randomUUID()}.jpg"
         val target = file(fileName)
         try {
             target.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, PHOTO_JPEG_QUALITY, out) }
+            copyLocationAndCaptureTimeExif(target, sourceExif)
         } finally {
             bitmap.recycle()
         }
-        AttachmentImportResult.Success(ImportedAttachment.Photo(fileName, "image/jpeg", target.length(), bitmap.width, bitmap.height))
+        AttachmentImportResult.Success(
+            ImportedAttachment.Photo(
+                fileName = fileName,
+                mimeType = "image/jpeg",
+                sizeBytes = target.length(),
+                width = bitmap.width,
+                height = bitmap.height,
+                latitude = sourceExif.latitude,
+                longitude = sourceExif.longitude,
+                takenAt = sourceExif.takenAt,
+            ),
+        )
     }
 
     override suspend fun importDocument(source: Uri): AttachmentImportResult = withContext(Dispatchers.IO) {
@@ -146,6 +178,14 @@ class AndroidAttachmentFileStore(context: Context) : AttachmentFileStore {
             return@withContext AttachmentImportResult.Failure(AttachmentImportError.TOO_LARGE)
         }
         AttachmentImportResult.Success(ImportedAttachment.Document(fileName, sniffed, copied))
+    }
+
+    override suspend fun writeLocation(fileName: String, latitude: Double, longitude: Double) = withContext(Dispatchers.IO) {
+        val target = file(fileName)
+        if (!target.exists()) return@withContext
+        val exif = ExifInterface(target)
+        exif.setLatLong(latitude, longitude)
+        exif.saveAttributes()
     }
 
     override suspend fun delete(fileName: String) = withContext(Dispatchers.IO) {
@@ -187,10 +227,15 @@ class AndroidAttachmentFileStore(context: Context) : AttachmentFileStore {
         }
     }.getOrNull()
 
-    private fun readOrientation(source: Uri): Int = openStream(source)?.use { stream ->
-        runCatching { ExifInterface(stream).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL) }
-            .getOrDefault(ExifInterface.ORIENTATION_NORMAL)
-    } ?: ExifInterface.ORIENTATION_NORMAL
+    /** Aus dem Original gelesene EXIF-Angaben, die der Import ins neue JPEG übernimmt (siehe [copyLocationAndCaptureTimeExif]). */
+    private fun readSourceExif(source: Uri): SourceExif {
+        val exif = openStream(source)?.use { stream -> runCatching { ExifInterface(stream) }.getOrNull() }
+        val orientation = exif?.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL) ?: ExifInterface.ORIENTATION_NORMAL
+        val latLong = exif?.latLong?.takeIf { it[0] in LATITUDE_RANGE && it[1] in LONGITUDE_RANGE }
+        val takenAt = exif?.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)?.let(::parseExifDateTime)
+        val copiedTags = COPIED_EXIF_TAGS.mapNotNull { tag -> exif?.getAttribute(tag)?.let { tag to it } }.toMap()
+        return SourceExif(orientation, latLong?.get(0), latLong?.get(1), takenAt, copiedTags)
+    }
 
     /** Kopiert [source] nach [target]; liefert `null` (und bricht ab), sobald mehr als [maxBytes] gelesen wurden. */
     private fun copyCapped(source: Uri, target: File, maxBytes: Long): Long? {
@@ -318,4 +363,42 @@ internal fun downscaleIfNeeded(bitmap: Bitmap, maxDimension: Int): Bitmap {
     val scaled = bitmap.scale(width, height)
     if (scaled !== bitmap) bitmap.recycle()
     return scaled
+}
+
+/** Aus einem Original-Foto gelesene Angaben, die [copyLocationAndCaptureTimeExif] unverändert in die neue Datei überträgt. */
+private data class SourceExif(
+    val orientation: Int,
+    val latitude: Double?,
+    val longitude: Double?,
+    val takenAt: LocalDateTime?,
+    val copiedTags: Map<String, String>,
+)
+
+/** GPS- und Aufnahmezeit-Tags, die der Import unverändert vom Original übernimmt; alle anderen EXIF-Daten entfallen. */
+private val COPIED_EXIF_TAGS = listOf(
+    ExifInterface.TAG_GPS_LATITUDE,
+    ExifInterface.TAG_GPS_LATITUDE_REF,
+    ExifInterface.TAG_GPS_LONGITUDE,
+    ExifInterface.TAG_GPS_LONGITUDE_REF,
+    ExifInterface.TAG_GPS_ALTITUDE,
+    ExifInterface.TAG_GPS_ALTITUDE_REF,
+    ExifInterface.TAG_GPS_TIMESTAMP,
+    ExifInterface.TAG_GPS_DATESTAMP,
+    ExifInterface.TAG_DATETIME_ORIGINAL,
+)
+
+private val EXIF_DATETIME_FORMAT = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")
+
+private fun parseExifDateTime(text: String): LocalDateTime? = try {
+    LocalDateTime.parse(text, EXIF_DATETIME_FORMAT)
+} catch (_: DateTimeParseException) {
+    null
+}
+
+/** Schreibt [exif].[SourceExif.copiedTags] in [target] und setzt die Orientation explizit auf normal; alles andere EXIF bleibt weg. */
+private fun copyLocationAndCaptureTimeExif(target: File, exif: SourceExif) {
+    val targetExif = ExifInterface(target)
+    for ((tag, value) in exif.copiedTags) targetExif.setAttribute(tag, value)
+    targetExif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
+    targetExif.saveAttributes()
 }

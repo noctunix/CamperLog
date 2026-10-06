@@ -5,10 +5,12 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,6 +25,7 @@ class RoomAttachmentRepositoryTest {
 
     private lateinit var db: CamperLogDatabase
     private lateinit var repository: RoomAttachmentRepository
+    private val fileStore = FakeAttachmentFileStore()
     private var now = Instant.parse("2026-01-01T10:00:00Z")
 
     @Before
@@ -30,7 +33,7 @@ class RoomAttachmentRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CamperLogDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = RoomAttachmentRepository(db.attachmentDao()) { now }
+        repository = RoomAttachmentRepository(db.attachmentDao(), fileStore) { now }
     }
 
     @After
@@ -106,5 +109,34 @@ class RoomAttachmentRepositoryTest {
         repository.add(attachment(AttachmentOwnerType.REPAIR, fileName = "b.pdf"))
 
         assertEquals(setOf("a.jpg", "b.pdf"), repository.allFileNames())
+    }
+
+    @Test
+    fun setLocationUpdatesTheRowAndWritesExifToTheFile() = runTest {
+        val id = repository.add(attachment(fileName = "a.jpg"))
+
+        repository.setLocation(id, 47.5, 11.0)
+
+        val stored = repository.forOwner(AttachmentOwnerType.STATION, 1).single()
+        assertEquals(47.5, stored.latitude)
+        assertEquals(11.0, stored.longitude)
+        assertEquals(listOf(Triple("a.jpg", 47.5, 11.0)), fileStore.locationsWritten)
+    }
+
+    @Test
+    fun setLocationWithOutOfRangeCoordinatesThrows() = runTest {
+        val id = repository.add(attachment())
+
+        val thrown = runCatching { repository.setLocation(id, 200.0, 11.0) }.exceptionOrNull()
+
+        assertTrue(thrown is IllegalArgumentException)
+        assertTrue(fileStore.locationsWritten.isEmpty())
+    }
+
+    @Test
+    fun setLocationForUnknownIdIsANoOp() = runTest {
+        repository.setLocation(id = 999, latitude = 47.5, longitude = 11.0)
+
+        assertTrue(fileStore.locationsWritten.isEmpty())
     }
 }

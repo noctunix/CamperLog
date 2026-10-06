@@ -17,6 +17,7 @@ import java.awt.Color
 import java.awt.image.BufferedImage
 import java.io.File
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import javax.imageio.ImageIO
 import kotlinx.coroutines.test.runTest
@@ -59,13 +60,49 @@ class AttachmentFileStoreTest {
 
         assertEquals(200, photo.width)
         assertEquals(400, photo.height)
-        // Kein verbleibender Dreh-/Spiegelbedarf: die ursprüngliche Orientation 6 wurde auf die Pixel
-        // angewendet, nicht in die Ausgabedatei übernommen (ob der JPEG-Encoder dafür gar kein
-        // Orientation-Tag schreibt oder eines mit NORMAL/UNDEFINED, ist Implementierungsdetail).
+        // Die ursprüngliche Orientation 6 wurde auf die Pixel angewendet; die Ausgabedatei trägt
+        // explizit "normal", nicht die ursprüngliche Drehung.
         val exif = ExifInterface(store.file(photo.fileName))
-        val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-        assertTrue(orientation == ExifInterface.ORIENTATION_NORMAL || orientation == ExifInterface.ORIENTATION_UNDEFINED)
+        assertEquals(ExifInterface.ORIENTATION_NORMAL, exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL))
         assertNull(exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE))
+    }
+
+    @Test
+    fun importPhoto_keepsGpsAndCaptureTimeFromTheOriginal() = runTest {
+        val source = writeJpeg(
+            tempDir,
+            "with-gps.jpg",
+            width = 400,
+            height = 200,
+            latitude = 47.5,
+            longitude = 11.0,
+            takenAt = "2026:05:03 14:22:01",
+        )
+
+        val result = store.importPhoto(source.toUri()) as AttachmentImportResult.Success
+        val photo = result.attachment as ImportedAttachment.Photo
+
+        assertEquals(47.5, photo.latitude!!, 1e-6)
+        assertEquals(11.0, photo.longitude!!, 1e-6)
+        assertEquals(LocalDateTime.of(2026, 5, 3, 14, 22, 1), photo.takenAt)
+        val exif = ExifInterface(store.file(photo.fileName))
+        val latLong = exif.latLong
+        assertTrue("GPS tags should survive the re-encode", latLong != null)
+        assertEquals(47.5, latLong!![0], 1e-6)
+        assertEquals(11.0, latLong[1], 1e-6)
+        assertEquals("2026:05:03 14:22:01", exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL))
+    }
+
+    @Test
+    fun importPhoto_withoutGps_leavesCoordinatesNull() = runTest {
+        val source = writeJpeg(tempDir, "no-gps.jpg", width = 100, height = 100)
+
+        val result = store.importPhoto(source.toUri()) as AttachmentImportResult.Success
+        val photo = result.attachment as ImportedAttachment.Photo
+
+        assertNull(photo.latitude)
+        assertNull(photo.longitude)
+        assertNull(photo.takenAt)
     }
 
     @Test
@@ -153,6 +190,26 @@ class AttachmentFileStoreTest {
     }
 
     @Test
+    fun writeLocation_setsGpsExifOnAnExistingFile() = runTest {
+        val source = writeJpeg(tempDir, "no-gps.jpg", width = 100, height = 100)
+        val fileName = (store.importPhoto(source.toUri()) as AttachmentImportResult.Success).attachment.fileName
+
+        store.writeLocation(fileName, 47.5, 11.0)
+
+        val latLong = ExifInterface(store.file(fileName)).latLong
+        assertTrue(latLong != null)
+        assertEquals(47.5, latLong!![0], 1e-6)
+        assertEquals(11.0, latLong[1], 1e-6)
+    }
+
+    @Test
+    fun writeLocation_forAMissingFileIsANoOp() = runTest {
+        store.writeLocation("does-not-exist.jpg", 47.5, 11.0)
+
+        assertFalse(store.file("does-not-exist.jpg").exists())
+    }
+
+    @Test
     fun delete_removesTheFile() = runTest {
         val source = writeJpeg(tempDir, "to-delete.jpg", width = 100, height = 100)
         val fileName = (store.importPhoto(source.toUri()) as AttachmentImportResult.Success).attachment.fileName
@@ -183,8 +240,21 @@ class AttachmentFileStoreTest {
         assertTrue("a recent orphan must survive so an undo within the day still finds its file", recentOrphan.exists())
     }
 
-    /** Erzeugt eine echte JPEG-Datei mit [width]x[height] Pixeln, optional mit einem gesetzten EXIF-`Orientation`-Tag. */
-    private fun writeJpeg(dir: File, name: String, width: Int, height: Int, exifOrientation: Int? = null): File {
+    /**
+     * Erzeugt eine echte JPEG-Datei mit [width]x[height] Pixeln, optional mit gesetztem
+     * EXIF-`Orientation`-Tag, GPS-Koordinaten ([latitude]/[longitude]) und Aufnahmezeit [takenAt]
+     * (EXIF-Format `yyyy:MM:dd HH:mm:ss`).
+     */
+    private fun writeJpeg(
+        dir: File,
+        name: String,
+        width: Int,
+        height: Int,
+        exifOrientation: Int? = null,
+        latitude: Double? = null,
+        longitude: Double? = null,
+        takenAt: String? = null,
+    ): File {
         val file = File(dir, name)
         val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
         val graphics = image.createGraphics()
@@ -194,9 +264,11 @@ class AttachmentFileStoreTest {
         graphics.fillRect(0, 0, width / 4, height / 4)
         graphics.dispose()
         file.outputStream().use { out -> ImageIO.write(image, "jpg", out) }
-        if (exifOrientation != null) {
+        if (exifOrientation != null || latitude != null || takenAt != null) {
             val exif = ExifInterface(file)
-            exif.setAttribute(ExifInterface.TAG_ORIENTATION, exifOrientation.toString())
+            if (exifOrientation != null) exif.setAttribute(ExifInterface.TAG_ORIENTATION, exifOrientation.toString())
+            if (latitude != null && longitude != null) exif.setLatLong(latitude, longitude)
+            if (takenAt != null) exif.setAttribute(ExifInterface.TAG_DATETIME_ORIGINAL, takenAt)
             exif.saveAttributes()
         }
         return file
