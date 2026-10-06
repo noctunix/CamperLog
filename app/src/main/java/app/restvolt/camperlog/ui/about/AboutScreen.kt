@@ -81,6 +81,7 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
     var sourceExpanded by rememberSaveable { mutableStateOf(false) }
     var licenseExpanded by rememberSaveable { mutableStateOf(false) }
     var thirdPartyExpanded by rememberSaveable { mutableStateOf(false) }
+    var dataSourcesExpanded by rememberSaveable { mutableStateOf(false) }
     var privacyExpanded by rememberSaveable { mutableStateOf(false) }
 
     val noAppAvailable = stringResource(R.string.about_no_app_available)
@@ -88,6 +89,8 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
     val issuesUri = stringResource(R.string.about_issues_uri)
     val licenseGithubUri = stringResource(R.string.about_license_github_uri)
     val donateUri = stringResource(R.string.about_donate_uri)
+    val osmCopyrightUri = stringResource(R.string.about_osm_copyright_uri)
+    val openMeteoUri = stringResource(R.string.about_open_meteo_uri)
     val feedbackAddress = stringResource(R.string.about_feedback_address)
     val feedbackSubject = stringResource(R.string.about_feedback_subject, BuildConfig.VERSION_NAME)
     val noMailApp = stringResource(R.string.about_no_mail_app)
@@ -235,13 +238,29 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
             }
             item {
                 AboutSection(
+                    title = stringResource(R.string.about_section_data_sources),
+                    expanded = dataSourcesExpanded,
+                    onToggle = { dataSourcesExpanded = !dataSourcesExpanded },
+                ) {
+                    AboutLink(stringResource(R.string.about_link_osm_attribution)) {
+                        openExternalLink(scope, context, snackbar, noAppAvailable, osmCopyrightUri)
+                    }
+                    AboutLink(stringResource(R.string.about_link_open_meteo_attribution)) {
+                        openExternalLink(scope, context, snackbar, noAppAvailable, openMeteoUri)
+                    }
+                }
+            }
+            item {
+                AboutSection(
                     title = stringResource(R.string.about_section_privacy),
                     expanded = privacyExpanded,
                     onToggle = { privacyExpanded = !privacyExpanded },
                 ) {
                     listOf(
-                        R.string.about_privacy_bullet_no_permissions,
-                        R.string.about_privacy_bullet_no_network,
+                        R.string.about_privacy_bullet_opt_in,
+                        R.string.about_privacy_bullet_location,
+                        R.string.about_privacy_bullet_weather_map,
+                        R.string.about_privacy_bullet_no_tracking,
                         R.string.about_privacy_bullet_local,
                         R.string.about_privacy_bullet_backup,
                         R.string.about_privacy_bullet_uninstall,

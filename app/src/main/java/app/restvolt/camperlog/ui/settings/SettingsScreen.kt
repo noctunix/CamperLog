@@ -46,6 +46,7 @@ fun SettingsScreen(
     onThemeModeChange: (ThemeMode) -> Unit,
     reminderSettings: ReminderSettings,
     locationSettings: LocationSettings,
+    weatherSettings: WeatherSettings,
     onBack: () -> Unit,
     onOpenRates: () -> Unit,
     onOpenAbout: () -> Unit,
@@ -58,6 +59,7 @@ fun SettingsScreen(
     var pickMainCurrency by rememberSaveable { mutableStateOf(false) }
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
     val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
+    val weatherEnabled by weatherSettings.values.collectAsStateWithLifecycle()
     var pickOilInterval by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
@@ -136,6 +138,17 @@ fun SettingsScreen(
                             locationSettings.enabled = enabled
                             if (!enabled) {
                                 scope.launch { snackbar.showSnackbar(resources.getString(R.string.settings_location_revoked_hint)) }
+                            }
+                        },
+                    )
+                    SwitchSettingRow(
+                        title = stringResource(R.string.weather_switch_title),
+                        supportingText = stringResource(R.string.settings_weather_switch_support),
+                        checked = weatherEnabled,
+                        onCheckedChange = { enabled ->
+                            weatherSettings.enabled = enabled
+                            if (!enabled) {
+                                scope.launch { snackbar.showSnackbar(resources.getString(R.string.settings_weather_off_hint)) }
                             }
                         },
                     )

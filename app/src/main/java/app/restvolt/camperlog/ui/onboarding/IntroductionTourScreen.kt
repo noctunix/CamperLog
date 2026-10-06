@@ -48,6 +48,7 @@ import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.settings.ReminderLeadDaysRow
 import app.restvolt.camperlog.ui.settings.SwitchSettingRow
 import app.restvolt.camperlog.ui.settings.ThemeModeRadioGroup
+import app.restvolt.camperlog.ui.settings.WeatherSettings
 import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineScope
@@ -59,10 +60,10 @@ private const val PAGE_FINISH = 5
 
 /**
  * Einführungstour über [PAGE_COUNT] Seiten, erreichbar beim ersten Start und erneut über "Über
- * CamperLog". [reminderSettings] und [locationSettings] sind dieselben Instanzen wie im übrigen
- * Navigationsgraphen; [onThemeModeChange] wirkt sofort wie im Einstellungen-Bildschirm. Die letzte
- * Seite ist die Opt-in-Seite (6.10) mit dem Schalter "Standort"; [onFinished] markiert die Tour als
- * gesehen, egal ob sie zu Ende durchlaufen oder übersprungen wurde.
+ * CamperLog". [reminderSettings], [locationSettings] und [weatherSettings] sind dieselben Instanzen
+ * wie im übrigen Navigationsgraphen; [onThemeModeChange] wirkt sofort wie im Einstellungen-Bildschirm.
+ * Die letzte Seite ist die Opt-in-Seite (6.10) mit den Schaltern "Standort" und "Wetter & Karte";
+ * [onFinished] markiert die Tour als gesehen, egal ob sie zu Ende durchlaufen oder übersprungen wurde.
  */
 @Composable
 fun IntroductionTourScreen(
@@ -70,12 +71,14 @@ fun IntroductionTourScreen(
     onThemeModeChange: (ThemeMode) -> Unit,
     reminderSettings: ReminderSettings,
     locationSettings: LocationSettings,
+    weatherSettings: WeatherSettings,
     onFinished: () -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
     val scope = rememberCoroutineScope()
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
     val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
+    val weatherEnabled by weatherSettings.values.collectAsStateWithLifecycle()
 
     BackHandler {
         if (pagerState.currentPage > 0) {
@@ -117,7 +120,12 @@ fun IntroductionTourScreen(
                         leadDays = reminderPreferences.leadDays,
                         onLeadDaysChange = { reminderSettings.reminderLeadDays = it },
                     )
-                    PAGE_FINISH -> OptInPage(locationEnabled = locationEnabled, onLocationEnabledChange = { locationSettings.enabled = it })
+                    PAGE_FINISH -> OptInPage(
+                        locationEnabled = locationEnabled,
+                        onLocationEnabledChange = { locationSettings.enabled = it },
+                        weatherEnabled = weatherEnabled,
+                        onWeatherEnabledChange = { weatherSettings.enabled = it },
+                    )
                 }
             }
 
@@ -199,12 +207,17 @@ private fun SettingsPage(
 }
 
 /**
- * Letzte Seite der Einführungstour (6.10): Opt-in für Standort, ohne dass das Einschalten hier
- * schon einen Berechtigungsdialog auslöst (der kommt erst beim ersten Tastendruck, 6.7). Phase F
- * ergänzt hier den zweiten Schalter "Wetter & Karte".
+ * Letzte Seite der Einführungstour (6.10): Opt-in für Standort und Wetter & Karte, ohne dass das
+ * Einschalten hier schon einen Berechtigungsdialog auslöst (der kommt erst beim ersten Tastendruck
+ * bzw. Wetterabruf, 6.7, 6.8).
  */
 @Composable
-private fun OptInPage(locationEnabled: Boolean, onLocationEnabledChange: (Boolean) -> Unit) {
+private fun OptInPage(
+    locationEnabled: Boolean,
+    onLocationEnabledChange: (Boolean) -> Unit,
+    weatherEnabled: Boolean,
+    onWeatherEnabledChange: (Boolean) -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -227,6 +240,12 @@ private fun OptInPage(locationEnabled: Boolean, onLocationEnabledChange: (Boolea
             supportingText = stringResource(R.string.location_switch_support_intro),
             checked = locationEnabled,
             onCheckedChange = onLocationEnabledChange,
+        )
+        SwitchSettingRow(
+            title = stringResource(R.string.weather_switch_title),
+            supportingText = stringResource(R.string.weather_switch_support_intro),
+            checked = weatherEnabled,
+            onCheckedChange = onWeatherEnabledChange,
         )
         Text(
             stringResource(R.string.body_intro_optin_footer),
