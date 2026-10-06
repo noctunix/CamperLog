@@ -38,9 +38,11 @@ import androidx.navigation.toRoute
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.domain.ExchangeRateRepository
+import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.StationRepository
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.dueReminders
@@ -51,8 +53,12 @@ import app.restvolt.camperlog.ui.about.KeepAndroidOpenSettings
 import app.restvolt.camperlog.ui.data.AndroidDataFiles
 import app.restvolt.camperlog.ui.data.DataScreen
 import app.restvolt.camperlog.ui.data.DataViewModel
+import app.restvolt.camperlog.ui.detail.StationDetailScreen
+import app.restvolt.camperlog.ui.detail.StationDetailViewModel
 import app.restvolt.camperlog.ui.detail.TourDetailScreen
 import app.restvolt.camperlog.ui.detail.TourDetailViewModel
+import app.restvolt.camperlog.ui.edit.EditStationScreen
+import app.restvolt.camperlog.ui.edit.EditStationViewModel
 import app.restvolt.camperlog.ui.edit.EditTourScreen
 import app.restvolt.camperlog.ui.edit.EditTourViewModel
 import app.restvolt.camperlog.ui.edit.EditVehicleScreen
@@ -119,6 +125,23 @@ internal data class EditRoute(val tourId: Long = 0)
 @Serializable
 internal data class DetailRoute(val tourId: Long)
 
+/**
+ * Stationsformular; [stationId] 0 legt eine neue Station an. [initialType] (Name von [StationType])
+ * und die Vorbelegung aus Koordinaten/Ort gelten nur dafür, siehe 3.3 bzw. 13.5 Nr. 4.
+ */
+@Serializable
+internal data class StationEditRoute(
+    val stationId: Long = 0,
+    val tourId: Long? = null,
+    val initialType: String? = null,
+    val prefillLatitude: Double? = null,
+    val prefillLongitude: Double? = null,
+    val prefillPlace: String? = null,
+)
+
+@Serializable
+internal data class StationDetailRoute(val stationId: Long)
+
 /** [vehicleId] `null` zeigt die Kennzahlen aller Fahrzeuge, sonst nur die von [vehicleId]. */
 @Serializable
 internal data class OverviewRoute(val vehicleId: Long? = null)
@@ -150,6 +173,10 @@ fun CamperLogNavHost(
     backupImporter: BackupImporter,
     themeMode: ThemeMode,
     canShowStartDialogs: Boolean = true,
+    /** Aus einem eingehenden `geo:`-Link gelesener Ort (13.5 Nr. 4); `null` außerhalb dieses Starts. */
+    pendingGeoIntent: GeoIntentLocation? = null,
+    /** [pendingGeoIntent] wurde übernommen und soll nicht erneut ausgelöst werden, z. B. bei einer Drehung. */
+    onGeoIntentHandled: () -> Unit = {},
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -193,6 +220,16 @@ fun CamperLogNavHost(
             },
         )
         return
+    }
+
+    // Ein geo:-Link startet die Stationsaufnahme mit Typauswahl, siehe 13.5 Nr. 4; ausgelöst nach der
+    // Einführungstour, nie zusammen mit ihr.
+    var geoLocationForPicker by remember { mutableStateOf<GeoIntentLocation?>(null) }
+    LaunchedEffect(pendingGeoIntent) {
+        if (pendingGeoIntent != null) {
+            geoLocationForPicker = pendingGeoIntent
+            onGeoIntentHandled()
+        }
     }
 
     NavHost(navController, startDestination = ToursRoute) {
@@ -288,12 +325,53 @@ fun CamperLogNavHost(
             val tourId = entry.toRoute<DetailRoute>().tourId
             val toursViewModel = navController.toursViewModel(entry, repository, vehicles)
             TourDetailScreen(
-                viewModel = viewModel { TourDetailViewModel(repository, vehicles, tourId) },
+                viewModel = viewModel { TourDetailViewModel(repository, vehicles, stations, tourId) },
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(EditRoute(tourId)) },
                 onDelete = { tour ->
                     if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
                         toursViewModel.delete(tour)
+                        navController.popBackStack()
+                    }
+                },
+                onAddStation = { targetTourId, type ->
+                    navController.navigate(StationEditRoute(tourId = targetTourId, initialType = type.name))
+                },
+                onOpenStation = { stationId -> navController.navigate(StationDetailRoute(stationId)) },
+            )
+        }
+        composable<StationEditRoute> { entry ->
+            val route = entry.toRoute<StationEditRoute>()
+            EditStationScreen(
+                viewModel = viewModel {
+                    EditStationViewModel(
+                        repository = stations,
+                        tours = repository,
+                        vehicles = vehicles,
+                        stationId = route.stationId,
+                        initialTourId = route.tourId,
+                        initialType = route.initialType?.let(StationType::valueOf),
+                        prefillLatitude = route.prefillLatitude,
+                        prefillLongitude = route.prefillLongitude,
+                        prefillPlace = route.prefillPlace,
+                        savedStateHandle = createSavedStateHandle(),
+                    )
+                },
+                onDone = { navController.popFrom(entry) },
+                onSaved = { navController.popFrom(entry) },
+            )
+        }
+        composable<StationDetailRoute> { entry ->
+            val route = entry.toRoute<StationDetailRoute>()
+            val tourDetailViewModel = navController.tourDetailViewModel(entry, repository, vehicles, stations)
+            StationDetailScreen(
+                viewModel = viewModel { StationDetailViewModel(stations, repository, route.stationId) },
+                onBack = { navController.popFrom(entry) },
+                onEdit = { navController.navigate(StationEditRoute(stationId = route.stationId)) },
+                onOpenTour = { navController.popFrom(entry) },
+                onDelete = { station ->
+                    if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                        tourDetailViewModel.deleteStation(station)
                         navController.popBackStack()
                     }
                 },
@@ -347,6 +425,23 @@ fun CamperLogNavHost(
                 onDone = { navController.popFrom(entry) },
             )
         }
+    }
+
+    geoLocationForPicker?.let { location ->
+        StationTypePickerSheet(
+            onSelect = { type ->
+                geoLocationForPicker = null
+                navController.navigate(
+                    StationEditRoute(
+                        initialType = type.name,
+                        prefillLatitude = location.latitude,
+                        prefillLongitude = location.longitude,
+                        prefillPlace = location.label,
+                    ),
+                )
+            },
+            onDismiss = { geoLocationForPicker = null },
+        )
     }
 
     if (showStartupKeepAndroidOpen) {
@@ -435,6 +530,22 @@ private fun NavController.toursViewModel(
 private fun NavController.vehicleViewModel(entry: NavBackStackEntry, vehicles: VehicleRepository): VehicleViewModel {
     val vehicleEntry = remember(entry) { getBackStackEntry<VehicleRoute>() }
     return viewModel(viewModelStoreOwner = vehicleEntry) { VehicleViewModel(vehicles) }
+}
+
+/**
+ * Das [TourDetailViewModel] der Tourdetailseite, damit das Stationsdetail dort die Löschmeldung
+ * auslöst. [StationDetailRoute] liegt immer über [DetailRoute] im Stapel, da nur von dort erreichbar.
+ */
+@Composable
+private fun NavController.tourDetailViewModel(
+    entry: NavBackStackEntry,
+    tours: TourRepository,
+    vehicles: VehicleRepository,
+    stations: StationRepository,
+): TourDetailViewModel {
+    val detailEntry = remember(entry) { getBackStackEntry<DetailRoute>() }
+    val tourId = detailEntry.toRoute<DetailRoute>().tourId
+    return viewModel(viewModelStoreOwner = detailEntry) { TourDetailViewModel(tours, vehicles, stations, tourId) }
 }
 
 /** Verlässt [entry] nur, solange er sichtbar ist; verhindert doppeltes Zurück bei schnellem Tippen. */

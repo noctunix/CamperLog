@@ -78,6 +78,12 @@ class TourFlowTest {
 
     private fun destinationField() = compose.onNode(hasSetTextAction() and hasText("Ziel"))
 
+    /** Löscht die Tour über das Overflow-Menü der Detailseite (Bearbeiten/Teilen/Löschen liegen dort). */
+    private fun deleteTourFromOverflowMenu() {
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Tour löschen").performClick()
+    }
+
     /** Speichert über den Button am Formularende, nicht über die Aktion in der App-Leiste. */
     private fun clickSave() =
         compose.onNode(hasText("Speichern") and hasAnyAncestor(hasScrollAction())).performScrollTo().performClick()
@@ -128,12 +134,12 @@ class TourFlowTest {
         val repository = start(tour(id = 1, destination = "Gardasee"))
 
         compose.onNodeWithText("Gardasee").performClick()
-        compose.onNodeWithText("Bearbeiten").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Bearbeiten").performClick()
         destinationField().performTextReplacement("Comer See")
         clickSave()
 
         // Zurück in der Detailansicht: Titel und Ziel-Zeile zeigen das neue Ziel.
-        compose.onNodeWithText("Bearbeiten").assertExists()
+        compose.onNodeWithContentDescription("Bearbeiten").assertExists()
         compose.onAllNodesWithText("Comer See").assertCountEquals(2)
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Comer See").assertExists()
@@ -153,7 +159,7 @@ class TourFlowTest {
         val repository = start(tour(id = 1, destination = "Gardasee"))
 
         compose.onNodeWithText("Gardasee").performClick()
-        compose.onNodeWithContentDescription("Tour löschen").performClick()
+        deleteTourFromOverflowMenu()
 
         compose.onNodeWithText("Tourenlog").assertExists()
         compose.onNodeWithText("„Gardasee“ gelöscht").assertExists()
@@ -167,7 +173,7 @@ class TourFlowTest {
         val repository = start(original)
 
         compose.onNodeWithText("Gardasee").performClick()
-        compose.onNodeWithContentDescription("Tour löschen").performClick()
+        deleteTourFromOverflowMenu()
         compose.onNodeWithText("Rückgängig").performClick()
 
         compose.onNodeWithText("Gardasee").assertExists()
@@ -180,7 +186,7 @@ class TourFlowTest {
         repository.failWrites = true
 
         compose.onNodeWithText("Gardasee").performClick()
-        compose.onNodeWithContentDescription("Tour löschen").performClick()
+        deleteTourFromOverflowMenu()
 
         compose.onNodeWithText("Tour konnte nicht gelöscht werden.").assertExists()
         compose.onNodeWithText("Gardasee").assertExists()

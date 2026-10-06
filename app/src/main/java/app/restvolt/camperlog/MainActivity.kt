@@ -1,5 +1,6 @@
 package app.restvolt.camperlog
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,20 +14,29 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
+import app.restvolt.camperlog.domain.GeoIntentLocation
+import app.restvolt.camperlog.domain.parseGeoIntent
 import app.restvolt.camperlog.share.cleanUpExports
 import app.restvolt.camperlog.ui.CamperLogNavHost
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeSettings
 import kotlinx.coroutines.launch
 
-/** Einzige Activity; hostet die Compose-Navigation. */
+/**
+ * Einzige Activity; hostet die Compose-Navigation. `launchMode="singleTask"` (siehe Manifest) sorgt
+ * dafür, dass ein `geo:`-Link auf eine bereits laufende Instanz trifft ([onNewIntent]) statt den
+ * bestehenden Rückstapel zu verdoppeln (13.5 Nr. 4).
+ */
 class MainActivity : ComponentActivity() {
+
+    private var pendingGeoIntent by mutableStateOf<GeoIntentLocation?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val app = application as CamperLogApp
         if (savedInstanceState == null) {
             lifecycleScope.launch { cleanUpExports(applicationContext) }
+            pendingGeoIntent = parseGeoIntent(intent?.dataString)
         }
         setContent {
             val themeSettings = remember { ThemeSettings(this) }
@@ -46,6 +56,8 @@ class MainActivity : ComponentActivity() {
                     backupImporter = app.backupImporter,
                     themeMode = themeMode,
                     stations = app.stations,
+                    pendingGeoIntent = pendingGeoIntent,
+                    onGeoIntentHandled = { pendingGeoIntent = null },
                     onThemeModeChange = { selected ->
                         themeSettings.mode = selected
                         themeMode = selected
@@ -53,5 +65,11 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingGeoIntent = parseGeoIntent(intent.dataString)
     }
 }
