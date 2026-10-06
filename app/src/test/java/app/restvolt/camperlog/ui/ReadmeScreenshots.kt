@@ -13,9 +13,11 @@ import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
-import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
-import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.SiteKind
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationService
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
@@ -33,6 +35,7 @@ import java.io.File
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.Currency
 
 /**
@@ -62,7 +65,7 @@ class ReadmeScreenshots {
                     FakeTourRepository(sampleTours),
                     FakeVehicleRepository(listOf(sampleVehicle)),
                     FakeLogRepository(sampleLogEntries()),
-                    FakeStationRepository(),
+                    FakeStationRepository(sampleStations()),
                     FakeExchangeRateRepository(rates),
                     FakeBackupImporter(),
                     ThemeMode.LIGHT,
@@ -186,6 +189,64 @@ class ReadmeScreenshots {
                 )
             }
         }
+
+        /** Stationen der Lofoten-Tour (id 1): Fähre, Übernachtung mit „gerne wieder", Ver-/Entsorgung, Sehenswertes. */
+        fun sampleStations(): List<Station> = listOf(
+            Station(
+                id = 1,
+                uuid = "00000000-0000-4000-8000-0000000000c1",
+                vehicleId = 1,
+                tourId = 1,
+                type = StationType.FERRY,
+                date = LocalDate.of(2026, 7, 4),
+                time = LocalTime.of(8, 0),
+                name = "Bodø–Moskenes",
+                createdAt = Instant.parse("2026-07-04T08:00:00Z"),
+                updatedAt = Instant.parse("2026-07-04T08:00:00Z"),
+            ),
+            Station(
+                id = 2,
+                uuid = "00000000-0000-4000-8000-0000000000c2",
+                vehicleId = 1,
+                tourId = 1,
+                type = StationType.OVERNIGHT,
+                date = LocalDate.of(2026, 7, 4),
+                name = "Camping Moskenes",
+                place = "Moskenes, Norway",
+                latitude = 67.9336,
+                longitude = 13.0067,
+                nights = 2,
+                siteKind = SiteKind.CAMPSITE,
+                electricityFlatRate = ElectricityFlatRate.YES,
+                favorite = true,
+                createdAt = Instant.parse("2026-07-04T18:00:00Z"),
+                updatedAt = Instant.parse("2026-07-04T18:00:00Z"),
+            ),
+            Station(
+                id = 3,
+                uuid = "00000000-0000-4000-8000-0000000000c3",
+                vehicleId = 1,
+                tourId = 1,
+                type = StationType.SUPPLY,
+                date = LocalDate.of(2026, 7, 9),
+                name = "Reine",
+                place = "Reine, Norway",
+                services = setOf(StationService.CASSETTE, StationService.GREY_WATER),
+                createdAt = Instant.parse("2026-07-09T09:00:00Z"),
+                updatedAt = Instant.parse("2026-07-09T09:00:00Z"),
+            ),
+            Station(
+                id = 4,
+                uuid = "00000000-0000-4000-8000-0000000000c4",
+                vehicleId = 1,
+                tourId = 1,
+                type = StationType.SIGHT,
+                date = LocalDate.of(2026, 7, 11),
+                name = "Reinefjord viewpoint",
+                createdAt = Instant.parse("2026-07-11T12:00:00Z"),
+                updatedAt = Instant.parse("2026-07-11T12:00:00Z"),
+            ),
+        )
 
         val sampleTours = listOf(
             sample(

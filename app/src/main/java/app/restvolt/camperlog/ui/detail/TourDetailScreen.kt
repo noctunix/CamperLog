@@ -156,9 +156,8 @@ fun TourDetailScreen(
                 tour = current.tour,
                 vehicle = current.vehicle,
                 stations = current.stations,
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize(),
+                modifier = Modifier.fillMaxSize(),
+                padding = padding,
                 onOpenStation = onOpenStation,
                 onAddStop = { showTypePicker = true },
             )
@@ -201,13 +200,20 @@ private fun TourDetails(
     vehicle: Vehicle?,
     stations: List<Station>,
     modifier: Modifier,
+    padding: PaddingValues,
     onOpenStation: (Long) -> Unit,
     onAddStop: () -> Unit,
 ) {
     val locale = currentLocale()
     LazyColumn(
         modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = padding.calculateTopPadding() + 8.dp,
+            // Der Scaffold reserviert keinen Platz für den FAB; siehe ToursScreen.
+            bottom = padding.calculateBottomPadding() + 96.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
@@ -277,7 +283,6 @@ private fun TourDetails(
                 }
             }
         }
-        item { Spacer(Modifier.size(80.dp)) }
     }
 }
 
