@@ -152,6 +152,15 @@ interface StationRepository {
 
     /** Verknüpft die Bordbuch-Einträge mit den ids [entryIds] wieder mit [stationId] (Rückgängig, 8.3, 13.4). */
     suspend fun relinkLogEntries(entryIds: List<Long>, stationId: Long)
+
+    /**
+     * Ordnet alle Stationen der Tour [tourId] dem Fahrzeug [vehicleId] zu, wenn die Tour das Fahrzeug wechselt.
+     * Verknüpfte Bordbuch-Einträge ziehen nach denselben Regeln mit wie beim Bearbeiten einer einzelnen Station.
+     *
+     * @param tourId die Tour, deren Fahrzeug sich geändert hat
+     * @param vehicleId das neue Fahrzeug der Tour
+     */
+    suspend fun moveTourToVehicle(tourId: Long, vehicleId: Long)
 }
 
 /**

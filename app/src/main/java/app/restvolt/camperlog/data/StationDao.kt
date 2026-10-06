@@ -28,6 +28,9 @@ interface StationDao {
     @Query("SELECT * FROM stations WHERE id = :id")
     suspend fun getById(id: Long): StationEntity?
 
+    @Query("SELECT * FROM stations WHERE tour_id = :tourId")
+    suspend fun getForTour(tourId: Long): List<StationEntity>
+
     @Query("SELECT * FROM stations")
     suspend fun getAll(): List<StationEntity>
 

@@ -353,7 +353,7 @@ fun CamperLogNavHost(
             val tourId = entry.toRoute<EditRoute>().tourId
             val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations)
             EditTourScreen(
-                viewModel = viewModel { EditTourViewModel(repository, vehicles, tourId, createSavedStateHandle()) },
+                viewModel = viewModel { EditTourViewModel(repository, vehicles, stations, tourId, createSavedStateHandle()) },
                 onDone = { navController.popFrom(entry) },
                 onSaved = {
                     if (tourId == 0L) toursViewModel.onTourCreated()

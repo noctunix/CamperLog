@@ -157,6 +157,26 @@ class RoomStationRepositoryTest {
     }
 
     @Test
+    fun movingATourToAnotherVehicle_movesItsStationsAndLinkedEntries() = runTest {
+        val otherVehicleId = db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-2", createdAtMillis = 0, updatedAtMillis = 0))
+        db.openHelper.writableDatabase.execSQL(
+            "INSERT INTO tours (id, uuid, vehicle_id, start_date, end_date, destination, tour_type, travel_days, " +
+                "overnight_stays, distance_km, notes, map_link, created_at, updated_at) VALUES " +
+                "(1, 'tour-1', $vehicleId, '2026-07-01', '2026-07-10', 'Lofoten', 'VACATION', 10, 9, 0, '', NULL, 0, 0)",
+        )
+        stations.save(station(services = setOf(StationService.CASSETTE)).copy(tourId = 1))
+        stations.save(station(date = LocalDate.of(2026, 7, 5)).copy(tourId = 1))
+        stations.save(station(date = LocalDate.of(2026, 7, 6)))
+
+        stations.moveTourToVehicle(tourId = 1, vehicleId = otherVehicleId)
+
+        val all = stations.allStations()
+        assertEquals(listOf(otherVehicleId, otherVehicleId), all.filter { it.tourId == 1L }.map { it.vehicleId })
+        assertEquals(vehicleId, all.single { it.tourId == null }.vehicleId)
+        assertEquals(otherVehicleId, logs.allEntries().single().vehicleId)
+    }
+
+    @Test
     fun movingToADateWithAnExistingUnlinkedEntry_dedupesAndDropsTheOldOne() = runTest {
         val id = stations.save(station(date = LocalDate.of(2026, 7, 4), services = setOf(StationService.CASSETTE)))
         val old = logs.allEntries().single()

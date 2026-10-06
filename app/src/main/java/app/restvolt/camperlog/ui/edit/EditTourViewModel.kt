@@ -10,6 +10,7 @@ import androidx.savedstate.serialization.encodeToSavedState
 import app.restvolt.camperlog.domain.ALL_CURRENCIES
 import app.restvolt.camperlog.domain.CostInput
 import app.restvolt.camperlog.domain.QUICK_CURRENCIES
+import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
@@ -21,6 +22,9 @@ import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toTour
 import app.restvolt.camperlog.domain.travelDaysBetween
 import app.restvolt.camperlog.domain.validation
+import java.time.LocalDate
+import java.util.Currency
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,9 +32,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import java.time.LocalDate
-import java.util.Currency
-import java.util.Locale
 
 /** Zustand des Formulars. Fehler werden erst nach dem ersten Speicherversuch angezeigt. */
 data class EditUiState(
@@ -65,12 +66,14 @@ internal data class TourDraft(
  * Geänderte Eingaben liegen zusätzlich in [savedStateHandle] und werden nach einem Neustart
  * des Prozesses statt der gespeicherten Tour angezeigt.
  *
+ * @param stations zieht die Stationen der Tour mit, wenn sie das Fahrzeug wechselt
  * @param locale liefert die aktuelle Sprache für Beträge; wird bei jedem Zugriff neu gelesen,
  *   damit ein Sprachwechsel bei laufendem ViewModel greift
  */
 class EditTourViewModel(
     private val repository: TourRepository,
     private val vehicles: VehicleRepository,
+    private val stations: StationRepository,
     tourId: Long,
     private val savedStateHandle: SavedStateHandle,
     private val locale: () -> Locale = { app.restvolt.camperlog.domain.supportedLocale(Locale.getDefault()) },
@@ -175,7 +178,9 @@ class EditTourViewModel(
         _uiState.update { it.copy(isSaving = true, errors = emptyMap(), costErrors = emptyMap(), saveFailed = false) }
         viewModelScope.launch {
             try {
-                repository.save(tour)
+                val id = repository.save(tour)
+                val previousVehicleId = original?.vehicleId
+                if (previousVehicleId != null && previousVehicleId != tour.vehicleId) stations.moveTourToVehicle(id, tour.vehicleId)
                 savedStateHandle.remove<SavedState>(DRAFT_KEY)
                 _uiState.update { it.copy(isSaving = false, isSaved = true) }
             } catch (_: SQLException) {

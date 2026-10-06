@@ -72,6 +72,11 @@ class RoomStationRepository(
         entryIds.forEach { entryId -> logs.link(entryId, stationId) }
     }
 
+    override suspend fun moveTourToVehicle(tourId: Long, vehicleId: Long) = database.withTransaction {
+        dao.getForTour(tourId).map { it.toDomain() }.filter { it.vehicleId != vehicleId }
+            .forEach { save(it.copy(vehicleId = vehicleId)) }
+    }
+
     /** Wendet die Bordbuch-Angleichung aus [syncStationLogEntries] auf [new] an (4). */
     private suspend fun applyLogSync(old: Station?, new: Station) {
         val actions = syncStationLogEntries(
