@@ -64,6 +64,18 @@ jobs:
           fi
           "$apksigner" verify "$apk"
           sha256sum "$apk" > "$apk.sha256"
-          gh release create "$TAG" --verify-tag --generate-notes \
-            --notes 'Signed arm64-v8a APK (Android 8.0+), with SHA-256 checksum.' \
+          code=$(sed -n 's/^val appVersionCode = \([0-9]*\)$/\1/p' app/build.gradle.kts)
+          changelog=fastlane/metadata/android/en-US/changelogs/$code.txt
+          changelog_de=fastlane/metadata/android/de-DE/changelogs/$code.txt
+          if [[ ! -s "$changelog" || ! -s "$changelog_de" ]]; then
+            echo "Changelogs for versionCode $code are missing." >&2
+            exit 1
+          fi
+          {
+            cat "$changelog"
+            printf '\n**Deutsch**\n\n'
+            cat "$changelog_de"
+            printf '\nSigned arm64-v8a APK (Android 8.0+) with SHA-256 checksum.\n'
+          } > release-notes.md
+          gh release create "$TAG" --verify-tag --notes-file release-notes.md \
             "$apk" "$apk.sha256"
