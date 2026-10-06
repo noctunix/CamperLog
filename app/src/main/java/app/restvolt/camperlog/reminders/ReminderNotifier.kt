@@ -100,14 +100,13 @@ class AndroidReminderNotifier(private val context: Context) : ReminderNotifier {
 
     /** Legt den Kanal an, falls nötig, und liefert, ob überhaupt benachrichtigt werden darf. */
     private fun ensureChannelAndPermission(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                context.getString(R.string.notification_channel_maintenance_name),
-                NotificationManager.IMPORTANCE_DEFAULT,
-            ).apply { description = context.getString(R.string.notification_channel_maintenance_description) }
-            context.getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
-        }
+        // minSdk 26 hat Kanäle immer; keine Build.VERSION-Prüfung nötig.
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            context.getString(R.string.notification_channel_maintenance_name),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply { description = context.getString(R.string.notification_channel_maintenance_description) }
+        context.getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
         return hasNotificationPermission(context)
     }
 

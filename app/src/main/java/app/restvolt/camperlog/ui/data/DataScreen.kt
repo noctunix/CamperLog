@@ -48,7 +48,6 @@ import app.restvolt.camperlog.backup.BackupError
 import app.restvolt.camperlog.backup.BackupReadResult
 import app.restvolt.camperlog.data.BackupFolderWriter
 import app.restvolt.camperlog.domain.shouldShowBackupReminderCard
-import app.restvolt.camperlog.domain.supportedLocale
 import app.restvolt.camperlog.share.BACKUP_MIME
 import app.restvolt.camperlog.share.backupFileName
 import app.restvolt.camperlog.share.shareBackup
@@ -56,6 +55,7 @@ import app.restvolt.camperlog.share.shareCsv
 import app.restvolt.camperlog.share.shareStationsCsv
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.settings.IntChoiceDialog
 import app.restvolt.camperlog.ui.settings.NotificationSettings
 import app.restvolt.camperlog.ui.settings.ReminderChoiceRow
@@ -67,7 +67,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import java.util.Locale
 
 /** Datenverwaltung: CSV-Export für Tabellenprogramme sowie JSON-Sicherung und -Import. */
 @Composable
@@ -317,7 +316,7 @@ private fun lastBackupText(lastBackupAt: Instant?): String =
         stringResource(R.string.data_backup_last_never)
     } else {
         val formatted = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
-            .withLocale(supportedLocale(Locale.getDefault()))
+            .withLocale(currentLocale())
             .format(lastBackupAt.atZone(ZoneId.systemDefault()))
         stringResource(R.string.data_backup_last_at, formatted)
     }
