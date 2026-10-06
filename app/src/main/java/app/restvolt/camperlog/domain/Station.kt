@@ -33,6 +33,9 @@ enum class TollKind(val csvValue: String) {
 /** Gültige ISO-3166-1-alpha-2-Ländercodes für die Vignetten-Länderauswahl, aus der Java-Locale-Liste. */
 val ALL_COUNTRY_CODES: Set<String> by lazy { Locale.getISOCountries().toSet() }
 
+/** Lokalisierter Anzeigename eines ISO-3166-1-alpha-2-Ländercodes, z. B. „Norwegen" für `NO` auf Deutsch. */
+fun countryDisplayName(code: String, locale: Locale): String = Locale.Builder().setRegion(code).build().getDisplayCountry(locale)
+
 /**
  * Vor Ort genutzte Versorgung. Die "Ver-/Entsorgung"-Gruppe ist auf [StationType.OVERNIGHT],
  * [StationType.SUPPLY] und [StationType.FUEL] erlaubt, die "Tanken"-Gruppe nur auf [StationType.FUEL]

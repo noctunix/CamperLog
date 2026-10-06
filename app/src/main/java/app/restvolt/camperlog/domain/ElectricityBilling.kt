@@ -2,7 +2,9 @@ package app.restvolt.camperlog.domain
 
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.text.NumberFormat
 import java.util.Currency
+import java.util.Locale
 
 /**
  * Abrechnung des Stroms an einem Übernachtungsplatz, mit stabilem Exportwert [csvValue]; `null` auf
@@ -28,18 +30,29 @@ enum class ElectricityBilling(val csvValue: String) {
  * [Station.electricityKwhPerCoin]; `null`, wenn keine der drei Angaben vollständig vorliegt oder das
  * Ergebnis negativ wäre (z. B. ein rückwärts gelaufener Zähler).
  */
-fun electricityKwh(station: Station): BigDecimal? {
-    val meterStart = station.electricityMeterStart
-    val meterEnd = station.electricityMeterEnd
-    val kwhUsed = station.electricityKwhUsed
-    val coinsUsed = station.electricityCoinsUsed
-    val kwhPerCoin = station.electricityKwhPerCoin
-    return when {
-        meterStart != null && meterEnd != null -> meterEnd.subtract(meterStart).takeIf { it.signum() >= 0 }
-        kwhUsed != null -> kwhUsed.takeIf { it.signum() >= 0 }
-        coinsUsed != null && kwhPerCoin != null -> kwhPerCoin.multiply(BigDecimal(coinsUsed)).takeIf { it.signum() >= 0 }
-        else -> null
-    }
+fun electricityKwh(station: Station): BigDecimal? = electricityKwhCore(
+    station.electricityMeterStart,
+    station.electricityMeterEnd,
+    station.electricityKwhUsed,
+    station.electricityCoinsUsed,
+    station.electricityKwhPerCoin,
+)
+
+/**
+ * Kernlogik von [electricityKwh], auch für die Live-Vorschau des Formulars ([StationInput.electricityPreview])
+ * aus den noch unvalidierten, aber bereits geparsten Einzelwerten.
+ */
+internal fun electricityKwhCore(
+    meterStart: BigDecimal?,
+    meterEnd: BigDecimal?,
+    kwhUsed: BigDecimal?,
+    coinsUsed: Int?,
+    kwhPerCoin: BigDecimal?,
+): BigDecimal? = when {
+    meterStart != null && meterEnd != null -> meterEnd.subtract(meterStart).takeIf { it.signum() >= 0 }
+    kwhUsed != null -> kwhUsed.takeIf { it.signum() >= 0 }
+    coinsUsed != null && kwhPerCoin != null -> kwhPerCoin.multiply(BigDecimal(coinsUsed)).takeIf { it.signum() >= 0 }
+    else -> null
 }
 
 /**
@@ -51,32 +64,69 @@ fun electricityKwh(station: Station): BigDecimal? {
 fun electricityCost(station: Station): Money? {
     val billing = station.electricityBilling ?: return null
     val currency = station.electricityCurrency ?: return null
-    return when (billing) {
-        ElectricityBilling.NONE, ElectricityBilling.INCLUDED -> null
-        ElectricityBilling.FLAT_PER_NIGHT -> {
-            val amount = station.electricityFlatAmount ?: return null
-            val nights = station.nights?.takeIf { it >= 1 } ?: return null
-            Money(Math.multiplyExact(amount.minor, nights.toLong()), amount.currency)
-        }
-        ElectricityBilling.FLAT_PER_STAY -> station.electricityFlatAmount
-        ElectricityBilling.METERED -> {
-            val price = station.electricityPricePerKwh?.takeIf { it.signum() >= 0 } ?: return null
-            val kwh = electricityKwh(station) ?: return null
-            roundToMinor(price.multiply(kwh), currency)
-        }
-        ElectricityBilling.BASE_PLUS_METERED -> {
-            val base = station.electricityBaseFee ?: return null
-            val price = station.electricityPricePerKwh?.takeIf { it.signum() >= 0 } ?: return null
-            val kwh = electricityKwh(station) ?: return null
-            val metered = roundToMinor(price.multiply(kwh), currency) ?: return null
-            Money(Math.addExact(base.minor, metered.minor), currency)
-        }
-        ElectricityBilling.COIN -> {
-            val price = station.electricityCoinPrice ?: return null
-            val count = station.electricityCoinsUsed?.takeIf { it >= 0 } ?: return null
-            Money(Math.multiplyExact(price.minor, count.toLong()), price.currency)
-        }
+    return electricityCostCore(
+        billing = billing,
+        currency = currency,
+        flatAmount = station.electricityFlatAmount,
+        baseFee = station.electricityBaseFee,
+        pricePerKwh = station.electricityPricePerKwh,
+        coinPrice = station.electricityCoinPrice,
+        coinsUsed = station.electricityCoinsUsed,
+        kwh = electricityKwh(station),
+        nights = station.nights,
+    )
+}
+
+/**
+ * Kernlogik von [electricityCost], auch für die Live-Vorschau des Formulars ([StationInput.electricityPreview])
+ * aus den noch unvalidierten, aber bereits geparsten Einzelwerten; [kwh] kommt aus [electricityKwhCore].
+ */
+internal fun electricityCostCore(
+    billing: ElectricityBilling,
+    currency: Currency,
+    flatAmount: Money?,
+    baseFee: Money?,
+    pricePerKwh: BigDecimal?,
+    coinPrice: Money?,
+    coinsUsed: Int?,
+    kwh: BigDecimal?,
+    nights: Int?,
+): Money? = when (billing) {
+    ElectricityBilling.NONE, ElectricityBilling.INCLUDED -> null
+    ElectricityBilling.FLAT_PER_NIGHT -> {
+        val amount = flatAmount ?: return null
+        val n = nights?.takeIf { it >= 1 } ?: return null
+        Money(Math.multiplyExact(amount.minor, n.toLong()), amount.currency)
     }
+    ElectricityBilling.FLAT_PER_STAY -> flatAmount
+    ElectricityBilling.METERED -> {
+        val price = pricePerKwh?.takeIf { it.signum() >= 0 } ?: return null
+        val k = kwh ?: return null
+        roundToMinor(price.multiply(k), currency)
+    }
+    ElectricityBilling.BASE_PLUS_METERED -> {
+        val base = baseFee ?: return null
+        val price = pricePerKwh?.takeIf { it.signum() >= 0 } ?: return null
+        val k = kwh ?: return null
+        val metered = roundToMinor(price.multiply(k), currency) ?: return null
+        Money(Math.addExact(base.minor, metered.minor), currency)
+    }
+    ElectricityBilling.COIN -> {
+        val price = coinPrice ?: return null
+        val count = coinsUsed?.takeIf { it >= 0 } ?: return null
+        Money(Math.multiplyExact(price.minor, count.toLong()), price.currency)
+    }
+}
+
+/** Formatiert eine kWh-Menge mit so vielen Nachkommastellen wie nötig (höchstens 3), z. B. `21,5 kWh`. */
+fun formatKwh(value: BigDecimal, locale: Locale): String {
+    val fractionDigits = value.stripTrailingZeros().scale().coerceIn(0, 3)
+    val format = NumberFormat.getNumberInstance(locale).apply {
+        minimumFractionDigits = fractionDigits
+        maximumFractionDigits = fractionDigits
+        roundingMode = RoundingMode.HALF_UP
+    }
+    return "${format.format(value)} kWh"
 }
 
 /** Rundet [amount] (in Hauptwährungseinheiten) kaufmännisch auf die kleinste Einheit von [currency]; `null` bei Überlauf. */

@@ -7,6 +7,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.LogRecency
 import app.restvolt.camperlog.domain.LogType
@@ -376,9 +377,10 @@ val StationField.labelRes: Int
         StationField.TOLL_VALID_UNTIL -> R.string.field_toll_valid_until
         StationField.TOLL_PAYMENT_METHOD -> R.string.field_toll_payment_method
         StationField.FERRY_BOOKING_REFERENCE -> R.string.field_ferry_booking_reference
+        StationField.COST -> R.string.field_cost
     }
 
-/** Fehlermeldung zu [this] am Feld [field]. */
+/** Fehlermeldung zu [this] am Feld [field]; der Betrag von [StationError.AMOUNT_TOO_LARGE] braucht die Währung der Kostenzeile, siehe [StationCostFields]. */
 @StringRes
 fun StationError.messageRes(field: StationField): Int = when (this) {
     StationError.REQUIRED -> R.string.error_date_required
@@ -391,7 +393,36 @@ fun StationError.messageRes(field: StationField): Int = when (this) {
     StationError.FUTURE_DATE -> R.string.error_station_service_future_date
     StationError.INVALID_COUNTRY -> R.string.error_invalid_country
     StationError.END_BEFORE_START -> R.string.error_end_before_start
+    StationError.AMOUNT_TOO_LARGE -> R.string.error_amount_too_large
 }
+
+/** Anzeigename der Kostenkategorie einer Station. */
+@get:StringRes
+val CostCategory.labelRes: Int
+    get() = when (this) {
+        CostCategory.PITCH -> R.string.cost_category_pitch
+        CostCategory.ELECTRICITY -> R.string.cost_category_electricity
+        CostCategory.SUPPLY -> R.string.cost_category_supply
+        CostCategory.FUEL -> R.string.cost_category_fuel
+        CostCategory.TOLL -> R.string.cost_category_toll
+        CostCategory.FERRY -> R.string.cost_category_ferry
+        CostCategory.FOOD -> R.string.cost_category_food
+        CostCategory.OTHER -> R.string.cost_category_other
+    }
+
+/** Symbol der Kostenkategorie, amtliche Material-Symbols-Pfaddaten auf das 24-Einheiten-Raster skaliert. */
+@get:DrawableRes
+val CostCategory.iconRes: Int
+    get() = when (this) {
+        CostCategory.PITCH -> R.drawable.ic_bed
+        CostCategory.ELECTRICITY -> R.drawable.ic_bolt
+        CostCategory.SUPPLY -> R.drawable.ic_rv_hookup
+        CostCategory.FUEL -> R.drawable.ic_local_gas_station
+        CostCategory.TOLL -> R.drawable.ic_toll
+        CostCategory.FERRY -> R.drawable.ic_directions_boat
+        CostCategory.FOOD -> R.drawable.ic_restaurant
+        CostCategory.OTHER -> R.drawable.ic_place
+    }
 
 /** Text der "Station gespeichert"-Snackbar: Grundtext, ergänzt um die ins Bordbuch eingetragenen Dienste. */
 fun stationSavedText(resources: android.content.res.Resources, loggedServices: Set<StationService>): String {

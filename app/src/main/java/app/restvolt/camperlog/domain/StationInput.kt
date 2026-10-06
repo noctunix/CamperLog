@@ -16,6 +16,7 @@ const val MAX_STATION_NOTES_LENGTH = 20_000
 const val MAX_STATION_MAP_LINK_LENGTH = 4_000
 const val MAX_TOLL_PAYMENT_METHOD_LENGTH = 500
 const val MAX_FERRY_BOOKING_REFERENCE_LENGTH = 500
+const val MAX_STATION_COST_NOTE_LENGTH = 500
 
 /** Höchstwerte der Stromabrechnung, wie bei Touren auch von der Sicherung wiederverwendet. */
 const val MAX_ELECTRICITY_KWH = 100_000.0
@@ -29,6 +30,18 @@ private const val PRICE_PER_KWH_FRACTION_DIGITS = 4
 /** WGS84-Wertebereiche gültiger Koordinaten. */
 val LATITUDE_RANGE = -90.0..90.0
 val LONGITUDE_RANGE = -180.0..180.0
+
+/**
+ * Eine Kostenzeile des Stationsformulars: Betrag als Text in [currency], mit Kategorie und optionaler
+ * Notiz. Anders als bei Touren startet [StationInput.costs] leer; "Kosten hinzufügen" legt die erste Zeile an.
+ */
+@Serializable
+data class StationCostInput(
+    val category: CostCategory = CostCategory.OTHER,
+    val amount: String = "",
+    @Serializable(with = CurrencySerializer::class) val currency: Currency = EUR,
+    val note: String = "",
+)
 
 /**
  * Unvalidierte Eingaben des Stationsformulars. Koordinaten liegen hier bereits als geparste
@@ -72,6 +85,7 @@ data class StationInput(
     @Serializable(with = LocalDateSerializer::class) val tollValidFrom: LocalDate? = null,
     @Serializable(with = LocalDateSerializer::class) val tollValidUntil: LocalDate? = null,
     val ferryBookingReference: String = "",
+    val costs: List<StationCostInput> = emptyList(),
     val services: Set<StationService> = emptySet(),
     val favorite: Boolean = false,
     /** Rohtext des Felds "Koordinaten oder Kartenlink"; nur fürs Formular, nicht Teil der Station. */
@@ -82,7 +96,7 @@ data class StationInput(
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
 enum class StationField {
     DATE, COORDINATES, NIGHTS, NAME, PLACE, NOTES, MAP_LINK, SERVICES, ELECTRICITY,
-    TOLL_COUNTRY, TOLL_VALID_UNTIL, TOLL_PAYMENT_METHOD, FERRY_BOOKING_REFERENCE,
+    TOLL_COUNTRY, TOLL_VALID_UNTIL, TOLL_PAYMENT_METHOD, FERRY_BOOKING_REFERENCE, COST,
 }
 
 /** Grund eines Validierungsfehlers. Den Text dazu liefert die UI aus den String-Ressourcen. */
@@ -97,6 +111,7 @@ enum class StationError {
     FUTURE_DATE,
     INVALID_COUNTRY,
     END_BEFORE_START,
+    AMOUNT_TOO_LARGE,
 }
 
 /**
@@ -108,55 +123,83 @@ enum class StationError {
  * @param locale bestimmt, wie mehrdeutige Beträge und Dezimalzahlen der Stromabrechnung gelesen werden
  * @return Fehlergrund je fehlerhaftem Feld; leer, wenn die Eingabe gültig ist
  */
-fun StationInput.validate(today: LocalDate = LocalDate.now(), locale: Locale = Locale.getDefault()): Map<StationField, StationError> = buildMap {
-    if (date == null) put(StationField.DATE, StationError.REQUIRED)
+fun StationInput.validate(today: LocalDate = LocalDate.now(), locale: Locale = Locale.getDefault()): Map<StationField, StationError> =
+    validation(today, locale).errors
 
-    if ((latitude == null) != (longitude == null)) {
-        put(StationField.COORDINATES, StationError.COORDINATES_INCOMPLETE)
-    } else if (latitude != null && longitude != null && (latitude !in LATITUDE_RANGE || longitude !in LONGITUDE_RANGE)) {
-        put(StationField.COORDINATES, StationError.COORDINATES_OUT_OF_RANGE)
-    }
+internal data class StationValidation(val errors: Map<StationField, StationError>, val costErrors: Map<Int, StationError>)
 
-    if (type == StationType.OVERNIGHT && nights.isNotBlank()) {
-        val value = nights.trim().toIntOrNull()
-        when {
-            value == null -> put(StationField.NIGHTS, StationError.INVALID_NUMBER)
-            value < 1 -> put(StationField.NIGHTS, StationError.TOO_SMALL)
+/** Wie [validate], liefert aber zusätzlich die Fehler je Kostenzeile für die Kostenliste des Formulars. */
+internal fun StationInput.validation(today: LocalDate = LocalDate.now(), locale: Locale = Locale.getDefault()): StationValidation {
+    val costErrs = costErrors(locale)
+    val errors = buildMap {
+        if (date == null) put(StationField.DATE, StationError.REQUIRED)
+
+        if ((latitude == null) != (longitude == null)) {
+            put(StationField.COORDINATES, StationError.COORDINATES_INCOMPLETE)
+        } else if (latitude != null && longitude != null && (latitude !in LATITUDE_RANGE || longitude !in LONGITUDE_RANGE)) {
+            put(StationField.COORDINATES, StationError.COORDINATES_OUT_OF_RANGE)
         }
-    }
 
-    if (name.length > MAX_STATION_NAME_LENGTH) put(StationField.NAME, StationError.TOO_LONG)
-    if (place.length > MAX_STATION_PLACE_LENGTH) put(StationField.PLACE, StationError.TOO_LONG)
-    if (notes.length > MAX_STATION_NOTES_LENGTH) put(StationField.NOTES, StationError.TOO_LONG)
-
-    val link = mapLink?.trim()
-    if (!link.isNullOrEmpty()) {
-        when {
-            link.length > MAX_STATION_MAP_LINK_LENGTH -> put(StationField.MAP_LINK, StationError.TOO_LONG)
-            !isWebUrl(link) -> put(StationField.MAP_LINK, StationError.NOT_A_WEB_LINK)
+        if (type == StationType.OVERNIGHT && nights.isNotBlank()) {
+            val value = nights.trim().toIntOrNull()
+            when {
+                value == null -> put(StationField.NIGHTS, StationError.INVALID_NUMBER)
+                value < 1 -> put(StationField.NIGHTS, StationError.TOO_SMALL)
+            }
         }
-    }
 
-    if (date != null && date > today && services.any { it in SYNCED_SERVICE_LOG_TYPES }) {
-        put(StationField.SERVICES, StationError.FUTURE_DATE)
-    }
+        if (name.length > MAX_STATION_NAME_LENGTH) put(StationField.NAME, StationError.TOO_LONG)
+        if (place.length > MAX_STATION_PLACE_LENGTH) put(StationField.PLACE, StationError.TOO_LONG)
+        if (notes.length > MAX_STATION_NOTES_LENGTH) put(StationField.NOTES, StationError.TOO_LONG)
 
-    electricityError(locale)?.let { put(StationField.ELECTRICITY, it) }
-
-    if (type == StationType.TOLL) {
-        if (tollCountry.isNotBlank() && tollCountry.trim().uppercase(Locale.ROOT) !in ALL_COUNTRY_CODES) {
-            put(StationField.TOLL_COUNTRY, StationError.INVALID_COUNTRY)
+        val link = mapLink?.trim()
+        if (!link.isNullOrEmpty()) {
+            when {
+                link.length > MAX_STATION_MAP_LINK_LENGTH -> put(StationField.MAP_LINK, StationError.TOO_LONG)
+                !isWebUrl(link) -> put(StationField.MAP_LINK, StationError.NOT_A_WEB_LINK)
+            }
         }
-        if (tollValidFrom != null && tollValidUntil != null && tollValidUntil < tollValidFrom) {
-            put(StationField.TOLL_VALID_UNTIL, StationError.END_BEFORE_START)
-        }
-        if (tollPaymentMethod.length > MAX_TOLL_PAYMENT_METHOD_LENGTH) {
-            put(StationField.TOLL_PAYMENT_METHOD, StationError.TOO_LONG)
-        }
-    }
 
-    if (type == StationType.FERRY && ferryBookingReference.length > MAX_FERRY_BOOKING_REFERENCE_LENGTH) {
-        put(StationField.FERRY_BOOKING_REFERENCE, StationError.TOO_LONG)
+        if (date != null && date > today && services.any { it in SYNCED_SERVICE_LOG_TYPES }) {
+            put(StationField.SERVICES, StationError.FUTURE_DATE)
+        }
+
+        electricityError(locale)?.let { put(StationField.ELECTRICITY, it) }
+
+        if (type == StationType.TOLL) {
+            if (tollCountry.isNotBlank() && tollCountry.trim().uppercase(Locale.ROOT) !in ALL_COUNTRY_CODES) {
+                put(StationField.TOLL_COUNTRY, StationError.INVALID_COUNTRY)
+            }
+            if (tollValidFrom != null && tollValidUntil != null && tollValidUntil < tollValidFrom) {
+                put(StationField.TOLL_VALID_UNTIL, StationError.END_BEFORE_START)
+            }
+            if (tollPaymentMethod.length > MAX_TOLL_PAYMENT_METHOD_LENGTH) {
+                put(StationField.TOLL_PAYMENT_METHOD, StationError.TOO_LONG)
+            }
+        }
+
+        if (type == StationType.FERRY && ferryBookingReference.length > MAX_FERRY_BOOKING_REFERENCE_LENGTH) {
+            put(StationField.FERRY_BOOKING_REFERENCE, StationError.TOO_LONG)
+        }
+
+        costErrs.values.firstOrNull()?.let { put(StationField.COST, it) }
+    }
+    return StationValidation(errors, costErrs)
+}
+
+/** Fehler je Kostenzeile, Schlüssel ist der Index in [StationInput.costs]; leere Beträge sind gültig. */
+fun StationInput.costErrors(locale: Locale): Map<Int, StationError> = buildMap {
+    costs.forEachIndexed { index, cost ->
+        if (cost.note.length > MAX_STATION_COST_NOTE_LENGTH) {
+            put(index, StationError.TOO_LONG)
+            return@forEachIndexed
+        }
+        if (cost.amount.isBlank()) return@forEachIndexed
+        when (readAmount(cost.amount, cost.currency, locale)) {
+            is AmountReading.Valid -> Unit
+            AmountReading.TooLarge -> put(index, StationError.AMOUNT_TOO_LARGE)
+            AmountReading.Invalid -> put(index, StationError.INVALID_NUMBER)
+        }
     }
 }
 
@@ -269,7 +312,17 @@ fun StationInput.toStation(original: Station?, locale: Locale = Locale.getDefaul
         tollValidFrom = tollValidFrom.takeIf { isToll },
         tollValidUntil = tollValidUntil.takeIf { isToll },
         ferryBookingReference = if (isFerry) ferryBookingReference.trim() else "",
-        costs = original?.costs.orEmpty(),
+        costs = costs
+            .mapNotNull { line ->
+                if (line.amount.isBlank()) return@mapNotNull null
+                val minor = checkNotNull(parseAmount(line.amount, line.currency, locale)) {
+                    "Kostenzeilen müssen vor dem Speichern validiert sein"
+                }
+                StationCost(line.category, Money(minor, line.currency), line.note.trim())
+            }
+            .groupBy { it.category to it.amount.currency }
+            .map { (key, group) -> StationCost(key.first, Money(group.map { it.amount }.sumMinor(), key.second), group.first().note) }
+            .filter { it.amount.minor != 0L },
         services = services.intersect(type.allowedServices),
         weather = weather,
         favorite = favorite && isOvernight,
@@ -316,6 +369,7 @@ fun Station.toInput(locale: Locale = Locale.getDefault()): StationInput = Statio
     tollValidFrom = tollValidFrom,
     tollValidUntil = tollValidUntil,
     ferryBookingReference = ferryBookingReference,
+    costs = costs.map { StationCostInput(it.category, amountToInput(it.amount.minor, it.amount.currency, locale), it.amount.currency, it.note) },
     services = services,
     favorite = favorite,
     locationText = mapLink ?: if (latitude != null && longitude != null) "$latitude, $longitude" else "",
@@ -330,3 +384,78 @@ private fun parseDecimalField(text: String, locale: Locale, maxFractionDigits: I
 
 private fun decimalToInput(value: BigDecimal?, locale: Locale): String =
     value?.toPlainString()?.replace('.', DecimalFormatSymbols.getInstance(locale).decimalSeparator).orEmpty()
+
+/** Live-Vorschau der Stromabrechnung aus [StationInput.electricityPreview]: Kosten und kWh, soweit ermittelbar. */
+data class ElectricityPreview(val cost: Money?, val kwh: BigDecimal?)
+
+/**
+ * Berechnet [ElectricityPreview] direkt aus den noch unvalidierten Formularfeldern, ohne die Station
+ * zu speichern; ungültige Eingaben zählen dabei wie fehlende (kein Fehler, nur eine unvollständige
+ * Vorschau). Nutzt dieselbe Kernlogik wie [electricityCost] und [electricityKwh].
+ */
+fun StationInput.electricityPreview(locale: Locale = Locale.getDefault()): ElectricityPreview {
+    val billing = electricityBilling ?: return ElectricityPreview(null, null)
+    val kwh = electricityKwhCore(
+        meterStart = parseDecimalField(electricityMeterStart, locale, ELECTRICITY_KWH_FRACTION_DIGITS),
+        meterEnd = parseDecimalField(electricityMeterEnd, locale, ELECTRICITY_KWH_FRACTION_DIGITS),
+        kwhUsed = parseDecimalField(electricityKwhUsed, locale, ELECTRICITY_KWH_FRACTION_DIGITS),
+        coinsUsed = electricityCoinsUsed.trim().toIntOrNull(),
+        kwhPerCoin = parseDecimalField(electricityKwhPerCoin, locale, ELECTRICITY_KWH_FRACTION_DIGITS),
+    )
+    val cost = electricityCostCore(
+        billing = billing,
+        currency = electricityCurrency,
+        flatAmount = parseMoneyField(electricityFlatAmount, electricityCurrency, locale),
+        baseFee = parseMoneyField(electricityBaseFee, electricityCurrency, locale),
+        pricePerKwh = parseDecimalField(electricityPricePerKwh, locale, PRICE_PER_KWH_FRACTION_DIGITS),
+        coinPrice = parseMoneyField(electricityCoinPrice, electricityCurrency, locale),
+        coinsUsed = electricityCoinsUsed.trim().toIntOrNull(),
+        kwh = kwh,
+        nights = nights.trim().toIntOrNull()?.takeIf { it >= 1 },
+    )
+    return ElectricityPreview(cost, kwh)
+}
+
+/**
+ * Wechselt [StationInput.electricityBilling] und leert dabei die Felder, die zur neuen Abrechnungsart
+ * nicht gehören, damit beim erneuten Wechsel keine veralteten Werte unbemerkt wieder greifen. Felder,
+ * die die neue Art mit der alten teilt (z. B. der Zähler- bzw. kWh-Stand bei [ElectricityBilling.METERED]
+ * und [ElectricityBilling.BASE_PLUS_METERED]), bleiben erhalten.
+ */
+fun StationInput.withElectricityBilling(billing: ElectricityBilling?): StationInput {
+    if (billing == electricityBilling) return this
+    val cleared = copy(
+        electricityBilling = billing,
+        electricityFlatAmount = "",
+        electricityBaseFee = "",
+        electricityPricePerKwh = "",
+        electricityCoinPrice = "",
+        electricityCoinsUsed = "",
+        electricityKwhPerCoin = "",
+        electricityMeterStart = "",
+        electricityMeterEnd = "",
+        electricityKwhUsed = "",
+    )
+    return when (billing) {
+        null, ElectricityBilling.NONE, ElectricityBilling.INCLUDED -> cleared
+        ElectricityBilling.FLAT_PER_NIGHT, ElectricityBilling.FLAT_PER_STAY -> cleared.copy(electricityFlatAmount = electricityFlatAmount)
+        ElectricityBilling.METERED -> cleared.copy(
+            electricityPricePerKwh = electricityPricePerKwh,
+            electricityMeterStart = electricityMeterStart,
+            electricityMeterEnd = electricityMeterEnd,
+            electricityKwhUsed = electricityKwhUsed,
+        )
+        ElectricityBilling.BASE_PLUS_METERED -> cleared.copy(
+            electricityBaseFee = electricityBaseFee,
+            electricityPricePerKwh = electricityPricePerKwh,
+            electricityMeterStart = electricityMeterStart,
+            electricityMeterEnd = electricityMeterEnd,
+            electricityKwhUsed = electricityKwhUsed,
+        )
+        ElectricityBilling.COIN -> cleared.copy(
+            electricityCoinPrice = electricityCoinPrice,
+            electricityCoinsUsed = electricityCoinsUsed,
+            electricityKwhPerCoin = electricityKwhPerCoin,
+        )
+    }
+}

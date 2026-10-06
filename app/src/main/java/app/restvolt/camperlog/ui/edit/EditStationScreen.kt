@@ -49,7 +49,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
@@ -63,7 +62,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -88,6 +86,8 @@ import app.restvolt.camperlog.domain.SYNCED_SERVICE_LOG_TYPES
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.allowedServices
+import app.restvolt.camperlog.domain.electricityPreview
+import app.restvolt.camperlog.domain.formatAmount
 import app.restvolt.camperlog.domain.formatCoordinates
 import app.restvolt.camperlog.domain.isApproximateFix
 import app.restvolt.camperlog.domain.ParsedLocation
@@ -95,6 +95,7 @@ import app.restvolt.camperlog.domain.parseLocationText
 import app.restvolt.camperlog.domain.period
 import app.restvolt.camperlog.share.openAppDetailsSettings
 import app.restvolt.camperlog.ui.BackTopBar
+import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
@@ -201,7 +202,8 @@ private fun StationForm(
     modifier: Modifier,
 ) {
     val input = state.input
-    val errors = state.errors.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
+    // Kostenzeilen-Fehler brauchen die Währung der jeweiligen Zeile und werden gesondert über state.costErrors gerendert.
+    val errors = state.errors.filterKeys { it != StationField.COST }.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
     val change = viewModel::onInputChange
     val required = stringResource(R.string.edit_required)
     val locale = currentLocale()
@@ -216,6 +218,11 @@ private fun StationForm(
             StationField.NAME to FocusRequester(),
             StationField.PLACE to FocusRequester(),
             StationField.NOTES to FocusRequester(),
+            StationField.TOLL_COUNTRY to FocusRequester(),
+            StationField.TOLL_VALID_UNTIL to FocusRequester(),
+            StationField.TOLL_PAYMENT_METHOD to FocusRequester(),
+            StationField.FERRY_BOOKING_REFERENCE to FocusRequester(),
+            StationField.COST to FocusRequester(),
         )
     }
     fun focusOf(field: StationField) = Modifier.focusRequester(focus.getValue(field))
@@ -306,16 +313,41 @@ private fun StationForm(
         }
         val servicesError = errors[StationField.SERVICES]
         when (input.type) {
-            StationType.OVERNIGHT -> OvernightSection(input, change, focusOf(StationField.NIGHTS), errors[StationField.NIGHTS], servicesError)
+            StationType.OVERNIGHT -> OvernightSection(
+                input,
+                change,
+                focusOf(StationField.NIGHTS),
+                errors[StationField.NIGHTS],
+                servicesError,
+                errors[StationField.ELECTRICITY],
+                viewModel::onElectricityBillingChange,
+            )
             StationType.SUPPLY -> SectionCard {
                 SectionHeading(stringResource(R.string.station_section_used_here))
                 ServicesChips(SUPPLY_SERVICES, input.services, servicesError) { service -> change { it.copy(services = it.services.toggled(service)) } }
             }
             StationType.FUEL -> FuelSection(input, change, servicesError)
-            StationType.TOLL, StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> Unit
+            StationType.TOLL -> TollSection(input, errors, change)
+            StationType.FERRY -> FerrySection(input, errors[StationField.FERRY_BOOKING_REFERENCE], change)
+            StationType.SIGHT, StationType.FOOD, StationType.OTHER -> Unit
         }
         if (weatherEnabled && input.latitude != null && input.longitude != null) {
             WeatherSection(input, viewModel)
+        }
+        SectionCard {
+            SectionHeading(stringResource(R.string.station_section_costs))
+            StationCostFields(
+                costs = input.costs,
+                errors = state.costErrors,
+                excludeElectricity = input.type == StationType.OVERNIGHT && input.electricityPreview(locale).cost != null,
+                focusRequester = focus.getValue(StationField.COST),
+                onCategoryChange = viewModel::onCostCategoryChange,
+                onAmountChange = viewModel::onCostAmountChange,
+                onCurrencyChange = viewModel::onCostCurrencyChange,
+                onNoteChange = viewModel::onCostNoteChange,
+                onAdd = viewModel::onAddCost,
+                onRemove = viewModel::onRemoveCost,
+            )
         }
         SectionCard {
             FormTextField(
@@ -355,7 +387,10 @@ private fun OvernightSection(
     modifier: Modifier,
     nightsError: String?,
     servicesError: String?,
+    electricityError: String?,
+    onElectricityBillingChange: (ElectricityBilling?) -> Unit,
 ) {
+    val locale = currentLocale()
     SectionCard {
         SectionHeading(stringResource(R.string.station_section_overnight))
         FormTextField(
@@ -371,13 +406,11 @@ private fun OvernightSection(
 
         var pitchExpanded by rememberSaveable(input.type) {
             mutableStateOf(
-                input.pitchAssigned != null || input.electricityBilling != null ||
-                    input.lteQuality != null || input.pitchSlope != null || input.levelingBlocksUsed != null,
+                input.pitchAssigned != null || input.lteQuality != null || input.pitchSlope != null || input.levelingBlocksUsed != null,
             )
         }
         val pitchSummary = listOfNotNull(
             input.pitchAssigned?.let { summaryPair(stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(it))) },
-            input.electricityBilling?.let { summaryPair(stringResource(R.string.field_electricity), stringResource(it.labelRes)) },
             input.lteQuality?.let { summaryPair(stringResource(R.string.field_lte), stringResource(it.labelRes)) },
             input.pitchSlope?.let { summaryPair(stringResource(R.string.field_pitch_slope), stringResource(it.labelRes)) },
             input.levelingBlocksUsed?.let { summaryPair(stringResource(R.string.field_leveling_blocks), stringResource(yesNoRes(it))) },
@@ -392,12 +425,6 @@ private fun OvernightSection(
             NullableChoiceField(stringResource(R.string.field_pitch_assigned), listOf(true, false), input.pitchAssigned, ::yesNoRes) { value ->
                 change { it.copy(pitchAssigned = value) }
             }
-            NullableChoiceField(
-                stringResource(R.string.field_electricity),
-                ElectricityBilling.entries,
-                input.electricityBilling,
-                ElectricityBilling::labelRes,
-            ) { value -> change { it.copy(electricityBilling = value) } }
             NullableChoiceField(stringResource(R.string.field_lte), LteQuality.entries, input.lteQuality, LteQuality::labelRes) { value ->
                 change { it.copy(lteQuality = value) }
             }
@@ -407,6 +434,21 @@ private fun OvernightSection(
             NullableChoiceField(stringResource(R.string.field_leveling_blocks), listOf(true, false), input.levelingBlocksUsed, ::yesNoRes) { value ->
                 change { it.copy(levelingBlocksUsed = value) }
             }
+        }
+
+        var electricityExpanded by rememberSaveable(input.type) { mutableStateOf(input.electricityBilling != null) }
+        val electricitySummary = input.electricityBilling?.let { billing ->
+            val preview = input.electricityPreview(locale)
+            val resultPart = preview.cost?.let { formatAmount(it.minor, it.currency, locale) }
+            listOfNotNull(stringResource(billing.labelRes), resultPart).joinToString(" · ")
+        } ?: stringResource(R.string.station_summary_none)
+        CollapsibleSection(
+            title = stringResource(R.string.station_section_electricity),
+            expanded = electricityExpanded,
+            onToggle = { electricityExpanded = !electricityExpanded },
+            summary = electricitySummary,
+        ) {
+            ElectricityFields(input, electricityError, change, onElectricityBillingChange)
         }
 
         var usedHereExpanded by rememberSaveable(input.type) { mutableStateOf(input.services.isNotEmpty()) }
@@ -536,48 +578,6 @@ private fun SiteKindField(selected: SiteKind?, onSelect: (SiteKind?) -> Unit) {
                     label = { Text(stringResource(kind.labelRes)) },
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun CollapsibleSection(
-    title: String,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    summary: String?,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Column(Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .clickable(onClick = onToggle)
-                .semantics { role = Role.Button },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall)
-                if (!expanded && summary != null) {
-                    Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Icon(
-                painterResource(R.drawable.ic_arrow_drop_down),
-                contentDescription = stringResource(if (expanded) R.string.cd_collapse_section else R.string.cd_expand_section, title),
-                modifier = Modifier.rotate(if (expanded) 180f else 0f),
-                tint = MaterialTheme.colorScheme.outline,
-            )
-        }
-        if (expanded) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                content = content,
-            )
         }
     }
 }
@@ -803,7 +803,7 @@ private fun VehicleField(vehicles: List<Vehicle>, selectedId: Long, onSelect: (L
 }
 
 @Composable
-private fun FormTextField(
+internal fun FormTextField(
     label: String,
     value: String,
     error: String?,

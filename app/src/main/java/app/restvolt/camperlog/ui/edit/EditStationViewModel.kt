@@ -7,7 +7,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.savedstate.SavedState
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
+import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.CoordinateSource
+import app.restvolt.camperlog.domain.ElectricityBilling
+import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.LocationCaptureController
 import app.restvolt.camperlog.domain.LocationCaptureState
 import app.restvolt.camperlog.domain.LocationFix
@@ -19,6 +22,7 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationError
 import app.restvolt.camperlog.domain.StationField
 import app.restvolt.camperlog.domain.StationInput
+import app.restvolt.camperlog.domain.StationCostInput
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
@@ -30,12 +34,15 @@ import app.restvolt.camperlog.domain.WeatherCaptureController
 import app.restvolt.camperlog.domain.WeatherCaptureState
 import app.restvolt.camperlog.domain.WeatherProvider
 import app.restvolt.camperlog.domain.WeatherResult
+import app.restvolt.camperlog.domain.defaultCostCategory
 import app.restvolt.camperlog.domain.defaultStationDate
 import app.restvolt.camperlog.domain.parseLocationText
 import app.restvolt.camperlog.domain.supportedLocale
 import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toStation
 import app.restvolt.camperlog.domain.validate
+import app.restvolt.camperlog.domain.validation
+import app.restvolt.camperlog.domain.withElectricityBilling
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,6 +52,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 import java.time.LocalTime
+import java.util.Currency
 import java.util.Locale
 
 /** Zustand des Stationsformulars. Fehler werden erst nach dem ersten Speicherversuch angezeigt. */
@@ -57,6 +65,8 @@ data class StationEditUiState(
     /** Touren aller Fahrzeuge für das Tour-Auswahlfeld; die Oberfläche filtert nach [StationInput.vehicleId]. */
     val tours: List<Tour> = emptyList(),
     val errors: Map<StationField, StationError> = emptyMap(),
+    /** Fehler je Kostenzeile, Schlüssel ist der Index in [StationInput.costs]. */
+    val costErrors: Map<Int, StationError> = emptyMap(),
     val isDirty: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
@@ -265,20 +275,48 @@ class EditStationViewModel(
     /** "Entfernen" im Erfolgszustand der Wetterkarte. */
     fun onRemoveWeather() = onInputChange { it.copy(weather = null) }
 
+    /** Wechselt die Stromabrechnungsart; siehe [withElectricityBilling] für das Verhalten je Feld. */
+    fun onElectricityBillingChange(billing: ElectricityBilling?) = onInputChange { it.withElectricityBilling(billing) }
+
+    /** Hängt eine Kostenzeile mit der Vorgabe-Kategorie des aktuellen Stationstyps an; Währung ist die zuletzt verwendete. */
+    fun onAddCost() {
+        viewModelScope.launch {
+            val currency = tours.lastUsedCurrency() ?: EUR
+            onInputChange { input -> input.copy(costs = input.costs + StationCostInput(category = input.type.defaultCostCategory, currency = currency)) }
+        }
+    }
+
+    /** Entfernt die Kostenzeile mit Index [index]. */
+    fun onRemoveCost(index: Int) = onInputChange { input -> input.copy(costs = input.costs.filterIndexed { i, _ -> i != index }) }
+
+    fun onCostCategoryChange(index: Int, category: CostCategory) = onCostChange(index) { it.copy(category = category) }
+
+    fun onCostAmountChange(index: Int, amount: String) = onCostChange(index) { it.copy(amount = amount) }
+
+    fun onCostCurrencyChange(index: Int, currency: Currency) = onCostChange(index) { it.copy(currency = currency) }
+
+    fun onCostNoteChange(index: Int, note: String) = onCostChange(index) { it.copy(note = note) }
+
+    private fun onCostChange(index: Int, transform: (StationCostInput) -> StationCostInput) = onInputChange { input ->
+        input.copy(costs = input.costs.mapIndexed { i, cost -> if (i == index) transform(cost) else cost })
+    }
+
     /** Validiert und speichert; bei Erfolg wird [StationEditUiState.isSaved] gesetzt. */
     fun save() {
         val state = _uiState.value
         if (state.isSaving || state.isLoading || state.notFound) return
-        val errors = state.input.validate(today(), locale())
-        if (errors.isNotEmpty()) {
+        val validation = state.input.validation(today(), locale())
+        if (validation.errors.isNotEmpty()) {
             showErrors = true
             saveDraft()
-            _uiState.update { it.copy(errors = errors, rejectedSaves = it.rejectedSaves + 1) }
+            _uiState.update {
+                it.copy(errors = validation.errors, costErrors = validation.costErrors, rejectedSaves = it.rejectedSaves + 1)
+            }
             return
         }
         val station = state.input.toStation(original, locale())
         val loggedServices = station.services.filterTo(mutableSetOf()) { it in SYNCED_SERVICE_LOG_TYPES }
-        _uiState.update { it.copy(isSaving = true, errors = emptyMap(), saveFailed = false) }
+        _uiState.update { it.copy(isSaving = true, errors = emptyMap(), costErrors = emptyMap(), saveFailed = false) }
         viewModelScope.launch {
             try {
                 repository.save(station)
@@ -297,8 +335,9 @@ class EditStationViewModel(
     }
 
     private fun StationEditUiState.withErrors(): StationEditUiState {
-        if (!showErrors) return copy(errors = emptyMap())
-        return copy(errors = input.validate(locale = locale()))
+        if (!showErrors) return copy(errors = emptyMap(), costErrors = emptyMap())
+        val validation = input.validation(locale = locale())
+        return copy(errors = validation.errors, costErrors = validation.costErrors)
     }
 
     private fun saveDraft() {

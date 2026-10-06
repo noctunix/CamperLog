@@ -344,13 +344,56 @@ class StationInputTest {
     }
 
     @Test
-    fun toStationKeepsCostsFromTheOriginalStation() {
-        val original = valid.toStation(null).copy(
-            id = 7,
-            costs = listOf(StationCost(CostCategory.PITCH, Money(1500, EUR))),
+    fun toStationBuildsCostsFromTheCostLines() {
+        val input = valid.copy(costs = listOf(StationCostInput(CostCategory.PITCH, "15", EUR), StationCostInput(CostCategory.FOOD, "4,50", EUR)))
+        val station = input.toStation(null)
+        assertEquals(
+            listOf(StationCost(CostCategory.PITCH, Money(1500, EUR)), StationCost(CostCategory.FOOD, Money(450, EUR))),
+            station.costs,
         )
-        val station = valid.copy(name = "Anderer Name").toStation(original)
-        assertEquals(listOf(StationCost(CostCategory.PITCH, Money(1500, EUR))), station.costs)
+    }
+
+    @Test
+    fun toStationIgnoresEmptyAndZeroCostLines() {
+        val input = valid.copy(costs = listOf(StationCostInput(CostCategory.PITCH, "", EUR), StationCostInput(CostCategory.FOOD, "0", EUR)))
+        assertTrue(input.toStation(null).costs.isEmpty())
+    }
+
+    @Test
+    fun toStationMergesCostLinesOfTheSameCategoryAndCurrency() {
+        val input = valid.copy(costs = listOf(StationCostInput(CostCategory.PITCH, "10", EUR), StationCostInput(CostCategory.PITCH, "5", EUR)))
+        assertEquals(listOf(StationCost(CostCategory.PITCH, Money(1500, EUR))), input.toStation(null).costs)
+    }
+
+    @Test
+    fun costLineWithInvalidAmountIsRejected() {
+        val input = valid.copy(costs = listOf(StationCostInput(CostCategory.PITCH, "abc", EUR)))
+        assertEquals(StationError.INVALID_NUMBER, input.validate()[StationField.COST])
+        assertEquals(StationError.INVALID_NUMBER, input.costErrors(Locale.GERMANY)[0])
+    }
+
+    @Test
+    fun costLineWithTooLargeAmountIsRejected() {
+        val input = valid.copy(costs = listOf(StationCostInput(CostCategory.PITCH, "999999999999999", EUR)))
+        assertEquals(StationError.AMOUNT_TOO_LARGE, input.costErrors(Locale.GERMANY)[0])
+    }
+
+    @Test
+    fun costLineWithTooLongNoteIsRejected() {
+        val input = valid.copy(costs = listOf(StationCostInput(CostCategory.PITCH, "10", EUR, note = "x".repeat(501))))
+        assertEquals(StationError.TOO_LONG, input.costErrors(Locale.GERMANY)[0])
+    }
+
+    @Test
+    fun blankCostLineIsValid() {
+        val input = valid.copy(costs = listOf(StationCostInput(CostCategory.PITCH, "", EUR)))
+        assertTrue(input.validate().isEmpty())
+    }
+
+    @Test
+    fun costNoteRoundTripsThroughInput() {
+        val station = valid.toStation(null).copy(costs = listOf(StationCost(CostCategory.PITCH, Money(1500, EUR), "Platz 12")))
+        assertEquals(station.costs, station.toInput().toStation(station).costs)
     }
 
     @Test
@@ -376,5 +419,66 @@ class StationInputTest {
             tollValidUntil = LocalDate.of(2026, 12, 31),
         )
         assertEquals(station, station.toInput().toStation(station))
+    }
+
+    @Test
+    fun electricityPreviewIsPendingWithoutBilling() {
+        assertEquals(ElectricityPreview(null, null), valid.electricityPreview())
+    }
+
+    @Test
+    fun electricityPreviewIsPendingWithoutEnoughValues() {
+        val input = valid.copy(electricityBilling = ElectricityBilling.METERED, electricityPricePerKwh = "0.45")
+        assertEquals(ElectricityPreview(null, null), input.electricityPreview(Locale.GERMANY))
+    }
+
+    @Test
+    fun electricityPreviewComputesCostAndKwhForMeteredBilling() {
+        val input = valid.copy(
+            electricityBilling = ElectricityBilling.METERED,
+            electricityCurrency = EUR,
+            electricityPricePerKwh = "0,50",
+            electricityMeterStart = "100",
+            electricityMeterEnd = "121,5",
+        )
+        val preview = input.electricityPreview(Locale.GERMANY)
+        assertEquals(Money(1075, EUR), preview.cost)
+        assertEquals(BigDecimal("21.5"), preview.kwh)
+    }
+
+    @Test
+    fun withElectricityBillingClearsFieldsNotUsedByTheNewKind() {
+        val meteredInput = valid.copy(
+            electricityBilling = ElectricityBilling.METERED,
+            electricityPricePerKwh = "0,45",
+            electricityMeterStart = "100",
+            electricityMeterEnd = "120",
+        )
+        val coinInput = meteredInput.withElectricityBilling(ElectricityBilling.COIN)
+        assertEquals(ElectricityBilling.COIN, coinInput.electricityBilling)
+        assertEquals("", coinInput.electricityPricePerKwh)
+        assertEquals("", coinInput.electricityMeterStart)
+        assertEquals("", coinInput.electricityMeterEnd)
+    }
+
+    @Test
+    fun withElectricityBillingKeepsMeterFieldsBetweenMeteredAndBasePlusMetered() {
+        val meteredInput = valid.copy(
+            electricityBilling = ElectricityBilling.METERED,
+            electricityPricePerKwh = "0,45",
+            electricityMeterStart = "100",
+            electricityMeterEnd = "120",
+        )
+        val withBaseFee = meteredInput.withElectricityBilling(ElectricityBilling.BASE_PLUS_METERED)
+        assertEquals("0,45", withBaseFee.electricityPricePerKwh)
+        assertEquals("100", withBaseFee.electricityMeterStart)
+        assertEquals("120", withBaseFee.electricityMeterEnd)
+        assertEquals("", withBaseFee.electricityBaseFee)
+    }
+
+    @Test
+    fun withElectricityBillingToTheSameKindIsANoOp() {
+        val input = valid.copy(electricityBilling = ElectricityBilling.METERED, electricityPricePerKwh = "0,45")
+        assertEquals(input, input.withElectricityBilling(ElectricityBilling.METERED))
     }
 }
