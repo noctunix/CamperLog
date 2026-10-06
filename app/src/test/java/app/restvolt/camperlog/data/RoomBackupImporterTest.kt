@@ -10,13 +10,16 @@ import app.restvolt.camperlog.backup.BackupVehicle
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.backup.decodeBackup
+import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.EUR
+import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
@@ -734,5 +737,35 @@ class RoomBackupImporterTest {
         assertEquals(storedTour.vehicleId, storedStation.vehicleId)
         assertEquals(13, storedStation.nights)
         assertEquals("Lofoten", storedStation.name)
+        assertEquals(ElectricityBilling.FLAT_PER_STAY, storedStation.electricityBilling)
+    }
+
+    @Test
+    fun merge_importsStationCostsAndReplacesThemOnUpdate() = runTest {
+        val costs = listOf(StationCost(CostCategory.SUPPLY, Money(500, EUR)))
+        importer.import(
+            backup(
+                tours = emptyList(),
+                vehicles = listOf(BackupVehicle(vehicle(1), emptyList(), emptyList())),
+                stations = listOf(station(1).copy(costs = costs)),
+                stationVehicleUuid = mapOf(stationUuid(1) to vehicleUuid(1)),
+            ),
+            ImportMode.MERGE,
+        )
+        assertEquals(costs, storedStations().single().costs)
+
+        val newerCosts = listOf(StationCost(CostCategory.FUEL, Money(3000, nok)))
+        val result = importer.import(
+            backup(
+                tours = emptyList(),
+                vehicles = listOf(BackupVehicle(vehicle(1), emptyList(), emptyList())),
+                stations = listOf(station(1, updatedAt = "2026-07-02T10:00:00Z").copy(costs = newerCosts)),
+                stationVehicleUuid = mapOf(stationUuid(1) to vehicleUuid(1)),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(1, result.updatedStations)
+        assertEquals(newerCosts, storedStations().single().costs)
     }
 }
