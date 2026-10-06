@@ -3,6 +3,7 @@ package app.restvolt.camperlog.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.LogType
@@ -251,6 +252,26 @@ class RoomStationRepositoryTest {
         stations.delete(id)
 
         assertEquals(0, costRows())
+    }
+
+    @Test
+    fun deletingTheStation_alsoDeletesItsAttachments() = runTest {
+        val id = stations.save(station())
+        db.attachmentDao().insert(
+            AttachmentEntity(
+                uuid = "att-1",
+                ownerType = AttachmentOwnerType.STATION.name,
+                ownerId = id,
+                fileName = "att-1.jpg",
+                mimeType = "image/jpeg",
+                sizeBytes = 100,
+                createdAtMillis = 0,
+            ),
+        )
+
+        stations.delete(id)
+
+        assertEquals(0, db.attachmentDao().getAll().size)
     }
 
     @Test

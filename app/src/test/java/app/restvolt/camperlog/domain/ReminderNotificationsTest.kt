@@ -82,4 +82,67 @@ class ReminderNotificationsTest {
 
         assertEquals(setOf(ReminderKind.INSPECTION), states.keys)
     }
+
+    private fun documentReminder(documentId: Long, dueDate: LocalDate, overdue: Boolean, label: String = "Dokument $documentId") =
+        Reminder(ReminderKind.DOCUMENT_EXPIRY, dueDate, overdue, label = label, documentId = documentId)
+
+    @Test
+    fun documentExpiry_firstSighting_dueSoon_notifiesLeadThresholdOnly() {
+        val reminder = documentReminder(documentId = 1, dueDate = DUE_SOON, overdue = false)
+
+        val (notifications, states) = pendingDocumentReminderNotifications(1, listOf(reminder), emptyMap())
+
+        assertEquals(listOf(ReminderNotification(1, ReminderKind.DOCUMENT_EXPIRY, DUE_SOON, overdue = false, documentId = 1, label = "Dokument 1")), notifications)
+        assertEquals(ReminderNotificationState(DUE_SOON, leadNotified = true, overdueNotified = false), states[1L])
+    }
+
+    @Test
+    fun documentExpiry_severalDocuments_notifyIndependentlyByDocumentIdNotByKind() {
+        val reminders = listOf(
+            documentReminder(documentId = 1, dueDate = DUE_SOON, overdue = false),
+            documentReminder(documentId = 2, dueDate = OVERDUE, overdue = true),
+        )
+
+        val (notifications, states) = pendingDocumentReminderNotifications(1, reminders, emptyMap())
+
+        assertEquals(2, notifications.size)
+        assertEquals(setOf(1L, 2L), states.keys)
+        assertEquals(true, notifications.single { it.documentId == 2L }.overdue)
+    }
+
+    @Test
+    fun documentExpiry_repeatedRun_sameDueDate_doesNotNotifyAgain() {
+        val reminder = documentReminder(documentId = 1, dueDate = DUE_SOON, overdue = false)
+        val (_, firstStates) = pendingDocumentReminderNotifications(1, listOf(reminder), emptyMap())
+
+        val (notifications, _) = pendingDocumentReminderNotifications(1, listOf(reminder), firstStates)
+
+        assertTrue(notifications.isEmpty())
+    }
+
+    @Test
+    fun documentExpiry_becomingOverdue_notifiesOverdueThresholdOnce() {
+        val leadState = mapOf(1L to ReminderNotificationState(DUE_SOON, leadNotified = true, overdueNotified = false))
+        val nowOverdue = documentReminder(documentId = 1, dueDate = DUE_SOON, overdue = true)
+
+        val (notifications, states) = pendingDocumentReminderNotifications(1, listOf(nowOverdue), leadState)
+
+        assertEquals(true, notifications.single().overdue)
+        assertEquals(true, states[1L]?.overdueNotified)
+
+        val (repeated, _) = pendingDocumentReminderNotifications(1, listOf(nowOverdue), states)
+        assertTrue(repeated.isEmpty())
+    }
+
+    @Test
+    fun documentExpiry_documentNoLongerDue_isDroppedFromTheNextState() {
+        val previousState = mapOf(
+            1L to ReminderNotificationState(DUE_SOON, leadNotified = true, overdueNotified = false),
+            2L to ReminderNotificationState(OVERDUE, leadNotified = true, overdueNotified = true),
+        )
+
+        val (_, states) = pendingDocumentReminderNotifications(1, listOf(documentReminder(documentId = 1, dueDate = DUE_SOON, overdue = false)), previousState)
+
+        assertEquals(setOf(1L), states.keys)
+    }
 }

@@ -3,6 +3,7 @@ package app.restvolt.camperlog.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.LogType
 import java.time.Instant
 import java.time.LocalDate
@@ -83,5 +84,25 @@ class RoomLogRepositoryTest {
             listOf(second.id, first.id),
             repository.observeEntries(vehicleId, LogType.GAS_HEATER_RUN).first().map { it.id },
         )
+    }
+
+    @Test
+    fun deletingAnEntryAlsoDeletesItsAttachments() = runTest {
+        val entry = repository.add(vehicleId, LogType.GAS_HEATER_RUN, LocalDate.of(2026, 1, 1))
+        db.attachmentDao().insert(
+            AttachmentEntity(
+                uuid = "att-1",
+                ownerType = AttachmentOwnerType.LOG_ENTRY.name,
+                ownerId = entry.id,
+                fileName = "att-1.jpg",
+                mimeType = "image/jpeg",
+                sizeBytes = 100,
+                createdAtMillis = 0,
+            ),
+        )
+
+        repository.delete(entry.id)
+
+        assertEquals(0, db.attachmentDao().getAll().size)
     }
 }

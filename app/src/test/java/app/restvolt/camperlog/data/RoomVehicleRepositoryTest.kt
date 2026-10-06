@@ -3,6 +3,8 @@ package app.restvolt.camperlog.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
@@ -172,6 +174,51 @@ class RoomVehicleRepositoryTest {
         repository.saveRepair(repair(vehicleId, "2026-03-01", "Bremsen").copy(cost = Money(5_000, Currency.getInstance("ISK"))))
         assertEquals(Currency.getInstance("ISK"), repository.lastUsedRepairCurrency())
     }
+
+    @Test
+    fun deleteRepairAlsoDeletesItsAttachments() = runTest {
+        val vehicleId = repository.save(vehicle(name = "Womo"))
+        val repairId = repository.saveRepair(repair(vehicleId, "2026-01-01", "Reifen"))
+        addAttachmentFor(AttachmentOwnerType.REPAIR, repairId)
+
+        repository.deleteRepair(repairId)
+
+        assertEquals(0, db.attachmentDao().getAll().size)
+    }
+
+    @Test
+    fun deletingAVehicleAlsoDeletesAttachmentsOfItsRepairsLogEntriesAndDocuments() = runTest {
+        val vehicleId = repository.save(vehicle(name = "Womo"))
+        val repairId = repository.saveRepair(repair(vehicleId, "2026-01-01", "Reifen"))
+        addAttachmentFor(AttachmentOwnerType.REPAIR, repairId)
+        val logEntryId = db.logDao().insert(
+            LogEntryEntity(uuid = UUID.randomUUID().toString(), vehicleId = vehicleId, type = LogType.CASSETTE_EMPTIED.name, date = "2026-01-01", createdAtMillis = 0),
+        )
+        addAttachmentFor(AttachmentOwnerType.LOG_ENTRY, logEntryId)
+        val documentId = db.vehicleDocumentDao().insert(
+            VehicleDocumentEntity(uuid = UUID.randomUUID().toString(), vehicleId = vehicleId, kind = "REGISTRATION", title = "Schein", expiryDate = null, createdAtMillis = 0, updatedAtMillis = 0),
+        )
+        addAttachmentFor(AttachmentOwnerType.VEHICLE_DOCUMENT, documentId)
+        repository.save(vehicle(name = "Zweites")) // zweites Fahrzeug, damit das erste nicht das letzte ist
+
+        assertEquals(VehicleDeleteResult.DELETED, repository.delete(vehicleId))
+
+        assertEquals(0, db.attachmentDao().getAll().size)
+        assertEquals(0, db.vehicleDocumentDao().getAll().size)
+    }
+
+    private suspend fun addAttachmentFor(ownerType: AttachmentOwnerType, ownerId: Long): Long =
+        db.attachmentDao().insert(
+            AttachmentEntity(
+                uuid = UUID.randomUUID().toString(),
+                ownerType = ownerType.name,
+                ownerId = ownerId,
+                fileName = "${UUID.randomUUID()}.jpg",
+                mimeType = "image/jpeg",
+                sizeBytes = 100,
+                createdAtMillis = 0,
+            ),
+        )
 
     @Test
     fun settingMainCurrencyAndCurrentVehicleDoNotResetEachOther() = runTest {

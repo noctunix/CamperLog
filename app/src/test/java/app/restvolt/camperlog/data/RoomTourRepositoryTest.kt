@@ -3,6 +3,7 @@ package app.restvolt.camperlog.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityBilling
@@ -149,6 +150,30 @@ class RoomTourRepositoryTest {
         repository.save(tour(start = "2026-06-01", costs = listOf(eur(300))))
         repository.delete(id)
         assertEquals(1, costRows())
+    }
+
+    @Test
+    fun deletingTourAlsoDeletesAttachmentsOfItsStations() = runTest {
+        val tourId = repository.save(tour(start = "2026-05-01"))
+        val stationId = stations.save(station(date = "2026-05-01").copy(tourId = tourId))
+        db.attachmentDao().insert(
+            AttachmentEntity(
+                uuid = "att-1",
+                ownerType = AttachmentOwnerType.STATION.name,
+                ownerId = stationId,
+                fileName = "att-1.jpg",
+                mimeType = "image/jpeg",
+                sizeBytes = 100,
+                createdAtMillis = 0,
+            ),
+        )
+
+        repository.delete(tourId)
+
+        // Die Station selbst verschwindet über den Fremdschlüssel (CASCADE); ihr Anhang hat keinen und
+        // wird von RoomTourRepository.delete eigens vorher entfernt.
+        assertEquals(emptyList<Station>(), stations.allStations())
+        assertEquals(0, db.attachmentDao().getAll().size)
     }
 
     @Test

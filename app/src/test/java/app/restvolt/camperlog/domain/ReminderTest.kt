@@ -110,4 +110,58 @@ class ReminderTest {
             reminders,
         )
     }
+
+    private fun document(id: Long = 1, title: String = "Fahrzeugschein", expiryDate: LocalDate?) = VehicleDocument(
+        id = id,
+        vehicleId = 1,
+        kind = DocumentKind.REGISTRATION,
+        title = title,
+        expiryDate = expiryDate,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
+
+    @Test
+    fun documentReminders_includesDueDateExactlyAtTheLeadWindowBoundary() {
+        val dueAtBoundary = document(expiryDate = today.plusDays(30))
+        assertEquals(
+            listOf(Reminder(ReminderKind.DOCUMENT_EXPIRY, today.plusDays(30), overdue = false, label = "Fahrzeugschein", documentId = 1)),
+            documentReminders(listOf(dueAtBoundary), today, leadDays = 30),
+        )
+
+        val justOutside = document(expiryDate = today.plusDays(31))
+        assertEquals(emptyList<Reminder>(), documentReminders(listOf(justOutside), today, leadDays = 30))
+    }
+
+    @Test
+    fun documentReminders_overdueIsTrueOnlyBeforeToday() {
+        val dueToday = document(expiryDate = today)
+        assertEquals(false, documentReminders(listOf(dueToday), today, leadDays = 30).single().overdue)
+
+        val overdue = document(expiryDate = today.minusDays(1))
+        assertEquals(true, documentReminders(listOf(overdue), today, leadDays = 30).single().overdue)
+    }
+
+    @Test
+    fun documentReminders_documentsWithoutExpiryDateProduceNoReminder() {
+        assertEquals(emptyList<Reminder>(), documentReminders(listOf(document(expiryDate = null)), today, leadDays = 30))
+    }
+
+    @Test
+    fun documentReminders_eachDueDocumentIsItsOwnReminderWithItsTitleAsLabel() {
+        val documents = listOf(
+            document(id = 1, title = "Fahrzeugschein", expiryDate = today.plusDays(5)),
+            document(id = 2, title = "Versicherung", expiryDate = today.minusDays(1)),
+        )
+
+        val reminders = documentReminders(documents, today, leadDays = 30)
+
+        assertEquals(
+            listOf(
+                Reminder(ReminderKind.DOCUMENT_EXPIRY, today.plusDays(5), overdue = false, label = "Fahrzeugschein", documentId = 1),
+                Reminder(ReminderKind.DOCUMENT_EXPIRY, today.minusDays(1), overdue = true, label = "Versicherung", documentId = 2),
+            ),
+            reminders,
+        )
+    }
 }
