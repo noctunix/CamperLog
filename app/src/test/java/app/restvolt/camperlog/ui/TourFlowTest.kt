@@ -38,10 +38,13 @@ import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.LogEntry
+import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
@@ -80,6 +83,30 @@ class TourFlowTest {
                     vehicles,
                     FakeLogRepository(),
                     FakeStationRepository(stations),
+                    FakeExchangeRateRepository(),
+                    FakeBackupImporter(),
+                    ThemeMode.SYSTEM,
+                    canShowStartDialogs = false,
+                ) { }
+            }
+        }
+        return repository
+    }
+
+    /** Wie [start], aber mit geteiltem Stations- und Bordbuch-Repository für den Undo-Verknüpfungstest. */
+    private fun startForStationUndo(
+        stations: FakeStationRepository,
+        logs: FakeLogRepository,
+        vararg tours: Tour,
+    ): FakeTourRepository {
+        val repository = FakeTourRepository(tours.toList())
+        compose.setContent {
+            CamperLogTheme {
+                CamperLogNavHost(
+                    repository,
+                    FakeVehicleRepository(),
+                    logs,
+                    stations,
                     FakeExchangeRateRepository(),
                     FakeBackupImporter(),
                     ThemeMode.SYSTEM,
@@ -192,6 +219,45 @@ class TourFlowTest {
 
         compose.onNodeWithText("Gardasee").assertExists()
         assertEquals(listOf(original), repository.tours)
+    }
+
+    @Test
+    fun deleteTour_undo_restoresItsStationsAndRelinksTheirLogbookEntries() {
+        val tour = tour(id = 1, destination = "Lofoten")
+        val overnight = Station(
+            id = 1,
+            uuid = "station-1",
+            vehicleId = 1,
+            tourId = 1,
+            type = StationType.SUPPLY,
+            date = LocalDate.of(2026, 7, 4),
+            services = setOf(StationService.CASSETTE),
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        val linked = LogEntry(
+            id = 1,
+            uuid = "log-1",
+            vehicleId = 1,
+            type = LogType.CASSETTE_EMPTIED,
+            date = overnight.date,
+            createdAt = Instant.EPOCH,
+            stationId = overnight.id,
+        )
+        val logs = FakeLogRepository(listOf(linked))
+        val stations = FakeStationRepository(listOf(overnight), logs)
+        startForStationUndo(stations, logs, tour)
+
+        compose.onNodeWithText("Lofoten").performClick()
+        deleteTourFromOverflowMenu()
+
+        assertEquals(emptyList<Station>(), stations.stations)
+        assertEquals(null, logs.entries.single().stationId)
+
+        compose.onNodeWithText("Rückgängig").performClick()
+
+        assertEquals(listOf(overnight), stations.stations)
+        assertEquals(overnight.id, logs.entries.single().stationId)
     }
 
     @Test

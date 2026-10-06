@@ -143,6 +143,40 @@ class StationInputTest {
     }
 
     @Test
+    fun futureDateWithASyncedServiceIsInvalid() {
+        val today = LocalDate.of(2026, 7, 4)
+        val tomorrow = today.plusDays(1)
+
+        assertEquals(
+            StationError.FUTURE_DATE,
+            valid.copy(date = tomorrow, services = setOf(StationService.CASSETTE)).validate(today)[StationField.SERVICES],
+        )
+        assertEquals(
+            StationError.FUTURE_DATE,
+            valid.copy(date = tomorrow, services = setOf(StationService.GREY_WATER)).validate(today)[StationField.SERVICES],
+        )
+        assertEquals(
+            StationError.FUTURE_DATE,
+            valid.copy(date = tomorrow, services = setOf(StationService.GAS)).validate(today)[StationField.SERVICES],
+        )
+    }
+
+    @Test
+    fun futureDateWithoutASyncedServiceStaysValid() {
+        val today = LocalDate.of(2026, 7, 4)
+        val tomorrow = today.plusDays(1)
+
+        assertTrue(valid.copy(date = tomorrow).validate(today).isEmpty())
+        assertTrue(valid.copy(date = tomorrow, services = setOf(StationService.FRESH_WATER)).validate(today).isEmpty())
+    }
+
+    @Test
+    fun todayWithASyncedServiceStaysValid() {
+        val today = LocalDate.of(2026, 7, 4)
+        assertTrue(valid.copy(date = today, services = setOf(StationService.CASSETTE)).validate(today).isEmpty())
+    }
+
+    @Test
     fun allowedServicesPerType() {
         assertEquals(
             setOf(StationService.FRESH_WATER, StationService.GREY_WATER, StationService.CASSETTE, StationService.GAS),

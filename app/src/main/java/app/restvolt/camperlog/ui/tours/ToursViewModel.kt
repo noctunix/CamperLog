@@ -137,14 +137,17 @@ class ToursViewModel(
     val message: StateFlow<ToursMessage?> = _message.asStateFlow()
 
     /**
-     * Löscht [tour]; ihre Stationen gehen per CASCADE mit, ihre verknüpften Bordbuch-Einträge bleiben
-     * (SET NULL). Bietet über [ToursMessage.Deleted] das vollständige Rückgängigmachen an (8.3, 13.4).
+     * Löscht [tour] und explizit ihre Stationen (ihre verknüpften Bordbuch-Einträge bleiben, SET NULL).
+     * Bietet über [ToursMessage.Deleted] das vollständige Rückgängigmachen an (8.3, 13.4). Die Stationen
+     * würden in Room auch über CASCADE verschwinden, das explizite Löschen bleibt aber unabhängig davon
+     * richtig und macht aus dem Löschen hier dieselbe Reihenfolge wie beim Rückgängigmachen.
      */
     fun delete(tour: Tour) {
         viewModelScope.launch {
             _message.value = try {
                 val tourStations = stations.observeForTour(tour.id).first()
                 val linkedEntryIds = tourStations.associate { it.id to stations.linkedLogEntries(it.id).map(LogEntry::id) }
+                tourStations.forEach { stations.delete(it.id) }
                 repository.delete(tour.id)
                 ToursMessage.Deleted(tour, tourStations, linkedEntryIds)
             } catch (_: SQLException) {
