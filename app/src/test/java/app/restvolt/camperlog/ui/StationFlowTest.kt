@@ -476,6 +476,15 @@ class StationFlowTest {
 
         compose.onNodeWithText(expectedResult).assertExists()
 
+        // Solange die Stromabrechnung schon einen Betrag ergibt, fehlt "Strom" in der Kategorieliste
+        // der manuellen Kosten: Das Öffnen der Liste fügt keinen weiteren Knoten mit diesem Text hinzu
+        // (er kommt schon von der Abschnittsüberschrift und der Beschriftung über den Abrechnungs-Chips).
+        compose.onNodeWithText("Kosten hinzufügen").performScrollTo().performClick()
+        val stromNodesBeforeMenu = compose.onAllNodesWithText("Strom").fetchSemanticsNodes().size
+        compose.onNode(hasText("Kategorie") and hasClickAction()).performScrollTo().performClick()
+        compose.onAllNodesWithText("Strom").assertCountEquals(stromNodesBeforeMenu)
+        compose.onAllNodesWithText("Stellplatz").onFirst().performClick()
+
         clickSave()
 
         val saved = stationRepository.stations.single()
@@ -533,6 +542,13 @@ class StationFlowTest {
 
         compose.onNodeWithText("Kosten hinzufügen").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Essen-Kosten (€)").assertExists()
+
+        // Ohne Stromabrechnung steht "Strom" in der Kategorieliste zur Wahl.
+        val categoryField = compose.onNode(hasText("Kategorie") and hasClickAction())
+        categoryField.performScrollTo().performClick()
+        compose.onNodeWithText("Strom").assertExists()
+        categoryField.performClick()
+
         compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performScrollTo().performTextInput("12,50")
 
         clickSave()
