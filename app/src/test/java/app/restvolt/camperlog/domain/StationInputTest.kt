@@ -122,6 +122,12 @@ class StationInputTest {
     }
 
     @Test
+    fun toStationDropsFavoriteForNonOvernightTypes() {
+        val input = valid.copy(type = StationType.FUEL, favorite = true)
+        assertEquals(false, input.toStation(null).favorite)
+    }
+
+    @Test
     fun toStationKeepsIdentityAndTimestampsFromOriginal() {
         val original = valid.toStation(null).copy(id = 7, uuid = "abc", createdAt = java.time.Instant.EPOCH, updatedAt = java.time.Instant.EPOCH)
         val station = valid.copy(name = "Anderer Name").toStation(original)

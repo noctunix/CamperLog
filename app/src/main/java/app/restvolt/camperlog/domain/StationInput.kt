@@ -132,7 +132,7 @@ fun StationInput.toStation(original: Station?): Station {
         levelingBlocksUsed = levelingBlocksUsed.takeIf { isOvernight },
         services = services.intersect(type.allowedServices),
         weather = original?.weather,
-        favorite = favorite,
+        favorite = favorite && isOvernight,
         createdAt = original?.createdAt ?: Instant.EPOCH,
         updatedAt = original?.updatedAt ?: Instant.EPOCH,
     )
