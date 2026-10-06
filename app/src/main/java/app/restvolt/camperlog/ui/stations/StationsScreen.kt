@@ -23,6 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -55,6 +56,7 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.formatMonthYear
+import app.restvolt.camperlog.domain.isMapAvailable
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.TabTopBar
 import app.restvolt.camperlog.ui.VehicleSwitcherTitle
@@ -69,9 +71,11 @@ import java.util.Locale
 @Composable
 fun StationsScreen(
     viewModel: StationsViewModel,
+    weatherMapEnabled: Boolean,
     onAddStop: () -> Unit,
     onOpenTour: (Long) -> Unit,
     onOpenStation: (Long) -> Unit,
+    onOpenMap: () -> Unit,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenVehicles: () -> Unit,
@@ -99,6 +103,13 @@ fun StationsScreen(
                         onSelectAllVehicles = viewModel::onSelectAllVehicles,
                         onManageVehicles = onOpenVehicles,
                     )
+                },
+                extraActions = {
+                    if (isMapAvailable(weatherMapEnabled, state.stations)) {
+                        IconButton(onClick = onOpenMap) {
+                            Icon(painterResource(R.drawable.ic_map), contentDescription = stringResource(R.string.action_map))
+                        }
+                    }
                 },
                 onOpenData = onOpenData,
                 onOpenSettings = onOpenSettings,
@@ -128,7 +139,7 @@ fun StationsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (state.showWhatsNew) {
-                item { WhatsNewCard(onClose = viewModel::dismissWhatsNew) }
+                item { WhatsNewCard(onOpenSettings = onOpenSettings, onClose = viewModel::dismissWhatsNew) }
             }
             state.runningTour?.let { running ->
                 item { RunningTourCard(running, onClick = { onOpenTour(running.tourId) }) }
@@ -189,7 +200,7 @@ fun StationsScreen(
 }
 
 @Composable
-private fun WhatsNewCard(onClose: () -> Unit) {
+private fun WhatsNewCard(onOpenSettings: () -> Unit, onClose: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -198,6 +209,7 @@ private fun WhatsNewCard(onClose: () -> Unit) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.stations_whats_new_text), style = MaterialTheme.typography.bodyMedium)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.settings_title)) }
                 TextButton(onClick = onClose) { Text(stringResource(R.string.action_close)) }
             }
         }

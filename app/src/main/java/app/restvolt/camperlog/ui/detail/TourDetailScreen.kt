@@ -59,6 +59,7 @@ import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.FUEL_SERVICES
+import app.restvolt.camperlog.domain.isMapAvailable
 import app.restvolt.camperlog.domain.SUPPLY_SERVICES
 import app.restvolt.camperlog.share.openInMaps
 import app.restvolt.camperlog.share.shareTour
@@ -82,11 +83,13 @@ import java.util.Locale
 @Composable
 fun TourDetailScreen(
     viewModel: TourDetailViewModel,
+    weatherMapEnabled: Boolean,
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: (Tour) -> Unit,
     onAddStation: (Long, StationType) -> Unit,
     onOpenStation: (Long) -> Unit,
+    onOpenMap: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
@@ -157,10 +160,12 @@ fun TourDetailScreen(
                 tour = current.tour,
                 vehicle = current.vehicle,
                 stations = current.stations,
+                weatherMapEnabled = weatherMapEnabled,
                 modifier = Modifier.fillMaxSize(),
                 padding = padding,
                 onOpenStation = onOpenStation,
                 onAddStop = { showTypePicker = true },
+                onOpenMap = onOpenMap,
             )
         }
     }
@@ -201,10 +206,12 @@ private fun TourDetails(
     tour: Tour,
     vehicle: Vehicle?,
     stations: List<Station>,
+    weatherMapEnabled: Boolean,
     modifier: Modifier,
     padding: PaddingValues,
     onOpenStation: (Long) -> Unit,
     onAddStop: () -> Unit,
+    onOpenMap: () -> Unit,
 ) {
     val locale = currentLocale()
     LazyColumn(
@@ -234,11 +241,20 @@ private fun TourDetails(
             }
         }
         item {
-            Text(
-                stringResource(R.string.stations_section_title, stations.size),
-                modifier = Modifier.semantics { heading() },
-                style = MaterialTheme.typography.titleMedium,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    stringResource(R.string.stations_section_title, stations.size),
+                    modifier = Modifier.weight(1f).semantics { heading() },
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                if (isMapAvailable(weatherMapEnabled, stations)) {
+                    TextButton(onClick = onOpenMap) {
+                        Icon(painterResource(R.drawable.ic_map), contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.action_map))
+                    }
+                }
+            }
         }
         if (stations.isEmpty()) {
             item {

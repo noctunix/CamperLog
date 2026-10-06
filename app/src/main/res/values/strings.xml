@@ -117,8 +117,12 @@
     <string name="settings_location_section">Location &amp; internet</string>
     <string name="settings_location_switch_support">Shows "Use current location" on stops. The position is only determined once, on tap, never in the background.</string>
     <string name="settings_location_revoked_hint">Access is fully removed after the app restarts.</string>
-    <string name="settings_weather_switch_support">Weather from Open-Meteo, only when you tap “Add current weather”.</string>
+    <string name="settings_weather_switch_support">Weather from Open-Meteo and a map from OpenStreetMap, both only on button press or when opening the map.</string>
     <string name="settings_weather_off_hint">Saved positions and weather stay with your stops.</string>
+    <string name="settings_weather_detail_toggle">What is transferred</string>
+    <string name="settings_map_storage">Map storage: %1$d MB</string>
+    <string name="settings_map_storage_clear">Clear</string>
+    <string name="settings_map_storage_cleared_hint">Map storage cleared.</string>
     <string name="settings_open_about">About CamperLog</string>
 
     <!-- Detail -->
@@ -480,7 +484,7 @@
     <string name="about_section_privacy">Privacy</string>
     <string name="about_privacy_bullet_opt_in">Location and internet features are off by default. Without them, CamperLog works completely offline.</string>
     <string name="about_privacy_bullet_location">Location (optional): only when you tap “Use current location”, CamperLog reads your position once and saves it with the stop. Never in the background, never sent anywhere.</string>
-    <string name="about_privacy_bullet_weather_map">Weather (optional): CamperLog has the internet permission but only uses it when you turn this on. Getting the weather sends the stop’s coordinates, rounded to about 1 km, to Open-Meteo, which also sees your IP address.</string>
+    <string name="about_privacy_bullet_weather_map">Weather &amp; map (optional): CamperLog has the internet permission but only uses it when you turn this on. Getting the weather sends the stop’s coordinates, rounded to about 1 km, to Open-Meteo. The map loads the area you are looking at from OpenStreetMap. Both services see your IP address.</string>
     <string name="about_privacy_bullet_no_tracking">No account, no ads, no analytics. Nothing else ever leaves your device.</string>
     <string name="about_privacy_bullet_local">All data stays on this device.</string>
     <string name="about_privacy_bullet_backup">Backups are only created when you export them.</string>
@@ -630,7 +634,7 @@
     <string name="stations_no_match">No stop matches search and filter.</string>
     <string name="stations_running_tour_title">Current tour</string>
     <string name="stations_running_tour_meta">%1$s · Day %2$d of %3$d</string>
-    <string name="stations_whats_new_text">New: stops. Your earlier pitch details are now overnight stops in your tours.</string>
+    <string name="stations_whats_new_text">New: stops. Your earlier pitch details are now overnight stops in your tours. You can turn on location, weather and map in Settings.</string>
 
     <!-- Data screen: stops CSV export -->
     <string name="stations_export_csv">Export stops as CSV</string>
@@ -642,7 +646,7 @@
     <!-- Location (phase E, 6.7, 6.10, 6.11, 6.12, 9) -->
     <string name="location_switch_title">Use current location</string>
     <string name="location_switch_support_intro">Position only when you tap, never in the background. Stays on this device.</string>
-    <string name="title_intro_optin">Optional: location and weather</string>
+    <string name="title_intro_optin">Optional: location, weather, map</string>
     <string name="body_intro_optin">Both are off. CamperLog works fully without them.</string>
     <string name="body_intro_optin_footer">You can change this anytime in Settings.</string>
     <string name="location_use_current_button">Use current location</string>
@@ -675,9 +679,9 @@
     <string name="where_am_i_share">Share coordinates</string>
     <string name="where_am_i_share_chooser">Share coordinates</string>
 
-    <!-- Weather (phase F, 6.8, 6.10, 6.11, 9) -->
-    <string name="weather_switch_title">Weather (internet)</string>
-    <string name="weather_switch_support_intro">Weather from Open-Meteo. It receives the stop’s coordinates, rounded to about 1 km, and your IP address.</string>
+    <!-- Weather and map (phases F/G, 6.8, 6.9, 6.10, 6.11, 9) -->
+    <string name="weather_switch_title">Weather &amp; map (internet)</string>
+    <string name="weather_switch_support_intro">Weather from Open-Meteo, map from OpenStreetMap. These services receive coordinates or the map area, and your IP address.</string>
     <string name="station_section_weather">Weather</string>
     <string name="weather_no_coordinates_hint">With coordinates you can also get the weather.</string>
     <string name="weather_date_not_today_body">Weather can only be fetched for today\'s stops.</string>
@@ -710,4 +714,27 @@
     <string name="wind_direction_sw">SW</string>
     <string name="wind_direction_w">W</string>
     <string name="wind_direction_nw">NW</string>
+
+    <!-- Map (phase G, 6.9, 7, 13) -->
+    <string name="action_map">Map</string>
+    <string name="map_title">%1$s · Map</string>
+    <string name="map_zoom_in">Zoom in</string>
+    <string name="map_zoom_out">Zoom out</string>
+    <string name="map_fit_bounds">Show all stops</string>
+    <string name="map_attribution">© OpenStreetMap contributors</string>
+    <string name="map_offline_banner">Offline – showing only the already loaded map.</string>
+    <string name="map_tile_failure_banner">Map service unavailable right now.</string>
+    <string name="map_retry">Retry</string>
+    <string name="map_canvas_description">Map with %1$d of %2$d stops</string>
+    <string name="map_marker_content_description">Stop %1$d of %2$d: %3$s, %4$s, %5$s</string>
+    <string name="map_details_button">Details</string>
+    <string name="map_unlocated_hint">Not on the map</string>
+    <plurals name="map_stops_located">
+        <item quantity="one">%1$d stop</item>
+        <item quantity="other">%1$d stops</item>
+    </plurals>
+    <plurals name="map_stops_unlocated">
+        <item quantity="one">%1$d without coordinates</item>
+        <item quantity="other">%1$d without coordinates</item>
+    </plurals>
 </resources>

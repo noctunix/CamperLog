@@ -43,6 +43,7 @@ import app.restvolt.camperlog.BuildConfig
 import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.data.AndroidLocationPermissionGate
 import app.restvolt.camperlog.data.AndroidLocationProvider
+import app.restvolt.camperlog.data.AndroidTileLoader
 import app.restvolt.camperlog.data.AndroidWeatherProvider
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
@@ -53,10 +54,13 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.TileLoader
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.WeatherProvider
+import app.restvolt.camperlog.domain.camperLogUserAgent
 import app.restvolt.camperlog.domain.dueReminders
+import app.restvolt.camperlog.domain.isMapAvailable
 import app.restvolt.camperlog.domain.shouldShowKeepAndroidOpen
 import app.restvolt.camperlog.ui.about.AboutScreen
 import app.restvolt.camperlog.ui.about.KeepAndroidOpenDialog
@@ -66,6 +70,7 @@ import app.restvolt.camperlog.ui.settings.WeatherSettings
 import app.restvolt.camperlog.ui.data.AndroidDataFiles
 import app.restvolt.camperlog.ui.data.DataScreen
 import app.restvolt.camperlog.ui.data.DataViewModel
+import app.restvolt.camperlog.ui.detail.DetailUiState
 import app.restvolt.camperlog.ui.detail.StationDetailScreen
 import app.restvolt.camperlog.ui.detail.StationDetailViewModel
 import app.restvolt.camperlog.ui.detail.TourDetailScreen
@@ -82,6 +87,8 @@ import app.restvolt.camperlog.ui.logbook.LogHistoryScreen
 import app.restvolt.camperlog.ui.logbook.LogHistoryViewModel
 import app.restvolt.camperlog.ui.logbook.LogbookScreen
 import app.restvolt.camperlog.ui.logbook.LogbookViewModel
+import app.restvolt.camperlog.ui.map.MapScreen
+import app.restvolt.camperlog.ui.map.MapViewModel
 import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
 import app.restvolt.camperlog.ui.onboarding.IntroductionTourScreen
 import app.restvolt.camperlog.ui.overview.OverviewScreen
@@ -145,6 +152,14 @@ internal data class EditRoute(val tourId: Long = 0)
 @Serializable
 internal data class DetailRoute(val tourId: Long)
 
+/** Karte der Stationen einer Tour (6.2, 6.9); nur erreichbar, wenn [isMapAvailable] zutrifft. */
+@Serializable
+internal data class TourMapRoute(val tourId: Long)
+
+/** Karte des aktuellen Filters des Stationen-Reiters (6.3, 6.9). */
+@Serializable
+internal object StationsMapRoute
+
 /**
  * Stationsformular; [stationId] 0 legt eine neue Station an. [initialType] (Name von [StationType])
  * und die Vorbelegung aus Koordinaten/Ort gelten nur dafür, siehe 3.3 bzw. 13.5 Nr. 4.
@@ -204,7 +219,9 @@ fun CamperLogNavHost(
     /** Standorthardware für das Stationsformular und "Wo bin ich?" (6.7); in Tests ein Fake. */
     locationProvider: LocationProvider = AndroidLocationProvider(LocalContext.current),
     /** Wetterabfrage für die "Wetter"-Karte im Stationsformular (6.8); in Tests ein Fake. */
-    weatherProvider: WeatherProvider = AndroidWeatherProvider(userAgent = "CamperLog/${BuildConfig.VERSION_NAME} (+https://github.com/noctunix/CamperLog)"),
+    weatherProvider: WeatherProvider = AndroidWeatherProvider(userAgent = camperLogUserAgent(BuildConfig.VERSION_NAME)),
+    /** Kachellader der Karte (6.9); in Tests ein Fake. */
+    tileLoader: TileLoader = AndroidTileLoader(userAgent = camperLogUserAgent(BuildConfig.VERSION_NAME)),
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -281,13 +298,16 @@ fun CamperLogNavHost(
         composable<StationsRoute> {
             val context = LocalContext.current
             var stationsTypePicker by rememberSaveable { mutableStateOf(false) }
+            val weatherMapEnabled by weatherSettings.values.collectAsStateWithLifecycle()
             StationsScreen(
                 viewModel = viewModel {
                     StationsViewModel(stations, repository, vehicles, VehicleScopeSettings(context), StationsWhatsNewSettings(context))
                 },
+                weatherMapEnabled = weatherMapEnabled,
                 onAddStop = { stationsTypePicker = true },
                 onOpenTour = { tourId -> navController.navigate(DetailRoute(tourId)) },
                 onOpenStation = { stationId -> navController.navigate(StationDetailRoute(stationId, fromStationsTab = true)) },
+                onOpenMap = { navController.navigate(StationsMapRoute) },
                 onOpenData = { navController.navigate(DataRoute) },
                 onOpenSettings = { navController.navigate(SettingsRoute) },
                 onOpenVehicles = { navController.navigate(VehiclesRoute) },
@@ -385,8 +405,10 @@ fun CamperLogNavHost(
         composable<DetailRoute> { entry ->
             val tourId = entry.toRoute<DetailRoute>().tourId
             val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations)
+            val weatherMapEnabled by weatherSettings.values.collectAsStateWithLifecycle()
             TourDetailScreen(
                 viewModel = viewModel { TourDetailViewModel(repository, vehicles, stations, tourId) },
+                weatherMapEnabled = weatherMapEnabled,
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(EditRoute(tourId)) },
                 onDelete = { tour ->
@@ -399,6 +421,31 @@ fun CamperLogNavHost(
                     navController.navigate(StationEditRoute(tourId = targetTourId, initialType = type.name))
                 },
                 onOpenStation = { stationId -> navController.navigate(StationDetailRoute(stationId)) },
+                onOpenMap = { navController.navigate(TourMapRoute(tourId)) },
+            )
+        }
+        composable<TourMapRoute> { entry ->
+            val route = entry.toRoute<TourMapRoute>()
+            val tourDetailViewModel = navController.tourDetailViewModel(entry, repository, vehicles, stations)
+            val detailState by tourDetailViewModel.uiState.collectAsStateWithLifecycle()
+            val loaded = detailState as? DetailUiState.Loaded
+            MapScreen(
+                stations = loaded?.stations ?: emptyList(),
+                title = loaded?.tour?.destination ?: stringResource(R.string.detail_fallback_title),
+                viewModel = viewModel(key = "map_tour_${route.tourId}") { MapViewModel(tileLoader) },
+                onBack = { navController.popFrom(entry) },
+                onOpenStation = { stationId -> navController.navigate(StationDetailRoute(stationId)) },
+            )
+        }
+        composable<StationsMapRoute> { entry ->
+            val stationsViewModel = navController.stationsViewModel(entry, stations, repository, vehicles)
+            val stationsState by stationsViewModel.uiState.collectAsStateWithLifecycle()
+            MapScreen(
+                stations = stationsState.stations,
+                title = stringResource(R.string.stations_title),
+                viewModel = viewModel(key = "map_stations") { MapViewModel(tileLoader) },
+                onBack = { navController.popFrom(entry) },
+                onOpenStation = { stationId -> navController.navigate(StationDetailRoute(stationId, fromStationsTab = true)) },
             )
         }
         composable<StationEditRoute> { entry ->
