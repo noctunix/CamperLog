@@ -3,12 +3,18 @@ package app.restvolt.camperlog.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.LogType
+import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Currency
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -215,4 +221,53 @@ class RoomStationRepositoryTest {
         stations.relinkLogEntries(linked.map { it.id }, id)
         assertEquals(setOf(id), logs.allEntries().map { it.stationId }.toSet())
     }
+
+    @Test
+    fun savingWithCosts_persistsThemAndKeepsTheirOrder() = runTest {
+        val nok = Currency.getInstance("NOK")
+        val costs = listOf(StationCost(CostCategory.SUPPLY, Money(500, EUR)), StationCost(CostCategory.FUEL, Money(3000, nok), "Diesel"))
+
+        val id = stations.save(station().copy(costs = costs))
+
+        assertEquals(costs, checkNotNull(stations.observeStation(id).first()).costs)
+        assertEquals(costs, stations.allStations().single().costs)
+    }
+
+    @Test
+    fun savingAgainWithoutCosts_removesThePreviouslyStoredOnes() = runTest {
+        val id = stations.save(station().copy(costs = listOf(StationCost(CostCategory.SUPPLY, Money(500, EUR)))))
+        val saved = checkNotNull(stations.observeStation(id).first())
+
+        stations.save(saved.copy(costs = emptyList()))
+
+        assertEquals(emptyList<StationCost>(), checkNotNull(stations.observeStation(id).first()).costs)
+        assertEquals(0, costRows())
+    }
+
+    @Test
+    fun deletingTheStation_removesItsCosts() = runTest {
+        val id = stations.save(station().copy(costs = listOf(StationCost(CostCategory.SUPPLY, Money(500, EUR)))))
+
+        stations.delete(id)
+
+        assertEquals(0, costRows())
+    }
+
+    @Test
+    fun movingATourToAnotherVehicle_keepsStationCosts() = runTest {
+        val otherVehicleId = db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-2", createdAtMillis = 0, updatedAtMillis = 0))
+        db.openHelper.writableDatabase.execSQL(
+            "INSERT INTO tours (id, uuid, vehicle_id, start_date, end_date, destination, tour_type, travel_days, " +
+                "overnight_stays, distance_km, notes, map_link, created_at, updated_at) VALUES " +
+                "(1, 'tour-1', $vehicleId, '2026-07-01', '2026-07-10', 'Lofoten', 'VACATION', 10, 9, 0, '', NULL, 0, 0)",
+        )
+        val costs = listOf(StationCost(CostCategory.SUPPLY, Money(500, EUR)))
+        stations.save(station().copy(tourId = 1, costs = costs))
+
+        stations.moveTourToVehicle(tourId = 1, vehicleId = otherVehicleId)
+
+        assertEquals(costs, stations.allStations().single().costs)
+    }
+
+    private fun costRows(): Int = db.query("SELECT COUNT(*) FROM station_costs", null).use { it.moveToFirst(); it.getInt(0) }
 }

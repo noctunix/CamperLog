@@ -75,8 +75,11 @@ class RoomTourRepository(
             val tourCostsByYear = sums.groupBy(YearCostSumRow::year) { Money(it.amountMinor, Currency.getInstance(it.currency)) }
             val stationCostsByYear = stationRows.map(StationWithCosts::toDomain).groupBy { it.date.year }
                 .mapValues { (_, stations) -> stations.stationCostTotals() }
-            years.map { row ->
-                val costs = (tourCostsByYear[row.year].orEmpty() + stationCostsByYear[row.year].orEmpty()).sumByCurrency()
+            val rowsByYear = years.associateBy(YearTotalsRow::year)
+            // Ein Jahr ganz ohne Tour (nur Stationen) hat keine Zeile aus dao.observeYearTotals; es zählt trotzdem mit.
+            (rowsByYear.keys + stationCostsByYear.keys).sortedDescending().map { year ->
+                val row = rowsByYear[year] ?: YearTotalsRow(year, tours = 0, distanceKm = 0, travelDays = 0, overnightStays = 0)
+                val costs = (tourCostsByYear[year].orEmpty() + stationCostsByYear[year].orEmpty()).sumByCurrency()
                 row.toDomain(costs)
             }
         }

@@ -3,11 +3,16 @@ package app.restvolt.camperlog.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.EUR
+import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationCost
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourTotals
 import app.restvolt.camperlog.domain.TourType
@@ -37,6 +42,7 @@ class RoomTourRepositoryTest {
 
     private lateinit var db: CamperLogDatabase
     private lateinit var repository: RoomTourRepository
+    private lateinit var stations: RoomStationRepository
     private var now = Instant.parse("2026-01-01T10:00:00Z")
     private var vehicleId = 0L
 
@@ -46,6 +52,7 @@ class RoomTourRepositoryTest {
             .allowMainThreadQueries()
             .build()
         repository = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()) { now }
+        stations = RoomStationRepository(db, RoomLogRepository(db.logDao())) { now }
         vehicleId = runBlocking {
             db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-1", createdAtMillis = 0, updatedAtMillis = 0))
         }
@@ -222,6 +229,55 @@ class RoomTourRepositoryTest {
             repository.observeYearTotals().first(),
         )
     }
+
+    @Test
+    fun totalsIncludeManualStationCostsOfStationsWithoutATour() = runTest {
+        repository.save(tour(start = "2026-05-01", costs = listOf(eur(1_000))))
+        stations.save(station(date = "2026-05-02", costs = listOf(StationCost(CostCategory.SUPPLY, eur(500)))))
+
+        assertEquals(listOf(eur(1_500)), repository.observeTotals(vehicleId).first().costs)
+    }
+
+    @Test
+    fun totalsIncludeTheDerivedElectricityCostOfAStation() = runTest {
+        val billed = station(date = "2026-05-02").copy(
+            electricityBilling = ElectricityBilling.FLAT_PER_STAY,
+            electricityCurrency = EUR,
+            electricityFlatAmount = eur(400),
+        )
+        stations.save(billed)
+
+        assertEquals(listOf(eur(400)), repository.observeTotals(vehicleId).first().costs)
+    }
+
+    @Test
+    fun totalsOnlyCountStationsOfTheSelectedVehicle() = runTest {
+        val otherVehicleId = db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-2", createdAtMillis = 0, updatedAtMillis = 0))
+        stations.save(station(date = "2026-05-02", costs = listOf(StationCost(CostCategory.SUPPLY, eur(500)))).copy(vehicleId = otherVehicleId))
+
+        assertEquals(emptyList<Money>(), repository.observeTotals(vehicleId).first().costs)
+        assertEquals(listOf(eur(500)), repository.observeTotals(otherVehicleId).first().costs)
+        assertEquals(listOf(eur(500)), repository.observeTotals(null).first().costs)
+    }
+
+    @Test
+    fun yearTotalsGroupStationCostsByTheStationsOwnDate() = runTest {
+        repository.save(tour(start = "2025-12-30", costs = listOf(eur(1_000))))
+        stations.save(station(date = "2026-01-02", costs = listOf(StationCost(CostCategory.SUPPLY, eur(500)))))
+
+        val years = repository.observeYearTotals(vehicleId).first().associate { it.year to it.totals.costs }
+        assertEquals(listOf(eur(1_000)), years[2025])
+        assertEquals(listOf(eur(500)), years[2026])
+    }
+
+    private fun station(date: String, costs: List<StationCost> = emptyList()) = Station(
+        vehicleId = vehicleId,
+        type = StationType.SUPPLY,
+        date = LocalDate.parse(date),
+        costs = costs,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
 
     private fun tour(
         start: String,
