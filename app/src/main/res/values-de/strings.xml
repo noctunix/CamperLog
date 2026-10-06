@@ -713,10 +713,12 @@
     <string name="map_zoom_out">Verkleinern</string>
     <string name="map_fit_bounds">Alle Stationen zeigen</string>
     <string name="map_attribution">© OpenStreetMap-Mitwirkende</string>
-    <string name="map_offline_banner">Offline – zeigt nur die bereits geladene Karte.</string>
     <string name="map_tile_failure_banner">Kartendienst gerade nicht erreichbar.</string>
     <string name="map_retry">Erneut</string>
-    <string name="map_canvas_description">Karte mit %1$d von %2$d Stationen</string>
+    <plurals name="map_canvas_description">
+        <item quantity="one">Karte mit %1$d von %2$d Station</item>
+        <item quantity="other">Karte mit %1$d von %2$d Stationen</item>
+    </plurals>
     <string name="map_marker_content_description">Station %1$d von %2$d: %3$s, %4$s, %5$s</string>
     <string name="map_details_button">Details</string>
     <string name="map_unlocated_hint">Nicht auf der Karte</string>

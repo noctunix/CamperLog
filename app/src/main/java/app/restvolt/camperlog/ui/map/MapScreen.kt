@@ -247,7 +247,7 @@ private fun MapCanvas(
     // Gestenerkennung bei jedem Kamerawechsel); die Callbacks brauchen daher den aktuellen Wert
     // über rememberUpdatedState statt über die zum Startzeitpunkt eingefangene Kamera.
     val liveCamera by rememberUpdatedState(camera)
-    val canvasDescription = stringResource(R.string.map_canvas_description, located.size, totalStopCount)
+    val canvasDescription = pluralStringResource(R.plurals.map_canvas_description, totalStopCount, located.size, totalStopCount)
 
     Box(
         Modifier

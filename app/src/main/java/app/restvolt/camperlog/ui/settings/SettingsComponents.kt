@@ -21,6 +21,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -29,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -209,7 +211,8 @@ internal fun WeatherTransferDetailRow() {
 @Composable
 internal fun MapStorageRow(snackbar: SnackbarHostState, scope: CoroutineScope) {
     val context = LocalContext.current
-    var sizeMb by remember { mutableStateOf(0) }
+    val resources = LocalResources.current
+    var sizeMb by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) { sizeMb = tileCacheMegabytes(TileHttpCache.sizeBytes(context)) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -221,7 +224,7 @@ internal fun MapStorageRow(snackbar: SnackbarHostState, scope: CoroutineScope) {
             onClick = {
                 TileHttpCache.clear(context)
                 sizeMb = 0
-                scope.launch { snackbar.showSnackbar(context.getString(R.string.settings_map_storage_cleared_hint)) }
+                scope.launch { snackbar.showSnackbar(resources.getString(R.string.settings_map_storage_cleared_hint)) }
             },
         ) { Text(stringResource(R.string.settings_map_storage_clear)) }
     }

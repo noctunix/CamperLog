@@ -722,10 +722,12 @@
     <string name="map_zoom_out">Zoom out</string>
     <string name="map_fit_bounds">Show all stops</string>
     <string name="map_attribution">© OpenStreetMap contributors</string>
-    <string name="map_offline_banner">Offline – showing only the already loaded map.</string>
     <string name="map_tile_failure_banner">Map service unavailable right now.</string>
     <string name="map_retry">Retry</string>
-    <string name="map_canvas_description">Map with %1$d of %2$d stops</string>
+    <plurals name="map_canvas_description">
+        <item quantity="one">Map with %1$d of %2$d stop</item>
+        <item quantity="other">Map with %1$d of %2$d stops</item>
+    </plurals>
     <string name="map_marker_content_description">Stop %1$d of %2$d: %3$s, %4$s, %5$s</string>
     <string name="map_details_button">Details</string>
     <string name="map_unlocated_hint">Not on the map</string>
