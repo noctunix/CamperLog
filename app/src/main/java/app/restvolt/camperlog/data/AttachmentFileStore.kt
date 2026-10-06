@@ -166,17 +166,25 @@ class AndroidAttachmentFileStore(context: Context) : AttachmentFileStore {
         if (read <= 0) null else buffer.copyOf(read)
     }
 
-    /** Breite/Höhe ohne vollständige Pixel-Decodierung, siehe `BitmapFactory.Options.inJustDecodeBounds`. */
-    private fun decodeBounds(source: Uri): Pair<Int, Int>? = openStream(source)?.use { stream ->
-        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeStream(stream, null, options)
-        options.outWidth.takeIf { it > 0 }?.let { it to options.outHeight }
-    }
+    /**
+     * Breite/Höhe ohne vollständige Pixel-Decodierung, siehe `BitmapFactory.Options.inJustDecodeBounds`.
+     * Fängt auch Ausnahmen ab: Ein als Bild erkannter Dateianfang (siehe [sniffMimeType]) garantiert
+     * nicht, dass der Decoder mit dem Rest der Datei zurechtkommt.
+     */
+    private fun decodeBounds(source: Uri): Pair<Int, Int>? = runCatching {
+        openStream(source)?.use { stream ->
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeStream(stream, null, options)
+            options.outWidth.takeIf { it > 0 }?.let { it to options.outHeight }
+        }
+    }.getOrNull()
 
-    private fun decodeSampled(source: Uri, sampleSize: Int): Bitmap? = openStream(source)?.use { stream ->
-        val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-        BitmapFactory.decodeStream(stream, null, options)
-    }
+    private fun decodeSampled(source: Uri, sampleSize: Int): Bitmap? = runCatching {
+        openStream(source)?.use { stream ->
+            val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+            BitmapFactory.decodeStream(stream, null, options)
+        }
+    }.getOrNull()
 
     private fun readOrientation(source: Uri): Int = openStream(source)?.use { stream ->
         runCatching { ExifInterface(stream).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL) }
