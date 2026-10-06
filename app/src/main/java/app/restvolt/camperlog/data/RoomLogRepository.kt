@@ -1,5 +1,7 @@
 package app.restvolt.camperlog.data
 
+import androidx.room.withTransaction
+import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.LogType
@@ -9,12 +11,19 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
-/** [LogRepository] auf Basis von Room. [clock] liefert die Anlagezeit, [newUuid] die Kennung neuer Einträge. */
+/**
+ * [LogRepository] auf Basis von Room. [clock] liefert die Anlagezeit, [newUuid] die Kennung neuer
+ * Einträge. [delete] löscht die Anhänge des Eintrags in derselben Transaktion mit, siehe KDoc von
+ * [RoomVehicleRepository].
+ */
 class RoomLogRepository(
-    private val dao: LogDao,
+    private val database: CamperLogDatabase,
     private val newUuid: () -> String = { UUID.randomUUID().toString() },
     private val clock: () -> Instant = Instant::now,
 ) : LogRepository {
+
+    private val dao get() = database.logDao()
+    private val attachmentDao get() = database.attachmentDao()
 
     override fun observeLatest(vehicleId: Long): Flow<Map<LogType, LocalDate>> =
         dao.observeLatest(vehicleId).map { rows -> rows.associate { LogType.valueOf(it.type) to LocalDate.parse(it.date) } }
@@ -32,7 +41,10 @@ class RoomLogRepository(
         return entry.copy(id = id)
     }
 
-    override suspend fun delete(id: Long) = dao.deleteById(id)
+    override suspend fun delete(id: Long) = database.withTransaction {
+        attachmentDao.deleteForOwner(AttachmentOwnerType.LOG_ENTRY.name, id)
+        dao.deleteById(id)
+    }
 
     override suspend fun restore(entry: LogEntry) {
         dao.insert(entry.toEntity())

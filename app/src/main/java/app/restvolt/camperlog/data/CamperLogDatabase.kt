@@ -29,8 +29,10 @@ import java.util.UUID
         LogEntryEntity::class,
         StationEntity::class,
         StationCostEntity::class,
+        AttachmentEntity::class,
+        VehicleDocumentEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -45,6 +47,10 @@ abstract class CamperLogDatabase : RoomDatabase() {
 
     abstract fun stationDao(): StationDao
 
+    abstract fun attachmentDao(): AttachmentDao
+
+    abstract fun vehicleDocumentDao(): VehicleDocumentDao
+
     companion object {
         /**
          * Öffnet die Datenbankdatei der App. Nur einmal pro Prozess aufrufen.
@@ -57,7 +63,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
             Room.databaseBuilder(context.applicationContext, CamperLogDatabase::class.java, "camperlog.db")
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
-                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
+                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                 )
                 .build()
     }
@@ -513,6 +519,40 @@ internal val MIGRATION_9_10 = object : Migration(9, 10) {
 
         db.query("PRAGMA foreign_key_check").use { cursor ->
             check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 9→10" }
+        }
+    }
+}
+
+/**
+ * Version 11: Anhänge (Fotos, Dokumente) kommen in der neuen Tabelle `attachments` hinzu, dazu die
+ * Fahrzeugdokumente ([app.restvolt.camperlog.domain.VehicleDocument]) in `vehicle_documents`
+ * (Fremdschlüssel `vehicle_id` CASCADE). `attachments` hat keinen Fremdschlüssel: `owner_id` zeigt je
+ * `owner_type` in eine andere Tabelle (`stations`, `repairs`, `log_entries` oder `vehicle_documents`),
+ * siehe [app.restvolt.camperlog.domain.AttachmentRepository]. Beide Tabellen sind neu, daher reicht
+ * `CREATE TABLE` ohne Datenübernahme.
+ */
+internal val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `attachments` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `owner_type` TEXT NOT NULL, `owner_id` INTEGER NOT NULL, " +
+                "`file_name` TEXT NOT NULL, `mime_type` TEXT NOT NULL, `size_bytes` INTEGER NOT NULL, " +
+                "`width` INTEGER, `height` INTEGER, `caption` TEXT NOT NULL, `created_at` INTEGER NOT NULL)",
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_attachments_uuid` ON `attachments` (`uuid`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_attachments_owner_type_owner_id` ON `attachments` (`owner_type`, `owner_id`)")
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `vehicle_documents` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `kind` TEXT NOT NULL, `title` TEXT NOT NULL, " +
+                "`expiry_date` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_vehicle_documents_uuid` ON `vehicle_documents` (`uuid`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_vehicle_documents_vehicle_id` ON `vehicle_documents` (`vehicle_id`)")
+
+        db.query("PRAGMA foreign_key_check").use { cursor ->
+            check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 10→11" }
         }
     }
 }

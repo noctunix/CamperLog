@@ -30,6 +30,10 @@ interface LogDao {
     @Query("SELECT COUNT(*) FROM log_entries WHERE vehicle_id = :vehicleId")
     suspend fun countForVehicle(vehicleId: Long): Int
 
+    /** ids aller Einträge eines Fahrzeugs, um vor dem kaskadierenden Löschen des Fahrzeugs ihre Anhänge zu entfernen. */
+    @Query("SELECT id FROM log_entries WHERE vehicle_id = :vehicleId")
+    suspend fun idsForVehicle(vehicleId: Long): List<Long>
+
     @Insert
     suspend fun insert(entry: LogEntryEntity): Long
 

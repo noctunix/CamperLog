@@ -42,7 +42,7 @@ class RoomVehicleRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CamperLogDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = RoomVehicleRepository(db.vehicleDao()) { now }
+        repository = RoomVehicleRepository(db) { now }
     }
 
     @After

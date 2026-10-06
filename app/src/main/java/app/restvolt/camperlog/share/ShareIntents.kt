@@ -26,6 +26,9 @@ private const val CSV_MIME = "text/csv"
 
 /** MIME-Typ einer Sicherungsdatei. */
 const val BACKUP_MIME = "application/json"
+
+/** MIME-Typ einer ZIP-Sicherungsdatei (mit Fotos und Dokumenten). */
+const val BACKUP_ZIP_MIME = "application/zip"
 private const val UTF8_BOM = "\uFEFF"
 private const val EXPORT_DIR = "exports"
 
@@ -97,8 +100,37 @@ suspend fun writeBackupTo(context: Context, target: Uri, json: String) = withCon
     output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
 }
 
+/**
+ * Schreibt die ZIP-Sicherung [zipBytes] in den Cache-Ordner `exports/` und liefert eine teilbare
+ * Content-URI, wie [writeBackupExport]. Ältere Exporte werden dabei ebenso aufgeräumt.
+ */
+suspend fun writeBackupZipExport(context: Context, zipBytes: ByteArray): Uri = withContext(Dispatchers.IO) {
+    val dir = File(context.cacheDir, EXPORT_DIR).apply { mkdirs() }
+    deleteOldExports(dir, System.currentTimeMillis())
+    val file = uniqueFile(dir, "camperlog-sicherung-${LocalDateTime.now().format(exportStamp)}", extension = "zip")
+    file.writeBytes(zipBytes)
+    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
+/**
+ * Schreibt die ZIP-Sicherung [zipBytes] in die vom Nutzer gewählte Datei [target] und überschreibt deren Inhalt.
+ *
+ * @throws IOException wenn die Datei nicht geschrieben werden kann
+ */
+suspend fun writeBackupZipTo(context: Context, target: Uri, zipBytes: ByteArray) = withContext(Dispatchers.IO) {
+    val output = try {
+        context.contentResolver.openOutputStream(target, "wt")
+    } catch (e: SecurityException) {
+        throw IOException(e)
+    } ?: throw IOException("Kein Ausgabestrom für $target")
+    output.use { it.write(zipBytes) }
+}
+
 /** Vorgeschlagener Dateiname für eine Sicherung, z. B. `camperlog-sicherung-2026-10-04.json`. */
 fun backupFileName(date: LocalDate = LocalDate.now()): String = "camperlog-sicherung-$date.json"
+
+/** Vorgeschlagener Dateiname für eine ZIP-Sicherung, z. B. `camperlog-sicherung-2026-10-04.zip`. */
+fun backupZipFileName(date: LocalDate = LocalDate.now()): String = "camperlog-sicherung-$date.zip"
 
 /** Löscht Export-Dateien, die älter als eine Stunde sind; für den App-Start gedacht. */
 suspend fun cleanUpExports(context: Context) = withContext(Dispatchers.IO) {
@@ -160,6 +192,54 @@ fun Context.shareBackup(uri: Uri): Boolean {
         type = BACKUP_MIME
         putExtra(Intent.EXTRA_STREAM, uri)
         putExtra(Intent.EXTRA_SUBJECT, getString(R.string.backup_subject))
+        clipData = ClipData.newRawUri(null, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    return startChooser(send, getString(R.string.export_chooser))
+}
+
+/**
+ * Öffnet das Sharesheet für eine ZIP-Sicherungsdatei unter [uri].
+ *
+ * @return `false`, wenn kein Sharesheet geöffnet werden konnte
+ */
+fun Context.shareBackupZip(uri: Uri): Boolean {
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = BACKUP_ZIP_MIME
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_SUBJECT, getString(R.string.backup_subject))
+        clipData = ClipData.newRawUri(null, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    return startChooser(send, getString(R.string.export_chooser))
+}
+
+/**
+ * Öffnet einen Anhang ([file], relativ zu `filesDir/attachments/`) in einer passenden App, mit
+ * Lesezugriff über den FileProvider statt über Teilen von `filesDir` selbst.
+ *
+ * @return `false`, wenn keine App [mimeType] öffnen kann
+ */
+fun Context.openAttachment(file: File, mimeType: String): Boolean {
+    val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+    val intent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(uri, mimeType)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    return tryStart(intent)
+}
+
+/**
+ * Öffnet das Sharesheet für einen Anhang ([file], relativ zu `filesDir/attachments/`) mit Lesezugriff
+ * über den FileProvider.
+ *
+ * @return `false`, wenn kein Sharesheet geöffnet werden konnte
+ */
+fun Context.shareAttachment(file: File, mimeType: String): Boolean {
+    val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = mimeType
+        putExtra(Intent.EXTRA_STREAM, uri)
         clipData = ClipData.newRawUri(null, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }

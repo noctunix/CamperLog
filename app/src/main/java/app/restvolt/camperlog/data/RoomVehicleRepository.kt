@@ -1,5 +1,7 @@
 package app.restvolt.camperlog.data
 
+import androidx.room.withTransaction
+import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleDeleteResult
@@ -17,12 +19,24 @@ import java.util.UUID
 /**
  * [VehicleRepository] auf Basis von Room. [clock] liefert die Zeitstempel für Anlage und Änderung,
  * [newUuid] die Kennung neuer Fahrzeuge und Reparaturen ohne eigene UUID.
+ *
+ * Löschen eines Fahrzeugs oder einer Reparatur nimmt ihre Anhänge in derselben Transaktion mit: Die
+ * `attachments`-Tabelle hat keinen Fremdschlüssel auf Reparaturen, Bordbuch-Einträge oder
+ * Fahrzeugdokumente (ein Anhang kann je [AttachmentOwnerType] in eine andere Tabelle zeigen, siehe
+ * [app.restvolt.camperlog.domain.AttachmentRepository]), daher löscht Room diese Zeilen beim
+ * kaskadierenden Löschen von Reparaturen, Bordbuch-Einträgen und Fahrzeugdokumenten über den
+ * Fremdschlüssel von `vehicles` nicht automatisch mit.
  */
 class RoomVehicleRepository(
-    private val dao: VehicleDao,
+    private val database: CamperLogDatabase,
     private val newUuid: () -> String = { UUID.randomUUID().toString() },
     private val clock: () -> Instant = Instant::now,
 ) : VehicleRepository {
+
+    private val dao get() = database.vehicleDao()
+    private val logDao get() = database.logDao()
+    private val documentDao get() = database.vehicleDocumentDao()
+    private val attachmentDao get() = database.attachmentDao()
 
     override fun observeVehicles(): Flow<List<Vehicle>> =
         dao.observeAll().map { rows -> rows.map(VehicleEntity::toDomain) }
@@ -58,7 +72,15 @@ class RoomVehicleRepository(
     override suspend fun delete(id: Long): VehicleDeleteResult {
         if (dao.countVehicles() <= 1) return VehicleDeleteResult.LAST_VEHICLE
         if (dao.countToursForVehicle(id) > 0 || dao.countStationsForVehicle(id) > 0) return VehicleDeleteResult.HAS_TOURS_OR_STATIONS
-        dao.deleteById(id)
+        database.withTransaction {
+            dao.repairIdsForVehicle(id).takeIf { it.isNotEmpty() }
+                ?.let { attachmentDao.deleteForOwners(AttachmentOwnerType.REPAIR.name, it) }
+            documentDao.idsForVehicle(id).takeIf { it.isNotEmpty() }
+                ?.let { attachmentDao.deleteForOwners(AttachmentOwnerType.VEHICLE_DOCUMENT.name, it) }
+            logDao.idsForVehicle(id).takeIf { it.isNotEmpty() }
+                ?.let { attachmentDao.deleteForOwners(AttachmentOwnerType.LOG_ENTRY.name, it) }
+            dao.deleteById(id)
+        }
         return VehicleDeleteResult.DELETED
     }
 
@@ -79,7 +101,10 @@ class RoomVehicleRepository(
         }
     }
 
-    override suspend fun deleteRepair(id: Long) = dao.deleteRepairById(id)
+    override suspend fun deleteRepair(id: Long) = database.withTransaction {
+        attachmentDao.deleteForOwner(AttachmentOwnerType.REPAIR.name, id)
+        dao.deleteRepairById(id)
+    }
 
     override suspend fun restoreRepair(repair: Repair) {
         dao.insertRepair(repair.toEntity())

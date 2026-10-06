@@ -72,6 +72,10 @@ interface StationDao {
     @Query("DELETE FROM stations WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    /** ids aller Stationen einer Tour, um vor ihrem kaskadierenden Löschen über die Tour ihre Anhänge zu entfernen. */
+    @Query("SELECT id FROM stations WHERE tour_id = :tourId")
+    suspend fun idsForTour(tourId: Long): List<Long>
+
     /** Löscht alle Stationen, für den vollständigen Ersatz beim Sicherungs-Import. */
     @Query("DELETE FROM stations")
     suspend fun deleteAll()

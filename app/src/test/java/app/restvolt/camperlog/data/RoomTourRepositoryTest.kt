@@ -51,8 +51,8 @@ class RoomTourRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CamperLogDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()) { now }
-        stations = RoomStationRepository(db, RoomLogRepository(db.logDao())) { now }
+        repository = RoomTourRepository(db) { now }
+        stations = RoomStationRepository(db, RoomLogRepository(db)) { now }
         vehicleId = runBlocking {
             db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-1", createdAtMillis = 0, updatedAtMillis = 0))
         }

@@ -1,5 +1,7 @@
 package app.restvolt.camperlog.data
 
+import androidx.room.withTransaction
+import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
@@ -18,18 +20,25 @@ import java.util.UUID
 
 /**
  * [TourRepository] auf Basis von Room. [clock] liefert die Zeitstempel für Anlage und Änderung,
- * [newUuid] die Kennung neuer Touren ohne eigene UUID. [vehicleDao] löst bei neuen Touren mit
- * [Tour.vehicleId] 0 das aktuelle Fahrzeug auf. [stationDao] liefert die Stationskosten (inklusive
- * abgeleiteter Stromkosten), die in die Gesamt- und Jahreskennzahlen einfließen; Stationen ohne Tour
- * zählen dort mit, siehe [observeTotals] und [observeYearTotals].
+ * [newUuid] die Kennung neuer Touren ohne eigene UUID. Löst bei neuen Touren mit [Tour.vehicleId] 0
+ * das aktuelle Fahrzeug auf. Die Stationskosten (inklusive abgeleiteter Stromkosten) fließen in die
+ * Gesamt- und Jahreskennzahlen ein; Stationen ohne Tour zählen dort mit, siehe [observeTotals] und
+ * [observeYearTotals].
+ *
+ * [delete] löscht vor der Tour auch die Anhänge ihrer Stationen: Die Stationen selbst verschwinden
+ * beim Löschen der Tour über den Fremdschlüssel (`ON DELETE CASCADE`), ihre Anhänge nicht (siehe KDoc
+ * von [RoomVehicleRepository]), daher werden sie hier noch anhand der Stations-ids vorher entfernt.
  */
 class RoomTourRepository(
-    private val dao: TourDao,
-    private val stationDao: StationDao,
-    private val vehicleDao: VehicleDao,
+    private val database: CamperLogDatabase,
     private val newUuid: () -> String = { UUID.randomUUID().toString() },
     private val clock: () -> Instant = Instant::now,
 ) : TourRepository {
+
+    private val dao get() = database.tourDao()
+    private val stationDao get() = database.stationDao()
+    private val vehicleDao get() = database.vehicleDao()
+    private val attachmentDao get() = database.attachmentDao()
 
     override fun observeTours(): Flow<List<Tour>> =
         dao.observeAll().map { rows -> rows.map(TourWithCosts::toDomain) }
@@ -56,7 +65,10 @@ class RoomTourRepository(
         }
     }
 
-    override suspend fun delete(id: Long) = dao.deleteById(id)
+    override suspend fun delete(id: Long) = database.withTransaction {
+        stationDao.idsForTour(id).takeIf { it.isNotEmpty() }?.let { attachmentDao.deleteForOwners(AttachmentOwnerType.STATION.name, it) }
+        dao.deleteById(id)
+    }
 
     override suspend fun restore(tour: Tour) {
         dao.insertWithCosts(tour.toEntity(), tour.toCostEntities())

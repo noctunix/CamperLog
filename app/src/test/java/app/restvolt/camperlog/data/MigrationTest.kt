@@ -4,6 +4,8 @@ import android.content.Context
 import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ExchangeRate
@@ -48,7 +50,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tours = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
+            val tours = RoomTourRepository(db) { Instant.EPOCH }.allTours()
 
             assertEquals(listOf(1L, 2L), tours.map { it.id })
             assertEquals(listOf(Money(8_950, EUR)), tours[0].costs)
@@ -80,7 +82,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tours = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
+            val tours = RoomTourRepository(db) { Instant.EPOCH }.allTours()
             val rates = RoomExchangeRateRepository(db.exchangeRateDao())
 
             assertEquals(listOf(Money(1_250_000, Currency.getInstance("NOK")), Money(4_500, EUR)), tours.single().costs)
@@ -110,7 +112,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tours = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
+            val tours = RoomTourRepository(db) { Instant.EPOCH }.allTours()
 
             assertEquals(listOf(1L, 2L), tours.map { it.id })
             assertEquals(listOf(Money(1_250_000, Currency.getInstance("NOK"))), tours[0].costs)
@@ -145,7 +147,7 @@ class MigrationTest {
                 assertEquals("", it.getString(it.getColumnIndexOrThrow("name")))
             }
 
-            val tours = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()) { Instant.EPOCH }.allTours()
+            val tours = RoomTourRepository(db) { Instant.EPOCH }.allTours()
             assertEquals(listOf(vehicleId, vehicleId), tours.map { it.vehicleId })
             assertEquals(listOf(Money(1_250_000, Currency.getInstance("NOK"))), tours[0].costs)
             assertEquals(Currency.getInstance("NOK"), RoomExchangeRateRepository(db.exchangeRateDao()).observeMainCurrency().first())
@@ -172,7 +174,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val vehicles = RoomVehicleRepository(db.vehicleDao()).allVehicles()
+            val vehicles = RoomVehicleRepository(db).allVehicles()
             val vehicle = vehicles.single()
             assertEquals("Bluebird", vehicle.name)
             assertEquals(null, vehicle.measuredEmptyWeightKg)
@@ -185,7 +187,7 @@ class MigrationTest {
                 "UPDATE vehicles SET measured_empty_weight_kg = 3020, breakdown_provider = 'ADAC', " +
                     "breakdown_phone = '+49 89 22 22 22' WHERE id = 1",
             )
-            val updated = RoomVehicleRepository(db.vehicleDao()).allVehicles().single()
+            val updated = RoomVehicleRepository(db).allVehicles().single()
             assertEquals(3020, updated.measuredEmptyWeightKg)
             assertEquals("ADAC", updated.breakdownProvider)
             assertEquals("+49 89 22 22 22", updated.breakdownPhone)
@@ -209,12 +211,12 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tour = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()).allTours().single()
+            val tour = RoomTourRepository(db).allTours().single()
             assertEquals("Lofoten", tour.destination)
             assertEquals("Reisenotiz", tour.notes)
             assertEquals(listOf(Money(48650, EUR)), tour.costs)
 
-            val station = RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations().single()
+            val station = RoomStationRepository(db, RoomLogRepository(db)).allStations().single()
             assertEquals(1L, station.vehicleId)
             assertEquals(tour.id, station.tourId)
             assertEquals(StationType.OVERNIGHT, station.type)
@@ -265,9 +267,9 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tour = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()).allTours().single()
+            val tour = RoomTourRepository(db).allTours().single()
             assertEquals("Alte Notiz", tour.notes)
-            assertEquals(emptyList<Station>(), RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations())
+            assertEquals(emptyList<Station>(), RoomStationRepository(db, RoomLogRepository(db)).allStations())
         } finally {
             db.close()
         }
@@ -283,9 +285,9 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val tour = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao()).allTours().single()
+            val tour = RoomTourRepository(db).allTours().single()
             assertEquals("Pitch: sloped, leveling blocks used", tour.notes)
-            assertEquals(emptyList<Station>(), RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations())
+            assertEquals(emptyList<Station>(), RoomStationRepository(db, RoomLogRepository(db)).allStations())
         } finally {
             db.close()
         }
@@ -301,7 +303,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            assertEquals(1, RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations().size)
+            assertEquals(1, RoomStationRepository(db, RoomLogRepository(db)).allStations().size)
 
             // Ein Fahrzeug mit Stationen lässt sich nicht löschen.
             val error = runCatching { db.openHelper.writableDatabase.execSQL("DELETE FROM vehicles WHERE id = 1") }.exceptionOrNull()
@@ -309,7 +311,7 @@ class MigrationTest {
 
             // Das Löschen der Tour löscht ihre Station mit (CASCADE).
             db.openHelper.writableDatabase.execSQL("DELETE FROM tours WHERE id = 1")
-            assertEquals(emptyList<Station>(), RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations())
+            assertEquals(emptyList<Station>(), RoomStationRepository(db, RoomLogRepository(db)).allStations())
         } finally {
             db.close()
         }
@@ -330,14 +332,14 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val entry = RoomLogRepository(db.logDao()).allEntries().single()
+            val entry = RoomLogRepository(db).allEntries().single()
             assertEquals(null, entry.stationId)
 
             // Der neue Fremdschlüssel greift auch nach der Migration: Verknüpfen und Löschen der Station setzt zurück.
             db.logDao().link(entry.id, 1)
-            assertEquals(1L, RoomLogRepository(db.logDao()).allEntries().single().stationId)
+            assertEquals(1L, RoomLogRepository(db).allEntries().single().stationId)
             db.openHelper.writableDatabase.execSQL("DELETE FROM stations WHERE id = 1")
-            assertEquals(null, RoomLogRepository(db.logDao()).allEntries().single().stationId)
+            assertEquals(null, RoomLogRepository(db).allEntries().single().stationId)
         } finally {
             db.close()
         }
@@ -349,12 +351,12 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val vehicle = RoomVehicleRepository(db.vehicleDao()).allVehicles().single()
+            val vehicle = RoomVehicleRepository(db).allVehicles().single()
             assertEquals("Bluebird", vehicle.name)
             assertEquals(null, vehicle.nextLeakTestDate)
 
             db.openHelper.writableDatabase.execSQL("UPDATE vehicles SET next_leak_test_date = '2027-03-01' WHERE id = 1")
-            val updated = RoomVehicleRepository(db.vehicleDao()).allVehicles().single()
+            val updated = RoomVehicleRepository(db).allVehicles().single()
             assertEquals(LocalDate.of(2027, 3, 1), updated.nextLeakTestDate)
         } finally {
             db.close()
@@ -379,7 +381,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val stations = RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations().sortedBy { it.id }
+            val stations = RoomStationRepository(db, RoomLogRepository(db)).allStations().sortedBy { it.id }
             assertEquals(listOf(1L, 2L), stations.map { it.id })
             assertEquals(ElectricityBilling.FLAT_PER_STAY, stations[0].electricityBilling)
             assertEquals(null, stations[0].electricityCurrency)
@@ -387,7 +389,7 @@ class MigrationTest {
             assertEquals(null, stations[1].electricityBilling)
 
             // Die Verknüpfung des Bordbuch-Eintrags mit der Station bleibt nach der Migration erhalten.
-            assertEquals(1L, RoomLogRepository(db.logDao()).allEntries().single().stationId)
+            assertEquals(1L, RoomLogRepository(db).allEntries().single().stationId)
 
             // Die neue Tabelle `station_costs` existiert und hängt per Fremdschlüssel an `stations`.
             db.openHelper.writableDatabase.execSQL(
@@ -403,6 +405,130 @@ class MigrationTest {
             db.close()
         }
     }
+
+    @Test
+    fun migration10To11CreatesAttachmentsAndVehicleDocumentsTables() = runTest {
+        createVersion10(defaultVehicleInsert)
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            db.openHelper.writableDatabase.execSQL(
+                "INSERT INTO vehicle_documents (uuid, vehicle_id, kind, title, expiry_date, created_at, updated_at) " +
+                    "VALUES ('doc-1', 1, 'REGISTRATION', 'Fahrzeugschein', '2030-01-01', 1000, 1000)",
+            )
+            db.openHelper.writableDatabase.execSQL(
+                "INSERT INTO attachments (uuid, owner_type, owner_id, file_name, mime_type, size_bytes, width, height, caption, created_at) " +
+                    "VALUES ('att-1', 'VEHICLE_DOCUMENT', 1, 'att-1.jpg', 'image/jpeg', 1024, 800, 600, '', 1000)",
+            )
+
+            val documents = RoomVehicleDocumentRepository(db).allDocuments()
+            assertEquals(listOf("Fahrzeugschein"), documents.map { it.title })
+            assertEquals(LocalDate.of(2030, 1, 1), documents.single().expiryDate)
+
+            val attachments = RoomAttachmentRepository(db.attachmentDao()).allAttachments()
+            assertEquals(1, attachments.size)
+            assertEquals(AttachmentOwnerType.VEHICLE_DOCUMENT, attachments.single().ownerType)
+            assertEquals(DocumentKind.REGISTRATION, documents.single().kind)
+
+            // `vehicle_documents` kaskadiert über den Fremdschlüssel auf `vehicles`; `attachments` kennt
+            // keinen Fremdschlüssel auf das Dokument (siehe KDoc von RoomVehicleRepository) und bleibt
+            // deshalb stehen - genau deshalb räumt die App das selbst beim Löschen eines Dokuments auf.
+            db.openHelper.writableDatabase.execSQL("DELETE FROM vehicles WHERE id = 1")
+            assertEquals(emptyList<String>(), RoomVehicleDocumentRepository(db).allDocuments().map { it.title })
+            assertEquals(1, RoomAttachmentRepository(db.attachmentDao()).allAttachments().size)
+        } finally {
+            db.close()
+        }
+    }
+
+    /** Legt `camperlog.db` im Stand von Version 10 nach `schemas/…/10.json` an und füllt sie mit [inserts]. */
+    private fun createVersion10(vararg inserts: String) = createDatabase(
+        version = 10,
+        identityHash = "1e91bde7e336ecd620afcc8e550a1d68",
+        schema = listOf(
+            "CREATE TABLE IF NOT EXISTS `vehicles` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `license_plate` TEXT NOT NULL, " +
+                "`manufacturer` TEXT NOT NULL, `model` TEXT NOT NULL, `vin` TEXT NOT NULL, " +
+                "`first_registration` TEXT, `notes` TEXT NOT NULL, `purchase_date` TEXT, " +
+                "`purchase_price_currency` TEXT, `purchase_price_minor` INTEGER, `purchase_odometer_km` INTEGER, " +
+                "`sale_date` TEXT, `sale_price_currency` TEXT, `sale_price_minor` INTEGER, " +
+                "`insurer` TEXT NOT NULL, `insurance_policy_number` TEXT NOT NULL, " +
+                "`insurance_premium_per_year_currency` TEXT, `insurance_premium_per_year_minor` INTEGER, " +
+                "`vehicle_tax_per_year_currency` TEXT, `vehicle_tax_per_year_minor` INTEGER, " +
+                "`length_cm` INTEGER, `width_cm` INTEGER, `height_cm` INTEGER, `gross_weight_kg` INTEGER, " +
+                "`measured_empty_weight_kg` INTEGER, `breakdown_provider` TEXT NOT NULL, " +
+                "`breakdown_membership_number` TEXT NOT NULL, `breakdown_phone` TEXT NOT NULL, " +
+                "`travel_protection_provider` TEXT NOT NULL, `travel_protection_contract_number` TEXT NOT NULL, " +
+                "`travel_protection_phone` TEXT NOT NULL, `insurer_claims_phone` TEXT NOT NULL, " +
+                "`power_kw` INTEGER, `tire_size` TEXT NOT NULL, `tire_pressure_front_mbar` INTEGER, " +
+                "`tire_pressure_rear_mbar` INTEGER, `fuel_tank_dl` INTEGER, `ad_blue_tank_dl` INTEGER, " +
+                "`fresh_water_tank_dl` INTEGER, `grey_water_tank_dl` INTEGER, `boiler_dl` INTEGER, " +
+                "`cassette_dl` INTEGER, `battery_capacity_ah` INTEGER, `solar_power_wp` INTEGER, " +
+                "`next_inspection_date` TEXT, `next_gas_check_date` TEXT, `next_leak_test_date` TEXT, " +
+                "`last_oil_change_date` TEXT, `last_oil_change_odometer_km` INTEGER, `created_at` INTEGER NOT NULL, " +
+                "`updated_at` INTEGER NOT NULL)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_vehicles_uuid` ON `vehicles` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `repairs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `date` TEXT NOT NULL, " +
+                "`description` TEXT NOT NULL, `odometer_km` INTEGER, `cost_currency` TEXT, `cost_minor` INTEGER, " +
+                "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE INDEX IF NOT EXISTS `index_repairs_vehicle_id` ON `repairs` (`vehicle_id`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_repairs_uuid` ON `repairs` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `log_entries` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `type` TEXT NOT NULL, `date` TEXT NOT NULL, " +
+                "`created_at` INTEGER NOT NULL, `station_id` INTEGER, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , " +
+                "FOREIGN KEY(`station_id`) REFERENCES `stations`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+            "CREATE INDEX IF NOT EXISTS `index_log_entries_vehicle_id_type_date` ON `log_entries` " +
+                "(`vehicle_id`, `type`, `date`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_log_entries_uuid` ON `log_entries` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_log_entries_station_id` ON `log_entries` (`station_id`)",
+            "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL DEFAULT '', `vehicle_id` INTEGER NOT NULL, `start_date` TEXT NOT NULL, " +
+                "`end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, `tour_type` TEXT NOT NULL, " +
+                "`travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, " +
+                "`notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+            "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_tours_uuid` ON `tours` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_tours_vehicle_id` ON `tours` (`vehicle_id`)",
+            "CREATE TABLE IF NOT EXISTS `tour_costs` (`tour_id` INTEGER NOT NULL, `currency` TEXT NOT NULL, " +
+                "`amount_minor` INTEGER NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`tour_id`, `currency`), " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE TABLE IF NOT EXISTS `exchange_rates` (`currency` TEXT NOT NULL, `per_euro` TEXT NOT NULL, " +
+                "`rate_date` TEXT NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`currency`))",
+            "CREATE TABLE IF NOT EXISTS `settings` (`id` INTEGER NOT NULL, `main_currency` TEXT NOT NULL, " +
+                "`current_vehicle_id` INTEGER, PRIMARY KEY(`id`))",
+            "CREATE TABLE IF NOT EXISTS `stations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, " +
+                "`vehicle_id` INTEGER NOT NULL, `tour_id` INTEGER, `type` TEXT NOT NULL, `date` TEXT NOT NULL, " +
+                "`time` TEXT, `name` TEXT NOT NULL, `place` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, " +
+                "`coordinate_source` TEXT, `accuracy_m` INTEGER, `map_link` TEXT, `notes` TEXT NOT NULL, " +
+                "`nights` INTEGER, `site_kind` TEXT, `pitch_assigned` INTEGER, `lte_quality` TEXT, " +
+                "`pitch_slope` TEXT, `leveling_blocks_used` INTEGER, " +
+                "`electricity_billing` TEXT, `electricity_currency` TEXT, `electricity_flat_amount_minor` INTEGER, " +
+                "`electricity_base_fee_minor` INTEGER, `electricity_price_per_kwh` TEXT, " +
+                "`electricity_coin_price_minor` INTEGER, `electricity_coins_used` INTEGER, " +
+                "`electricity_kwh_per_coin` TEXT, `electricity_meter_start` TEXT, `electricity_meter_end` TEXT, " +
+                "`electricity_kwh_used` TEXT, `toll_kind` TEXT, `toll_payment_method` TEXT NOT NULL, " +
+                "`toll_country` TEXT, `toll_valid_from` TEXT, `toll_valid_until` TEXT, " +
+                "`ferry_booking_reference` TEXT NOT NULL, `services` TEXT NOT NULL, " +
+                "`weather_temperature_deci_c` INTEGER, `weather_code` INTEGER, `weather_wind_kmh` INTEGER, " +
+                "`weather_gust_kmh` INTEGER, `weather_wind_direction_deg` INTEGER, `weather_observed_at` INTEGER, " +
+                "`favorite` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_stations_uuid` ON `stations` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_stations_vehicle_id` ON `stations` (`vehicle_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_stations_tour_id` ON `stations` (`tour_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_stations_date` ON `stations` (`date`)",
+            "CREATE TABLE IF NOT EXISTS `station_costs` (`station_id` INTEGER NOT NULL, `category` TEXT NOT NULL, " +
+                "`currency` TEXT NOT NULL, `amount_minor` INTEGER NOT NULL, `note` TEXT NOT NULL, " +
+                "`position` INTEGER NOT NULL, PRIMARY KEY(`station_id`, `category`, `currency`), " +
+                "FOREIGN KEY(`station_id`) REFERENCES `stations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        ),
+        inserts = inserts.toList(),
+    )
 
     /** Legt `camperlog.db` im Stand von Version 9 nach `schemas/…/9.json` an und füllt sie mit [inserts]. */
     private fun createVersion9(vararg inserts: String) = createDatabase(

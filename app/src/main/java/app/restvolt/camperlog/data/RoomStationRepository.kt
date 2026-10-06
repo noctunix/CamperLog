@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.data
 
 import androidx.room.withTransaction
+import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.LogSyncAction
@@ -29,6 +30,7 @@ class RoomStationRepository(
 ) : StationRepository {
 
     private val dao get() = database.stationDao()
+    private val attachmentDao get() = database.attachmentDao()
 
     override fun observeForTour(tourId: Long): Flow<List<Station>> =
         dao.observeForTour(tourId).map { rows -> rows.map(StationWithCosts::toDomain) }
@@ -57,7 +59,11 @@ class RoomStationRepository(
         saved.id
     }
 
-    override suspend fun delete(id: Long) = dao.deleteById(id)
+    /** Löscht die Anhänge der Station in derselben Transaktion mit, siehe KDoc von [RoomVehicleRepository]. */
+    override suspend fun delete(id: Long) = database.withTransaction {
+        attachmentDao.deleteForOwner(AttachmentOwnerType.STATION.name, id)
+        dao.deleteById(id)
+    }
 
     override suspend fun restore(station: Station) {
         dao.insertWithCosts(station.toEntity(), station.toCostEntities())

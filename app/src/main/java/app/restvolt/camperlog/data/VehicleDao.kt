@@ -54,6 +54,10 @@ interface VehicleDao {
     @Query("SELECT COUNT(*) FROM repairs WHERE vehicle_id = :vehicleId")
     suspend fun countRepairsForVehicle(vehicleId: Long): Int
 
+    /** ids aller Reparaturen eines Fahrzeugs, um vor dem kaskadierenden Löschen des Fahrzeugs ihre Anhänge zu entfernen. */
+    @Query("SELECT id FROM repairs WHERE vehicle_id = :vehicleId")
+    suspend fun repairIdsForVehicle(vehicleId: Long): List<Long>
+
     @Query("SELECT EXISTS(SELECT 1 FROM vehicles WHERE id = :id)")
     suspend fun vehicleExists(id: Long): Boolean
 

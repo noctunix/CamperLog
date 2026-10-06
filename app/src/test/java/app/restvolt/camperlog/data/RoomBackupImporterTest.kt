@@ -62,10 +62,10 @@ class RoomBackupImporterTest {
         db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CamperLogDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        tours = RoomTourRepository(db.tourDao(), db.stationDao(), db.vehicleDao())
+        tours = RoomTourRepository(db)
         rates = RoomExchangeRateRepository(db.exchangeRateDao())
-        vehicles = RoomVehicleRepository(db.vehicleDao())
-        logs = RoomLogRepository(db.logDao())
+        vehicles = RoomVehicleRepository(db)
+        logs = RoomLogRepository(db)
         importer = RoomBackupImporter(db, Clock.fixed(Instant.parse("2026-10-04T12:00:00Z"), ZoneOffset.UTC))
         vehicleId = runBlocking {
             db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-1", createdAtMillis = 0, updatedAtMillis = 0))
@@ -156,7 +156,7 @@ class RoomBackupImporterTest {
     private suspend fun storedTours() = tours.allTours().map { it.copy(id = 0) }
 
     /** Gespeicherte Stationen ohne Datenbank-id, damit sie mit Sicherungs-Stationen vergleichbar sind. */
-    private suspend fun storedStations() = RoomStationRepository(db, RoomLogRepository(db.logDao())).allStations().map { it.copy(id = 0) }
+    private suspend fun storedStations() = RoomStationRepository(db, RoomLogRepository(db)).allStations().map { it.copy(id = 0) }
 
     private suspend fun seed(vararg seeded: Tour) = seeded.forEach { tours.restore(it) }
 
@@ -553,7 +553,7 @@ class RoomBackupImporterTest {
 
     @Test
     fun merge_stations_addsNewUpdatesNewerKeepsOlderOrEqualUnchanged() = runTest {
-        val local = RoomStationRepository(db, RoomLogRepository(db.logDao()))
+        val local = RoomStationRepository(db, RoomLogRepository(db))
         local.restore(station(1, name = "Lokal alt", updatedAt = "2026-07-10T10:00:00Z").copy(vehicleId = vehicleId))
         local.restore(station(2, name = "Lokal neu", updatedAt = "2026-07-20T10:00:00Z").copy(vehicleId = vehicleId))
 
@@ -676,7 +676,7 @@ class RoomBackupImporterTest {
 
     @Test
     fun replace_stations_removesEverythingNotInBackup() = runTest {
-        RoomStationRepository(db, RoomLogRepository(db.logDao())).restore(station(1, name = "Lokal").copy(vehicleId = vehicleId))
+        RoomStationRepository(db, RoomLogRepository(db)).restore(station(1, name = "Lokal").copy(vehicleId = vehicleId))
 
         val result = importer.import(
             backup(
