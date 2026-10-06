@@ -73,10 +73,6 @@ To publish an installable APK, configure both repository secrets under **Setting
 
 On Linux, use `base64 -w0 camperlog-release.jks` and `base64 -w0 keystore.properties`, then enter the respective outputs directly as secrets. The properties file encoded for GitHub **must** contain `storeFile=release.jks`. Never commit the keystore or passwords.
 
-## Support
-
-Feedback and bug reports: **camperlog@restvolt.app**. To support development, there's a [Liberapay](https://liberapay.com/noctunix/donate) page. Both links are also in the app's **About** screen.
-
 ## License
 
 Apache License 2.0; see [LICENSE](LICENSE).
