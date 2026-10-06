@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import java.io.OutputStream
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -101,29 +102,38 @@ suspend fun writeBackupTo(context: Context, target: Uri, json: String) = withCon
 }
 
 /**
- * Schreibt die ZIP-Sicherung [zipBytes] in den Cache-Ordner `exports/` und liefert eine teilbare
- * Content-URI, wie [writeBackupExport]. Ältere Exporte werden dabei ebenso aufgeräumt.
+ * Schreibt die ZIP-Sicherung in den Cache-Ordner `exports/` und liefert eine teilbare Content-URI, wie
+ * [writeBackupExport]. Ältere Exporte werden dabei ebenso aufgeräumt. [writeZip] schreibt direkt in den
+ * Ausgabestrom der neu angelegten Datei, statt die ZIP-Sicherung vorher vollständig im Speicher
+ * aufzubauen; schlägt das fehl, wird die unvollständige Datei gelöscht statt als Export angeboten.
  */
-suspend fun writeBackupZipExport(context: Context, zipBytes: ByteArray): Uri = withContext(Dispatchers.IO) {
+suspend fun writeBackupZipExport(context: Context, writeZip: (OutputStream) -> Unit): Uri = withContext(Dispatchers.IO) {
     val dir = File(context.cacheDir, EXPORT_DIR).apply { mkdirs() }
     deleteOldExports(dir, System.currentTimeMillis())
     val file = uniqueFile(dir, "camperlog-sicherung-${LocalDateTime.now().format(exportStamp)}", extension = "zip")
-    file.writeBytes(zipBytes)
+    try {
+        file.outputStream().use(writeZip)
+    } catch (e: IOException) {
+        file.delete()
+        throw e
+    }
     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 }
 
 /**
- * Schreibt die ZIP-Sicherung [zipBytes] in die vom Nutzer gewählte Datei [target] und überschreibt deren Inhalt.
+ * Schreibt die ZIP-Sicherung in die vom Nutzer gewählte Datei [target] und überschreibt deren Inhalt.
+ * [writeZip] schreibt direkt in den Ausgabestrom, statt die ZIP-Sicherung vorher vollständig im
+ * Speicher aufzubauen.
  *
  * @throws IOException wenn die Datei nicht geschrieben werden kann
  */
-suspend fun writeBackupZipTo(context: Context, target: Uri, zipBytes: ByteArray) = withContext(Dispatchers.IO) {
+suspend fun writeBackupZipTo(context: Context, target: Uri, writeZip: (OutputStream) -> Unit) = withContext(Dispatchers.IO) {
     val output = try {
         context.contentResolver.openOutputStream(target, "wt")
     } catch (e: SecurityException) {
         throw IOException(e)
     } ?: throw IOException("Kein Ausgabestrom für $target")
-    output.use { it.write(zipBytes) }
+    output.use(writeZip)
 }
 
 /** Vorgeschlagener Dateiname für eine Sicherung, z. B. `camperlog-sicherung-2026-10-04.json`. */

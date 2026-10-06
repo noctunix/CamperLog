@@ -83,7 +83,7 @@ class ReminderCheckRunner(
             folderWriter.isAccessible(folderUri) &&
             run {
                 val payload = buildBackupPayload()
-                val writtenName = payload.zipBytes?.let { folderWriter.writeTimestampedBackupZip(folderUri, it) }
+                val writtenName = payload.writeZip?.let { folderWriter.writeTimestampedBackupZip(folderUri, it) }
                     ?: folderWriter.writeTimestampedBackup(folderUri, payload.json)
                 writtenName != null
             }

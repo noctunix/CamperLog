@@ -14,7 +14,7 @@ import app.restvolt.camperlog.domain.shouldIncludeFilesInAutoBackup
 import app.restvolt.camperlog.ui.data.BackupSettings
 import app.restvolt.camperlog.ui.settings.NotificationSettings
 import app.restvolt.camperlog.ui.theme.ReminderSettings
-import java.io.ByteArrayOutputStream
+import java.io.OutputStream
 import java.time.Instant
 import java.time.LocalDate
 
@@ -48,16 +48,16 @@ class ReminderCheckWorker(appContext: Context, params: WorkerParameters) : Corou
                 val json = encodeBackup(backup)
                 val includeFiles = backupSettings.autoBackupIncludeFilesOverride
                     ?: shouldIncludeFilesInAutoBackup(backupZipSizeEstimate(json, backup.attachments))
-                val zipBytes = if (includeFiles) {
-                    ByteArrayOutputStream().apply {
-                        writeBackupZip(this, json, backup.attachments, includeFiles = true) { fileName ->
+                val writeZip: ((OutputStream) -> Unit)? = if (includeFiles) {
+                    { output ->
+                        writeBackupZip(output, json, backup.attachments, includeFiles = true) { fileName ->
                             app.attachmentFileStore.file(fileName).takeIf { it.exists() }?.inputStream()
                         }
-                    }.toByteArray()
+                    }
                 } else {
                     null
                 }
-                BackupPayload(json, zipBytes)
+                BackupPayload(json, writeZip)
             },
         )
         val outcome = runner.run(

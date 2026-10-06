@@ -13,6 +13,7 @@ import app.restvolt.camperlog.share.writeStationsCsvExport
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.io.OutputStream
 import java.util.UUID
 
 /**
@@ -54,11 +55,15 @@ interface DataFiles {
      */
     suspend fun writeBackup(target: String, json: String)
 
-    /** Wie [writeBackupExport], aber für eine ZIP-Sicherung samt Fotos und Dokumenten. */
-    suspend fun writeBackupZipExport(zipBytes: ByteArray): String
+    /**
+     * Wie [writeBackupExport], aber für eine ZIP-Sicherung samt Fotos und Dokumenten: [writeZip]
+     * schreibt die ZIP-Sicherung direkt in den gelieferten Strom, statt sie vorher vollständig im
+     * Speicher aufzubauen.
+     */
+    suspend fun writeBackupZipExport(writeZip: (OutputStream) -> Unit): String
 
-    /** Wie [writeBackup], aber für eine ZIP-Sicherung samt Fotos und Dokumenten. */
-    suspend fun writeBackupZip(target: String, zipBytes: ByteArray)
+    /** Wie [writeBackup], aber für eine ZIP-Sicherung samt Fotos und Dokumenten, wie [writeBackupZipExport] gestreamt. */
+    suspend fun writeBackupZip(target: String, writeZip: (OutputStream) -> Unit)
 
     /**
      * Öffnet die vom Nutzer gewählte Datei [source]; `null`, wenn kein Strom geliefert wird.
@@ -93,9 +98,9 @@ class AndroidDataFiles(context: Context) : DataFiles {
 
     override suspend fun writeBackup(target: String, json: String) = writeBackupTo(context, target.toUri(), json)
 
-    override suspend fun writeBackupZipExport(zipBytes: ByteArray): String = writeBackupZipExport(context, zipBytes).toString()
+    override suspend fun writeBackupZipExport(writeZip: (OutputStream) -> Unit): String = writeBackupZipExport(context, writeZip).toString()
 
-    override suspend fun writeBackupZip(target: String, zipBytes: ByteArray) = writeBackupZipTo(context, target.toUri(), zipBytes)
+    override suspend fun writeBackupZip(target: String, writeZip: (OutputStream) -> Unit) = writeBackupZipTo(context, target.toUri(), writeZip)
 
     override fun open(source: String): InputStream? = try {
         context.contentResolver.openInputStream(source.toUri())

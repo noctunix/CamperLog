@@ -13,13 +13,14 @@ import java.util.zip.ZipOutputStream
 const val BACKUP_ZIP_JSON_ENTRY = "backup.json"
 
 /**
- * Zu schreibende Sicherung: [json] ist immer gesetzt, [zipBytes] nur, wenn Fotos und Dokumente mit
+ * Zu schreibende Sicherung: [json] ist immer gesetzt, [writeZip] nur, wenn Fotos und Dokumente mit
  * eingeschlossen werden sollen - dann ersetzt die ZIP-Datei die reine JSON-Datei, statt neben ihr zu
- * stehen (siehe [app.restvolt.camperlog.reminders.ReminderCheckRunner]). Bewusst keine `data class`:
- * ein `ByteArray`-Feld bekäme damit eine auf Referenzgleichheit basierende `equals`/`hashCode`-Implementierung,
- * die hier nirgends gebraucht wird.
+ * stehen (siehe [app.restvolt.camperlog.reminders.ReminderCheckRunner]). [writeZip] schreibt die
+ * ZIP-Sicherung direkt in den übergebenen Strom (siehe [writeBackupZip]), statt sie vorher vollständig
+ * im Speicher aufzubauen - bei bis zu 200 MB an Anhängen würde das auf knappen Geräten ein
+ * `OutOfMemoryError` riskieren.
  */
-class BackupPayload(val json: String, val zipBytes: ByteArray?)
+class BackupPayload(val json: String, val writeZip: ((OutputStream) -> Unit)?)
 
 /** Größte insgesamt aus einer ZIP-Sicherung entpackte Menge an Bytes, gegen eine Zip-Bombe. */
 internal const val MAX_BACKUP_ZIP_TOTAL_BYTES = 500L * 1024 * 1024

@@ -6,6 +6,7 @@ import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.io.OutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -31,8 +32,12 @@ interface BackupFolderWriter {
      */
     suspend fun writeTimestampedBackup(folderUri: String, json: String): String?
 
-    /** Wie [writeTimestampedBackup], aber für eine ZIP-Sicherung samt Fotos und Dokumenten. */
-    suspend fun writeTimestampedBackupZip(folderUri: String, zipBytes: ByteArray): String?
+    /**
+     * Wie [writeTimestampedBackup], aber für eine ZIP-Sicherung samt Fotos und Dokumenten: [writeZip]
+     * schreibt direkt in den Ausgabestrom, statt die ZIP-Sicherung vorher vollständig im Speicher
+     * aufzubauen.
+     */
+    suspend fun writeTimestampedBackupZip(folderUri: String, writeZip: (OutputStream) -> Unit): String?
 }
 
 /** [BackupFolderWriter] über `DocumentFile` auf einem SAF-Tree-URI, ohne zusätzliche Berechtigung. */
@@ -46,20 +51,27 @@ class AndroidBackupFolderWriter(context: Context) : BackupFolderWriter {
     override suspend fun writeTimestampedBackup(folderUri: String, json: String): String? =
         write(folderUri, BACKUP_MIME_TYPE, "json") { it.write(json.toByteArray(Charsets.UTF_8)) }
 
-    override suspend fun writeTimestampedBackupZip(folderUri: String, zipBytes: ByteArray): String? =
-        write(folderUri, BACKUP_ZIP_MIME_TYPE, "zip") { it.write(zipBytes) }
+    override suspend fun writeTimestampedBackupZip(folderUri: String, writeZip: (OutputStream) -> Unit): String? =
+        write(folderUri, BACKUP_ZIP_MIME_TYPE, "zip", writeZip)
 
-    private suspend fun write(folderUri: String, mimeType: String, extension: String, writeContent: (java.io.OutputStream) -> Unit): String? =
+    /** Schreibt eine neue, zeitgestempelte Datei; bei einem Fehler wird sie wieder gelöscht statt unvollständig liegen zu bleiben. */
+    private suspend fun write(folderUri: String, mimeType: String, extension: String, writeContent: (OutputStream) -> Unit): String? =
         withContext(Dispatchers.IO) {
             val dir = folder(folderUri)?.takeIf { it.canWrite() } ?: return@withContext null
             val name = "camperlog-sicherung-${LocalDateTime.now().format(BACKUP_FOLDER_STAMP)}.$extension"
             val file = dir.createFile(mimeType, name) ?: return@withContext null
             try {
-                val output = context.contentResolver.openOutputStream(file.uri) ?: return@withContext null
+                val output = context.contentResolver.openOutputStream(file.uri)
+                if (output == null) {
+                    file.delete()
+                    return@withContext null
+                }
                 output.use(writeContent)
             } catch (_: IOException) {
+                file.delete()
                 return@withContext null
             } catch (_: SecurityException) {
+                file.delete()
                 return@withContext null
             }
             file.name ?: name

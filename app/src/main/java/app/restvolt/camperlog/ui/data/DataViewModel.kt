@@ -35,9 +35,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import java.io.OutputStream
 import java.time.Instant
 
 /**
@@ -183,7 +183,7 @@ class DataViewModel(
         val backup = currentBackup()
         val json = withContext(background) { encodeBackup(backup) }
         if (includeFiles) {
-            files.writeBackupZip(target, withContext(background) { buildZipBytes(json, backup) })
+            files.writeBackupZip(target, zipWriter(json, backup))
         } else {
             files.writeBackup(target, json)
         }
@@ -196,7 +196,7 @@ class DataViewModel(
         val backup = currentBackup()
         val json = withContext(background) { encodeBackup(backup) }
         _share.value = if (includeFiles) {
-            ShareRequest.BackupZip(files.writeBackupZipExport(withContext(background) { buildZipBytes(json, backup) }))
+            ShareRequest.BackupZip(files.writeBackupZipExport(zipWriter(json, backup)))
         } else {
             ShareRequest.Backup(files.writeBackupExport(json))
         }
@@ -220,7 +220,7 @@ class DataViewModel(
             val json = withContext(background) { encodeBackup(backup) }
             val includeFiles = includeFilesOverride ?: shouldIncludeFilesInAutoBackup(backupZipSizeEstimate(json, backup.attachments))
             val written = if (includeFiles) {
-                folderWriter.writeTimestampedBackupZip(folderUri, withContext(background) { buildZipBytes(json, backup) })
+                folderWriter.writeTimestampedBackupZip(folderUri, zipWriter(json, backup))
             } else {
                 folderWriter.writeTimestampedBackup(folderUri, json)
             }
@@ -265,11 +265,12 @@ class DataViewModel(
 
     private suspend fun currentBackup(): Backup = buildBackup(repository, exchangeRates, vehicles, logs, stations, documents, attachments, clock())
 
-    private fun buildZipBytes(json: String, backup: Backup): ByteArray = ByteArrayOutputStream().apply {
-        writeBackupZip(this, json, backup.attachments, includeFiles = true) { fileName ->
+    /** Schreibt [json] und die Dateien der [backup]-Anhänge direkt in den gelieferten Ausgabestrom. */
+    private fun zipWriter(json: String, backup: Backup): (OutputStream) -> Unit = { output ->
+        writeBackupZip(output, json, backup.attachments, includeFiles = true) { fileName ->
             attachmentFileStore.file(fileName).takeIf { it.exists() }?.inputStream()
         }
-    }.toByteArray()
+    }
 
     /**
      * Liest und prüft die Sicherung [source] (JSON oder ZIP, anhand der ersten Bytes unterschieden);
