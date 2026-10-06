@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.domain
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -64,13 +65,14 @@ enum class CoordinateSource(val csvValue: String) {
  * Einmalige Wetterabfrage zu einer Station (Open-Meteo); [observedAt] ist der einzige Zeitpunktwert,
  * [temperatureDeciC] die Temperatur in Zehntelgrad (14,3 °C -> 143).
  */
+@Serializable
 data class WeatherSnapshot(
     val temperatureDeciC: Int,
     val weatherCode: Int,
     val windKmh: Int,
     val gustKmh: Int? = null,
     val windDirectionDeg: Int? = null,
-    val observedAt: Instant,
+    @Serializable(with = InstantSerializer::class) val observedAt: Instant,
 )
 
 /**

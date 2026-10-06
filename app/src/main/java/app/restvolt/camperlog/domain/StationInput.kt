@@ -45,6 +45,7 @@ data class StationInput(
     val favorite: Boolean = false,
     /** Rohtext des Felds "Koordinaten oder Kartenlink" (5.1); nur fürs Formular, nicht Teil der Station. */
     val locationText: String = "",
+    val weather: WeatherSnapshot? = null,
 )
 
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
@@ -139,7 +140,7 @@ fun StationInput.toStation(original: Station?): Station {
         pitchSlope = pitchSlope.takeIf { isOvernight },
         levelingBlocksUsed = levelingBlocksUsed.takeIf { isOvernight },
         services = services.intersect(type.allowedServices),
-        weather = original?.weather,
+        weather = weather,
         favorite = favorite && isOvernight,
         createdAt = original?.createdAt ?: Instant.EPOCH,
         updatedAt = original?.updatedAt ?: Instant.EPOCH,
@@ -171,4 +172,5 @@ fun Station.toInput(): StationInput = StationInput(
     services = services,
     favorite = favorite,
     locationText = mapLink ?: if (latitude != null && longitude != null) "$latitude, $longitude" else "",
+    weather = weather,
 )
