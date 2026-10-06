@@ -1,21 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Standort nur auf Tastendruck, nie im Hintergrund (6.7, 9); kein ACCESS_BACKGROUND_LOCATION. -->
+    <!-- Standort nur auf Tastendruck, nie im Hintergrund; kein ACCESS_BACKGROUND_LOCATION. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
-    <!-- Install-time, von jedem F-Droid-Build aufgeführt; genutzt wird sie nur, wenn der Schalter
-         "Wetter & Karte (Internet)" an ist (6.8, 9). Offline-Erkennung über den fehlgeschlagenen
-         Request, daher kein ACCESS_NETWORK_STATE. -->
+    <!-- Genutzt nur bei eingeschaltetem „Wetter & Karte“. Offline wird am fehlgeschlagenen Request
+         erkannt, daher kein ACCESS_NETWORK_STATE. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Laufzeitberechtigung (Android 13+), nur abgefragt, wenn der Schalter "Benachrichtigungen"
-         unter Einstellungen → Erinnerungen an ist (1.9.0). Kein SCHEDULE_EXACT_ALARM: der tägliche
-         Check läuft als periodischer WorkManager-Job. WorkManager führt dafür selbst RECEIVE_BOOT_COMPLETED,
-         WAKE_LOCK, ACCESS_NETWORK_STATE und FOREGROUND_SERVICE zusammen (alle normal, ohne Dialog,
-         unabhängig davon, dass dieser Job keinen Netzwerk-Constraint hat und niemals in den Vordergrund geht). -->
+    <!-- Nur abgefragt, wenn Benachrichtigungen eingeschaltet werden. Der tägliche Check ist ein
+         periodischer WorkManager-Job ohne exakte Alarme; WAKE_LOCK und RECEIVE_BOOT_COMPLETED bringt
+         WorkManager dafür selbst mit. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- WorkManager deklariert diese nur für Netzwerk-Constraints und Vordergrund-Jobs; der Check
+         nutzt beides nicht, und die Berechtigungsliste soll nichts Ungenutztes zeigen. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
 
     <application
         android:name=".CamperLogApp"
