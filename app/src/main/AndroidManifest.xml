@@ -5,6 +5,11 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+    <!-- Install-time, von jedem F-Droid-Build aufgeführt; genutzt wird sie nur, wenn der Schalter
+         "Wetter & Karte (Internet)" an ist (6.8, 9). Offline-Erkennung über den fehlgeschlagenen
+         Request, daher kein ACCESS_NETWORK_STATE. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".CamperLogApp"
         android:allowBackup="true"
