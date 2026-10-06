@@ -416,6 +416,7 @@
     <string name="log_type_grey_water_emptied">Grauwasser abgelassen</string>
     <string name="log_type_diesel_heater_run">Dieselheizung betrieben</string>
     <string name="log_type_gas_heater_run">Gasheizung betrieben</string>
+    <string name="log_type_gas_bottle_swapped">Gasflasche gewechselt</string>
     <string name="logbook_today">Heute</string>
     <string name="logbook_yesterday">Gestern</string>
     <plurals name="logbook_days_ago">
@@ -434,6 +435,7 @@
     <string name="logbook_delete_failed">Eintrag konnte nicht gelöscht werden.</string>
     <string name="logbook_restore_failed">Eintrag konnte nicht wiederhergestellt werden.</string>
     <string name="logbook_history_empty">Noch keine Einträge.</string>
+    <string name="logbook_entry_station">%1$s · %2$s</string>
 
     <!-- Über -->
     <string name="about_title">Über CamperLog</string>
@@ -538,6 +540,9 @@
     <string name="station_edit_title_new">Neue Station</string>
     <string name="station_edit_title_existing">Station bearbeiten</string>
     <string name="station_edit_save_failed">Station konnte nicht gespeichert werden.</string>
+    <string name="station_saved">Station gespeichert</string>
+    <string name="station_saved_with_log">Station gespeichert · %1$s ins Bordbuch eingetragen</string>
+    <string name="station_services_logbook_hint">Kassette, Grauwasser und Gas landen auch im Bordbuch.</string>
     <string name="field_type">Art</string>
     <string name="field_place">Ort oder Adresse</string>
     <string name="field_coordinates">Koordinaten oder Kartenlink</string>
@@ -572,6 +577,7 @@
     <string name="error_coordinates_out_of_range">Koordinaten außerhalb des gültigen Bereichs</string>
     <string name="error_nights_too_small">Mindestens 1 Nacht</string>
     <string name="error_text_too_long">Zu lang</string>
+    <string name="error_station_service_future_date">Kann nicht in der Zukunft passiert sein.</string>
 
     <!-- Stationsdetail (6.6) -->
     <string name="station_detail_delete">Station löschen</string>

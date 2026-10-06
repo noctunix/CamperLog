@@ -416,6 +416,7 @@
     <string name="log_type_grey_water_emptied">Grey water emptied</string>
     <string name="log_type_diesel_heater_run">Diesel heater run</string>
     <string name="log_type_gas_heater_run">Gas heater run</string>
+    <string name="log_type_gas_bottle_swapped">Gas bottle swapped</string>
     <string name="logbook_today">Today</string>
     <string name="logbook_yesterday">Yesterday</string>
     <plurals name="logbook_days_ago">
@@ -434,6 +435,7 @@
     <string name="logbook_delete_failed">Could not delete entry.</string>
     <string name="logbook_restore_failed">Could not restore entry.</string>
     <string name="logbook_history_empty">No entries yet.</string>
+    <string name="logbook_entry_station">%1$s · %2$s</string>
 
     <!-- About -->
     <string name="about_title">About CamperLog</string>
@@ -545,6 +547,9 @@
     <string name="station_edit_title_new">New stop</string>
     <string name="station_edit_title_existing">Edit stop</string>
     <string name="station_edit_save_failed">Stop couldn\'t be saved.</string>
+    <string name="station_saved">Stop saved</string>
+    <string name="station_saved_with_log">Stop saved · %1$s logged</string>
+    <string name="station_services_logbook_hint">Cassette, grey water and gas also go into the logbook.</string>
     <string name="field_type">Type</string>
     <string name="field_place">Place or address</string>
     <string name="field_coordinates">Coordinates or map link</string>
@@ -579,6 +584,7 @@
     <string name="error_coordinates_out_of_range">Coordinates out of range</string>
     <string name="error_nights_too_small">At least 1 night</string>
     <string name="error_text_too_long">Too long</string>
+    <string name="error_station_service_future_date">Can\'t have happened in the future.</string>
 
     <!-- Stop detail (6.6) -->
     <string name="station_detail_delete">Delete stop</string>

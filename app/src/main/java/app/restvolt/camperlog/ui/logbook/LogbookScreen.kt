@@ -203,4 +203,5 @@ private fun LogType.iconRes() = when (this) {
     LogType.GREY_WATER_EMPTIED -> R.drawable.ic_water_drop
     LogType.DIESEL_HEATER_RUN -> R.drawable.ic_local_fire
     LogType.GAS_HEATER_RUN -> R.drawable.ic_gas_flame
+    LogType.GAS_BOTTLE_SWAPPED -> R.drawable.ic_gas_bottle
 }

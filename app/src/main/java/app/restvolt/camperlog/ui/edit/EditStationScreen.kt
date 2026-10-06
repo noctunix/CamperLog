@@ -81,6 +81,7 @@ import app.restvolt.camperlog.domain.StationField
 import app.restvolt.camperlog.domain.StationInput
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.SYNCED_SERVICE_LOG_TYPES
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.allowedServices
@@ -102,9 +103,12 @@ import app.restvolt.camperlog.ui.yesNoRes
 import java.time.LocalDate
 import java.time.LocalTime
 
-/** Formular zum Anlegen und Bearbeiten einer Station (6.5). [onDone] verlässt es ohne, [onSaved] nach dem Speichern. */
+/**
+ * Formular zum Anlegen und Bearbeiten einer Station (6.5). [onDone] verlässt es ohne, [onSaved] nach
+ * dem Speichern mit den gerade ins Bordbuch eingetragenen Ver-/Entsorgungs-Häkchen (4.6).
+ */
 @Composable
-fun EditStationScreen(viewModel: EditStationViewModel, onDone: () -> Unit, onSaved: () -> Unit) {
+fun EditStationScreen(viewModel: EditStationViewModel, onDone: () -> Unit, onSaved: (Set<StationService>) -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
@@ -112,7 +116,7 @@ fun EditStationScreen(viewModel: EditStationViewModel, onDone: () -> Unit, onSav
     val resources = LocalResources.current
 
     LaunchedEffect(state.isSaved) {
-        if (state.isSaved) onSaved()
+        if (state.isSaved) onSaved(state.loggedServices)
     }
     LaunchedEffect(state.saveFailed) {
         if (state.saveFailed) {
@@ -188,7 +192,7 @@ private fun StationForm(state: StationEditUiState, viewModel: EditStationViewMod
     // Nach einem abgelehnten Speichern zum ersten fehlerhaften Feld springen; der Fokus scrollt es ins Bild.
     LaunchedEffect(state.rejectedSaves) {
         if (state.rejectedSaves > 0) {
-            errors.keys.minByOrNull(StationField::ordinal)?.let { focus.getValue(it).requestFocus() }
+            errors.keys.minByOrNull(StationField::ordinal)?.let { focus[it]?.requestFocus() }
         }
     }
 
@@ -248,13 +252,14 @@ private fun StationForm(state: StationEditUiState, viewModel: EditStationViewMod
                 modifier = focusOf(StationField.COORDINATES),
             )
         }
+        val servicesError = errors[StationField.SERVICES]
         when (input.type) {
-            StationType.OVERNIGHT -> OvernightSection(input, change, focusOf(StationField.NIGHTS), errors[StationField.NIGHTS])
+            StationType.OVERNIGHT -> OvernightSection(input, change, focusOf(StationField.NIGHTS), errors[StationField.NIGHTS], servicesError)
             StationType.SUPPLY -> SectionCard {
                 SectionHeading(stringResource(R.string.station_section_used_here))
-                ServicesChips(SUPPLY_SERVICES, input.services) { service -> change { it.copy(services = it.services.toggled(service)) } }
+                ServicesChips(SUPPLY_SERVICES, input.services, servicesError) { service -> change { it.copy(services = it.services.toggled(service)) } }
             }
-            StationType.FUEL -> FuelSection(input, change)
+            StationType.FUEL -> FuelSection(input, change, servicesError)
             StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> Unit
         }
         SectionCard {
@@ -294,6 +299,7 @@ private fun OvernightSection(
     change: ((StationInput) -> StationInput) -> Unit,
     modifier: Modifier,
     nightsError: String?,
+    servicesError: String?,
 ) {
     SectionCard {
         SectionHeading(stringResource(R.string.station_section_overnight))
@@ -355,16 +361,16 @@ private fun OvernightSection(
             onToggle = { usedHereExpanded = !usedHereExpanded },
             summary = servicesSummary(StationType.OVERNIGHT.allowedServices, input.services),
         ) {
-            ServicesChips(SUPPLY_SERVICES, input.services) { service -> change { it.copy(services = it.services.toggled(service)) } }
+            ServicesChips(SUPPLY_SERVICES, input.services, servicesError) { service -> change { it.copy(services = it.services.toggled(service)) } }
         }
     }
 }
 
 @Composable
-private fun FuelSection(input: StationInput, change: ((StationInput) -> StationInput) -> Unit) {
+private fun FuelSection(input: StationInput, change: ((StationInput) -> StationInput) -> Unit, servicesError: String?) {
     SectionCard {
         SectionHeading(stringResource(R.string.station_section_fuelled))
-        ServicesChips(FUEL_SERVICES, input.services) { service -> change { it.copy(services = it.services.toggled(service)) } }
+        ServicesChips(FUEL_SERVICES, input.services, error = null) { service -> change { it.copy(services = it.services.toggled(service)) } }
 
         var usedHereExpanded by rememberSaveable(input.type) { mutableStateOf(input.services.any { it in SUPPLY_SERVICES }) }
         CollapsibleSection(
@@ -373,7 +379,7 @@ private fun FuelSection(input: StationInput, change: ((StationInput) -> StationI
             onToggle = { usedHereExpanded = !usedHereExpanded },
             summary = servicesSummary(SUPPLY_SERVICES, input.services),
         ) {
-            ServicesChips(SUPPLY_SERVICES, input.services) { service -> change { it.copy(services = it.services.toggled(service)) } }
+            ServicesChips(SUPPLY_SERVICES, input.services, servicesError) { service -> change { it.copy(services = it.services.toggled(service)) } }
         }
     }
 }
@@ -416,8 +422,12 @@ private fun FavoriteRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     }
 }
 
+/**
+ * Chip-Reihe der Ver-/Entsorgung oder des Tankens. Wenn [allowed] mindestens einen mit dem Bordbuch
+ * synchronisierten Dienst enthält (4), zeigt sie darunter den Hinweistext bzw. [error] (4.6, Regel 5).
+ */
 @Composable
-private fun ServicesChips(allowed: Set<StationService>, selected: Set<StationService>, onToggle: (StationService) -> Unit) {
+private fun ServicesChips(allowed: Set<StationService>, selected: Set<StationService>, error: String?, onToggle: (StationService) -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         allowed.forEach { service ->
             FilterChip(
@@ -426,6 +436,13 @@ private fun ServicesChips(allowed: Set<StationService>, selected: Set<StationSer
                 label = { Text(stringResource(service.labelRes)) },
             )
         }
+    }
+    if (allowed.any { it in SYNCED_SERVICE_LOG_TYPES }) {
+        Text(
+            error ?: stringResource(R.string.station_services_logbook_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

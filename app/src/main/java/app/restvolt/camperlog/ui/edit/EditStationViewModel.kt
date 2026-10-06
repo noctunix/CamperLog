@@ -9,11 +9,13 @@ import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.ParsedLocation
+import app.restvolt.camperlog.domain.SYNCED_SERVICE_LOG_TYPES
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationError
 import app.restvolt.camperlog.domain.StationField
 import app.restvolt.camperlog.domain.StationInput
 import app.restvolt.camperlog.domain.StationRepository
+import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
@@ -47,6 +49,8 @@ data class StationEditUiState(
     val isDirty: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
+    /** Welche Ver-/Entsorgungs-Häkchen beim letzten erfolgreichen Speichern ins Bordbuch eingetragen wurden (4.6). */
+    val loggedServices: Set<StationService> = emptySet(),
     /** Der letzte Speicherversuch ist an der Datenbank gescheitert; Meldung steht noch aus. */
     val saveFailed: Boolean = false,
     /** Zählt an der Validierung gescheiterte Speicherversuche; jede Erhöhung fokussiert das erste fehlerhafte Feld. */
@@ -202,7 +206,7 @@ class EditStationViewModel(
     fun save() {
         val state = _uiState.value
         if (state.isSaving || state.isLoading || state.notFound) return
-        val errors = state.input.validate()
+        val errors = state.input.validate(today())
         if (errors.isNotEmpty()) {
             showErrors = true
             saveDraft()
@@ -210,12 +214,13 @@ class EditStationViewModel(
             return
         }
         val station = state.input.toStation(original)
+        val loggedServices = station.services.filterTo(mutableSetOf()) { it in SYNCED_SERVICE_LOG_TYPES }
         _uiState.update { it.copy(isSaving = true, errors = emptyMap(), saveFailed = false) }
         viewModelScope.launch {
             try {
                 repository.save(station)
                 savedStateHandle.remove<SavedState>(DRAFT_KEY)
-                _uiState.update { it.copy(isSaving = false, isSaved = true) }
+                _uiState.update { it.copy(isSaving = false, isSaved = true, loggedServices = loggedServices) }
             } catch (_: SQLException) {
                 // Eingaben bleiben erhalten, damit der Nutzer es erneut versuchen kann.
                 _uiState.update { it.copy(isSaving = false, saveFailed = true) }

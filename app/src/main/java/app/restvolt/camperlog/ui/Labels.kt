@@ -124,6 +124,7 @@ val LogType.labelRes: Int
         LogType.GREY_WATER_EMPTIED -> R.string.log_type_grey_water_emptied
         LogType.DIESEL_HEATER_RUN -> R.string.log_type_diesel_heater_run
         LogType.GAS_HEATER_RUN -> R.string.log_type_gas_heater_run
+        LogType.GAS_BOTTLE_SWAPPED -> R.string.log_type_gas_bottle_swapped
     }
 
 /** Anzeigetext der zeitlichen Einordnung, z. B. „Heute" oder „vor 3 Tagen". */
@@ -349,6 +350,7 @@ val StationField.labelRes: Int
         StationField.PLACE -> R.string.field_place
         StationField.NOTES -> R.string.field_notes
         StationField.MAP_LINK -> R.string.field_coordinates
+        StationField.SERVICES -> R.string.station_section_used_here
     }
 
 /** Fehlermeldung zu [this] am Feld [field]. */
@@ -361,6 +363,14 @@ fun StationError.messageRes(field: StationField): Int = when (this) {
     StationError.COORDINATES_OUT_OF_RANGE -> R.string.error_coordinates_out_of_range
     StationError.TOO_LONG -> R.string.error_text_too_long
     StationError.NOT_A_WEB_LINK -> R.string.error_not_a_web_link
+    StationError.FUTURE_DATE -> R.string.error_station_service_future_date
+}
+
+/** Text der "Station gespeichert"-Snackbar (4.6): Grundtext, ergänzt um die ins Bordbuch eingetragenen Dienste. */
+fun stationSavedText(resources: android.content.res.Resources, loggedServices: Set<StationService>): String {
+    if (loggedServices.isEmpty()) return resources.getString(R.string.station_saved)
+    val names = loggedServices.sortedBy { it.ordinal }.joinToString(", ") { resources.getString(it.labelRes) }
+    return resources.getString(R.string.station_saved_with_log, names)
 }
 
 /**

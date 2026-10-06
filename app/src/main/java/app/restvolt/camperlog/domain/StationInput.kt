@@ -48,7 +48,7 @@ data class StationInput(
 )
 
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
-enum class StationField { DATE, COORDINATES, NIGHTS, NAME, PLACE, NOTES, MAP_LINK }
+enum class StationField { DATE, COORDINATES, NIGHTS, NAME, PLACE, NOTES, MAP_LINK, SERVICES }
 
 /** Grund eines Validierungsfehlers. Den Text dazu liefert die UI aus den String-Ressourcen. */
 enum class StationError {
@@ -59,6 +59,7 @@ enum class StationError {
     COORDINATES_OUT_OF_RANGE,
     TOO_LONG,
     NOT_A_WEB_LINK,
+    FUTURE_DATE,
 }
 
 /**
@@ -66,9 +67,10 @@ enum class StationError {
  * gehören (z. B. Stellplatz-Details bei einer Nicht-Übernachtung), werden nicht geprüft, sondern in
  * [toStation] stillschweigend verworfen, falls der Typ zuvor gewechselt wurde.
  *
+ * @param today Bezugsdatum für die Zukunftsprüfung der Ver-/Entsorgungs-Häkchen (4, Regel 5)
  * @return Fehlergrund je fehlerhaftem Feld; leer, wenn die Eingabe gültig ist
  */
-fun StationInput.validate(): Map<StationField, StationError> = buildMap {
+fun StationInput.validate(today: LocalDate = LocalDate.now()): Map<StationField, StationError> = buildMap {
     if (date == null) put(StationField.DATE, StationError.REQUIRED)
 
     if ((latitude == null) != (longitude == null)) {
@@ -95,6 +97,10 @@ fun StationInput.validate(): Map<StationField, StationError> = buildMap {
             link.length > MAX_STATION_MAP_LINK_LENGTH -> put(StationField.MAP_LINK, StationError.TOO_LONG)
             !isWebUrl(link) -> put(StationField.MAP_LINK, StationError.NOT_A_WEB_LINK)
         }
+    }
+
+    if (date != null && date > today && services.any { it in SYNCED_SERVICE_LOG_TYPES }) {
+        put(StationField.SERVICES, StationError.FUTURE_DATE)
     }
 }
 
