@@ -22,8 +22,9 @@ import java.util.zip.ZipOutputStream
 
 /**
  * ZIP-Verpackung einer Sicherung (siehe `BackupZip.kt`): Hin- und Rückweg über [writeBackupZip]
- * und [readBackupZip] sowie die Angriffsfälle, die eine von Hand gebaute ZIP-Datei abdecken muss -
- * jeder davon ohne jede Seitenwirkung (keine Dateien bleiben in der Zwischenablage liegen).
+ * und [readBackupZip] mit den menschenlesbaren Pfaden aus [buildAttachmentZipPaths], sowie die
+ * Angriffsfälle, die eine von Hand gebaute ZIP-Datei abdecken muss - jeder davon ohne jede
+ * Seitenwirkung (keine Dateien bleiben in der Zwischenablage liegen).
  */
 class BackupZipTest {
 
@@ -40,13 +41,13 @@ class BackupZipTest {
         return byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()) + ByteArray(64) { it.toByte() }
     }
 
-    private fun vehicle() = Vehicle(uuid = vehicleUuid, name = "Bluebird", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+    private fun vehicle(name: String = "Bluebird") = Vehicle(uuid = vehicleUuid, name = name, createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
 
-    private fun document() = VehicleDocument(
+    private fun document(title: String = "Fahrzeugschein") = VehicleDocument(
         uuid = documentUuid,
         vehicleId = 0,
         kind = DocumentKind.REGISTRATION,
-        title = "Fahrzeugschein",
+        title = title,
         expiryDate = LocalDate.of(2030, 1, 1),
         createdAt = Instant.EPOCH,
         updatedAt = Instant.EPOCH,
@@ -90,16 +91,21 @@ class BackupZipTest {
         updatedAt = Instant.EPOCH,
     )
 
-    private fun backup(attachments: List<Attachment>) = Backup(
-        exportedAt = Instant.parse("2026-10-06T12:00:00Z"),
-        mainCurrency = nok,
-        rates = emptyList(),
-        tours = listOf(tour()),
-        tourVehicleUuid = mapOf(tour().uuid to vehicleUuid),
-        vehicles = listOf(BackupVehicle(vehicle(), emptyList(), emptyList())),
-        documents = listOf(BackupVehicleDocument(document(), vehicleUuid)),
-        attachments = attachments.map { BackupAttachment(it, documentUuid) },
-    )
+    /** Baut eine [Backup] wie `buildBackup` es täte: Anhänge mit echten, über [buildAttachmentZipPaths] berechneten ZIP-Pfaden. */
+    private fun backup(attachments: List<Attachment>, vehicleName: String = "Bluebird", title: String = "Fahrzeugschein"): Backup {
+        val draft = Backup(
+            exportedAt = Instant.parse("2026-10-06T12:00:00Z"),
+            mainCurrency = nok,
+            rates = emptyList(),
+            tours = listOf(tour()),
+            tourVehicleUuid = mapOf(tour().uuid to vehicleUuid),
+            vehicles = listOf(BackupVehicle(vehicle(vehicleName), emptyList(), emptyList())),
+            documents = listOf(BackupVehicleDocument(document(title), vehicleUuid)),
+            attachments = attachments.map { BackupAttachment(it, documentUuid) },
+        )
+        val zipPaths = buildAttachmentZipPaths(draft)
+        return draft.copy(attachments = draft.attachments.map { it.copy(zipPath = zipPaths.getValue(it.attachment.uuid)) })
+    }
 
     private fun stagingDir(): File = createTempStagingDir()
 
@@ -128,6 +134,34 @@ class BackupZipTest {
     }
 
     @Test
+    fun roundTrip_withUnicodeVehicleAndDocumentNames_sanitizesAndStagesTheFile() {
+        val source = backup(listOf(photoAttachment()), vehicleName = "Käfer äöü", title = "Zulassungsbescheinigung Teil II")
+        val json = encodeBackup(source)
+        val zipBytes = ByteArrayOutputStream().apply {
+            writeBackupZip(this, json, source.attachments, includeFiles = true) { ByteArrayInputStream(photoBytes) }
+        }.toByteArray()
+
+        val result = readBackupZip(ByteArrayInputStream(zipBytes), stagingDir()) as BackupZipReadResult.Success
+
+        assertEquals("Documents/Käfer äöü/Zulassungsbescheinigung Teil II.jpg", source.attachments.single().zipPath)
+        assertEquals(photoBytes.toList(), result.stagedFiles.getValue(photoFileName).readBytes().toList())
+    }
+
+    @Test
+    fun twoAttachmentsOfTheSameDocument_getUniqueZipPathsWithinTheirFolder() {
+        val first = photoAttachment(fileName = photoFileName)
+        val second = photoAttachment(fileName = docFileName).copy(uuid = "e5e5e5e5-e5e5-4e5e-8e5e-e5e5e5e5e5e5")
+        // Vorder- und Rückseite desselben Dokuments landen im selben Ordner unter demselben Titel.
+        val source = backup(listOf(first, second))
+
+        val paths = source.attachments.map { it.zipPath }
+
+        assertEquals(2, paths.distinct().size)
+        assertTrue(paths.any { it.endsWith("Fahrzeugschein.jpg") })
+        assertTrue(paths.any { it.endsWith("Fahrzeugschein 2.jpg") })
+    }
+
+    @Test
     fun roundTrip_withoutFiles_decodesBackupWithEmptyStagedFiles() {
         val source = backup(listOf(photoAttachment()))
         val json = encodeBackup(source)
@@ -144,7 +178,18 @@ class BackupZipTest {
     @Test
     fun pathTraversalEntryName_isRejectedWithoutStagingAnything() {
         val dir = stagingDir()
-        val zipBytes = handCraftedZip("files/../../../etc/passwd" to ByteArray(10))
+        val zipBytes = handCraftedZip("Documents/../../../etc/passwd" to ByteArray(10))
+
+        val result = readBackupZip(ByteArrayInputStream(zipBytes), dir)
+
+        assertTrue(result is BackupZipReadResult.Failure)
+        assertEmptyAfterFailure(dir)
+    }
+
+    @Test
+    fun absolutePathEntryName_isRejected() {
+        val dir = stagingDir()
+        val zipBytes = handCraftedZip("/etc/passwd" to ByteArray(10))
 
         val result = readBackupZip(ByteArrayInputStream(zipBytes), dir)
 
@@ -168,7 +213,38 @@ class BackupZipTest {
         val source = backup(emptyList())
         val json = encodeBackup(source)
         val dir = stagingDir()
-        val zipBytes = handCraftedZip(BACKUP_ZIP_JSON_ENTRY to json.toByteArray(), "files/$photoFileName" to photoBytes)
+        val zipBytes = handCraftedZip(BACKUP_ZIP_JSON_ENTRY to json.toByteArray(), "Documents/Bluebird/Fahrzeugschein.jpg" to photoBytes)
+
+        val result = readBackupZip(ByteArrayInputStream(zipBytes), dir)
+
+        assertTrue(result is BackupZipReadResult.Failure)
+        assertEmptyAfterFailure(dir)
+    }
+
+    @Test
+    fun zipPathListedTwiceInBackupJson_isRejected() {
+        val source = backup(listOf(photoAttachment(), pdfAttachment()))
+        val samePath = source.attachments.first().zipPath
+        val broken = source.copy(attachments = source.attachments.map { it.copy(zipPath = samePath) })
+        val json = encodeBackup(broken)
+        val dir = stagingDir()
+        val zipBytes = handCraftedZip(BACKUP_ZIP_JSON_ENTRY to json.toByteArray(), samePath to photoBytes)
+
+        val result = readBackupZip(ByteArrayInputStream(zipBytes), dir)
+
+        assertTrue(result is BackupZipReadResult.Failure)
+        assertEmptyAfterFailure(dir)
+    }
+
+    @Test
+    fun zipEntryNameDifferingOnlyInCaseFromTheListedPath_isRejectedAsUnlisted() {
+        val source = backup(listOf(photoAttachment()))
+        val listedPath = source.attachments.single().zipPath
+        val json = encodeBackup(source)
+        val dir = stagingDir()
+        // Der Eintrag heißt anders als die in backup.json gelistete Groß-/Kleinschreibung - exakter
+        // Abgleich lehnt ihn ab, statt ihn stillschweigend derselben Datei zuzuordnen.
+        val zipBytes = handCraftedZip(BACKUP_ZIP_JSON_ENTRY to json.toByteArray(), listedPath.uppercase() to photoBytes)
 
         val result = readBackupZip(ByteArrayInputStream(zipBytes), dir)
 
@@ -179,9 +255,10 @@ class BackupZipTest {
     @Test
     fun fileLargerThanDeclaredMetadata_isRejected() {
         val source = backup(listOf(photoAttachment(sizeBytes = 3)))
+        val zipPath = source.attachments.single().zipPath
         val json = encodeBackup(source)
         val dir = stagingDir()
-        val zipBytes = handCraftedZip(BACKUP_ZIP_JSON_ENTRY to json.toByteArray(), "files/$photoFileName" to photoBytes)
+        val zipBytes = handCraftedZip(BACKUP_ZIP_JSON_ENTRY to json.toByteArray(), zipPath to photoBytes)
 
         val result = readBackupZip(ByteArrayInputStream(zipBytes), dir)
 
@@ -192,14 +269,12 @@ class BackupZipTest {
     @Test
     fun fileContentNotMatchingDeclaredMimeType_isRejected() {
         val source = backup(listOf(photoAttachment()))
+        val zipPath = source.attachments.single().zipPath
         val json = encodeBackup(source)
         val dir = stagingDir()
         // Gibt sich per Metadaten als JPEG aus, der tatsächliche Inhalt ist aber keines.
         val fakePhoto = "not actually a jpeg".toByteArray()
-        val zipBytes = handCraftedZip(
-            BACKUP_ZIP_JSON_ENTRY to json.toByteArray(),
-            "files/$photoFileName" to fakePhoto,
-        )
+        val zipBytes = handCraftedZip(BACKUP_ZIP_JSON_ENTRY to json.toByteArray(), zipPath to fakePhoto)
 
         val result = readBackupZip(ByteArrayInputStream(zipBytes), dir)
 
@@ -210,12 +285,13 @@ class BackupZipTest {
     @Test
     fun oversizeFile_isRejectedEvenWhenItCompressesSmall() {
         val source = backup(listOf(pdfAttachment()))
+        val zipPath = source.attachments.single().zipPath
         val json = encodeBackup(source)
         val dir = stagingDir()
         // 25 MB Nullen komprimieren winzig, zählen beim Entpacken aber als tatsächlich gelesene Bytes -
         // genau das, was eine Zip-Bombe ausnutzen würde.
         val huge = ByteArray(25 * 1024 * 1024)
-        val zipBytes = handCraftedZip(BACKUP_ZIP_JSON_ENTRY to json.toByteArray(), "files/$docFileName" to huge)
+        val zipBytes = handCraftedZip(BACKUP_ZIP_JSON_ENTRY to json.toByteArray(), zipPath to huge)
 
         val result = readBackupZip(ByteArrayInputStream(zipBytes), dir)
 
@@ -237,7 +313,7 @@ class BackupZipTest {
     @Test
     fun missingBackupJsonEntry_isRejected() {
         val dir = stagingDir()
-        val zipBytes = handCraftedZip("files/$photoFileName" to photoBytes)
+        val zipBytes = handCraftedZip("Documents/Bluebird/Fahrzeugschein.jpg" to photoBytes)
 
         val result = readBackupZip(ByteArrayInputStream(zipBytes), dir)
 

@@ -25,8 +25,6 @@ class BackupPayload(val json: String, val writeZip: ((OutputStream) -> Unit)?)
 /** Größte insgesamt aus einer ZIP-Sicherung entpackte Menge an Bytes, gegen eine Zip-Bombe. */
 internal const val MAX_BACKUP_ZIP_TOTAL_BYTES = 500L * 1024 * 1024
 
-private val ATTACHMENT_ZIP_ENTRY_PATTERN = Regex("""files/${ATTACHMENT_FILE_NAME_PATTERN.pattern}""")
-
 /**
  * Geschätzte Größe einer ZIP-Sicherung zur Anzeige vor dem Export: der JSON-Text plus alle
  * eindeutigen Anhangsdateien (mehrfach verwendete Dateien, falls es die je gäbe, zählen nur einmal).
@@ -36,8 +34,10 @@ fun backupZipSizeEstimate(json: String, attachments: List<BackupAttachment>): Lo
 
 /**
  * Schreibt [json] und, sofern [includeFiles], die Dateien der eindeutigen [attachments] als ZIP nach
- * [output]. [fileContent] liefert den Inhalt einer Datei oder `null`, wenn sie nicht (mehr) existiert;
- * ein fehlender Anhang lässt den Export nicht scheitern, sein Eintrag fehlt dann einfach in der ZIP-Datei.
+ * [output], jede unter ihrem menschenlesbaren [BackupAttachment.zipPath]. [fileContent] liefert den
+ * Inhalt einer Datei (angesprochen über den internen [app.restvolt.camperlog.domain.Attachment.fileName],
+ * nicht den ZIP-Pfad) oder `null`, wenn sie nicht (mehr) existiert; ein fehlender Anhang lässt den
+ * Export nicht scheitern, sein Eintrag fehlt dann einfach in der ZIP-Datei.
  */
 fun writeBackupZip(
     output: OutputStream,
@@ -53,10 +53,9 @@ fun writeBackupZip(
         if (includeFiles) {
             val written = HashSet<String>()
             for (backupAttachment in attachments) {
-                val fileName = backupAttachment.attachment.fileName
-                if (!written.add(fileName)) continue
-                fileContent(fileName)?.use { input ->
-                    zip.putNextEntry(ZipEntry("files/$fileName"))
+                if (!written.add(backupAttachment.zipPath)) continue
+                fileContent(backupAttachment.attachment.fileName)?.use { input ->
+                    zip.putNextEntry(ZipEntry(backupAttachment.zipPath))
                     input.copyTo(zip)
                     zip.closeEntry()
                 }
@@ -79,23 +78,28 @@ sealed interface BackupZipReadResult {
 }
 
 /**
- * Liest eine ZIP-Sicherung aus [input] in [stagingDir] (muss existieren oder anlegbar sein). Nur die
- * Einträge [BACKUP_ZIP_JSON_ENTRY] und `files/<uuid>.<ext>` sind erlaubt; jeder andere Eintragsname
- * lässt den Import ohne jede Seitenwirkung scheitern (kein Pfad-Traversal, keine unbekannten
- * Einträge). Jede Datei wird einzeln bis zur für ihren MIME-Typ gültigen Obergrenze und insgesamt bis
- * [MAX_BACKUP_ZIP_TOTAL_BYTES] gelesen - gezählt an den tatsächlich gelesenen Bytes, nicht an der von
- * der ZIP-Datei behaupteten Größe, da sich sonst eine Zip-Bombe durchschmuggeln ließe. Nach dem
- * Entpacken wird jede Datei gegen die Metadaten in `backup.json` geprüft: ihr Name muss zu genau einem
- * [Backup.attachments]-Eintrag gehören, dessen Größe und per Inhalt erkannter MIME-Typ übereinstimmen
- * müssen. Scheitert irgendeine Prüfung, werden alle bereits geschriebenen Dateien in [stagingDir]
- * wieder gelöscht; das endgültige Verschieben an den Ziel-Ort ist Sache des Aufrufers, nach
- * erfolgreichem Datenbank-Import.
+ * Liest eine ZIP-Sicherung aus [input] in [stagingDir] (muss existieren oder anlegbar sein). Nur der
+ * Eintrag [BACKUP_ZIP_JSON_ENTRY] und strukturell sichere, relative Pfade ([isValidZipPath]) werden
+ * überhaupt zwischengelagert (temporär unter einem synthetischen Namen, nicht unter ihrem Eintragsnamen -
+ * der ist bis zur Prüfung gegen `backup.json` nicht vertrauenswürdig); jeder andere Eintragsname lässt
+ * den Import ohne jede Seitenwirkung scheitern. Jede Datei wird einzeln bis zur für ihren MIME-Typ
+ * gültigen Obergrenze und insgesamt bis [MAX_BACKUP_ZIP_TOTAL_BYTES] gelesen - gezählt an den
+ * tatsächlich gelesenen Bytes, nicht an der von der ZIP-Datei behaupteten Größe, da sich sonst eine
+ * Zip-Bombe durchschmuggeln ließe. Nach dem Entpacken wird `backup.json` decodiert (das validiert auch
+ * die darin enthaltenen [BackupAttachment.zipPath] - eindeutig, sicher, kein `backup.json`); jeder
+ * zwischengelagerte Eintragsname muss dann zu genau einem dieser Pfade passen (sonst: unbekannter
+ * Eintrag), und jede so gefundene Datei muss in Größe und per Inhalt erkanntem MIME-Typ zu ihren
+ * Metadaten passen. Erst danach wandert sie unter ihrem internen
+ * [app.restvolt.camperlog.domain.Attachment.fileName] ins Ergebnis. Scheitert irgendeine Prüfung,
+ * werden alle bereits geschriebenen Dateien in [stagingDir] wieder gelöscht; das endgültige
+ * Verschieben an den Ziel-Ort ist Sache des Aufrufers, nach erfolgreichem Datenbank-Import.
  */
 fun readBackupZip(input: InputStream, stagingDir: File): BackupZipReadResult {
     stagingDir.mkdirs()
-    val stagedFiles = mutableMapOf<String, File>()
+    val rawStaged = mutableMapOf<String, File>()
     var backupJsonText: String? = null
     var totalBytes = 0L
+    var nextTempFileIndex = 0
 
     try {
         ZipInputStream(input).use { zip ->
@@ -104,65 +108,71 @@ fun readBackupZip(input: InputStream, stagingDir: File): BackupZipReadResult {
                 val name = entry.name
                 when {
                     name == BACKUP_ZIP_JSON_ENTRY -> {
-                        if (backupJsonText != null) return cleanupAndFail(stagingDir, stagedFiles, BackupError.NOT_A_BACKUP)
-                        val bytes = readBounded(zip, MAX_BACKUP_BYTES) ?: return cleanupAndFail(stagingDir, stagedFiles, BackupError.TOO_LARGE)
+                        if (backupJsonText != null) return cleanupAndFail(stagingDir, rawStaged, BackupError.NOT_A_BACKUP)
+                        val bytes = readBounded(zip, MAX_BACKUP_BYTES) ?: return cleanupAndFail(stagingDir, rawStaged, BackupError.TOO_LARGE)
                         totalBytes += bytes.size
-                        if (totalBytes > MAX_BACKUP_ZIP_TOTAL_BYTES) return cleanupAndFail(stagingDir, stagedFiles, BackupError.TOO_LARGE)
+                        if (totalBytes > MAX_BACKUP_ZIP_TOTAL_BYTES) return cleanupAndFail(stagingDir, rawStaged, BackupError.TOO_LARGE)
                         backupJsonText = String(bytes, Charsets.UTF_8)
                     }
-                    ATTACHMENT_ZIP_ENTRY_PATTERN.matches(name) -> {
-                        val fileName = name.removePrefix("files/")
-                        if (fileName in stagedFiles) return cleanupAndFail(stagingDir, stagedFiles, BackupError.INVALID_DATA)
-                        val target = File(stagingDir, fileName)
+                    isValidZipPath(name) -> {
+                        if (name in rawStaged) return cleanupAndFail(stagingDir, rawStaged, BackupError.INVALID_DATA)
+                        val target = File(stagingDir, "entry-${nextTempFileIndex++}")
                         val written = writeBounded(zip, target, MAX_SINGLE_ATTACHMENT_ZIP_BYTES)
                         if (written == null) {
                             target.delete()
-                            return cleanupAndFail(stagingDir, stagedFiles, BackupError.TOO_LARGE)
+                            return cleanupAndFail(stagingDir, rawStaged, BackupError.TOO_LARGE)
                         }
                         totalBytes += written
-                        if (totalBytes > MAX_BACKUP_ZIP_TOTAL_BYTES) return cleanupAndFail(stagingDir, stagedFiles, BackupError.TOO_LARGE)
-                        stagedFiles[fileName] = target
+                        if (totalBytes > MAX_BACKUP_ZIP_TOTAL_BYTES) return cleanupAndFail(stagingDir, rawStaged, BackupError.TOO_LARGE)
+                        rawStaged[name] = target
                     }
-                    else -> return cleanupAndFail(stagingDir, stagedFiles, BackupError.NOT_A_BACKUP)
+                    else -> return cleanupAndFail(stagingDir, rawStaged, BackupError.NOT_A_BACKUP)
                 }
                 zip.closeEntry()
             }
         }
     } catch (_: IOException) {
-        return cleanupAndFail(stagingDir, stagedFiles, BackupError.NOT_A_BACKUP)
+        return cleanupAndFail(stagingDir, rawStaged, BackupError.NOT_A_BACKUP)
     } catch (_: IllegalArgumentException) {
         // ZipInputStream wirft das statt einer IOException für manche kaputten Einträge.
-        return cleanupAndFail(stagingDir, stagedFiles, BackupError.NOT_A_BACKUP)
+        return cleanupAndFail(stagingDir, rawStaged, BackupError.NOT_A_BACKUP)
     }
 
-    val text = backupJsonText ?: return cleanupAndFail(stagingDir, stagedFiles, BackupError.NOT_A_BACKUP)
+    val text = backupJsonText ?: return cleanupAndFail(stagingDir, rawStaged, BackupError.NOT_A_BACKUP)
     val decoded = decodeBackup(text)
     if (decoded is BackupReadResult.Failure) {
-        cleanupStaged(stagedFiles)
+        cleanupStaged(rawStaged)
         return BackupZipReadResult.Failure(decoded)
     }
     val backup = (decoded as BackupReadResult.Success).backup
-    val expectedByFileName = backup.attachments.associateBy { it.attachment.fileName }
+    val expectedByZipPath = backup.attachments.associateBy { it.zipPath }
 
-    for ((fileName, file) in stagedFiles) {
-        val expected = expectedByFileName[fileName]?.attachment
-            ?: return cleanupAndFail(stagingDir, stagedFiles, BackupError.INVALID_DATA)
-        if (file.length() != expected.sizeBytes) return cleanupAndFail(stagingDir, stagedFiles, BackupError.INVALID_DATA)
-        val header = file.inputStream().use { readHeader(it, SNIFF_HEADER_SIZE) }
-        if (sniffAttachmentMimeType(header) != expected.mimeType) return cleanupAndFail(stagingDir, stagedFiles, BackupError.INVALID_DATA)
+    for (name in rawStaged.keys) {
+        if (name !in expectedByZipPath) return cleanupAndFail(stagingDir, rawStaged, BackupError.INVALID_DATA)
+    }
+
+    val stagedFiles = mutableMapOf<String, File>()
+    for ((name, tempFile) in rawStaged) {
+        val expected = expectedByZipPath.getValue(name).attachment
+        if (tempFile.length() != expected.sizeBytes) return cleanupAndFail(stagingDir, rawStaged, BackupError.INVALID_DATA)
+        val header = tempFile.inputStream().use { readHeader(it, SNIFF_HEADER_SIZE) }
+        if (sniffAttachmentMimeType(header) != expected.mimeType) return cleanupAndFail(stagingDir, rawStaged, BackupError.INVALID_DATA)
+        val finalTarget = File(stagingDir, expected.fileName)
+        if (!tempFile.renameTo(finalTarget)) return cleanupAndFail(stagingDir, rawStaged, BackupError.NOT_A_BACKUP)
+        stagedFiles[expected.fileName] = finalTarget
     }
 
     return BackupZipReadResult.Success(backup, stagedFiles)
 }
 
-private fun cleanupAndFail(stagingDir: File, stagedFiles: Map<String, File>, error: BackupError): BackupZipReadResult.Failure {
-    cleanupStaged(stagedFiles)
+private fun cleanupAndFail(stagingDir: File, rawStaged: Map<String, File>, error: BackupError): BackupZipReadResult.Failure {
+    cleanupStaged(rawStaged)
     stagingDir.listFiles()?.forEach { it.delete() }
     return BackupZipReadResult.Failure(BackupReadResult.Failure(error))
 }
 
-private fun cleanupStaged(stagedFiles: Map<String, File>) {
-    stagedFiles.values.forEach { it.delete() }
+private fun cleanupStaged(rawStaged: Map<String, File>) {
+    rawStaged.values.forEach { it.delete() }
 }
 
 /** Größte einzelne Anhangsdatei in einer ZIP-Sicherung; wie `AttachmentFileStore.MAX_DOCUMENT_BYTES`, siehe dort. */

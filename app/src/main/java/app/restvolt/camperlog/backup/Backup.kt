@@ -72,6 +72,7 @@ import java.nio.charset.CharacterCodingException
 import java.nio.charset.CodingErrorAction
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.Currency
 import java.util.UUID
@@ -105,7 +106,7 @@ private const val MAX_ATTACHMENT_SIZE_BYTES = 20L * 1024 * 1024
 private const val MAX_ATTACHMENT_DIMENSION = 20_000
 
 /** Dateiendung je unterstütztem MIME-Typ eines Anhangs; ebenfalls dupliziert statt aus `AttachmentFileStore` importiert. */
-private val ATTACHMENT_EXTENSION_BY_MIME_TYPE = mapOf(
+internal val ATTACHMENT_EXTENSION_BY_MIME_TYPE = mapOf(
     "image/jpeg" to "jpg",
     "image/png" to "png",
     "image/webp" to "webp",
@@ -178,9 +179,11 @@ data class BackupVehicleDocument(val document: VehicleDocument, val vehicleUuid:
 /**
  * Ein Anhang einer Sicherung mit [ownerUuid], der UUID des Eintrags, zu dem er gehört (je
  * [Attachment.ownerType] eine Station, Reparatur, Bordbuch-Eintrag oder ein Fahrzeugdokument), statt
- * seiner lokalen Datenbank-id.
+ * seiner lokalen Datenbank-id, und [zipPath], seinem menschenlesbaren Pfad in der ZIP-Sicherung
+ * (siehe `buildAttachmentZipPaths`; bei einer frisch gebauten [Backup] zunächst leer und erst von
+ * `buildBackup` befüllt).
  */
-data class BackupAttachment(val attachment: Attachment, val ownerUuid: String)
+data class BackupAttachment(val attachment: Attachment, val ownerUuid: String, val zipPath: String = "")
 
 /**
  * Ein beim Lesen der Bordbuch-Einträge gefundener Stationsbezug, dessen Existenz erst geprüft werden
@@ -478,6 +481,8 @@ private fun BackupDto.toBackup(): BackupReadResult {
     }
 
     val seenAttachmentUuids = HashSet<String>()
+    val seenZipPaths = HashSet<String>()
+    val seenZipPathsLowercase = HashSet<String>()
     val backupAttachments = attachments.mapIndexed { index, element ->
         val attachmentNumber = index + 1
         val dto = decodeJson(AttachmentDto.serializer(), element)
@@ -485,6 +490,14 @@ private fun BackupDto.toBackup(): BackupReadResult {
         val ownerType = enumOrNull<AttachmentOwnerType>(dto.ownerType) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
         val attachment = dto.toAttachment(ownerType) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
         if (!seenAttachmentUuids.add(attachment.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
+        // Jeder ZIP-Pfad darf nur einmal vorkommen, auch nur in Groß-/Kleinschreibung verschieden -
+        // sonst würden zwei Anhänge auf einem case-insensitiven Dateisystem beim Entpacken kollidieren.
+        if (dto.zipPath == BACKUP_ZIP_JSON_ENTRY || !isValidZipPath(dto.zipPath)) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
+        }
+        if (!seenZipPaths.add(dto.zipPath) || !seenZipPathsLowercase.add(dto.zipPath.lowercase())) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
+        }
         val ownerUuid = parseUuid(dto.ownerUuid) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
         val ownerKnown = when (ownerType) {
             AttachmentOwnerType.STATION -> ownerUuid in seenStationUuids
@@ -493,7 +506,7 @@ private fun BackupDto.toBackup(): BackupReadResult {
             AttachmentOwnerType.VEHICLE_DOCUMENT -> ownerUuid in seenDocumentUuids
         }
         if (!ownerKnown) return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
-        BackupAttachment(attachment, ownerUuid)
+        BackupAttachment(attachment, ownerUuid, dto.zipPath)
     }
 
     return BackupReadResult.Success(
@@ -813,6 +826,10 @@ private inline fun <reified E : Enum<E>> enumOrNull(name: String): E? = enumValu
 
 private fun parseTime(text: String): LocalTime? = runCatching { LocalTime.parse(text) }.getOrNull()
 
+/** Wie [parseDate], aber für den EXIF-Aufnahmezeitpunkt eines Fotos ([AttachmentDto.takenAt]). */
+private fun parseLocalDateTime(text: String): LocalDateTime? =
+    runCatching { LocalDateTime.parse(text) }.getOrNull()?.takeIf { it.toLocalDate() in MIN_DATE..MAX_DATE }
+
 private fun StationDto.toStation(): Station? {
     val uuid = parseUuid(uuid) ?: return null
     val stationType = enumOrNull<StationType>(type) ?: return null
@@ -1012,7 +1029,7 @@ private fun BackupVehicleDocument.toDto() = VehicleDocumentDto(
     updatedAt = document.updatedAt.toString(),
 )
 
-/** Prüft Dateiname, MIME-Typ und Abmessungen eines Anhangs; `null` bei jeder Unstimmigkeit, nicht nur offensichtlich falschen Werten. */
+/** Prüft Dateiname, MIME-Typ, Abmessungen und Koordinaten eines Anhangs; `null` bei jeder Unstimmigkeit, nicht nur offensichtlich falschen Werten. */
 private fun AttachmentDto.toAttachment(ownerType: AttachmentOwnerType): Attachment? {
     val uuid = parseUuid(uuid) ?: return null
     val extension = ATTACHMENT_EXTENSION_BY_MIME_TYPE[mimeType] ?: return null
@@ -1024,6 +1041,9 @@ private fun AttachmentDto.toAttachment(ownerType: AttachmentOwnerType): Attachme
     if (isPhoto && (width == null || height == null)) return null
     if (width != null && width !in 1..MAX_ATTACHMENT_DIMENSION) return null
     if (height != null && height !in 1..MAX_ATTACHMENT_DIMENSION) return null
+    if ((latitude == null) != (longitude == null)) return null
+    if (latitude != null && longitude != null && (latitude !in LATITUDE_RANGE || longitude !in LONGITUDE_RANGE)) return null
+    val takenAtValue = takenAt?.let { parseLocalDateTime(it) ?: return null }
     return Attachment(
         uuid = uuid,
         ownerType = ownerType,
@@ -1033,6 +1053,9 @@ private fun AttachmentDto.toAttachment(ownerType: AttachmentOwnerType): Attachme
         sizeBytes = sizeBytes,
         width = width,
         height = height,
+        latitude = latitude,
+        longitude = longitude,
+        takenAt = takenAtValue,
         caption = caption,
         createdAt = parseInstant(createdAt) ?: return null,
     )
@@ -1047,8 +1070,12 @@ private fun BackupAttachment.toDto() = AttachmentDto(
     sizeBytes = attachment.sizeBytes,
     width = attachment.width,
     height = attachment.height,
+    latitude = attachment.latitude,
+    longitude = attachment.longitude,
+    takenAt = attachment.takenAt?.toString(),
     caption = attachment.caption,
     createdAt = attachment.createdAt.toString(),
+    zipPath = zipPath,
 )
 
 private fun WeatherDto.toWeather(): WeatherSnapshot? {

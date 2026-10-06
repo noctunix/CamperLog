@@ -232,14 +232,19 @@ internal data class AttachmentDto(
     val ownerType: String,
     /** uuid des Eintrags, zu dem der Anhang gehört (Station, Reparatur, Bordbuch-Eintrag oder Fahrzeugdokument je [ownerType]). */
     val ownerUuid: String,
-    /** Name der zugehörigen Datei im ZIP-Ordner `files/`; in einer Sicherung ohne Dateien trotzdem vorhanden. */
+    /** Interner Dateiname `<uuid>.<ext>` im Anhangs-Ordner des Geräts; in einer Sicherung ohne Dateien trotzdem vorhanden. */
     val fileName: String,
     val mimeType: String,
     val sizeBytes: Long,
     val width: Int? = null,
     val height: Int? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val takenAt: String? = null,
     val caption: String = "",
     val createdAt: String,
+    /** Menschenlesbarer Pfad der Anhangsdatei in der ZIP-Sicherung, siehe `buildAttachmentZipPaths`. */
+    val zipPath: String = "",
 )
 
 @Serializable

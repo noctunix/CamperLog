@@ -38,7 +38,7 @@ suspend fun buildBackup(
     val repairUuidById = repairsByVehicle.values.flatten().associate { it.id to it.uuid }
     val logEntryUuidById = logEntriesByVehicle.values.flatten().associate { it.id to it.uuid }
     val documentUuidById = allDocuments.associate { it.id to it.uuid }
-    return Backup(
+    val backup = Backup(
         exportedAt = exportedAt,
         mainCurrency = exchangeRates.observeMainCurrency().first(),
         rates = exchangeRates.observeRates().first(),
@@ -73,4 +73,6 @@ suspend fun buildBackup(
             ownerUuid?.let { BackupAttachment(attachment, it) }
         },
     )
+    val zipPaths = buildAttachmentZipPaths(backup)
+    return backup.copy(attachments = backup.attachments.map { it.copy(zipPath = zipPaths.getValue(it.attachment.uuid)) })
 }
