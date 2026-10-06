@@ -3,7 +3,7 @@ package app.restvolt.camperlog.ui
 import android.content.ClipboardManager
 import android.content.Intent
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.restvolt.camperlog.domain.Vehicle
