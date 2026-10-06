@@ -47,9 +47,11 @@ private class FakeScreenBackupFolderWriter(var folderName: String? = "Sicherunge
         return "backup.json"
     }
 
-    override suspend fun writeTimestampedBackupZip(folderUri: String, zipBytes: ByteArray): String? {
+    override suspend fun writeTimestampedBackupZip(folderUri: String, writeZip: (java.io.OutputStream) -> Unit): String? {
         if (!accessible) return null
-        written += "zip:${zipBytes.size}"
+        val buffer = java.io.ByteArrayOutputStream()
+        writeZip(buffer)
+        written += "zip:${buffer.size()}"
         return "backup.zip"
     }
 }
@@ -155,9 +157,9 @@ private object NoOpDataFiles : DataFiles {
 
     override suspend fun writeBackup(target: String, json: String) = error("not used in this test")
 
-    override suspend fun writeBackupZipExport(zipBytes: ByteArray): String = error("not used in this test")
+    override suspend fun writeBackupZipExport(writeZip: (java.io.OutputStream) -> Unit): String = error("not used in this test")
 
-    override suspend fun writeBackupZip(target: String, zipBytes: ByteArray) = error("not used in this test")
+    override suspend fun writeBackupZip(target: String, writeZip: (java.io.OutputStream) -> Unit) = error("not used in this test")
 
     override fun open(source: String): java.io.InputStream? = error("not used in this test")
 

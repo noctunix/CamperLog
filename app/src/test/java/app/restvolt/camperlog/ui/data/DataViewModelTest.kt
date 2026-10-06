@@ -8,12 +8,16 @@ import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.decodeBackup
 import app.restvolt.camperlog.backup.encodeBackup
 import app.restvolt.camperlog.data.BackupFolderWriter
+import app.restvolt.camperlog.domain.Attachment
+import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.VehicleDocument
 import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import app.restvolt.camperlog.ui.FakeAttachmentRepository
 import app.restvolt.camperlog.ui.FakeBackupImporter
@@ -37,9 +41,11 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.io.OutputStream
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -257,6 +263,56 @@ class DataViewModelTest {
     }
 
     @Test
+    fun saveBackup_withFilesAndLargeAttachment_streamsFileContentInsteadOfBufferingWholeArchive() {
+        val fileStore = FakeAttachmentFileStore()
+        val fileName = "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1.jpg"
+        val largeContent = ByteArray(300 * 1024) { (it % 256).toByte() }
+        fileStore.file(fileName).apply { parentFile?.mkdirs() }.writeBytes(largeContent)
+        val document = VehicleDocument(
+            id = 1,
+            uuid = "11111111-2222-4333-8444-555555555555",
+            vehicleId = 1,
+            kind = DocumentKind.OTHER,
+            title = "Dokument",
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        val attachment = Attachment(
+            id = 1,
+            uuid = "22222222-3333-4444-8555-666666666666",
+            ownerType = AttachmentOwnerType.VEHICLE_DOCUMENT,
+            ownerId = 1,
+            fileName = fileName,
+            mimeType = "image/jpeg",
+            sizeBytes = largeContent.size.toLong(),
+            createdAt = Instant.EPOCH,
+        )
+        val viewModel = DataViewModel(
+            FakeTourRepository(listOf(tour)),
+            FakeExchangeRateRepository(),
+            FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1).copy(uuid = VEHICLE_UUID))),
+            FakeLogRepository(),
+            FakeStationRepository(),
+            FakeVehicleDocumentRepository(initial = listOf(document)),
+            FakeAttachmentRepository(initial = listOf(attachment)),
+            fileStore,
+            FakeBackupImporter(),
+            files,
+            folderWriter,
+            background = dispatcher,
+        )
+
+        viewModel.saveBackup("content://target", includeFiles = true)
+
+        assertEquals(DataMessage.Text(R.string.backup_saved), viewModel.message.value)
+        assertTrue(files.writtenZipChunkSizes.isNotEmpty())
+        assertTrue(
+            "the sink received a chunk as large as the whole attachment, the archive was buffered whole instead of streamed",
+            files.writtenZipChunkSizes.all { it < largeContent.size },
+        )
+    }
+
+    @Test
     fun saveBackup_writeFailure_reportsBackupFailed() {
         files.failure = IOException("voll")
         val viewModel = viewModel()
@@ -391,9 +447,11 @@ private class FakeBackupFolderWriter : BackupFolderWriter {
         return "backup.json"
     }
 
-    override suspend fun writeTimestampedBackupZip(folderUri: String, zipBytes: ByteArray): String? {
+    override suspend fun writeTimestampedBackupZip(folderUri: String, writeZip: (OutputStream) -> Unit): String? {
         if (!accessible) return null
-        written += extractBackupJson(zipBytes)
+        val buffer = ByteArrayOutputStream()
+        writeZip(buffer)
+        written += extractBackupJson(buffer.toByteArray())
         return "backup.zip"
     }
 }
@@ -417,6 +475,9 @@ private class FakeDataFiles : DataFiles {
     var gate: CompletableDeferred<Unit>? = null
     var failure: IOException? = null
     private var backups = 0
+
+    /** Größe jedes einzelnen `write`-Aufrufs beim letzten [writeBackupZip]; prüft, dass die ZIP-Sicherung gestreamt statt als Ganzes gepuffert wird. */
+    val writtenZipChunkSizes = mutableListOf<Int>()
 
     override suspend fun writeCsvExport(
         tours: List<Tour>,
@@ -453,15 +514,29 @@ private class FakeDataFiles : DataFiles {
         written[target] = json
     }
 
-    override suspend fun writeBackupZipExport(zipBytes: ByteArray): String {
+    override suspend fun writeBackupZipExport(writeZip: (OutputStream) -> Unit): String {
         gate?.await()
         failure?.let { throw it }
         return "backup-zip:${++backups}"
     }
 
-    override suspend fun writeBackupZip(target: String, zipBytes: ByteArray) {
+    override suspend fun writeBackupZip(target: String, writeZip: (OutputStream) -> Unit) {
         failure?.let { throw it }
-        written[target] = extractBackupJson(zipBytes)
+        val capture = ByteArrayOutputStream()
+        writtenZipChunkSizes.clear()
+        val tracking = object : OutputStream() {
+            override fun write(b: Int) {
+                capture.write(b)
+                writtenZipChunkSizes += 1
+            }
+
+            override fun write(b: ByteArray, off: Int, len: Int) {
+                capture.write(b, off, len)
+                writtenZipChunkSizes += len
+            }
+        }
+        writeZip(tracking)
+        written[target] = extractBackupJson(capture.toByteArray())
     }
 
     override fun open(source: String): InputStream? = sources[source]?.byteInputStream()

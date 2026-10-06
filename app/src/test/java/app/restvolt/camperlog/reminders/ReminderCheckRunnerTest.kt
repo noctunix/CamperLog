@@ -240,9 +240,11 @@ private class FakeBackupFolderWriter(var accessible: Boolean = true) : BackupFol
         return "backup.json"
     }
 
-    override suspend fun writeTimestampedBackupZip(folderUri: String, zipBytes: ByteArray): String? {
+    override suspend fun writeTimestampedBackupZip(folderUri: String, writeZip: (java.io.OutputStream) -> Unit): String? {
         if (!accessible) return null
-        written += "zip:${zipBytes.size}"
+        val buffer = java.io.ByteArrayOutputStream()
+        writeZip(buffer)
+        written += "zip:${buffer.size()}"
         return "backup.zip"
     }
 }
