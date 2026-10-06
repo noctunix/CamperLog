@@ -1,49 +1,12 @@
 package app.restvolt.camperlog.domain
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-
-private class FakeLocationProvider(
-    private val freshFix: LocationFix? = null,
-    private val lastKnown: LocationFix? = null,
-    private val locationEnabled: Boolean = true,
-    private val freshFixDelayMillis: Long = 0,
-) : LocationProvider {
-    var lastKnownRequests = 0
-
-    override suspend fun requestFreshFix(): LocationFix? {
-        if (freshFixDelayMillis > 0) delay(freshFixDelayMillis)
-        return freshFix
-    }
-
-    override suspend fun lastKnownFix(maxAgeMillis: Long): LocationFix? {
-        lastKnownRequests++
-        return lastKnown
-    }
-
-    override fun isLocationEnabled(): Boolean = locationEnabled
-}
-
-private class FakeLocationPermissionGate(private var granted: Boolean = true, private var requestedBefore: Boolean = false) : LocationPermissionGate {
-    var markRequestedCalls = 0
-
-    override fun hasPermission(): Boolean = granted
-    override fun hasRequestedBefore(): Boolean = requestedBefore
-    override fun markRequested() {
-        requestedBefore = true
-        markRequestedCalls++
-    }
-
-    fun grant() {
-        granted = true
-    }
-}
 
 /** Zustandsautomat der einmaligen Standortbestimmung (6.7), mit Fakes statt echter Standorthardware. */
 @OptIn(ExperimentalCoroutinesApi::class)
