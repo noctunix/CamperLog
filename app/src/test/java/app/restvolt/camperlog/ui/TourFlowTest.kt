@@ -84,7 +84,7 @@ class TourFlowTest {
                     FakeLogRepository(),
                     FakeStationRepository(stations),
                     FakeExchangeRateRepository(),
-                    FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                 ) { }
@@ -108,7 +108,7 @@ class TourFlowTest {
                     logs,
                     stations,
                     FakeExchangeRateRepository(),
-                    FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                 ) { }

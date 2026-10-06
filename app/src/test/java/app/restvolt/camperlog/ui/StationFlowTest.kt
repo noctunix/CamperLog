@@ -85,7 +85,7 @@ class StationFlowTest {
                     logs,
                     stationRepository,
                     FakeExchangeRateRepository(),
-                    FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     pendingGeoIntent = pendingGeoIntent,

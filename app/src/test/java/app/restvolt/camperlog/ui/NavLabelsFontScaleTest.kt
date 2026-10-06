@@ -42,7 +42,7 @@ class NavLabelsFontScaleTest {
                         FakeLogRepository(),
                         FakeStationRepository(),
                         FakeExchangeRateRepository(),
-                        FakeBackupImporter(),
+                        FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                         ThemeMode.SYSTEM,
                         canShowStartDialogs = false,
                     ) { }

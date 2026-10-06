@@ -10,11 +10,14 @@ import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.data.BackupFolderWriter
 import kotlinx.coroutines.Dispatchers
 import app.restvolt.camperlog.reminders.ReminderWorkScheduler
+import app.restvolt.camperlog.ui.FakeAttachmentFileStore
+import app.restvolt.camperlog.ui.FakeAttachmentRepository
 import app.restvolt.camperlog.ui.FakeBackupImporter
 import app.restvolt.camperlog.ui.FakeExchangeRateRepository
 import app.restvolt.camperlog.ui.FakeLogRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
 import app.restvolt.camperlog.ui.FakeTourRepository
+import app.restvolt.camperlog.ui.FakeVehicleDocumentRepository
 import app.restvolt.camperlog.ui.FakeVehicleRepository
 import app.restvolt.camperlog.ui.settings.NotificationSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
@@ -42,6 +45,12 @@ private class FakeScreenBackupFolderWriter(var folderName: String? = "Sicherunge
         if (!accessible) return null
         written += json
         return "backup.json"
+    }
+
+    override suspend fun writeTimestampedBackupZip(folderUri: String, zipBytes: ByteArray): String? {
+        if (!accessible) return null
+        written += "zip:${zipBytes.size}"
+        return "backup.zip"
     }
 }
 
@@ -75,6 +84,9 @@ class DataScreenFlowTest {
                             FakeVehicleRepository(),
                             FakeLogRepository(),
                             FakeStationRepository(),
+                            FakeVehicleDocumentRepository(),
+                            FakeAttachmentRepository(),
+                            FakeAttachmentFileStore(),
                             FakeBackupImporter(),
                             NoOpDataFiles,
                             folderWriter,
@@ -143,5 +155,11 @@ private object NoOpDataFiles : DataFiles {
 
     override suspend fun writeBackup(target: String, json: String) = error("not used in this test")
 
+    override suspend fun writeBackupZipExport(zipBytes: ByteArray): String = error("not used in this test")
+
+    override suspend fun writeBackupZip(target: String, zipBytes: ByteArray) = error("not used in this test")
+
     override fun open(source: String): java.io.InputStream? = error("not used in this test")
+
+    override fun newImportStagingDir(): java.io.File = error("not used in this test")
 }

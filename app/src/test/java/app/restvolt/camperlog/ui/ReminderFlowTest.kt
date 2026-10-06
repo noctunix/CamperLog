@@ -29,7 +29,7 @@ class ReminderFlowTest {
         val repository = FakeTourRepository(emptyList()) { vehicles.currentVehicleId }
         compose.setContent {
             CamperLogTheme {
-                CamperLogNavHost(repository, vehicles, FakeLogRepository(), FakeStationRepository(), FakeExchangeRateRepository(), FakeBackupImporter(), ThemeMode.SYSTEM, canShowStartDialogs = false) { }
+                CamperLogNavHost(repository, vehicles, FakeLogRepository(), FakeStationRepository(), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, canShowStartDialogs = false) { }
             }
         }
         return vehicles

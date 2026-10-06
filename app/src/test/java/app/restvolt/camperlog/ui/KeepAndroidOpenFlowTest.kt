@@ -41,7 +41,7 @@ class KeepAndroidOpenFlowTest {
         val repository = FakeTourRepository(emptyList()) { vehicles.currentVehicleId }
         compose.setContent {
             CamperLogTheme {
-                CamperLogNavHost(repository, vehicles, logs, FakeStationRepository(), FakeExchangeRateRepository(), FakeBackupImporter(), ThemeMode.SYSTEM) { }
+                CamperLogNavHost(repository, vehicles, logs, FakeStationRepository(), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM) { }
             }
         }
     }

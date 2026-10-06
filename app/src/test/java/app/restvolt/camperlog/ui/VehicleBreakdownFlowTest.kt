@@ -51,7 +51,7 @@ class VehicleBreakdownFlowTest {
                     FakeLogRepository(),
                     FakeStationRepository(),
                     FakeExchangeRateRepository(),
-                    FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     locationProvider = locationProvider,

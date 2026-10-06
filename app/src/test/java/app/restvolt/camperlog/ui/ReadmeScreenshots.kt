@@ -71,7 +71,7 @@ class ReadmeScreenshots {
                     FakeLogRepository(sampleLogEntries()),
                     stations,
                     FakeExchangeRateRepository(rates),
-                    FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.LIGHT,
                     canShowStartDialogs = false,
                 ) { }

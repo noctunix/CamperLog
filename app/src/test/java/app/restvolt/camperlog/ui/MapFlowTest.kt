@@ -85,7 +85,7 @@ class MapFlowTest {
                     FakeLogRepository(),
                     stationRepository,
                     FakeExchangeRateRepository(),
-                    FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     tileLoader = tileLoader,

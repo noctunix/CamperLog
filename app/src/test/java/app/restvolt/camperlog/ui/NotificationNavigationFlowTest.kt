@@ -39,7 +39,7 @@ class NotificationNavigationFlowTest {
                     FakeLogRepository(),
                     FakeStationRepository(),
                     FakeExchangeRateRepository(),
-                    FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     pendingVehicleId = 2,
@@ -63,7 +63,7 @@ class NotificationNavigationFlowTest {
                     FakeLogRepository(),
                     FakeStationRepository(),
                     FakeExchangeRateRepository(),
-                    FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     pendingOpenData = true,
@@ -72,6 +72,6 @@ class NotificationNavigationFlowTest {
         }
         compose.waitForIdle()
 
-        compose.onNodeWithText("Sicherung (JSON)").assertExists()
+        compose.onNodeWithText("Sicherung", substring = false).assertExists()
     }
 }

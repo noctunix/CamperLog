@@ -14,11 +14,14 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.ui.FakeAttachmentFileStore
+import app.restvolt.camperlog.ui.FakeAttachmentRepository
 import app.restvolt.camperlog.ui.FakeBackupImporter
 import app.restvolt.camperlog.ui.FakeExchangeRateRepository
 import app.restvolt.camperlog.ui.FakeLogRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
 import app.restvolt.camperlog.ui.FakeTourRepository
+import app.restvolt.camperlog.ui.FakeVehicleDocumentRepository
 import app.restvolt.camperlog.ui.FakeVehicleRepository
 import app.restvolt.camperlog.ui.defaultVehicle
 import kotlinx.coroutines.CompletableDeferred
@@ -34,6 +37,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.math.BigDecimal
@@ -86,6 +90,9 @@ class DataViewModelTest {
             FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1).copy(uuid = VEHICLE_UUID))),
             FakeLogRepository(),
             FakeStationRepository(),
+            FakeVehicleDocumentRepository(),
+            FakeAttachmentRepository(),
+            FakeAttachmentFileStore(),
             FakeBackupImporter(),
             files,
             folderWriter,
@@ -114,6 +121,9 @@ class DataViewModelTest {
             FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1, name = "Standard").copy(uuid = VEHICLE_UUID))),
             FakeLogRepository(),
             FakeStationRepository(),
+            FakeVehicleDocumentRepository(),
+            FakeAttachmentRepository(),
+            FakeAttachmentFileStore(),
             importer,
             files,
             folderWriter,
@@ -204,6 +214,9 @@ class DataViewModelTest {
             FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1, name = "Standard").copy(uuid = VEHICLE_UUID))),
             FakeLogRepository(),
             FakeStationRepository(listOf(station)),
+            FakeVehicleDocumentRepository(),
+            FakeAttachmentRepository(),
+            FakeAttachmentFileStore(),
             FakeBackupImporter(),
             files,
             folderWriter,
@@ -235,7 +248,7 @@ class DataViewModelTest {
     fun saveBackup_writesTargetAndReportsSuccess() {
         val viewModel = viewModel(tours = listOf(tour))
 
-        viewModel.saveBackup("content://target")
+        viewModel.saveBackup("content://target", includeFiles = false)
 
         val json = files.written.getValue("content://target")
         assertEquals(listOf(tour), (decodeBackup(json) as BackupReadResult.Success).backup.tours)
@@ -248,7 +261,7 @@ class DataViewModelTest {
         files.failure = IOException("voll")
         val viewModel = viewModel()
 
-        viewModel.saveBackup("content://target")
+        viewModel.saveBackup("content://target", includeFiles = false)
 
         assertEquals(DataMessage.Text(R.string.backup_failed), viewModel.message.value)
         assertEquals(false, viewModel.busy.value)
@@ -286,7 +299,7 @@ class DataViewModelTest {
         files.gate = gate
         val viewModel = viewModel()
 
-        viewModel.shareBackup()
+        viewModel.shareBackup(includeFiles = false)
         viewModel.exportCsv(DEFAULT_VEHICLE_NAME)
 
         assertTrue(viewModel.busy.value)
@@ -358,7 +371,11 @@ class DataViewModelTest {
     }
 }
 
-/** [BackupFolderWriter]-Fake: [folderName] und [accessible] steuern das Ergebnis, [written] sammelt die geschriebenen Sicherungen. */
+/**
+ * [BackupFolderWriter]-Fake: [folderName] und [accessible] steuern das Ergebnis, [written] sammelt die
+ * geschriebenen Sicherungen als JSON-Text - bei einer ZIP-Sicherung wird dafür ihr `backup.json`-Eintrag
+ * entpackt, damit bestehende Prüfungen unverändert mit [app.restvolt.camperlog.backup.decodeBackup] weiterlesen können.
+ */
 private class FakeBackupFolderWriter : BackupFolderWriter {
     var folderName: String? = "Ordner"
     var accessible: Boolean = true
@@ -372,6 +389,22 @@ private class FakeBackupFolderWriter : BackupFolderWriter {
         if (!accessible) return null
         written += json
         return "backup.json"
+    }
+
+    override suspend fun writeTimestampedBackupZip(folderUri: String, zipBytes: ByteArray): String? {
+        if (!accessible) return null
+        written += extractBackupJson(zipBytes)
+        return "backup.zip"
+    }
+}
+
+/** Entpackt den `backup.json`-Eintrag einer ZIP-Sicherung. */
+private fun extractBackupJson(zipBytes: ByteArray): String {
+    java.util.zip.ZipInputStream(zipBytes.inputStream()).use { zip ->
+        while (true) {
+            val entry = zip.nextEntry ?: error("backup.json nicht in der ZIP-Datei gefunden")
+            if (entry.name == "backup.json") return zip.readBytes().toString(Charsets.UTF_8)
+        }
     }
 }
 
@@ -420,5 +453,21 @@ private class FakeDataFiles : DataFiles {
         written[target] = json
     }
 
+    override suspend fun writeBackupZipExport(zipBytes: ByteArray): String {
+        gate?.await()
+        failure?.let { throw it }
+        return "backup-zip:${++backups}"
+    }
+
+    override suspend fun writeBackupZip(target: String, zipBytes: ByteArray) {
+        failure?.let { throw it }
+        written[target] = extractBackupJson(zipBytes)
+    }
+
     override fun open(source: String): InputStream? = sources[source]?.byteInputStream()
+
+    override fun newImportStagingDir(): File =
+        java.nio.file.Files.createTempDirectory("camperlog-test-staging").toFile().also { stagingDirs += it }
+
+    val stagingDirs = mutableListOf<File>()
 }
