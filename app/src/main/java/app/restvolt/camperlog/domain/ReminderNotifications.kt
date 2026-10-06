@@ -8,8 +8,18 @@ import java.time.LocalDate
  */
 data class ReminderNotificationState(val dueDate: LocalDate, val leadNotified: Boolean = false, val overdueNotified: Boolean = false)
 
-/** Eine zu sendende Benachrichtigung für eine fällige Erinnerung; [overdue] unterscheidet die beiden Schwellen. */
-data class ReminderNotification(val vehicleId: Long, val kind: ReminderKind, val dueDate: LocalDate, val overdue: Boolean)
+/**
+ * Eine zu sendende Benachrichtigung für eine fällige Erinnerung; [overdue] unterscheidet die beiden
+ * Schwellen. [documentId] und [label] sind nur bei [ReminderKind.DOCUMENT_EXPIRY] gesetzt, siehe [Reminder].
+ */
+data class ReminderNotification(
+    val vehicleId: Long,
+    val kind: ReminderKind,
+    val dueDate: LocalDate,
+    val overdue: Boolean,
+    val documentId: Long? = null,
+    val label: String? = null,
+)
 
 /**
  * Entscheidet für die fälligen [reminders] eines Fahrzeugs ([vehicleId]), welche noch eine
@@ -42,6 +52,39 @@ fun pendingReminderNotifications(
             notifications += ReminderNotification(vehicleId, reminder.kind, reminder.dueDate, overdue = false)
         }
         nextStates[reminder.kind] = ReminderNotificationState(
+            dueDate = reminder.dueDate,
+            leadNotified = leadNotified || crossedLead,
+            overdueNotified = overdueNotified || crossedOverdue,
+        )
+    }
+    return notifications to nextStates
+}
+
+/**
+ * Wie [pendingReminderNotifications], aber für [reminders] von [ReminderKind.DOCUMENT_EXPIRY]
+ * (siehe [documentReminders]): der Zustand wird je [Reminder.documentId] verfolgt statt je Art, weil
+ * mehrere Dokumente gleichzeitig ablaufen können und sonst nur eines davon gemeldet würde.
+ */
+fun pendingDocumentReminderNotifications(
+    vehicleId: Long,
+    reminders: List<Reminder>,
+    previousStates: Map<Long, ReminderNotificationState>,
+): Pair<List<ReminderNotification>, Map<Long, ReminderNotificationState>> {
+    val notifications = mutableListOf<ReminderNotification>()
+    val nextStates = mutableMapOf<Long, ReminderNotificationState>()
+    for (reminder in reminders) {
+        val documentId = checkNotNull(reminder.documentId) { "Dokument-Erinnerung ohne Dokument-id" }
+        val previous = previousStates[documentId]?.takeIf { it.dueDate == reminder.dueDate }
+        val leadNotified = previous?.leadNotified ?: false
+        val overdueNotified = previous?.overdueNotified ?: false
+        val crossedLead = !reminder.overdue && !leadNotified
+        val crossedOverdue = reminder.overdue && !overdueNotified
+        if (crossedOverdue) {
+            notifications += ReminderNotification(vehicleId, reminder.kind, reminder.dueDate, overdue = true, documentId = documentId, label = reminder.label)
+        } else if (crossedLead) {
+            notifications += ReminderNotification(vehicleId, reminder.kind, reminder.dueDate, overdue = false, documentId = documentId, label = reminder.label)
+        }
+        nextStates[documentId] = ReminderNotificationState(
             dueDate = reminder.dueDate,
             leadNotified = leadNotified || crossedLead,
             overdueNotified = overdueNotified || crossedOverdue,

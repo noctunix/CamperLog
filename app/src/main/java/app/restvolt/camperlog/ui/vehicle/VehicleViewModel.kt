@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.VehicleDocument
+import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,12 +21,16 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Zustand des Fahrzeug-Reiters: Fahrzeugliste und -wechsler, das aktuelle Fahrzeug und seine Reparaturen. */
+/**
+ * Zustand des Fahrzeug-Reiters: Fahrzeugliste und -wechsler, das aktuelle Fahrzeug, seine Reparaturen
+ * und seine Dokumente (für ablaufende Dokumente als zusätzliche Erinnerungskarten, siehe [VehicleScreen]).
+ */
 data class VehicleUiState(
     val vehicles: List<Vehicle> = emptyList(),
     val currentVehicleId: Long = 0,
     val currentVehicle: Vehicle? = null,
     val repairs: List<Repair> = emptyList(),
+    val documents: List<VehicleDocument> = emptyList(),
 )
 
 /** Rückmeldungen, die der Fahrzeug-Reiter als Snackbar anzeigt. */
@@ -34,13 +40,15 @@ sealed interface VehicleMessage {
 }
 
 /** Hält das Datenblatt des Fahrzeug-Reiters und seinen Fahrzeugwechsler aktuell; löscht Reparaturen. */
-class VehicleViewModel(private val vehicles: VehicleRepository) : ViewModel() {
+class VehicleViewModel(private val vehicles: VehicleRepository, private val documents: VehicleDocumentRepository) : ViewModel() {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<VehicleUiState> =
         combine(vehicles.observeVehicles(), vehicles.observeCurrentVehicle()) { list, current -> list to current }
             .flatMapLatest { (list, current) ->
-                vehicles.observeRepairs(current.id).map { repairs -> VehicleUiState(list, current.id, current, repairs) }
+                combine(vehicles.observeRepairs(current.id), documents.observeForVehicle(current.id)) { repairs, documents ->
+                    VehicleUiState(list, current.id, current, repairs, documents)
+                }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), VehicleUiState())
 

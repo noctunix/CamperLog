@@ -269,12 +269,13 @@ val ReminderKind.labelRes: Int
         ReminderKind.GAS_CHECK -> R.string.reminder_kind_gas_check
         ReminderKind.LEAK_TEST -> R.string.reminder_kind_leak_test
         ReminderKind.OIL_CHANGE -> R.string.reminder_kind_oil_change
+        ReminderKind.DOCUMENT_EXPIRY -> R.string.reminder_kind_document_expiry
     }
 
-/** Anzeigetext einer Erinnerung, z. B. „HU (TÜV) fällig in 12 Tagen (1. Nov. 2026)". */
+/** Anzeigetext einer Erinnerung, z. B. „HU (TÜV) fällig in 12 Tagen (1. Nov. 2026)". Bei [Reminder.label] (Dokumenttitel) steht er statt der Erinnerungsart. */
 @Composable
 fun Reminder.text(today: LocalDate, locale: Locale): String {
-    val kindLabel = stringResource(kind.labelRes)
+    val kindLabel = label ?: stringResource(kind.labelRes)
     val date = formatDate(dueDate, locale)
     return if (overdue) {
         stringResource(R.string.reminder_overdue, kindLabel, date)

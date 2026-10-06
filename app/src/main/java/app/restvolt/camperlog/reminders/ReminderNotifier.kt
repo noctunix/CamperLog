@@ -15,6 +15,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import app.restvolt.camperlog.MainActivity
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.ReminderKind
 import app.restvolt.camperlog.domain.ReminderNotification
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.ui.labelRes
@@ -121,9 +122,12 @@ fun hasNotificationPermission(context: Context): Boolean =
     Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-/** Stabile Benachrichtigungs-id je Fahrzeug, Erinnerungsart und Schwelle, damit erneutes Posten dieselbe Zeile ersetzt. */
+/**
+ * Stabile Benachrichtigungs-id je Fahrzeug, Erinnerungsart, Schwelle und (bei [ReminderKind.DOCUMENT_EXPIRY])
+ * Dokument, damit erneutes Posten dieselbe Zeile ersetzt statt mehrerer Dokumente einander zu überschreiben.
+ */
 private fun notificationId(item: ReminderNotification): Int =
-    (item.vehicleId.toString() + item.kind.name + item.overdue).hashCode()
+    (item.vehicleId.toString() + item.kind.name + item.overdue + item.documentId).hashCode()
 
 /** Öffnet die App auf dem Fahrzeug-Reiter mit [vehicleId] vorausgewählt (`MainActivity`/NavHost, 1.9.0). */
 internal fun vehiclePendingIntent(context: Context, vehicleId: Long, requestCode: Int): PendingIntent {
@@ -147,7 +151,7 @@ internal fun openDataPendingIntent(context: Context): PendingIntent {
 
 /** Anzeigetext einer Erinnerung außerhalb von Compose; inhaltlich wie die Erinnerungskarten im Fahrzeug-Reiter. */
 internal fun reminderNotificationBody(resources: Resources, item: ReminderNotification, today: LocalDate, locale: Locale): String {
-    val kindLabel = resources.getString(item.kind.labelRes)
+    val kindLabel = item.label ?: resources.getString(item.kind.labelRes)
     val date = formatDate(item.dueDate, locale)
     return if (item.overdue) {
         resources.getString(R.string.reminder_overdue, kindLabel, date)

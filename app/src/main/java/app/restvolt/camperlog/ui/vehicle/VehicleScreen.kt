@@ -56,6 +56,7 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Reminder
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.documentReminders
 import app.restvolt.camperlog.domain.dueReminders
 import app.restvolt.camperlog.domain.formatAh
 import app.restvolt.camperlog.domain.formatAmount
@@ -103,7 +104,8 @@ fun VehicleScreen(
     val today = LocalDate.now()
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
     val reminders = vehicle?.let {
-        dueReminders(it, today, reminderPreferences.leadDays, reminderPreferences.oilChangeIntervalMonths)
+        dueReminders(it, today, reminderPreferences.leadDays, reminderPreferences.oilChangeIntervalMonths) +
+            documentReminders(state.documents, today, reminderPreferences.leadDays)
     }.orEmpty()
 
     val snackbar = remember { SnackbarHostState() }

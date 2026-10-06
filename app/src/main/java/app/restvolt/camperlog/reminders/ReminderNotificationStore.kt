@@ -56,3 +56,56 @@ class AndroidReminderNotificationStore(context: Context) : ReminderNotificationS
         return ReminderNotificationState(dueDate, lead, overdue)
     }
 }
+
+/**
+ * Wie [ReminderNotificationStore], aber für Erinnerungen von [app.restvolt.camperlog.domain.ReminderKind.DOCUMENT_EXPIRY]:
+ * der Zustand wird je Dokument-id verfolgt statt je Erinnerungsart, siehe
+ * [app.restvolt.camperlog.domain.pendingDocumentReminderNotifications].
+ */
+interface DocumentReminderNotificationStore {
+    /** Gespeicherter Zustand je Dokument-id für Fahrzeug [vehicleId]; fehlende Dokumente sind nie gemeldet worden. */
+    fun statesFor(vehicleId: Long): Map<Long, ReminderNotificationState>
+
+    /** Ersetzt den gespeicherten Zustand für Fahrzeug [vehicleId] vollständig durch [states]. */
+    fun saveStatesFor(vehicleId: Long, states: Map<Long, ReminderNotificationState>)
+}
+
+/**
+ * [DocumentReminderNotificationStore] über SharedPreferences, siehe [AndroidReminderNotificationStore].
+ * Anders als die feste Anzahl [app.restvolt.camperlog.domain.ReminderKind]-Werte ist die Menge der
+ * Dokument-ids eines Fahrzeugs nicht im Voraus bekannt, daher liegen alle Zustände eines Fahrzeugs in
+ * einem einzigen Schlüssel als durch `;` getrennte `id|Datum|lead|overdue`-Einträge.
+ */
+class AndroidDocumentReminderNotificationStore(context: Context) : DocumentReminderNotificationStore {
+    private val preferences = context.getSharedPreferences("document_reminder_notifications", Context.MODE_PRIVATE)
+
+    override fun statesFor(vehicleId: Long): Map<Long, ReminderNotificationState> {
+        val raw = preferences.getString(key(vehicleId), null) ?: return emptyMap()
+        return raw.split(';').filter { it.isNotEmpty() }.mapNotNull(::parseEntry).toMap()
+    }
+
+    override fun saveStatesFor(vehicleId: Long, states: Map<Long, ReminderNotificationState>) {
+        preferences.edit {
+            if (states.isEmpty()) {
+                remove(key(vehicleId))
+            } else {
+                putString(key(vehicleId), states.entries.joinToString(";") { (id, state) -> format(id, state) })
+            }
+        }
+    }
+
+    private fun key(vehicleId: Long) = "$vehicleId:documents"
+
+    private fun format(documentId: Long, state: ReminderNotificationState): String =
+        "$documentId|${state.dueDate}|${state.leadNotified}|${state.overdueNotified}"
+
+    private fun parseEntry(entry: String): Pair<Long, ReminderNotificationState>? {
+        val parts = entry.split('|')
+        if (parts.size != 4) return null
+        val documentId = parts[0].toLongOrNull() ?: return null
+        val dueDate = runCatching { LocalDate.parse(parts[1]) }.getOrNull() ?: return null
+        val lead = parts[2].toBooleanStrictOrNull() ?: return null
+        val overdue = parts[3].toBooleanStrictOrNull() ?: return null
+        return documentId to ReminderNotificationState(dueDate, lead, overdue)
+    }
+}

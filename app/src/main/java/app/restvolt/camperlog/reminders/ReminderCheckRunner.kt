@@ -1,10 +1,14 @@
 package app.restvolt.camperlog.reminders
 
+import app.restvolt.camperlog.backup.BackupPayload
 import app.restvolt.camperlog.data.BackupFolderWriter
 import app.restvolt.camperlog.domain.ReminderNotification
+import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.backupNotificationBaseline
+import app.restvolt.camperlog.domain.documentReminders
 import app.restvolt.camperlog.domain.dueReminders
+import app.restvolt.camperlog.domain.pendingDocumentReminderNotifications
 import app.restvolt.camperlog.domain.pendingReminderNotifications
 import app.restvolt.camperlog.domain.shouldNotifyBackupOverdue
 import java.time.Instant
@@ -29,19 +33,24 @@ data class ReminderCheckOutcome(val backupWrittenAt: Instant? = null, val backup
 /**
  * Logik des täglichen Hintergrund-Checks, losgelöst von [androidx.work.CoroutineWorker]:
  * liest alle Fahrzeuge, ermittelt fällige Wartungserinnerungen mit [dueReminders] und
- * [pendingReminderNotifications], benachrichtigt über [notifier] und aktualisiert [notificationStore].
- * Ist die Sicherung überfällig, schreibt sie bei aktivierter Automatik eine neue Sicherung in den
- * gewählten Ordner, sonst benachrichtigt sie stattdessen - nie beides, und nie stillschweigend nichts.
+ * [pendingReminderNotifications] sowie fällige Dokument-Erinnerungen mit [documentReminders] und
+ * [pendingDocumentReminderNotifications], benachrichtigt über [notifier] und aktualisiert
+ * [notificationStore] bzw. [documentNotificationStore]. Ist die Sicherung überfällig, schreibt sie bei
+ * aktivierter Automatik eine neue Sicherung in den gewählten Ordner, sonst benachrichtigt sie
+ * stattdessen - nie beides, und nie stillschweigend nichts.
  */
 class ReminderCheckRunner(
     private val vehicles: VehicleRepository,
+    private val documents: VehicleDocumentRepository,
     private val notificationStore: ReminderNotificationStore,
+    private val documentNotificationStore: DocumentReminderNotificationStore,
     private val notifier: ReminderNotifier,
     private val folderWriter: BackupFolderWriter,
-    private val buildBackupJson: suspend () -> String,
+    private val buildBackupPayload: suspend () -> BackupPayload,
 ) {
     suspend fun run(today: LocalDate, now: Instant, leadDays: Int, oilIntervalMonths: Int, backup: BackupReminderInput): ReminderCheckOutcome {
         val allVehicles = vehicles.allVehicles()
+        val documentsByVehicle = documents.allDocuments().groupBy { it.vehicleId }
         val pending = mutableListOf<ReminderNotification>()
         for (vehicle in allVehicles) {
             val reminders = dueReminders(vehicle, today, leadDays, oilIntervalMonths)
@@ -49,6 +58,14 @@ class ReminderCheckRunner(
             val (dueNotifications, nextStates) = pendingReminderNotifications(vehicle.id, reminders, previous)
             notificationStore.saveStatesFor(vehicle.id, nextStates)
             pending += dueNotifications
+
+            if (!vehicle.isSold) {
+                val docReminders = documentReminders(documentsByVehicle[vehicle.id].orEmpty(), today, leadDays)
+                val previousDocStates = documentNotificationStore.statesFor(vehicle.id)
+                val (docNotifications, nextDocStates) = pendingDocumentReminderNotifications(vehicle.id, docReminders, previousDocStates)
+                documentNotificationStore.saveStatesFor(vehicle.id, nextDocStates)
+                pending += docNotifications
+            }
         }
         if (pending.isNotEmpty()) {
             notifier.notifyReminders(pending, allVehicles.associate { it.id to it.name })
@@ -64,7 +81,12 @@ class ReminderCheckRunner(
         val folderUri = backup.folderUri
         val wroteAutomatically = backup.autoBackupToFolder && folderUri != null &&
             folderWriter.isAccessible(folderUri) &&
-            folderWriter.writeTimestampedBackup(folderUri, buildBackupJson()) != null
+            run {
+                val payload = buildBackupPayload()
+                val writtenName = payload.zipBytes?.let { folderWriter.writeTimestampedBackupZip(folderUri, it) }
+                    ?: folderWriter.writeTimestampedBackup(folderUri, payload.json)
+                writtenName != null
+            }
         return if (wroteAutomatically) {
             ReminderCheckOutcome(backupWrittenAt = now, backupNotifiedBaseline = baseline)
         } else {

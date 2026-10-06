@@ -226,8 +226,11 @@
     <string name="data_title">Daten</string>
     <string name="data_csv_title">Tabelle (CSV)</string>
     <string name="data_csv_description">Alle Touren als Tabelle für Tabellenkalkulationen. Nicht zur Wiederherstellung geeignet.</string>
-    <string name="data_backup_title">Sicherung (JSON)</string>
-    <string name="data_backup_description">Alle Touren, Fahrzeuge, Bordbuch-Einträge, Wechselkurse und die Hauptwährung. Damit lassen sich die Daten auf diesem oder einem anderen Gerät wiederherstellen.</string>
+    <string name="data_backup_title">Sicherung</string>
+    <string name="data_backup_description">Alle Touren, Fahrzeuge, Bordbuch-Einträge, Wechselkurse, die Hauptwährung, Fahrzeugdokumente und ihre Fotos. Damit lassen sich die Daten auf diesem oder einem anderen Gerät wiederherstellen.</string>
+    <string name="data_backup_size">Größe der Sicherung: %1$s</string>
+    <string name="data_backup_without_files_title">Ohne Fotos und Dokumente</string>
+    <string name="data_backup_without_files_support">Speichert eine kleinere, reine Textsicherung ohne Foto- oder Dokumentdateien.</string>
     <string name="data_backup_save">Als Datei speichern</string>
     <string name="data_backup_share">Sicherung teilen</string>
     <string name="backup_saved">Sicherung gespeichert</string>
@@ -251,7 +254,7 @@
     <string name="data_import_description">Liest eine CamperLog-Sicherung ein. Bevor etwas geändert wird, siehst du, was sie enthält.</string>
     <string name="data_import_choose">Sicherungsdatei wählen</string>
     <string name="import_preview_title">Sicherung einspielen?</string>
-    <string name="import_preview_summary">Sicherung vom %1$s mit %2$s, %3$s, %4$s, %5$s, %6$s und %7$s. Hauptwährung: %8$s.</string>
+    <string name="import_preview_summary">Sicherung vom %1$s mit %2$s, %3$s, %4$s, %5$s, %6$s, %7$s und %8$s. Hauptwährung: %9$s.</string>
     <plurals name="import_tours">
         <item quantity="one">%1$d Tour</item>
         <item quantity="other">%1$d Touren</item>
@@ -276,6 +279,10 @@
         <item quantity="one">%1$d Wechselkurs</item>
         <item quantity="other">%1$d Wechselkursen</item>
     </plurals>
+    <plurals name="import_documents">
+        <item quantity="one">%1$d Fahrzeugdokument</item>
+        <item quantity="other">%1$d Fahrzeugdokumente</item>
+    </plurals>
     <string name="import_mode_merge">Zusammenführen</string>
     <string name="import_mode_merge_hint">Ergänzt neue Touren, Fahrzeuge, Reparaturen und Bordbuch-Einträge und übernimmt neuere Fassungen vorhandener. Deine Hauptwährung und das aktuelle Fahrzeug bleiben.</string>
     <string name="import_mode_replace">Alles ersetzen</string>
@@ -288,7 +295,7 @@
     </plurals>
     <string name="import_replace_text_no_tours">Alle gespeicherten Fahrzeuge, Reparaturen, Bordbuch-Einträge, Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen.</string>
     <string name="import_replace_confirm">Alles ersetzen</string>
-    <string name="import_done">Sicherung eingespielt. Touren neu: %1$d, aktualisiert: %2$d, unverändert: %3$d. Fahrzeuge neu: %4$d, aktualisiert: %5$d. Stationen neu: %6$d, aktualisiert: %7$d. Reparaturen neu: %8$d, aktualisiert: %9$d. %10$s %11$s</string>
+    <string name="import_done">Sicherung eingespielt. Touren neu: %1$d, aktualisiert: %2$d, unverändert: %3$d. Fahrzeuge neu: %4$d, aktualisiert: %5$d. Stationen neu: %6$d, aktualisiert: %7$d. Reparaturen neu: %8$d, aktualisiert: %9$d. Dokumente neu: %10$d, aktualisiert: %11$d. %12$s %13$s %14$s</string>
     <plurals name="import_done_log_entries">
         <item quantity="one">%1$d Bordbuch-Eintrag übernommen</item>
         <item quantity="other">%1$d Bordbuch-Einträge übernommen</item>
@@ -296,6 +303,10 @@
     <plurals name="import_done_rates">
         <item quantity="one">%1$d Wechselkurs übernommen</item>
         <item quantity="other">%1$d Wechselkurse übernommen</item>
+    </plurals>
+    <plurals name="import_done_attachments">
+        <item quantity="one">%1$d Foto oder Dokument übernommen</item>
+        <item quantity="other">%1$d Fotos und Dokumente übernommen</item>
     </plurals>
     <string name="import_running">Sicherung wird eingespielt …</string>
     <string name="data_working">Wird verarbeitet …</string>
@@ -310,6 +321,8 @@
     <string name="import_error_invalid_vehicle_repair">Fahrzeug %1$d, Reparatur %2$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
     <string name="import_error_invalid_vehicle_log_entry">Fahrzeug %1$d, Bordbuch-Eintrag %2$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
     <string name="import_error_invalid_station">Station %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
+    <string name="import_error_invalid_document">Fahrzeugdokument %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
+    <string name="import_error_invalid_attachment">Datei %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
 
     <!-- Fahrzeugfelder -->
     <string name="field_name">Name</string>
@@ -425,6 +438,7 @@
     <string name="reminder_kind_gas_check">Gasprüfung</string>
     <string name="reminder_kind_leak_test">Dichtheitsprüfung</string>
     <string name="reminder_kind_oil_change">Ölwechsel</string>
+    <string name="reminder_kind_document_expiry">Dokument</string>
     <string name="reminder_overdue">%1$s überfällig seit %2$s</string>
     <plurals name="reminder_due_soon">
         <item quantity="one">%1$s fällig in %2$d Tag (%3$s)</item>

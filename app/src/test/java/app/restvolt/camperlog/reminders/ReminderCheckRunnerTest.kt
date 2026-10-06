@@ -1,9 +1,11 @@
 package app.restvolt.camperlog.reminders
 
+import app.restvolt.camperlog.backup.BackupPayload
 import app.restvolt.camperlog.data.BackupFolderWriter
 import app.restvolt.camperlog.domain.ReminderKind
 import app.restvolt.camperlog.domain.ReminderNotification
 import app.restvolt.camperlog.domain.ReminderNotificationState
+import app.restvolt.camperlog.ui.FakeVehicleDocumentRepository
 import app.restvolt.camperlog.ui.FakeVehicleRepository
 import app.restvolt.camperlog.ui.defaultVehicle
 import kotlinx.coroutines.runBlocking
@@ -25,10 +27,15 @@ class ReminderCheckRunnerTest {
 
     private fun runner(
         vehicles: FakeVehicleRepository,
+        documents: FakeVehicleDocumentRepository = FakeVehicleDocumentRepository(),
         notificationStore: ReminderNotificationStore = FakeReminderNotificationStore(),
+        documentNotificationStore: DocumentReminderNotificationStore = FakeDocumentReminderNotificationStore(),
         notifier: FakeReminderNotifier = FakeReminderNotifier(),
         folderWriter: BackupFolderWriter = FakeBackupFolderWriter(),
-    ) = ReminderCheckRunner(vehicles, notificationStore, notifier, folderWriter, buildBackupJson = { "{}" }) to notifier
+    ) = ReminderCheckRunner(
+        vehicles, documents, notificationStore, documentNotificationStore, notifier, folderWriter,
+        buildBackupPayload = { BackupPayload("{}", null) },
+    ) to notifier
 
     @Test
     fun severalDueItems_notifyAsOneCallWithAllOfThem() = runBlocking {
@@ -85,11 +92,48 @@ class ReminderCheckRunnerTest {
     }
 
     @Test
+    fun documentExpiry_notifiesSeparatelyPerDocument() = runBlocking {
+        val vehicle = defaultVehicle(id = 1)
+        val vehicles = FakeVehicleRepository(initial = listOf(vehicle))
+        val documents = FakeVehicleDocumentRepository(
+            initial = listOf(
+                document(id = 1, vehicleId = 1, title = "Registration", expiryDate = DUE_SOON),
+                document(id = 2, vehicleId = 1, title = "Insurance", expiryDate = TODAY.minusDays(1)),
+            ),
+        )
+        val (runner, notifier) = runner(vehicles, documents = documents)
+
+        runner.run(TODAY, NOW, LEAD_DAYS, OIL_INTERVAL_MONTHS, BACKUP_OFF)
+
+        assertEquals(1, notifier.reminderCalls.size)
+        val notifications = notifier.reminderCalls.single()
+        assertEquals(2, notifications.size)
+        assertEquals(setOf("Registration", "Insurance"), notifications.map { it.label }.toSet())
+        assertTrue(notifications.all { it.kind == ReminderKind.DOCUMENT_EXPIRY })
+    }
+
+    @Test
+    fun documentExpiry_repeatedRunDoesNotNotifyAgain() = runBlocking {
+        val vehicle = defaultVehicle(id = 1)
+        val vehicles = FakeVehicleRepository(initial = listOf(vehicle))
+        val documents = FakeVehicleDocumentRepository(initial = listOf(document(id = 1, vehicleId = 1, expiryDate = DUE_SOON)))
+        val (runner, notifier) = runner(vehicles, documents = documents)
+
+        runner.run(TODAY, NOW, LEAD_DAYS, OIL_INTERVAL_MONTHS, BACKUP_OFF)
+        runner.run(TODAY, NOW, LEAD_DAYS, OIL_INTERVAL_MONTHS, BACKUP_OFF)
+
+        assertEquals(1, notifier.reminderCalls.size)
+    }
+
+    @Test
     fun backupOverdue_withAccessibleAutoFolder_writesInsteadOfNotifying() = runBlocking {
         val vehicles = FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1)))
         val folderWriter = FakeBackupFolderWriter(accessible = true)
         val notifier = FakeReminderNotifier()
-        val runner = ReminderCheckRunner(vehicles, FakeReminderNotificationStore(), notifier, folderWriter, buildBackupJson = { "{\"ok\":true}" })
+        val runner = ReminderCheckRunner(
+            vehicles, FakeVehicleDocumentRepository(), FakeReminderNotificationStore(), FakeDocumentReminderNotificationStore(),
+            notifier, folderWriter, buildBackupPayload = { BackupPayload("{\"ok\":true}", null) },
+        )
         val backup = BackupReminderInput(lastBackupAt = null, reminderWeeks = 4, lastNotifiedBackupBaseline = null, autoBackupToFolder = true, folderUri = "content://folder")
 
         val outcome = runner.run(TODAY, NOW, LEAD_DAYS, OIL_INTERVAL_MONTHS, backup)
@@ -104,7 +148,10 @@ class ReminderCheckRunnerTest {
         val vehicles = FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1)))
         val folderWriter = FakeBackupFolderWriter(accessible = false)
         val notifier = FakeReminderNotifier()
-        val runner = ReminderCheckRunner(vehicles, FakeReminderNotificationStore(), notifier, folderWriter, buildBackupJson = { "{}" })
+        val runner = ReminderCheckRunner(
+            vehicles, FakeVehicleDocumentRepository(), FakeReminderNotificationStore(), FakeDocumentReminderNotificationStore(),
+            notifier, folderWriter, buildBackupPayload = { BackupPayload("{}", null) },
+        )
         val backup = BackupReminderInput(lastBackupAt = null, reminderWeeks = 4, lastNotifiedBackupBaseline = null, autoBackupToFolder = true, folderUri = "content://folder")
 
         val outcome = runner.run(TODAY, NOW, LEAD_DAYS, OIL_INTERVAL_MONTHS, backup)
@@ -118,7 +165,10 @@ class ReminderCheckRunnerTest {
     fun backupNotOverdue_doesNothing() = runBlocking {
         val vehicles = FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1)))
         val notifier = FakeReminderNotifier()
-        val runner = ReminderCheckRunner(vehicles, FakeReminderNotificationStore(), notifier, FakeBackupFolderWriter(), buildBackupJson = { "{}" })
+        val runner = ReminderCheckRunner(
+            vehicles, FakeVehicleDocumentRepository(), FakeReminderNotificationStore(), FakeDocumentReminderNotificationStore(),
+            notifier, FakeBackupFolderWriter(), buildBackupPayload = { BackupPayload("{}", null) },
+        )
 
         val outcome = runner.run(TODAY, NOW, LEAD_DAYS, OIL_INTERVAL_MONTHS, BACKUP_OFF)
 
@@ -126,6 +176,22 @@ class ReminderCheckRunnerTest {
         assertNull(outcome.backupNotifiedBaseline)
         assertEquals(0, notifier.backupOverdueCalls)
     }
+
+    private fun document(
+        id: Long,
+        vehicleId: Long,
+        title: String = "Document",
+        expiryDate: LocalDate?,
+    ) = app.restvolt.camperlog.domain.VehicleDocument(
+        id = id,
+        uuid = "document-$id",
+        vehicleId = vehicleId,
+        kind = app.restvolt.camperlog.domain.DocumentKind.OTHER,
+        title = title,
+        expiryDate = expiryDate,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
 }
 
 private class FakeReminderNotificationStore : ReminderNotificationStore {
@@ -134,6 +200,16 @@ private class FakeReminderNotificationStore : ReminderNotificationStore {
     override fun statesFor(vehicleId: Long): Map<ReminderKind, ReminderNotificationState> = byVehicle[vehicleId] ?: emptyMap()
 
     override fun saveStatesFor(vehicleId: Long, states: Map<ReminderKind, ReminderNotificationState>) {
+        byVehicle[vehicleId] = states
+    }
+}
+
+private class FakeDocumentReminderNotificationStore : DocumentReminderNotificationStore {
+    private val byVehicle = mutableMapOf<Long, Map<Long, ReminderNotificationState>>()
+
+    override fun statesFor(vehicleId: Long): Map<Long, ReminderNotificationState> = byVehicle[vehicleId] ?: emptyMap()
+
+    override fun saveStatesFor(vehicleId: Long, states: Map<Long, ReminderNotificationState>) {
         byVehicle[vehicleId] = states
     }
 }
@@ -162,5 +238,11 @@ private class FakeBackupFolderWriter(var accessible: Boolean = true) : BackupFol
         if (!accessible) return null
         written += json
         return "backup.json"
+    }
+
+    override suspend fun writeTimestampedBackupZip(folderUri: String, zipBytes: ByteArray): String? {
+        if (!accessible) return null
+        written += "zip:${zipBytes.size}"
+        return "backup.zip"
     }
 }
