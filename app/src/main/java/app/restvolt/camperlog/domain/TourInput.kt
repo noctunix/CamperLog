@@ -21,11 +21,6 @@ data class TourInput(
     val overnightStays: String = "",
     val distanceKm: String = "",
     val costs: List<CostInput> = listOf(CostInput()),
-    val pitchAssigned: Boolean = false,
-    val electricityFlatRate: ElectricityFlatRate = ElectricityFlatRate.NOT_USED,
-    val lteQuality: LteQuality = LteQuality.GOOD,
-    val pitchSlope: PitchSlope = PitchSlope.LEVEL,
-    val levelingBlocksUsed: Boolean = false,
     val notes: String = "",
     val mapLink: String = "",
 )
@@ -126,11 +121,6 @@ fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
         .groupBy(Money::currency)
         .map { (currency, amounts) -> Money(amounts.sumMinor(), currency) }
         .filter { it.minor != 0L },
-    pitchAssigned = pitchAssigned,
-    electricityFlatRate = electricityFlatRate,
-    lteQuality = lteQuality,
-    pitchSlope = pitchSlope,
-    levelingBlocksUsed = levelingBlocksUsed,
     notes = notes.trim(),
     mapLink = mapLink.trim().ifEmpty { null },
     createdAt = original?.createdAt ?: Instant.EPOCH,
@@ -153,11 +143,6 @@ fun Tour.toInput(locale: Locale): TourInput = TourInput(
     costs = costs
         .map { CostInput(amountToInput(it.minor, it.currency, locale), it.currency) }
         .ifEmpty { listOf(CostInput()) },
-    pitchAssigned = pitchAssigned,
-    electricityFlatRate = electricityFlatRate,
-    lteQuality = lteQuality,
-    pitchSlope = pitchSlope,
-    levelingBlocksUsed = levelingBlocksUsed,
     notes = notes,
     mapLink = mapLink.orEmpty(),
 )

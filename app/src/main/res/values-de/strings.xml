@@ -40,11 +40,6 @@
     <string name="field_overnight_stays">Übernachtungen</string>
     <string name="field_distance">Kilometer</string>
     <string name="field_cost">Kosten</string>
-    <string name="field_pitch_assigned">Stellplatz zugewiesen</string>
-    <string name="field_electricity">Strompauschale</string>
-    <string name="field_lte">LTE</string>
-    <string name="field_pitch">Stellplatz</string>
-    <string name="field_leveling_blocks">Keile genutzt</string>
     <string name="field_notes">Notizen</string>
     <string name="field_map_link">Kartenlink</string>
 
@@ -196,12 +191,6 @@
     </plurals>
     <string name="share_trip_stats">%1$s, %2$s, %3$s</string>
     <string name="share_cost">Kosten: %1$s</string>
-    <string name="share_pitch_assigned">Stellplatz zugewiesen: %1$s</string>
-    <string name="share_electricity">Strompauschale: %1$s</string>
-    <string name="share_lte">LTE: %1$s</string>
-    <string name="share_pitch">Stellplatz: %1$s, %2$s</string>
-    <string name="share_blocks_used">Keile genutzt</string>
-    <string name="share_blocks_not_used">Keile nicht genutzt</string>
     <string name="share_notes">Notizen: %1$s</string>
     <string name="share_map">Karte: %1$s</string>
     <!-- Daten -->
@@ -492,4 +481,11 @@
     <string name="btn_intro_next">Weiter</string>
     <string name="btn_intro_get_started">Los geht\'s</string>
     <string name="a11y_intro_step">Schritt %1$d von %2$d</string>
+
+    <!-- Stellplatz-Migration (Schema 7): Tagestrips mit abweichenden Stellplatz-Werten behalten eine Notiz-Zeile -->
+    <string name="migration_pitch_note">Stellplatz: %1$s</string>
+    <string name="migration_pitch_note_assigned">Stellplatz zugewiesen</string>
+    <string name="migration_pitch_note_electricity">Strompauschale: %1$s</string>
+    <string name="migration_pitch_note_lte">LTE: %1$s</string>
+    <string name="migration_pitch_note_blocks">Keile genutzt</string>
 </resources>

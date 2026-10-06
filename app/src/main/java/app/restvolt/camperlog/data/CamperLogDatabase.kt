@@ -6,6 +6,16 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.LegacyPitchAttribute
+import app.restvolt.camperlog.domain.LegacyPitchFields
+import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.migrateLegacyPitch
+import java.time.Instant
+import java.time.LocalDate
+import java.util.UUID
 
 /** Lokale Room-Datenbank der App. */
 @Database(
@@ -17,8 +27,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         VehicleEntity::class,
         RepairEntity::class,
         LogEntryEntity::class,
+        StationEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -31,11 +42,13 @@ abstract class CamperLogDatabase : RoomDatabase() {
 
     abstract fun logDao(): LogDao
 
+    abstract fun stationDao(): StationDao
+
     companion object {
         /** Öffnet die Datenbankdatei der App. Nur einmal pro Prozess aufrufen. */
         fun open(context: Context): CamperLogDatabase =
             Room.databaseBuilder(context.applicationContext, CamperLogDatabase::class.java, "camperlog.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context))
                 .build()
     }
 }
@@ -209,4 +222,176 @@ internal val MIGRATION_5_6 = object : Migration(5, 6) {
         db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `travel_protection_phone` TEXT NOT NULL DEFAULT ''")
         db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `insurer_claims_phone` TEXT NOT NULL DEFAULT ''")
     }
+}
+
+/**
+ * Version 7: Stationen kommen hinzu (`stations`, Fremdschlüssel `vehicle_id` RESTRICT, `tour_id`
+ * CASCADE). Jede Tour mit `overnight_stays > 0` bekommt dafür genau eine Übernachtungs-Station mit
+ * den unverändert übernommenen alten Stellplatz-Werten (3.4); bei Tagestrips (`overnight_stays = 0`)
+ * mit davon abweichenden Werten bleibt stattdessen eine Notiz-Zeile, gebaut aus den Strings von
+ * [context] in der Gerätesprache. `tours` wird danach ohne die fünf Stellplatz-Spalten neu
+ * aufgebaut, wie schon in [MIGRATION_1_2]; `log_entries` bleibt in dieser Phase unverändert.
+ */
+internal fun migration6To7(context: Context): Migration = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `stations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `tour_id` INTEGER, `type` TEXT NOT NULL, " +
+                "`date` TEXT NOT NULL, `time` TEXT, `name` TEXT NOT NULL, `place` TEXT NOT NULL, `latitude` REAL, " +
+                "`longitude` REAL, `coordinate_source` TEXT, `accuracy_m` INTEGER, `map_link` TEXT, " +
+                "`notes` TEXT NOT NULL, `nights` INTEGER, `site_kind` TEXT, `pitch_assigned` INTEGER, " +
+                "`electricity_flat_rate` TEXT, `lte_quality` TEXT, `pitch_slope` TEXT, `leveling_blocks_used` INTEGER, " +
+                "`services` TEXT NOT NULL, `weather_temperature_deci_c` INTEGER, `weather_code` INTEGER, " +
+                "`weather_wind_kmh` INTEGER, `weather_gust_kmh` INTEGER, `weather_wind_direction_deg` INTEGER, " +
+                "`weather_observed_at` INTEGER, `favorite` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, " +
+                "`updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_stations_uuid` ON `stations` (`uuid`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_stations_vehicle_id` ON `stations` (`vehicle_id`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_stations_tour_id` ON `stations` (`tour_id`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_stations_date` ON `stations` (`date`)")
+
+        insertOvernightStations(db)
+        appendDayTripNotes(db, context)
+
+        db.execSQL(
+            "CREATE TABLE `tours_new` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL DEFAULT '', `vehicle_id` INTEGER NOT NULL, `start_date` TEXT NOT NULL, " +
+                "`end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, `tour_type` TEXT NOT NULL, " +
+                "`travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, " +
+                "`notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        )
+        db.execSQL(
+            "INSERT INTO `tours_new` SELECT `id`, `uuid`, `vehicle_id`, `start_date`, `end_date`, `destination`, " +
+                "`tour_type`, `travel_days`, `overnight_stays`, `distance_km`, `notes`, `map_link`, `created_at`, " +
+                "`updated_at` FROM `tours`",
+        )
+        db.execSQL("DROP TABLE `tours`")
+        db.execSQL("ALTER TABLE `tours_new` RENAME TO `tours`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_tours_uuid` ON `tours` (`uuid`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_tours_vehicle_id` ON `tours` (`vehicle_id`)")
+
+        db.query("PRAGMA foreign_key_check").use { cursor ->
+            check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 6→7" }
+        }
+    }
+
+    /** Legt für jede Tour mit mindestens einer Übernachtung die Übernachtungs-Station an (3.4, Punkt 2). */
+    private fun insertOvernightStations(db: SupportSQLiteDatabase) {
+        db.query(
+            "SELECT `id`, `vehicle_id`, `start_date`, `destination`, `overnight_stays`, `pitch_assigned`, " +
+                "`electricity_flat_rate`, `lte_quality`, `pitch_slope`, `leveling_blocks_used`, `created_at`, " +
+                "`updated_at` FROM `tours` WHERE `overnight_stays` > 0",
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val tourId = cursor.getLong(0)
+                val vehicleId = cursor.getLong(1)
+                val startDate = LocalDate.parse(cursor.getString(2))
+                val destination = cursor.getString(3)
+                val overnightStays = cursor.getInt(4)
+                val pitch = cursor.toLegacyPitchFields(startIndex = 5)
+                val createdAt = Instant.ofEpochMilli(cursor.getLong(10))
+                val updatedAt = Instant.ofEpochMilli(cursor.getLong(11))
+                val migration = migrateLegacyPitch(
+                    uuid = UUID.randomUUID().toString(),
+                    vehicleId = vehicleId,
+                    tourId = tourId,
+                    startDate = startDate,
+                    destination = destination,
+                    overnightStays = overnightStays,
+                    pitch = pitch,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
+                )
+                val station = checkNotNull(migration.overnightStation)
+                db.execSQL(
+                    "INSERT INTO `stations` (`uuid`, `vehicle_id`, `tour_id`, `type`, `date`, `time`, `name`, " +
+                        "`place`, `latitude`, `longitude`, `coordinate_source`, `accuracy_m`, `map_link`, `notes`, " +
+                        "`nights`, `site_kind`, `pitch_assigned`, `electricity_flat_rate`, `lte_quality`, " +
+                        "`pitch_slope`, `leveling_blocks_used`, `services`, `weather_temperature_deci_c`, " +
+                        "`weather_code`, `weather_wind_kmh`, `weather_gust_kmh`, `weather_wind_direction_deg`, " +
+                        "`weather_observed_at`, `favorite`, `created_at`, `updated_at`) VALUES " +
+                        "(?, ?, ?, ?, ?, NULL, ?, '', NULL, NULL, NULL, NULL, NULL, '', ?, NULL, ?, ?, ?, ?, ?, '', " +
+                        "NULL, NULL, NULL, NULL, NULL, NULL, 0, ?, ?)",
+                    arrayOf<Any?>(
+                        station.uuid, station.vehicleId, station.tourId, station.type.name, station.date.toString(),
+                        station.name, station.nights, station.pitchAssigned?.toSqlInt(), station.electricityFlatRate?.name,
+                        station.lteQuality?.name, station.pitchSlope?.name, station.levelingBlocksUsed?.toSqlInt(),
+                        station.createdAt.toEpochMilli(), station.updatedAt.toEpochMilli(),
+                    ),
+                )
+            }
+        }
+    }
+
+    /** Hängt Tagestrips mit von den alten Vorgaben abweichenden Stellplatz-Werten eine Notiz-Zeile an (3.4, Punkt 3). */
+    private fun appendDayTripNotes(db: SupportSQLiteDatabase, context: Context) {
+        db.query(
+            "SELECT `id`, `pitch_assigned`, `electricity_flat_rate`, `lte_quality`, `pitch_slope`, " +
+                "`leveling_blocks_used`, `notes` FROM `tours` WHERE `overnight_stays` = 0",
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val tourId = cursor.getLong(0)
+                val pitch = cursor.toLegacyPitchFields(startIndex = 1)
+                val oldNotes = cursor.getString(6)
+                val migration = migrateLegacyPitch(
+                    uuid = "",
+                    vehicleId = 0,
+                    tourId = null,
+                    startDate = LocalDate.EPOCH,
+                    destination = "",
+                    overnightStays = 0,
+                    pitch = pitch,
+                    createdAt = Instant.EPOCH,
+                    updatedAt = Instant.EPOCH,
+                )
+                if (migration.dayTripAttributes.isEmpty()) continue
+                val fragments = migration.dayTripAttributes.joinToString(", ") { context.pitchNoteFragment(it, pitch) }
+                val line = context.getString(R.string.migration_pitch_note, fragments)
+                val newNotes = if (oldNotes.isBlank()) line else "$oldNotes\n$line"
+                db.execSQL("UPDATE `tours` SET `notes` = ? WHERE `id` = ?", arrayOf<Any?>(newNotes, tourId))
+            }
+        }
+    }
+}
+
+/** Liest die fünf alten Stellplatz-Spalten ab Spaltenindex [startIndex] (in Deklarationsreihenfolge). */
+private fun android.database.Cursor.toLegacyPitchFields(startIndex: Int): LegacyPitchFields = LegacyPitchFields(
+    pitchAssigned = getInt(startIndex) != 0,
+    electricityFlatRate = ElectricityFlatRate.valueOf(getString(startIndex + 1)),
+    lteQuality = LteQuality.valueOf(getString(startIndex + 2)),
+    pitchSlope = PitchSlope.valueOf(getString(startIndex + 3)),
+    levelingBlocksUsed = getInt(startIndex + 4) != 0,
+)
+
+private fun Boolean.toSqlInt(): Int = if (this) 1 else 0
+
+/** Kurzer, lokalisierter Textbaustein für ein von den alten Vorgaben abweichendes Stellplatz-Attribut. */
+private fun Context.pitchNoteFragment(attribute: LegacyPitchAttribute, pitch: LegacyPitchFields): String = when (attribute) {
+    LegacyPitchAttribute.PITCH_ASSIGNED -> getString(R.string.migration_pitch_note_assigned)
+    LegacyPitchAttribute.ELECTRICITY -> getString(R.string.migration_pitch_note_electricity, getString(electricityLabel(pitch.electricityFlatRate)))
+    LegacyPitchAttribute.LTE -> getString(R.string.migration_pitch_note_lte, getString(lteLabel(pitch.lteQuality)))
+    LegacyPitchAttribute.PITCH_SLOPE -> getString(pitchSlopeLabel(pitch.pitchSlope))
+    LegacyPitchAttribute.LEVELING_BLOCKS -> getString(R.string.migration_pitch_note_blocks)
+}
+
+private fun electricityLabel(rate: ElectricityFlatRate): Int = when (rate) {
+    ElectricityFlatRate.YES -> R.string.electricity_yes
+    ElectricityFlatRate.NO -> R.string.electricity_no
+    ElectricityFlatRate.NOT_USED -> R.string.electricity_not_used
+}
+
+private fun lteLabel(quality: LteQuality): Int = when (quality) {
+    LteQuality.GOOD -> R.string.lte_good
+    LteQuality.OK -> R.string.lte_ok
+    LteQuality.BAD -> R.string.lte_bad
+}
+
+private fun pitchSlopeLabel(slope: PitchSlope): Int = when (slope) {
+    PitchSlope.LEVEL -> R.string.pitch_level
+    PitchSlope.SLOPED -> R.string.pitch_sloped
 }

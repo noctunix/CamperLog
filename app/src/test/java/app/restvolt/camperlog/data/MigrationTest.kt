@@ -5,8 +5,13 @@ import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.EUR
+import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
+import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -187,6 +192,174 @@ class MigrationTest {
             db.close()
         }
     }
+
+    @Test
+    fun migration6To7CreatesOneOvernightStationPerTourWithNightsAndKeepsCosts() = runTest {
+        createVersion6(
+            "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
+                "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
+                "breakdown_phone, travel_protection_provider, travel_protection_contract_number, " +
+                "travel_protection_phone, insurer_claims_phone, created_at, updated_at) VALUES " +
+                "(1, 'veh-1', 'Bluebird', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 1000, 2000)",
+            "INSERT INTO tours VALUES (1, 'tour-1', 1, '2026-07-04', '2026-07-17', 'Lofoten', 'VACATION', 14, 13, " +
+                "3420, 1, 'YES', 'GOOD', 'LEVEL', 0, 'Reisenotiz', NULL, 1000, 2000)",
+            "INSERT INTO tour_costs VALUES (1, 'EUR', 48650, 0)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val tour = RoomTourRepository(db.tourDao(), db.vehicleDao()).allTours().single()
+            assertEquals("Lofoten", tour.destination)
+            assertEquals("Reisenotiz", tour.notes)
+            assertEquals(listOf(Money(48650, EUR)), tour.costs)
+
+            val station = RoomStationRepository(db.stationDao()).allStations().single()
+            assertEquals(1L, station.vehicleId)
+            assertEquals(tour.id, station.tourId)
+            assertEquals(StationType.OVERNIGHT, station.type)
+            assertEquals(LocalDate.of(2026, 7, 4), station.date)
+            assertEquals("Lofoten", station.name)
+            assertEquals(13, station.nights)
+            assertEquals(true, station.pitchAssigned)
+            assertEquals(ElectricityFlatRate.YES, station.electricityFlatRate)
+            assertEquals(LteQuality.GOOD, station.lteQuality)
+            assertEquals(PitchSlope.LEVEL, station.pitchSlope)
+            assertEquals(false, station.levelingBlocksUsed)
+            assertEquals(Instant.ofEpochMilli(1000), station.createdAt)
+            assertEquals(Instant.ofEpochMilli(2000), station.updatedAt)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun migration6To7DayTripWithDefaultValuesGetsNoStationAndKeepsNotes() = runTest {
+        createVersion6(
+            defaultVehicleInsert,
+            "INSERT INTO tours VALUES (1, 'tour-1', 1, '2026-07-20', '2026-07-20', 'Ostsee', 'DAY_TRIP', 1, 0, " +
+                "120, 0, 'NOT_USED', 'GOOD', 'LEVEL', 0, 'Alte Notiz', NULL, 3000, 4000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val tour = RoomTourRepository(db.tourDao(), db.vehicleDao()).allTours().single()
+            assertEquals("Alte Notiz", tour.notes)
+            assertEquals(emptyList<Station>(), RoomStationRepository(db.stationDao()).allStations())
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun migration6To7DayTripWithNonDefaultValuesAppendsLocalizedNoteLine() = runTest {
+        createVersion6(
+            defaultVehicleInsert,
+            "INSERT INTO tours VALUES (1, 'tour-1', 1, '2026-07-21', '2026-07-21', 'Flensburg', 'DAY_TRIP', 1, 0, " +
+                "50, 0, 'NOT_USED', 'GOOD', 'SLOPED', 1, '', NULL, 5000, 6000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val tour = RoomTourRepository(db.tourDao(), db.vehicleDao()).allTours().single()
+            assertEquals("Pitch: sloped, leveling blocks used", tour.notes)
+            assertEquals(emptyList<Station>(), RoomStationRepository(db.stationDao()).allStations())
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun migration6To7ForeignKeysRestrictVehicleAndCascadeTourDeletion() = runTest {
+        createVersion6(
+            defaultVehicleInsert,
+            "INSERT INTO tours VALUES (1, 'tour-1', 1, '2026-07-04', '2026-07-05', 'Lofoten', 'WEEKEND', 2, 1, " +
+                "100, 0, 'NOT_USED', 'GOOD', 'LEVEL', 0, '', NULL, 1000, 2000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            assertEquals(1, RoomStationRepository(db.stationDao()).allStations().size)
+
+            // Ein Fahrzeug mit Stationen lässt sich nicht löschen.
+            val error = runCatching { db.openHelper.writableDatabase.execSQL("DELETE FROM vehicles WHERE id = 1") }.exceptionOrNull()
+            assertTrue(error is SQLiteConstraintException)
+
+            // Das Löschen der Tour löscht ihre Station mit (CASCADE).
+            db.openHelper.writableDatabase.execSQL("DELETE FROM tours WHERE id = 1")
+            assertEquals(emptyList<Station>(), RoomStationRepository(db.stationDao()).allStations())
+        } finally {
+            db.close()
+        }
+    }
+
+    private val defaultVehicleInsert =
+        "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
+            "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
+            "breakdown_phone, travel_protection_provider, travel_protection_contract_number, " +
+            "travel_protection_phone, insurer_claims_phone, created_at, updated_at) VALUES " +
+            "(1, 'veh-1', 'Bluebird', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 1000, 2000)"
+
+    /** Legt `camperlog.db` im Stand von Version 6 nach `schemas/…/6.json` an und füllt sie mit [inserts]. */
+    private fun createVersion6(vararg inserts: String) = createDatabase(
+        version = 6,
+        identityHash = "db66d1a0bde20ff8ef5fa44b7ca3a68d",
+        schema = listOf(
+            "CREATE TABLE IF NOT EXISTS `vehicles` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `license_plate` TEXT NOT NULL, " +
+                "`manufacturer` TEXT NOT NULL, `model` TEXT NOT NULL, `vin` TEXT NOT NULL, " +
+                "`first_registration` TEXT, `notes` TEXT NOT NULL, `purchase_date` TEXT, " +
+                "`purchase_price_currency` TEXT, `purchase_price_minor` INTEGER, `purchase_odometer_km` INTEGER, " +
+                "`sale_date` TEXT, `sale_price_currency` TEXT, `sale_price_minor` INTEGER, " +
+                "`insurer` TEXT NOT NULL, `insurance_policy_number` TEXT NOT NULL, " +
+                "`insurance_premium_per_year_currency` TEXT, `insurance_premium_per_year_minor` INTEGER, " +
+                "`vehicle_tax_per_year_currency` TEXT, `vehicle_tax_per_year_minor` INTEGER, " +
+                "`length_cm` INTEGER, `width_cm` INTEGER, `height_cm` INTEGER, `gross_weight_kg` INTEGER, " +
+                "`measured_empty_weight_kg` INTEGER, `breakdown_provider` TEXT NOT NULL, " +
+                "`breakdown_membership_number` TEXT NOT NULL, `breakdown_phone` TEXT NOT NULL, " +
+                "`travel_protection_provider` TEXT NOT NULL, `travel_protection_contract_number` TEXT NOT NULL, " +
+                "`travel_protection_phone` TEXT NOT NULL, `insurer_claims_phone` TEXT NOT NULL, " +
+                "`power_kw` INTEGER, `tire_size` TEXT NOT NULL, `tire_pressure_front_mbar` INTEGER, " +
+                "`tire_pressure_rear_mbar` INTEGER, `fuel_tank_dl` INTEGER, `ad_blue_tank_dl` INTEGER, " +
+                "`fresh_water_tank_dl` INTEGER, `grey_water_tank_dl` INTEGER, `boiler_dl` INTEGER, " +
+                "`cassette_dl` INTEGER, `battery_capacity_ah` INTEGER, `solar_power_wp` INTEGER, " +
+                "`next_inspection_date` TEXT, `next_gas_check_date` TEXT, `last_oil_change_date` TEXT, " +
+                "`last_oil_change_odometer_km` INTEGER, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_vehicles_uuid` ON `vehicles` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `repairs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `date` TEXT NOT NULL, " +
+                "`description` TEXT NOT NULL, `odometer_km` INTEGER, `cost_currency` TEXT, `cost_minor` INTEGER, " +
+                "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE INDEX IF NOT EXISTS `index_repairs_vehicle_id` ON `repairs` (`vehicle_id`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_repairs_uuid` ON `repairs` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `log_entries` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `type` TEXT NOT NULL, `date` TEXT NOT NULL, " +
+                "`created_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE INDEX IF NOT EXISTS `index_log_entries_vehicle_id_type_date` ON `log_entries` " +
+                "(`vehicle_id`, `type`, `date`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_log_entries_uuid` ON `log_entries` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL DEFAULT '', `vehicle_id` INTEGER NOT NULL, `start_date` TEXT NOT NULL, " +
+                "`end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, `tour_type` TEXT NOT NULL, " +
+                "`travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, " +
+                "`pitch_assigned` INTEGER NOT NULL, `electricity_flat_rate` TEXT NOT NULL, " +
+                "`lte_quality` TEXT NOT NULL, `pitch_slope` TEXT NOT NULL, `leveling_blocks_used` INTEGER NOT NULL, " +
+                "`notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+            "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_tours_uuid` ON `tours` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_tours_vehicle_id` ON `tours` (`vehicle_id`)",
+            "CREATE TABLE IF NOT EXISTS `tour_costs` (`tour_id` INTEGER NOT NULL, `currency` TEXT NOT NULL, " +
+                "`amount_minor` INTEGER NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`tour_id`, `currency`), " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE TABLE IF NOT EXISTS `exchange_rates` (`currency` TEXT NOT NULL, `per_euro` TEXT NOT NULL, " +
+                "`rate_date` TEXT NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`currency`))",
+            "CREATE TABLE IF NOT EXISTS `settings` (`id` INTEGER NOT NULL, `main_currency` TEXT NOT NULL, " +
+                "`current_vehicle_id` INTEGER, PRIMARY KEY(`id`))",
+        ),
+        inserts = inserts.toList(),
+    )
 
     /** Legt `camperlog.db` im Stand von Version 5 nach `schemas/…/5.json` an und füllt sie mit [inserts]. */
     private fun createVersion5(vararg inserts: String) = createDatabase(

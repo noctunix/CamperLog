@@ -1,9 +1,6 @@
 package app.restvolt.camperlog.data
 
-import app.restvolt.camperlog.domain.ElectricityFlatRate
-import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
-import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourTotals
 import app.restvolt.camperlog.domain.TourType
@@ -28,11 +25,6 @@ private fun TourEntity.toDomain(costs: List<Money>): Tour = Tour(
     overnightStays = overnightStays,
     distanceKm = distanceKm,
     costs = costs,
-    pitchAssigned = pitchAssigned,
-    electricityFlatRate = ElectricityFlatRate.valueOf(electricityFlatRate),
-    lteQuality = LteQuality.valueOf(lteQuality),
-    pitchSlope = PitchSlope.valueOf(pitchSlope),
-    levelingBlocksUsed = levelingBlocksUsed,
     notes = notes,
     mapLink = mapLink,
     createdAt = Instant.ofEpochMilli(createdAtMillis),
@@ -50,11 +42,6 @@ internal fun Tour.toEntity(): TourEntity = TourEntity(
     travelDays = travelDays,
     overnightStays = overnightStays,
     distanceKm = distanceKm,
-    pitchAssigned = pitchAssigned,
-    electricityFlatRate = electricityFlatRate.name,
-    lteQuality = lteQuality.name,
-    pitchSlope = pitchSlope.name,
-    levelingBlocksUsed = levelingBlocksUsed,
     notes = notes,
     mapLink = mapLink,
     createdAtMillis = createdAt.toEpochMilli(),

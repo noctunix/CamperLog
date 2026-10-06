@@ -78,11 +78,11 @@ class RoomTourRepositoryTest {
 
         val created = now
         now = Instant.parse("2026-02-01T12:00:00Z")
-        repository.save(stored.copy(destination = "Comer See", mapLink = null, levelingBlocksUsed = true))
+        repository.save(stored.copy(destination = "Comer See", mapLink = null, distanceKm = 999))
         val updated = checkNotNull(repository.observeTour(id).first())
         assertEquals("Comer See", updated.destination)
         assertNull(updated.mapLink)
-        assertEquals(true, updated.levelingBlocksUsed)
+        assertEquals(999, updated.distanceKm)
         assertEquals(created, updated.createdAt)
         assertEquals(now, updated.updatedAt)
         assertEquals(stored.uuid, updated.uuid)
@@ -242,11 +242,6 @@ class RoomTourRepositoryTest {
             overnightStays = nights,
             distanceKm = km,
             costs = costs,
-            pitchAssigned = true,
-            electricityFlatRate = ElectricityFlatRate.YES,
-            lteQuality = LteQuality.OK,
-            pitchSlope = PitchSlope.SLOPED,
-            levelingBlocksUsed = false,
             notes = "Notiz, mit \"Zeichen\"",
             mapLink = "https://maps.app.goo.gl/xyz",
             createdAt = Instant.EPOCH,

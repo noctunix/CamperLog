@@ -40,11 +40,6 @@
     <string name="field_overnight_stays">Overnight stays</string>
     <string name="field_distance">Distance (km)</string>
     <string name="field_cost">Costs</string>
-    <string name="field_pitch_assigned">Pitch assigned</string>
-    <string name="field_electricity">Electricity flat rate</string>
-    <string name="field_lte">LTE</string>
-    <string name="field_pitch">Pitch</string>
-    <string name="field_leveling_blocks">Leveling blocks used</string>
     <string name="field_notes">Notes</string>
     <string name="field_map_link">Map link</string>
 
@@ -196,12 +191,6 @@
     </plurals>
     <string name="share_trip_stats">%1$s, %2$s, %3$s</string>
     <string name="share_cost">Costs: %1$s</string>
-    <string name="share_pitch_assigned">Pitch assigned: %1$s</string>
-    <string name="share_electricity">Electricity flat rate: %1$s</string>
-    <string name="share_lte">LTE: %1$s</string>
-    <string name="share_pitch">Pitch: %1$s, %2$s</string>
-    <string name="share_blocks_used">Leveling blocks used</string>
-    <string name="share_blocks_not_used">Leveling blocks not used</string>
     <string name="share_notes">Notes: %1$s</string>
     <string name="share_map">Map: %1$s</string>
     <!-- Data -->
@@ -499,4 +488,11 @@
     <string name="btn_intro_next">Next</string>
     <string name="btn_intro_get_started">Get started</string>
     <string name="a11y_intro_step">Step %1$d of %2$d</string>
+
+    <!-- Pitch migration (schema 7): day trips with non-default pitch values keep a note line -->
+    <string name="migration_pitch_note">Pitch: %1$s</string>
+    <string name="migration_pitch_note_assigned">pitch assigned</string>
+    <string name="migration_pitch_note_electricity">electricity flat rate: %1$s</string>
+    <string name="migration_pitch_note_lte">LTE: %1$s</string>
+    <string name="migration_pitch_note_blocks">leveling blocks used</string>
 </resources>
