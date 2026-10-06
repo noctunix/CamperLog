@@ -2,6 +2,7 @@ package app.restvolt.camperlog.ui.data
 
 import android.content.Context
 import androidx.core.net.toUri
+import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.share.writeBackupExport
 import app.restvolt.camperlog.share.writeBackupTo
@@ -15,11 +16,16 @@ import java.io.InputStream
  */
 interface DataFiles {
     /**
-     * Schreibt [tours] als CSV in den Export-Cache und liefert die teilbare URI.
+     * Schreibt [tours] und [stations] als CSV in den Export-Cache und liefert die teilbare URI.
      * [vehicleNames] löst [Tour.vehicleId] in einen Anzeigenamen auf; [defaultVehicleName] gilt
      * bei einem leeren oder fehlenden Namen.
      */
-    suspend fun writeCsvExport(tours: List<Tour>, vehicleNames: Map<Long, String>, defaultVehicleName: String): String
+    suspend fun writeCsvExport(
+        tours: List<Tour>,
+        stations: List<Station>,
+        vehicleNames: Map<Long, String>,
+        defaultVehicleName: String,
+    ): String
 
     /** Schreibt die Sicherung [json] in den Export-Cache und liefert die teilbare URI. */
     suspend fun writeBackupExport(json: String): String
@@ -43,8 +49,12 @@ interface DataFiles {
 class AndroidDataFiles(context: Context) : DataFiles {
     private val context = context.applicationContext
 
-    override suspend fun writeCsvExport(tours: List<Tour>, vehicleNames: Map<Long, String>, defaultVehicleName: String): String =
-        writeCsvExport(context, tours, vehicleNames, defaultVehicleName).toString()
+    override suspend fun writeCsvExport(
+        tours: List<Tour>,
+        stations: List<Station>,
+        vehicleNames: Map<Long, String>,
+        defaultVehicleName: String,
+    ): String = writeCsvExport(context, tours, stations, vehicleNames, defaultVehicleName).toString()
 
     override suspend fun writeBackupExport(json: String): String = writeBackupExport(context, json).toString()
 

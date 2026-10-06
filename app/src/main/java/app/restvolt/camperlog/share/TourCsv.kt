@@ -1,9 +1,12 @@
 package app.restvolt.camperlog.share
 
 import app.restvolt.camperlog.domain.EUR
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.amountToDecimal
 import app.restvolt.camperlog.domain.sumMinor
+import java.time.LocalTime
 
 /** Spaltenreihenfolge des CSV-Exports. Neue Spalten nur am Ende anfügen. */
 val CSV_HEADER = listOf(
@@ -33,14 +36,26 @@ val CSV_HEADER = listOf(
  * Erzeugt eine CSV-Datei nach RFC 4180 (Komma, CRLF) mit Kopfzeile.
  * Datumswerte sind ISO-8601, Kosten exakte Dezimalzahlen mit Punkt. `kosten_eur` enthält nur den
  * Euro-Anteil, `kosten` alle Beträge mit ISO-Code, z. B. `120.00 EUR; 1450.00 NOK; 3500 ISK`.
- * `fahrzeug` enthält den Anzeigenamen des Fahrzeugs aus [vehicleNames]; ein leeres oder fehlendes
- * Fahrzeug ergibt [defaultVehicleName]. Freitextfelder werden per [neutralizeFormula] gegen
- * Formel-Injection entschärft.
+ * Die Stellplatz-Spalten `stellplatz_zugewiesen` … `keile_genutzt` kommen aus der ersten
+ * Übernachtungs-Station jeder Tour nach Datum ([firstOvernightStationsByTour]); ohne eine solche
+ * Station bleiben sie leer. `fahrzeug` enthält den Anzeigenamen des Fahrzeugs aus [vehicleNames];
+ * ein leeres oder fehlendes Fahrzeug ergibt [defaultVehicleName]. Freitextfelder werden per
+ * [neutralizeFormula] gegen Formel-Injection entschärft.
  */
-fun toursToCsv(tours: List<Tour>, vehicleNames: Map<Long, String>, defaultVehicleName: String): String = buildString {
-    appendCsvRow(CSV_HEADER)
-    tours.forEach { appendCsvRow(it.csvFields(vehicleNames, defaultVehicleName)) }
+fun toursToCsv(tours: List<Tour>, stations: List<Station>, vehicleNames: Map<Long, String>, defaultVehicleName: String): String {
+    val firstOvernightStation = firstOvernightStationsByTour(stations)
+    return buildString {
+        appendCsvRow(CSV_HEADER)
+        tours.forEach { appendCsvRow(it.csvFields(firstOvernightStation[it.id], vehicleNames, defaultVehicleName)) }
+    }
 }
+
+/** Je Tour die früheste Übernachtungs-Station nach `(date, time NULLS LAST, createdAt)`. */
+fun firstOvernightStationsByTour(stations: List<Station>): Map<Long, Station> = stations
+    .asSequence()
+    .filter { it.type == StationType.OVERNIGHT && it.tourId != null }
+    .groupBy { it.tourId as Long }
+    .mapValues { (_, candidates) -> candidates.minWith(compareBy({ it.date }, { it.time ?: LocalTime.MAX }, { it.createdAt })) }
 
 /**
  * Setzt [field] in Anführungszeichen, falls es Komma, Semikolon, Anführungszeichen, Zeilenumbruch
@@ -71,7 +86,7 @@ private fun StringBuilder.appendCsvRow(fields: List<String>) {
     append("\r\n")
 }
 
-private fun Tour.csvFields(vehicleNames: Map<Long, String>, defaultVehicleName: String): List<String> = listOf(
+private fun Tour.csvFields(station: Station?, vehicleNames: Map<Long, String>, defaultVehicleName: String): List<String> = listOf(
     id.toString(),
     startDate.toString(),
     endDate.toString(),
@@ -81,11 +96,11 @@ private fun Tour.csvFields(vehicleNames: Map<Long, String>, defaultVehicleName: 
     overnightStays.toString(),
     distanceKm.toString(),
     amountToDecimal(costs.filter { it.currency == EUR }.sumMinor(), EUR),
-    yesNo(pitchAssigned),
-    electricityFlatRate.csvValue,
-    lteQuality.csvValue,
-    pitchSlope.csvValue,
-    yesNo(levelingBlocksUsed),
+    yesNoOrEmpty(station?.pitchAssigned),
+    station?.electricityFlatRate?.csvValue.orEmpty(),
+    station?.lteQuality?.csvValue.orEmpty(),
+    station?.pitchSlope?.csvValue.orEmpty(),
+    yesNoOrEmpty(station?.levelingBlocksUsed),
     neutralizeFormula(notes),
     neutralizeFormula(mapLink.orEmpty()),
     createdAt.toString(),
@@ -94,4 +109,8 @@ private fun Tour.csvFields(vehicleNames: Map<Long, String>, defaultVehicleName: 
     neutralizeFormula(vehicleNames[vehicleId]?.takeIf(String::isNotBlank) ?: defaultVehicleName),
 )
 
-private fun yesNo(value: Boolean) = if (value) "ja" else "nein"
+private fun yesNoOrEmpty(value: Boolean?) = when (value) {
+    true -> "ja"
+    false -> "nein"
+    null -> ""
+}

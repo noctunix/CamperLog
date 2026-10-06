@@ -8,6 +8,7 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.isWebUrl
 import kotlinx.coroutines.Dispatchers
@@ -35,14 +36,19 @@ private val exportStamp = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss")
  * Die Datei beginnt mit einem UTF-8-BOM, damit Tabellenprogramme Umlaute korrekt erkennen.
  * Jeder Export bekommt einen eigenen Dateinamen; ältere Exporte werden dabei aufgeräumt.
  */
-suspend fun writeCsvExport(context: Context, tours: List<Tour>, vehicleNames: Map<Long, String>, defaultVehicleName: String): Uri =
-    withContext(Dispatchers.IO) {
-        val dir = File(context.cacheDir, EXPORT_DIR).apply { mkdirs() }
-        deleteOldExports(dir, System.currentTimeMillis())
-        val file = uniqueFile(dir, "camperlog-touren-${LocalDateTime.now().format(exportStamp)}")
-        file.writeText(UTF8_BOM + toursToCsv(tours, vehicleNames, defaultVehicleName), Charsets.UTF_8)
-        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    }
+suspend fun writeCsvExport(
+    context: Context,
+    tours: List<Tour>,
+    stations: List<Station>,
+    vehicleNames: Map<Long, String>,
+    defaultVehicleName: String,
+): Uri = withContext(Dispatchers.IO) {
+    val dir = File(context.cacheDir, EXPORT_DIR).apply { mkdirs() }
+    deleteOldExports(dir, System.currentTimeMillis())
+    val file = uniqueFile(dir, "camperlog-touren-${LocalDateTime.now().format(exportStamp)}")
+    file.writeText(UTF8_BOM + toursToCsv(tours, stations, vehicleNames, defaultVehicleName), Charsets.UTF_8)
+    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
 
 /**
  * Schreibt die Sicherung [json] in den Cache-Ordner `exports/` und liefert eine teilbare Content-URI.

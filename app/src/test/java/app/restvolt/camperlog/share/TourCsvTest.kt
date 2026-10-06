@@ -5,6 +5,8 @@ import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import org.junit.Assert.assertEquals
@@ -52,18 +54,22 @@ class TourCsvTest {
             overnightStays = 2,
             distanceKm = 412,
             costs = listOf(Money(8_950, EUR), Money(145_000, NOK)),
-            pitchAssigned = true,
-            electricityFlatRate = ElectricityFlatRate.NOT_USED,
-            lteQuality = LteQuality.GOOD,
-            pitchSlope = PitchSlope.LEVEL,
-            levelingBlocksUsed = false,
             notes = "Sagte: \"toll\"",
             mapLink = null,
             createdAt = Instant.parse("2026-07-13T08:00:00Z"),
             updatedAt = Instant.parse("2026-07-14T09:30:00Z"),
         )
 
-        val lines = toursToCsv(listOf(tour), mapOf(1L to "Bulli"), DEFAULT_NAME).split("\r\n")
+        val station = overnightStation(
+            tourId = 3,
+            date = LocalDate.of(2026, 7, 10),
+            pitchAssigned = true,
+            electricity = ElectricityFlatRate.NOT_USED,
+            lte = LteQuality.GOOD,
+            slope = PitchSlope.LEVEL,
+            blocksUsed = false,
+        )
+        val lines = toursToCsv(listOf(tour), listOf(station), mapOf(1L to "Bulli"), DEFAULT_NAME).split("\r\n")
 
         assertEquals(3, lines.size)
         assertEquals(CSV_HEADER.joinToString(","), lines[0])
@@ -107,18 +113,22 @@ class TourCsvTest {
             overnightStays = 0,
             distanceKm = 80,
             costs = emptyList(),
-            pitchAssigned = false,
-            electricityFlatRate = ElectricityFlatRate.NO,
-            lteQuality = LteQuality.OK,
-            pitchSlope = PitchSlope.SLOPED,
-            levelingBlocksUsed = true,
             notes = "@Kontakt, bitte",
             mapLink = null,
             createdAt = Instant.parse("2026-07-10T08:00:00Z"),
             updatedAt = Instant.parse("2026-07-10T08:00:00Z"),
         )
 
-        val row = toursToCsv(listOf(tour), emptyMap(), DEFAULT_NAME).split("\r\n")[1]
+        val station = overnightStation(
+            tourId = 1,
+            date = LocalDate.of(2026, 7, 10),
+            pitchAssigned = false,
+            electricity = ElectricityFlatRate.NO,
+            lte = LteQuality.OK,
+            slope = PitchSlope.SLOPED,
+            blocksUsed = true,
+        )
+        val row = toursToCsv(listOf(tour), listOf(station), emptyMap(), DEFAULT_NAME).split("\r\n")[1]
 
         assertEquals(
             "1,2026-07-10,2026-07-10,'=cmd|' /C calc'!A0,${TourType.DAY_TRIP.csvValue},1,0,80,0.00,nein," +
@@ -126,6 +136,16 @@ class TourCsvTest {
                 "\"'@Kontakt, bitte\",,2026-07-10T08:00:00Z,2026-07-10T08:00:00Z,,$DEFAULT_NAME",
             row,
         )
+    }
+
+    @Test
+    fun pitchColumnsAreEmptyWithoutAnOvernightStation() {
+        val tour = tour(5, vehicleId = 0)
+
+        val row = toursToCsv(listOf(tour), emptyList(), emptyMap(), DEFAULT_NAME).split("\r\n")[1].split(",")
+
+        val pitchColumns = listOf("stellplatz_zugewiesen", "strompauschale", "lte", "stellplatz_neigung", "keile_genutzt")
+        pitchColumns.forEach { column -> assertEquals("", row[CSV_HEADER.indexOf(column)]) }
     }
 
     @Test
@@ -140,18 +160,13 @@ class TourCsvTest {
             overnightStays = 3,
             distanceKm = 900,
             costs = listOf(Money(300_000, NOK), Money(350_000, ISK)),
-            pitchAssigned = false,
-            electricityFlatRate = ElectricityFlatRate.NO,
-            lteQuality = LteQuality.OK,
-            pitchSlope = PitchSlope.LEVEL,
-            levelingBlocksUsed = false,
             notes = "",
             mapLink = null,
             createdAt = Instant.EPOCH,
             updatedAt = Instant.EPOCH,
         )
 
-        val values = toursToCsv(listOf(tour), emptyMap(), DEFAULT_NAME).split("\r\n")[1].split(",")
+        val values = toursToCsv(listOf(tour), emptyList(), emptyMap(), DEFAULT_NAME).split("\r\n")[1].split(",")
 
         assertEquals("0.00", values[CSV_HEADER.indexOf("kosten_eur")])
         assertEquals("\"3000.00 NOK; 350000 ISK\"", values[CSV_HEADER.indexOf("kosten")])
@@ -159,7 +174,7 @@ class TourCsvTest {
 
     @Test
     fun emptyExportContainsOnlyHeader() {
-        assertEquals(CSV_HEADER.joinToString(",") + "\r\n", toursToCsv(emptyList(), emptyMap(), DEFAULT_NAME))
+        assertEquals(CSV_HEADER.joinToString(",") + "\r\n", toursToCsv(emptyList(), emptyList(), emptyMap(), DEFAULT_NAME))
     }
 
     @Test
@@ -173,7 +188,7 @@ class TourCsvTest {
         val blankName = tour(2, vehicleId = 20)
         val unmapped = tour(3, vehicleId = 99)
 
-        val rows = toursToCsv(listOf(named, blankName, unmapped), mapOf(10L to "Bulli", 20L to ""), DEFAULT_NAME).split("\r\n")
+        val rows = toursToCsv(listOf(named, blankName, unmapped), emptyList(), mapOf(10L to "Bulli", 20L to ""), DEFAULT_NAME).split("\r\n")
 
         assertEquals("Bulli", rows[1].split(",").last())
         assertEquals(DEFAULT_NAME, rows[2].split(",").last())
@@ -182,7 +197,7 @@ class TourCsvTest {
 
     @Test
     fun vehicleColumnIsProtectedAgainstFormulaInjection() {
-        val row = toursToCsv(listOf(tour(1, vehicleId = 1)), mapOf(1L to "=cmd|' /C calc'!A0"), DEFAULT_NAME).split("\r\n")[1]
+        val row = toursToCsv(listOf(tour(1, vehicleId = 1)), emptyList(), mapOf(1L to "=cmd|' /C calc'!A0"), DEFAULT_NAME).split("\r\n")[1]
 
         assertEquals("'=cmd|' /C calc'!A0", row.substringAfterLast(","))
     }
@@ -198,13 +213,30 @@ class TourCsvTest {
         overnightStays = 0,
         distanceKm = 1,
         costs = emptyList(),
-        pitchAssigned = false,
-        electricityFlatRate = ElectricityFlatRate.NO,
-        lteQuality = LteQuality.OK,
-        pitchSlope = PitchSlope.LEVEL,
-        levelingBlocksUsed = false,
         notes = "",
         mapLink = null,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
+
+    private fun overnightStation(
+        tourId: Long,
+        date: LocalDate,
+        pitchAssigned: Boolean,
+        electricity: ElectricityFlatRate,
+        lte: LteQuality,
+        slope: PitchSlope,
+        blocksUsed: Boolean,
+    ) = Station(
+        vehicleId = 0,
+        tourId = tourId,
+        type = StationType.OVERNIGHT,
+        date = date,
+        pitchAssigned = pitchAssigned,
+        electricityFlatRate = electricity,
+        lteQuality = lte,
+        pitchSlope = slope,
+        levelingBlocksUsed = blocksUsed,
         createdAt = Instant.EPOCH,
         updatedAt = Instant.EPOCH,
     )
