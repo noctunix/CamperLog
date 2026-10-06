@@ -60,6 +60,7 @@ data class VehicleEntity(
     @ColumnInfo(name = "solar_power_wp") val solarPowerWp: Int? = null,
     @ColumnInfo(name = "next_inspection_date") val nextInspectionDate: String? = null,
     @ColumnInfo(name = "next_gas_check_date") val nextGasCheckDate: String? = null,
+    @ColumnInfo(name = "next_leak_test_date") val nextLeakTestDate: String? = null,
     @ColumnInfo(name = "last_oil_change_date") val lastOilChangeDate: String? = null,
     @ColumnInfo(name = "last_oil_change_odometer_km") val lastOilChangeOdometerKm: Int? = null,
     @ColumnInfo(name = "created_at") val createdAtMillis: Long,

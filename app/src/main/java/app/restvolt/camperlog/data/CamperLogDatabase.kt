@@ -29,7 +29,7 @@ import java.util.UUID
         LogEntryEntity::class,
         StationEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -56,7 +56,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
             Room.databaseBuilder(context.applicationContext, CamperLogDatabase::class.java, "camperlog.db")
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
-                    MIGRATION_7_8,
+                    MIGRATION_7_8, MIGRATION_8_9,
                 )
                 .build()
     }
@@ -436,5 +436,16 @@ internal val MIGRATION_7_8 = object : Migration(7, 8) {
         db.query("PRAGMA foreign_key_check").use { cursor ->
             check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 7→8" }
         }
+    }
+}
+
+/**
+ * Version 9: Fahrzeuge bekommen die nächste Dichtheitsprüfung (`next_leak_test_date`), analog zur
+ * nächsten Gasprüfung. Eine nullable Textspalte braucht keinen Fremdschlüssel, daher reicht
+ * `ALTER TABLE ADD COLUMN` wie schon bei [MIGRATION_5_6].
+ */
+internal val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `next_leak_test_date` TEXT")
     }
 }
