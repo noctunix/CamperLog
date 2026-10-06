@@ -41,6 +41,8 @@ import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
@@ -66,11 +68,23 @@ class TourFlowTest {
 
     private fun start(vararg tours: Tour): FakeTourRepository = start(FakeVehicleRepository(), *tours)
 
-    private fun start(vehicles: FakeVehicleRepository, vararg tours: Tour): FakeTourRepository {
+    private fun start(vehicles: FakeVehicleRepository, vararg tours: Tour): FakeTourRepository =
+        start(vehicles, emptyList(), *tours)
+
+    private fun start(vehicles: FakeVehicleRepository, stations: List<Station>, vararg tours: Tour): FakeTourRepository {
         val repository = FakeTourRepository(tours.toList())
         compose.setContent {
             CamperLogTheme {
-                CamperLogNavHost(repository, vehicles, FakeLogRepository(), FakeStationRepository(), FakeExchangeRateRepository(), FakeBackupImporter(), ThemeMode.SYSTEM, canShowStartDialogs = false) { }
+                CamperLogNavHost(
+                    repository,
+                    vehicles,
+                    FakeLogRepository(),
+                    FakeStationRepository(stations),
+                    FakeExchangeRateRepository(),
+                    FakeBackupImporter(),
+                    ThemeMode.SYSTEM,
+                    canShowStartDialogs = false,
+                ) { }
             }
         }
         return repository
@@ -468,6 +482,31 @@ class TourFlowTest {
         compose.onNodeWithText("Ostsee").assertExists()
         compose.onNodeWithText("Gardasee").assertDoesNotExist()
     }
+
+    @Test
+    fun tourCard_showsStopCountWhenAboveZeroButNotForTourWithoutStops() {
+        val lofoten = tour(id = 1, destination = "Lofoten")
+        val ostsee = tour(id = 2, destination = "Ostsee")
+        val stations = listOf(
+            station(id = 1, tourId = lofoten.id),
+            station(id = 2, tourId = lofoten.id),
+            station(id = 3, tourId = null),
+        )
+        start(FakeVehicleRepository(), stations, lofoten, ostsee)
+
+        compose.onNodeWithText("Jahr 2025 · Wochenende · 2 Stationen").assertExists()
+        compose.onNodeWithText("Jahr 2025 · Wochenende").assertExists()
+    }
+
+    private fun station(id: Long, tourId: Long?) = Station(
+        id = id,
+        vehicleId = 1,
+        tourId = tourId,
+        type = StationType.SIGHT,
+        date = LocalDate.of(2025, 6, 2),
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
 
     private fun tour(id: Long, destination: String) = Tour(
         id = id,

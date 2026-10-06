@@ -117,6 +117,25 @@ class VehiclesFlowTest {
     }
 
     @Test
+    fun deleteVehicle_refusedBecauseOfStations_explainsReasonAndKeepsIt() {
+        val vehicles = FakeVehicleRepository(
+            listOf(defaultVehicle(id = 1, name = "Wohnmobil A"), defaultVehicle(id = 2, name = "Wohnmobil B")),
+            currentVehicleId = 1,
+            stationCount = { id -> if (id == 2L) 1 else 0 },
+        )
+        start(vehicles)
+        openManageVehicles()
+
+        compose.onNodeWithContentDescription("Weitere Aktionen für Wohnmobil B").performClick()
+        compose.onNodeWithText("Löschen").performClick()
+        compose.onNode(hasText("Löschen") and hasAnyAncestor(isDialog())).performClick()
+
+        compose.onNodeWithText("Fahrzeug kann nicht gelöscht werden").assertExists()
+        compose.onNodeWithText("Wohnmobil B").assertExists()
+        assertEquals(2, vehicles.vehicles.size)
+    }
+
+    @Test
     fun deleteVehicle_refusedAsLastVehicle_explainsReason() {
         val vehicles = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "Einziges Fahrzeug")))
         start(vehicles)
