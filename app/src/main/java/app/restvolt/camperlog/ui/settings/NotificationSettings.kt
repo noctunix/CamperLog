@@ -32,7 +32,7 @@ class NotificationSettings(context: Context, private val scheduler: ReminderWork
 
     init {
         // Beim App-Start erneut einplanen: enqueueUniquePeriodicWork mit KEEP ist dafür billig und
-        // sicher, falls der Job z. B. nach einem Geräte-Neustart noch fehlt (ROADMAP.md 1.9.0).
+        // sicher, falls der Job z. B. nach einem Geräte-Neustart noch fehlt.
         if (state.value) scheduler.enqueue()
     }
 
