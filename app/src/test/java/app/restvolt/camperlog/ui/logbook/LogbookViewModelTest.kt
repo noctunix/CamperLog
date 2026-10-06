@@ -50,7 +50,10 @@ class LogbookViewModelTest {
         val tiles = viewModel.uiState.value.tiles
 
         assertEquals(
-            listOf(LogType.CASSETTE_EMPTIED, LogType.GREY_WATER_EMPTIED, LogType.DIESEL_HEATER_RUN, LogType.GAS_HEATER_RUN),
+            listOf(
+                LogType.CASSETTE_EMPTIED, LogType.GREY_WATER_EMPTIED, LogType.DIESEL_HEATER_RUN,
+                LogType.GAS_HEATER_RUN, LogType.GAS_BOTTLE_SWAPPED,
+            ),
             tiles.map { it.type },
         )
         assertEquals(today.minusDays(3), tiles.first { it.type == LogType.CASSETTE_EMPTIED }.lastDate)

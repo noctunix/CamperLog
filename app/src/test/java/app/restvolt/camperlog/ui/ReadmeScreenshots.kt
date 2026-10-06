@@ -180,6 +180,7 @@ class ReadmeScreenshots {
                 LogType.GREY_WATER_EMPTIED to 1L,
                 LogType.DIESEL_HEATER_RUN to 12L,
                 LogType.GAS_HEATER_RUN to 40L,
+                LogType.GAS_BOTTLE_SWAPPED to 25L,
             ).mapIndexed { index, (type, daysAgo) ->
                 LogEntry(
                     id = index + 1L,
