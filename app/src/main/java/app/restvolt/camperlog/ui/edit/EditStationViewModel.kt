@@ -32,6 +32,7 @@ import app.restvolt.camperlog.domain.WeatherProvider
 import app.restvolt.camperlog.domain.WeatherResult
 import app.restvolt.camperlog.domain.defaultStationDate
 import app.restvolt.camperlog.domain.parseLocationText
+import app.restvolt.camperlog.domain.supportedLocale
 import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toStation
 import app.restvolt.camperlog.domain.validate
@@ -44,6 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 import java.time.LocalTime
+import java.util.Locale
 
 /** Zustand des Stationsformulars. Fehler werden erst nach dem ersten Speicherversuch angezeigt. */
 data class StationEditUiState(
@@ -76,6 +78,9 @@ internal data class StationDraft(val input: StationInput, val showErrors: Boolea
  * über die Vorbelegung (aus der Tourdetailseite bzw. aus einem `geo:`-Link).
  * Geänderte Eingaben liegen zusätzlich in [savedStateHandle] und werden nach einem Neustart des
  * Prozesses statt der gespeicherten Station angezeigt.
+ *
+ * @param locale liefert die aktuelle Sprache für die Beträge und Dezimalzahlen der Stromabrechnung;
+ *   wird bei jedem Zugriff neu gelesen, damit ein Sprachwechsel bei laufendem ViewModel greift
  */
 class EditStationViewModel(
     private val repository: StationRepository,
@@ -93,6 +98,7 @@ class EditStationViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val today: () -> LocalDate = LocalDate::now,
     private val timeNow: () -> LocalTime = LocalTime::now,
+    private val locale: () -> Locale = { supportedLocale(Locale.getDefault()) },
 ) : ViewModel() {
 
     /** Standortbestimmung für den Platzabschnitt, nur sichtbar, wenn die Oberfläche den Standort-Schalter an sieht. */
@@ -165,7 +171,7 @@ class EditStationViewModel(
                 original = station
                 _uiState.update {
                     // Ein wiederhergestellter Entwurf hat Vorrang vor dem gespeicherten Stand.
-                    val input = if (it.isDirty) it.input else station?.toInput() ?: it.input
+                    val input = if (it.isDirty) it.input else station?.toInput(locale()) ?: it.input
                     it.copy(isLoading = false, notFound = station == null, input = input)
                 }
             }
@@ -263,14 +269,14 @@ class EditStationViewModel(
     fun save() {
         val state = _uiState.value
         if (state.isSaving || state.isLoading || state.notFound) return
-        val errors = state.input.validate(today())
+        val errors = state.input.validate(today(), locale())
         if (errors.isNotEmpty()) {
             showErrors = true
             saveDraft()
             _uiState.update { it.copy(errors = errors, rejectedSaves = it.rejectedSaves + 1) }
             return
         }
-        val station = state.input.toStation(original)
+        val station = state.input.toStation(original, locale())
         val loggedServices = station.services.filterTo(mutableSetOf()) { it in SYNCED_SERVICE_LOG_TYPES }
         _uiState.update { it.copy(isSaving = true, errors = emptyMap(), saveFailed = false) }
         viewModelScope.launch {
@@ -292,7 +298,7 @@ class EditStationViewModel(
 
     private fun StationEditUiState.withErrors(): StationEditUiState {
         if (!showErrors) return copy(errors = emptyMap())
-        return copy(errors = input.validate())
+        return copy(errors = input.validate(locale = locale()))
     }
 
     private fun saveDraft() {
