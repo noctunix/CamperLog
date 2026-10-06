@@ -118,7 +118,7 @@ fun WeatherSummary(snapshot: WeatherSnapshot, modifier: Modifier = Modifier) {
             )
         }
         Text(weatherWindText(snapshot), style = MaterialTheme.typography.bodyMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(formatObservedTime(snapshot.observedAt), style = MaterialTheme.typography.bodySmall)
             Text("·", style = MaterialTheme.typography.bodySmall)
             TextButton(
