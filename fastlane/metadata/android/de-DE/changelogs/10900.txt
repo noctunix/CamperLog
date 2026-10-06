@@ -1,0 +1,3 @@
+• Optionale Benachrichtigungen (standardmäßig aus): ein täglicher Check auf dem Gerät erinnert an HU, Gasprüfung, Dichtheitsprüfung und Ölwechsel – jeden fälligen Termin einzeln
+• Sicherungs-Erinnerung und ein Sicherungsordner deiner Wahl (z. B. Syncthing- oder Nextcloud-Ordner): sichern per Tipp oder automatisch bei der Erinnerung
+• Weniger Berechtigungen: ungenutzte, von einer Bibliothek mitgebrachte sind entfernt

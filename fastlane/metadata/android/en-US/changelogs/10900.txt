@@ -1,0 +1,3 @@
+• Optional notifications (off by default): a daily on-device check reminds you of inspection, gas check, leak test and oil change – each due item separately
+• Backup reminder and a backup folder of your choice (e.g. a Syncthing or Nextcloud folder): back up with one tap or automatically when reminded
+• Fewer permissions: unused ones that a library added are removed
