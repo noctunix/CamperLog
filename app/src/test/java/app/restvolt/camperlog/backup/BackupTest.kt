@@ -24,6 +24,7 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
@@ -560,14 +561,16 @@ class BackupTest {
     )
 
     /** Wie [encodedWith], ersetzt aber nur innerhalb des Felds `stations`, damit z. B. `vehicleUuid` nicht mit dem einer Tour kollidiert. */
-    private fun stationEncodedWith(old: String, new: String): String {
-        val text = encodeBackup(stationBackup)
+    private fun stationEncodedWith(old: String, new: String): String = stationsEncodedWith(stationBackup, listOf(old to new))
+
+    /** Wie [stationEncodedWith], wendet aber mehrere Ersetzungen nacheinander innerhalb des Felds `stations` an. */
+    private fun stationsEncodedWith(backup: Backup, replacements: List<Pair<String, String>>): String {
+        val text = encodeBackup(backup)
         val stationsIndex = text.indexOf("\"stations\"")
         check(stationsIndex >= 0) { "kein stations-Feld in der Sicherung" }
         val head = text.substring(0, stationsIndex)
         val tail = text.substring(stationsIndex)
-        check(old in tail) { "$old nicht im Stationsteil der Sicherung" }
-        return head + tail.replaceFirst(old, new)
+        return head + applyAll(tail, replacements)
     }
 
     @Test
@@ -577,6 +580,115 @@ class BackupTest {
         assertEquals(listOf(station()), decoded.stations)
         assertEquals(mapOf(stationUuid to vehicleUuid), decoded.stationVehicleUuid)
         assertEquals(mapOf(stationUuid to tour().uuid), decoded.stationTourUuid)
+    }
+
+    @Test
+    fun decode_mapsTheLegacyStationElectricityFlagToBilling() {
+        val legacyFields = listOf("\"electricityBilling\": \"BASE_PLUS_METERED\"" to "\"electricityBilling\": null")
+
+        val yes = stationsEncodedWith(stationBackup, legacyFields + ("\"electricityFlatRate\": null" to "\"electricityFlatRate\": \"YES\""))
+        assertEquals(ElectricityBilling.FLAT_PER_STAY, success(yes).stations.single().electricityBilling)
+
+        val no = stationsEncodedWith(stationBackup, legacyFields + ("\"electricityFlatRate\": null" to "\"electricityFlatRate\": \"NO\""))
+        assertEquals(ElectricityBilling.METERED, success(no).stations.single().electricityBilling)
+
+        val notUsed = stationsEncodedWith(stationBackup, legacyFields + ("\"electricityFlatRate\": null" to "\"electricityFlatRate\": \"NOT_USED\""))
+        assertEquals(ElectricityBilling.NONE, success(notUsed).stations.single().electricityBilling)
+    }
+
+    @Test
+    fun decode_rejectsElectricityPricePerKwhAboveTheBound() {
+        val result = failure(stationEncodedWith("\"electricityPricePerKwh\": \"0.35\"", "\"electricityPricePerKwh\": \"100.01\""))
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = 1), result)
+    }
+
+    @Test
+    fun decode_rejectsElectricityMeterValueAboveTheBound() {
+        val result = failure(stationEncodedWith("\"electricityMeterEnd\": \"135.75\"", "\"electricityMeterEnd\": \"100001\""))
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = 1), result)
+    }
+
+    @Test
+    fun decode_rejectsTooManyStationCostLines() {
+        val tooMany = stationBackup.copy(
+            stations = listOf(station().copy(costs = (1..MAX_COSTS_PER_STATION + 1).map { StationCost(CostCategory.OTHER, Money(it.toLong(), eur), "") })),
+        )
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = 1), failure(encodeBackup(tooMany)))
+    }
+
+    @Test
+    fun decode_rejectsDuplicateStationCostCategoryAndCurrency() {
+        val duplicate = stationBackup.copy(
+            stations = listOf(
+                station().copy(
+                    costs = listOf(StationCost(CostCategory.SUPPLY, Money(100, eur)), StationCost(CostCategory.SUPPLY, Money(200, eur))),
+                ),
+            ),
+        )
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = 1), failure(encodeBackup(duplicate)))
+    }
+
+    private fun tollStation(uuid: String = stationUuid) = Station(
+        uuid = uuid,
+        vehicleId = 0,
+        tourId = null,
+        type = StationType.TOLL,
+        date = LocalDate.of(2026, 7, 4),
+        name = "A1 Mautstelle",
+        tollKind = TollKind.MOTORWAY,
+        tollPaymentMethod = "App",
+        tollCountry = "AT",
+        tollValidFrom = LocalDate.of(2026, 1, 1),
+        tollValidUntil = LocalDate.of(2026, 12, 31),
+        createdAt = Instant.parse("2026-07-04T18:00:00Z"),
+        updatedAt = Instant.parse("2026-07-05T08:00:00Z"),
+    )
+
+    private val tollBackup = vehicleBackup.copy(
+        stations = listOf(tollStation()),
+        stationVehicleUuid = mapOf(stationUuid to vehicleUuid),
+        stationTourUuid = emptyMap(),
+    )
+
+    @Test
+    fun roundTrip_keepsTollStationFields() {
+        assertEquals(listOf(tollStation()), success(encodeBackup(tollBackup)).stations)
+    }
+
+    @Test
+    fun decode_rejectsTollStationWithUnknownCountryCode() {
+        val text = encodeBackup(tollBackup).let {
+            check("\"tollCountry\": \"AT\"" in it)
+            it.replaceFirst("\"tollCountry\": \"AT\"", "\"tollCountry\": \"XX\"")
+        }
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = 1), failure(text))
+    }
+
+    @Test
+    fun decode_rejectsTollStationWithValidUntilBeforeValidFrom() {
+        val text = encodeBackup(tollBackup).let {
+            check("\"tollValidUntil\": \"2026-12-31\"" in it)
+            it.replaceFirst("\"tollValidUntil\": \"2026-12-31\"", "\"tollValidUntil\": \"2025-12-31\"")
+        }
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = 1), failure(text))
+    }
+
+    @Test
+    fun decode_rejectsTollFieldsOnAnOvernightStation() {
+        val mixed = tollStation().copy(type = StationType.OVERNIGHT)
+        val mixedBackup = vehicleBackup.copy(
+            stations = listOf(mixed),
+            stationVehicleUuid = mapOf(stationUuid to vehicleUuid),
+            stationTourUuid = emptyMap(),
+        )
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = 1), failure(encodeBackup(mixedBackup)))
     }
 
     private val stationLinkedLogEntryBackup = stationBackup.copy(logEntryStationUuid = mapOf(logEntryUuid to stationUuid))
