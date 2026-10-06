@@ -1,11 +1,16 @@
 package app.restvolt.camperlog.ui
 
 import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.FakeLocationProvider
+import app.restvolt.camperlog.domain.LocationFix
+import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeMode
@@ -17,7 +22,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
-/** Fahrzeug-Datenblatt: Karte „Panne & Unfall", Restzuladung und Wähl-Intent. */
+/** Fahrzeug-Datenblatt: Karte „Panne & Unfall", Restzuladung, Wähl-Intent und "Wo bin ich?" (13.5 Nr. 1). */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
 class VehicleBreakdownFlowTest {
@@ -25,7 +30,17 @@ class VehicleBreakdownFlowTest {
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
-    private fun start(vehicle: Vehicle) {
+    private fun clearLocationPreference() {
+        ApplicationProvider.getApplicationContext<Context>()
+            .getSharedPreferences("location", Context.MODE_PRIVATE).edit().clear().commit()
+    }
+
+    private fun setLocationEnabled(enabled: Boolean) {
+        ApplicationProvider.getApplicationContext<Context>()
+            .getSharedPreferences("location", Context.MODE_PRIVATE).edit().putBoolean("enabled", enabled).commit()
+    }
+
+    private fun start(vehicle: Vehicle, locationProvider: LocationProvider = FakeLocationProvider()) {
         val vehicles = FakeVehicleRepository(listOf(vehicle))
         val repository = FakeTourRepository(emptyList()) { vehicles.currentVehicleId }
         compose.setContent {
@@ -39,6 +54,7 @@ class VehicleBreakdownFlowTest {
                     FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
+                    locationProvider = locationProvider,
                 ) { }
             }
         }
@@ -100,5 +116,40 @@ class VehicleBreakdownFlowTest {
 
         val clipboard = compose.activity.getSystemService(ClipboardManager::class.java)
         assertEquals("+49 89 22 22 22", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
+    }
+
+    @Test
+    fun whereAmI_hiddenWhenLocationIsOff() {
+        clearLocationPreference()
+        try {
+            start(vehicleWithBreakdownInfo())
+
+            compose.onNodeWithText("Wo bin ich?").assertDoesNotExist()
+        } finally {
+            clearLocationPreference()
+        }
+    }
+
+    @Test
+    fun whereAmI_showsTheFixLargeAndCopiesItToTheClipboard() {
+        clearLocationPreference()
+        try {
+            setLocationEnabled(true)
+            val fix = LocationFix(68.0912, 13.1023, accuracyM = 8)
+            start(vehicleWithBreakdownInfo(), locationProvider = FakeLocationProvider(freshFix = fix))
+            shadowOf(compose.activity.application).grantPermissions(
+                "android.permission.ACCESS_FINE_LOCATION",
+                "android.permission.ACCESS_COARSE_LOCATION",
+            )
+
+            compose.onNodeWithText("Wo bin ich?").performClick()
+            compose.onNodeWithText("68,0912° N · 13,1023° E · GPS ±8 m").assertExists()
+            compose.onNodeWithText("Koordinaten kopieren").performClick()
+
+            val clipboard = compose.activity.getSystemService(ClipboardManager::class.java)
+            assertEquals(true, clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.contains("geo:68.0912,13.1023"))
+        } finally {
+            clearLocationPreference()
+        }
     }
 }

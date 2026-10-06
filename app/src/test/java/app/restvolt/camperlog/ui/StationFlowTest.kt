@@ -2,6 +2,7 @@ package app.restvolt.camperlog.ui
 
 import android.content.Intent
 import androidx.activity.ComponentActivity
+import androidx.test.core.app.ApplicationProvider
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasAnyAncestor
@@ -19,7 +20,11 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import app.restvolt.camperlog.domain.EUR
+import app.restvolt.camperlog.domain.CoordinateSource
+import app.restvolt.camperlog.domain.FakeLocationProvider
 import app.restvolt.camperlog.domain.GeoIntentLocation
+import app.restvolt.camperlog.domain.LocationFix
+import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Money
@@ -53,6 +58,7 @@ class StationFlowTest {
         stations: List<Station> = emptyList(),
         pendingGeoIntent: GeoIntentLocation? = null,
         logs: FakeLogRepository = FakeLogRepository(),
+        locationProvider: LocationProvider = FakeLocationProvider(),
     ): Triple<FakeTourRepository, FakeStationRepository, FakeLogRepository> {
         val tourRepository = FakeTourRepository(tours)
         val stationRepository = FakeStationRepository(stations, logs)
@@ -68,10 +74,18 @@ class StationFlowTest {
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     pendingGeoIntent = pendingGeoIntent,
+                    locationProvider = locationProvider,
                 ) { }
             }
         }
         return Triple(tourRepository, stationRepository, logs)
+    }
+
+    /** Schreibt den Standort-Schalter direkt in die Geräteeinstellungen (6.11), wie `ReminderSettingsTest`. */
+    private fun setLocationEnabled(enabled: Boolean) {
+        ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("location", android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean("enabled", enabled).commit()
     }
 
     private fun lofoten(id: Long = 1) = Tour(
@@ -290,5 +304,42 @@ class StationFlowTest {
         start(pendingGeoIntent = null)
 
         compose.onNodeWithText("Was für eine Station?").assertDoesNotExist()
+    }
+
+    @Test
+    fun locationOff_showsNothingLocationRelatedInThePlaceSection() {
+        setLocationEnabled(false)
+        start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+
+        compose.onNodeWithText("Aktuellen Standort verwenden").assertDoesNotExist()
+        compose.onNodeWithText("Koordinaten eingeben").assertExists()
+    }
+
+    @Test
+    fun locationOn_useCurrentLocation_fillsCoordinatesWithGpsSource() {
+        setLocationEnabled(true)
+        val fix = LocationFix(68.0912, 13.1023, accuracyM = 8)
+        val (_, stationRepository) = start(listOf(lofoten()), locationProvider = FakeLocationProvider(freshFix = fix))
+        shadowOf(compose.activity.application).grantPermissions(
+            "android.permission.ACCESS_FINE_LOCATION",
+            "android.permission.ACCESS_COARSE_LOCATION",
+        )
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Aktuellen Standort verwenden").performScrollTo().performClick()
+        compose.onNodeWithText("68,0912° N · 13,1023° E · GPS ±8 m").assertExists()
+        clickSave()
+
+        val saved = stationRepository.stations.single()
+        assertEquals(68.0912, saved.latitude)
+        assertEquals(13.1023, saved.longitude)
+        assertEquals(CoordinateSource.GPS, saved.coordinateSource)
+        assertEquals(8, saved.accuracyM)
     }
 }

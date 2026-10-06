@@ -1,6 +1,8 @@
 package app.restvolt.camperlog.ui
 
 import android.content.Context
+import androidx.compose.ui.test.isOn
+import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -9,6 +11,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
+import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
@@ -36,6 +39,7 @@ class IntroductionTourFlowTest {
         context.getSharedPreferences("introduction", Context.MODE_PRIVATE).edit().clear().commit()
         context.getSharedPreferences("keep_android_open", Context.MODE_PRIVATE).edit().clear().commit()
         context.getSharedPreferences("reminders", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("location", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     private fun start(
@@ -133,6 +137,49 @@ class IntroductionTourFlowTest {
             compose.onNodeWithText("60 Tage vorher").performClick()
 
             assertEquals(60, ReminderSettings(context).reminderLeadDays)
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
+    fun optInPage_locationSwitchDefaultsOffAndTogglingPersists() {
+        clearPreferences()
+        try {
+            start()
+
+            repeat(5) {
+                compose.onNodeWithText("Weiter").performClick()
+                compose.waitForIdle()
+            }
+
+            compose.onNodeWithText("Optional: Standort").assertExists()
+            compose.onNodeWithText("Aktuellen Standort nutzen").performClick()
+
+            assertTrue(LocationSettings(context).values.value)
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
+    fun replayFromAboutShowsTheCurrentLocationSwitchStateOnTheOptInPage() {
+        clearPreferences()
+        try {
+            IntroductionSettings(context).seen = true
+            LocationSettings(context).enabled = true
+
+            start()
+            compose.onNodeWithContentDescription("Einstellungen").performClick()
+            compose.onNodeWithText("Über CamperLog").performClick()
+            compose.onNodeWithText("Einführung erneut anzeigen").performClick()
+            repeat(5) {
+                compose.onNodeWithText("Weiter").performClick()
+                compose.waitForIdle()
+            }
+
+            compose.onNode(isToggleable() and isOn()).assertExists()
+            assertTrue(LocationSettings(context).values.value)
         } finally {
             clearPreferences()
         }
