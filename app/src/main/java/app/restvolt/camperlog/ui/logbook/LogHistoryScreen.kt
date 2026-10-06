@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.LogEntry
+import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.EmptyHint
@@ -68,7 +69,8 @@ fun LogHistoryScreen(
                 ),
             ) {
                 items(state.entries, key = LogEntry::id) { entry ->
-                    HistoryRow(entry = entry, today = today, onDelete = { viewModel.delete(entry) })
+                    val station = entry.stationId?.let { id -> state.stations.firstOrNull { it.id == id } }
+                    HistoryRow(entry = entry, station = station, today = today, onDelete = { viewModel.delete(entry) })
                 }
             }
         }
@@ -95,7 +97,7 @@ fun LogHistoryScreen(
 }
 
 @Composable
-private fun HistoryRow(entry: LogEntry, today: LocalDate, onDelete: () -> Unit) {
+private fun HistoryRow(entry: LogEntry, station: Station?, today: LocalDate, onDelete: () -> Unit) {
     val locale = currentLocale()
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -103,7 +105,12 @@ private fun HistoryRow(entry: LogEntry, today: LocalDate, onDelete: () -> Unit) 
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(logDateText(entry.date, today, locale), style = MaterialTheme.typography.bodyLarge)
+            val dateText = logDateText(entry.date, today, locale)
+            val text = station?.let { s ->
+                val name = s.name.ifBlank { stringResource(s.type.labelRes) }
+                stringResource(R.string.logbook_entry_station, dateText, name)
+            } ?: dateText
+            Text(text, style = MaterialTheme.typography.bodyLarge)
         }
         IconButton(onClick = onDelete) {
             Icon(

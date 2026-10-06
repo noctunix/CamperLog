@@ -8,16 +8,18 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.LogType
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Zustand des Verlaufs einer Bordbuch-Art: ihre Einträge, neueste zuerst. */
-data class LogHistoryUiState(val entries: List<LogEntry> = emptyList())
+/** Zustand des Verlaufs einer Bordbuch-Art: ihre Einträge, neueste zuerst, und die Stationen desselben Fahrzeugs (4). */
+data class LogHistoryUiState(val entries: List<LogEntry> = emptyList(), val stations: List<Station> = emptyList())
 
 /** Rückmeldungen, die der Verlauf als Snackbar anzeigt. */
 sealed interface LogHistoryMessage {
@@ -28,13 +30,15 @@ sealed interface LogHistoryMessage {
 /** Hält die Einträge eines Fahrzeugs und einer Art aktuell; löscht Einträge mit Rückgängig-Option. */
 class LogHistoryViewModel(
     private val logs: LogRepository,
+    stations: StationRepository,
     private val vehicleId: Long,
     val type: LogType,
 ) : ViewModel() {
 
     val uiState: StateFlow<LogHistoryUiState> =
-        logs.observeEntries(vehicleId, type).map { LogHistoryUiState(it) }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LogHistoryUiState())
+        combine(logs.observeEntries(vehicleId, type), stations.observeForVehicle(vehicleId)) { entries, stationList ->
+            LogHistoryUiState(entries, stationList)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LogHistoryUiState())
 
     private val _message = MutableStateFlow<LogHistoryMessage?>(null)
 

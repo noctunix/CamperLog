@@ -2,6 +2,7 @@ package app.restvolt.camperlog.ui.logbook
 
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.ui.FakeLogRepository
+import app.restvolt.camperlog.ui.FakeStationRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
@@ -40,7 +41,7 @@ class LogHistoryViewModelTest {
         val newest = logs.add(1, LogType.CASSETTE_EMPTIED, LocalDate.of(2026, 1, 10))
         logs.add(1, LogType.GREY_WATER_EMPTIED, LocalDate.of(2026, 1, 20))
         logs.add(2, LogType.CASSETTE_EMPTIED, LocalDate.of(2026, 1, 30))
-        val viewModel = LogHistoryViewModel(logs, vehicleId = 1, type = LogType.CASSETTE_EMPTIED)
+        val viewModel = LogHistoryViewModel(logs, FakeStationRepository(), vehicleId = 1, type = LogType.CASSETTE_EMPTIED)
         collect(viewModel.uiState)
 
         val dates = viewModel.uiState.value.entries.map { it.date }
@@ -53,7 +54,7 @@ class LogHistoryViewModelTest {
     fun delete_removesTheEntryAndUndoRestoresIt() = runTest(dispatcher) {
         val logs = FakeLogRepository()
         val entry = logs.add(1, LogType.DIESEL_HEATER_RUN, LocalDate.of(2026, 5, 1))
-        val viewModel = LogHistoryViewModel(logs, vehicleId = 1, type = LogType.DIESEL_HEATER_RUN)
+        val viewModel = LogHistoryViewModel(logs, FakeStationRepository(), vehicleId = 1, type = LogType.DIESEL_HEATER_RUN)
         collect(viewModel.uiState)
 
         viewModel.delete(entry)
