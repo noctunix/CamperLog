@@ -81,7 +81,7 @@ class PrivacyStringsTest {
         val fullDescriptionDe = File("../fastlane/metadata/android/de-DE/full_description.txt").readText()
 
         assertTrue(readme.contains("Notifications are optional"))
-        assertTrue(readme.contains("boot-completed permission"))
+        assertTrue(readme.contains("WorkManager"))
         assertTrue(fullDescriptionEn.contains("Notifications\" run a daily background check"))
         assertTrue(fullDescriptionDe.contains("Benachrichtigungen“, ein täglicher"))
     }

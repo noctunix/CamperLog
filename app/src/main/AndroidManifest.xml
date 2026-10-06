@@ -12,8 +12,9 @@
 
     <!-- Laufzeitberechtigung (Android 13+), nur abgefragt, wenn der Schalter "Benachrichtigungen"
          unter Einstellungen → Erinnerungen an ist (1.9.0). Kein SCHEDULE_EXACT_ALARM: der tägliche
-         Check läuft als periodischer WorkManager-Job. WorkManager führt RECEIVE_BOOT_COMPLETED
-         (normale Berechtigung, kein Dialog) zusammen, damit der Job einen Geräte-Neustart überlebt. -->
+         Check läuft als periodischer WorkManager-Job. WorkManager führt dafür selbst RECEIVE_BOOT_COMPLETED,
+         WAKE_LOCK, ACCESS_NETWORK_STATE und FOREGROUND_SERVICE zusammen (alle normal, ohne Dialog,
+         unabhängig davon, dass dieser Job keinen Netzwerk-Constraint hat und niemals in den Vordergrund geht). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
