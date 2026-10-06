@@ -31,6 +31,26 @@ class BackupSettingsTest {
             assertNull(settings.lastNotifiedBackupBaseline)
             assertNull(settings.folderUri)
             assertEquals(false, settings.values.value.autoBackupToFolder)
+            assertNull(settings.values.value.autoBackupIncludeFilesOverride)
+        } finally {
+            clear()
+        }
+    }
+
+    @Test
+    fun autoBackupIncludeFilesOverride_persistsTrueAndFalseAndClearsToNull() {
+        clear()
+        try {
+            val settings = BackupSettings(context)
+
+            settings.autoBackupIncludeFilesOverride = false
+            assertEquals(false, BackupSettings(context).autoBackupIncludeFilesOverride)
+
+            settings.autoBackupIncludeFilesOverride = true
+            assertEquals(true, BackupSettings(context).autoBackupIncludeFilesOverride)
+
+            settings.autoBackupIncludeFilesOverride = null
+            assertNull(BackupSettings(context).autoBackupIncludeFilesOverride)
         } finally {
             clear()
         }

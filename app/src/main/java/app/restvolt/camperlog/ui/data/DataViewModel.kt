@@ -206,18 +206,19 @@ class DataViewModel(
 
     /**
      * Schreibt eine neue, zeitgestempelte Sicherung in den gewählten Sicherungsordner [folderUri]; als
-     * ZIP, solange die Gesamtgröße unter [app.restvolt.camperlog.domain.AUTO_BACKUP_FILES_SIZE_LIMIT_BYTES]
-     * bleibt, sonst als reines JSON. Ist der Ordner nicht mehr zugreifbar, meldet [DataMessage.Text] mit
+     * ZIP, sofern [includeFilesOverride] das vorgibt, sonst nach der Standardregel - solange die
+     * Gesamtgröße unter [app.restvolt.camperlog.domain.AUTO_BACKUP_FILES_SIZE_LIMIT_BYTES] bleibt, sonst
+     * als reines JSON. Ist der Ordner nicht mehr zugreifbar, meldet [DataMessage.Text] mit
      * [R.string.data_backup_folder_failed], ohne [onBackupSaved] aufzurufen.
      */
-    fun backUpToFolder(folderUri: String) = launchTask(R.string.backup_failed) {
+    fun backUpToFolder(folderUri: String, includeFilesOverride: Boolean? = null) = launchTask(R.string.backup_failed) {
         val folderName = folderWriter.folderDisplayName(folderUri)
         if (folderName == null || !folderWriter.isAccessible(folderUri)) {
             DataMessage.Text(R.string.data_backup_folder_failed)
         } else {
             val backup = currentBackup()
             val json = withContext(background) { encodeBackup(backup) }
-            val includeFiles = shouldIncludeFilesInAutoBackup(backupZipSizeEstimate(json, backup.attachments))
+            val includeFiles = includeFilesOverride ?: shouldIncludeFilesInAutoBackup(backupZipSizeEstimate(json, backup.attachments))
             val written = if (includeFiles) {
                 folderWriter.writeTimestampedBackupZip(folderUri, withContext(background) { buildZipBytes(json, backup) })
             } else {

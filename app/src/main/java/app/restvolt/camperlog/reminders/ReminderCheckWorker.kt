@@ -46,7 +46,9 @@ class ReminderCheckWorker(appContext: Context, params: WorkerParameters) : Corou
                     app.vehicleDocuments, app.attachments, Instant.now(),
                 )
                 val json = encodeBackup(backup)
-                val zipBytes = if (shouldIncludeFilesInAutoBackup(backupZipSizeEstimate(json, backup.attachments))) {
+                val includeFiles = backupSettings.autoBackupIncludeFilesOverride
+                    ?: shouldIncludeFilesInAutoBackup(backupZipSizeEstimate(json, backup.attachments))
+                val zipBytes = if (includeFiles) {
                     ByteArrayOutputStream().apply {
                         writeBackupZip(this, json, backup.attachments, includeFiles = true) { fileName ->
                             app.attachmentFileStore.file(fileName).takeIf { it.exists() }?.inputStream()

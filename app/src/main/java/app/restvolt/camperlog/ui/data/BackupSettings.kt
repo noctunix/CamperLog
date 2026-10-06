@@ -22,6 +22,11 @@ data class BackupPreferences(
     val lastNotifiedBackupBaseline: Instant? = null,
     val folderUri: String? = null,
     val autoBackupToFolder: Boolean = false,
+    /**
+     * Ob die automatische Sicherung in den Sicherungsordner Fotos und Dokumente mit einschließen soll;
+     * `null`, solange niemand das bewusst gewählt hat - dann gilt [app.restvolt.camperlog.domain.shouldIncludeFilesInAutoBackup].
+     */
+    val autoBackupIncludeFilesOverride: Boolean? = null,
 )
 
 /** Persistiert [BackupPreferences]; siehe [app.restvolt.camperlog.ui.theme.ReminderSettings] für das gleiche Muster. */
@@ -54,6 +59,13 @@ class BackupSettings(context: Context) {
             state.update { it.copy(autoBackupToFolder = value) }
         }
 
+    var autoBackupIncludeFilesOverride: Boolean?
+        get() = state.value.autoBackupIncludeFilesOverride
+        set(value) {
+            preferences.edit { if (value != null) putBoolean(KEY_AUTO_BACKUP_INCLUDE_FILES, value) else remove(KEY_AUTO_BACKUP_INCLUDE_FILES) }
+            state.update { it.copy(autoBackupIncludeFilesOverride = value) }
+        }
+
     var lastBackupAt: Instant?
         get() = state.value.lastBackupAt
         set(value) {
@@ -79,6 +91,11 @@ class BackupSettings(context: Context) {
         lastNotifiedBackupBaseline = preferences.getLong(KEY_LAST_NOTIFIED_BASELINE, -1).takeIf { it >= 0 }?.let(Instant::ofEpochMilli),
         folderUri = preferences.getString(KEY_FOLDER_URI, null),
         autoBackupToFolder = preferences.getBoolean(KEY_AUTO_BACKUP, false),
+        autoBackupIncludeFilesOverride = if (preferences.contains(KEY_AUTO_BACKUP_INCLUDE_FILES)) {
+            preferences.getBoolean(KEY_AUTO_BACKUP_INCLUDE_FILES, true)
+        } else {
+            null
+        },
     )
 
     private companion object {
@@ -87,5 +104,6 @@ class BackupSettings(context: Context) {
         const val KEY_LAST_NOTIFIED_BASELINE = "last_notified_baseline_millis"
         const val KEY_FOLDER_URI = "folder_uri"
         const val KEY_AUTO_BACKUP = "auto_backup_to_folder"
+        const val KEY_AUTO_BACKUP_INCLUDE_FILES = "auto_backup_include_files"
     }
 }

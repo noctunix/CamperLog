@@ -275,7 +275,7 @@ fun DataScreen(
                             style = MaterialTheme.typography.bodyLarge,
                         )
                         Button(
-                            onClick = { viewModel.backUpToFolder(folderUri) },
+                            onClick = { viewModel.backUpToFolder(folderUri, backupPrefs.autoBackupIncludeFilesOverride) },
                             enabled = !busy && resolvedFolderName != null,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
