@@ -28,6 +28,7 @@ class ThirdPartyLibrariesTest {
         "kotlinx.serialization.json" to "kotlinx.serialization",
         "androidx.work.runtime.ktx" to "AndroidX WorkManager",
         "androidx.documentfile" to "AndroidX DocumentFile",
+        "androidx.exifinterface" to "AndroidX ExifInterface",
     )
 
     @Test

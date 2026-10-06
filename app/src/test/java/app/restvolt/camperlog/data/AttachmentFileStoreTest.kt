@@ -1,8 +1,8 @@
 package app.restvolt.camperlog.data
 
 import android.content.Context
-import android.media.ExifInterface
 import androidx.core.net.toUri
+import androidx.exifinterface.media.ExifInterface
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

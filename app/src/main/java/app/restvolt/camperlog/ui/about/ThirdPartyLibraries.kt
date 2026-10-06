@@ -70,5 +70,10 @@ object ThirdPartyLibraries {
             license = "Apache-2.0",
             url = "https://developer.android.com/jetpack/androidx/releases/documentfile",
         ),
+        ThirdPartyLibrary(
+            name = "AndroidX ExifInterface",
+            license = "Apache-2.0",
+            url = "https://developer.android.com/jetpack/androidx/releases/exifinterface",
+        ),
     )
 }

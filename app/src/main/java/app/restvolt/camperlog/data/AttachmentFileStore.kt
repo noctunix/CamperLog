@@ -4,8 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
-import android.media.ExifInterface
 import android.net.Uri
+import androidx.core.graphics.scale
+import androidx.exifinterface.media.ExifInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -314,7 +315,7 @@ internal fun downscaleIfNeeded(bitmap: Bitmap, maxDimension: Int): Bitmap {
     val scale = maxDimension.toFloat() / longEdge
     val width = (bitmap.width * scale).toInt().coerceAtLeast(1)
     val height = (bitmap.height * scale).toInt().coerceAtLeast(1)
-    val scaled = Bitmap.createScaledBitmap(bitmap, width, height, true)
+    val scaled = bitmap.scale(width, height)
     if (scaled !== bitmap) bitmap.recycle()
     return scaled
 }

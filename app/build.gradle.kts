@@ -139,6 +139,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.documentfile)
+    implementation(libs.androidx.exifinterface)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
