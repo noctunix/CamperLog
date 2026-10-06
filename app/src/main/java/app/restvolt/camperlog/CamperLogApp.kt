@@ -9,6 +9,7 @@ import app.restvolt.camperlog.data.RoomLogRepository
 import app.restvolt.camperlog.data.RoomStationRepository
 import app.restvolt.camperlog.data.RoomTourRepository
 import app.restvolt.camperlog.data.RoomVehicleRepository
+import app.restvolt.camperlog.data.TileHttpCache
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
@@ -18,6 +19,11 @@ import app.restvolt.camperlog.ui.stations.StationsWhatsNewSettings
 
 /** Application-Klasse; hält die einzige Datenbank- und Repository-Instanz. */
 class CamperLogApp : Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+        TileHttpCache.install(this)
+    }
 
     /** Gemeinsames Repository für alle Screens. */
     val repository: TourRepository by lazy { RoomTourRepository(database.tourDao(), database.vehicleDao()) }
