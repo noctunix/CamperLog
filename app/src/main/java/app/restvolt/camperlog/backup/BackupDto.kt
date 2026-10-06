@@ -25,6 +25,10 @@ internal data class BackupDto(
     val currentVehicle: String? = null,
     /** Einzeln als [StationDto] gelesen; fehlt in Sicherungen vor Formatversion 3. */
     val stations: List<JsonElement> = emptyList(),
+    /** Einzeln als [VehicleDocumentDto] gelesen; fehlt in Sicherungen vor Formatversion 6. */
+    val vehicleDocuments: List<JsonElement> = emptyList(),
+    /** Einzeln als [AttachmentDto] gelesen; fehlt in Sicherungen vor Formatversion 6 oder in einer Sicherung ohne Dateien. */
+    val attachments: List<JsonElement> = emptyList(),
 )
 
 @Serializable
@@ -208,6 +212,34 @@ internal data class StationCostDto(
     val currency: String,
     val amount: String,
     val note: String = "",
+)
+
+@Serializable
+internal data class VehicleDocumentDto(
+    val uuid: String,
+    val vehicleUuid: String,
+    val kind: String,
+    val title: String = "",
+    val expiryDate: String? = null,
+    val createdAt: String,
+    val updatedAt: String,
+)
+
+@Serializable
+internal data class AttachmentDto(
+    val uuid: String,
+    /** Name von [app.restvolt.camperlog.domain.AttachmentOwnerType], z. B. `STATION`. */
+    val ownerType: String,
+    /** uuid des Eintrags, zu dem der Anhang gehört (Station, Reparatur, Bordbuch-Eintrag oder Fahrzeugdokument je [ownerType]). */
+    val ownerUuid: String,
+    /** Name der zugehörigen Datei im ZIP-Ordner `files/`; in einer Sicherung ohne Dateien trotzdem vorhanden. */
+    val fileName: String,
+    val mimeType: String,
+    val sizeBytes: Long,
+    val width: Int? = null,
+    val height: Int? = null,
+    val caption: String = "",
+    val createdAt: String,
 )
 
 @Serializable

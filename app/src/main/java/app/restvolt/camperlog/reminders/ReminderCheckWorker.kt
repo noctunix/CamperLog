@@ -4,12 +4,17 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import app.restvolt.camperlog.CamperLogApp
+import app.restvolt.camperlog.backup.BackupPayload
+import app.restvolt.camperlog.backup.backupZipSizeEstimate
 import app.restvolt.camperlog.backup.buildBackup
 import app.restvolt.camperlog.backup.encodeBackup
+import app.restvolt.camperlog.backup.writeBackupZip
 import app.restvolt.camperlog.data.AndroidBackupFolderWriter
+import app.restvolt.camperlog.domain.shouldIncludeFilesInAutoBackup
 import app.restvolt.camperlog.ui.data.BackupSettings
 import app.restvolt.camperlog.ui.settings.NotificationSettings
 import app.restvolt.camperlog.ui.theme.ReminderSettings
+import java.io.ByteArrayOutputStream
 import java.time.Instant
 import java.time.LocalDate
 
@@ -30,10 +35,28 @@ class ReminderCheckWorker(appContext: Context, params: WorkerParameters) : Corou
 
         val runner = ReminderCheckRunner(
             vehicles = app.vehicles,
+            documents = app.vehicleDocuments,
             notificationStore = AndroidReminderNotificationStore(applicationContext),
+            documentNotificationStore = AndroidDocumentReminderNotificationStore(applicationContext),
             notifier = AndroidReminderNotifier(applicationContext),
             folderWriter = AndroidBackupFolderWriter(applicationContext),
-            buildBackupJson = { encodeBackup(buildBackup(app.repository, app.exchangeRates, app.vehicles, app.logbook, app.stations, Instant.now())) },
+            buildBackupPayload = {
+                val backup = buildBackup(
+                    app.repository, app.exchangeRates, app.vehicles, app.logbook, app.stations,
+                    app.vehicleDocuments, app.attachments, Instant.now(),
+                )
+                val json = encodeBackup(backup)
+                val zipBytes = if (shouldIncludeFilesInAutoBackup(backupZipSizeEstimate(json, backup.attachments))) {
+                    ByteArrayOutputStream().apply {
+                        writeBackupZip(this, json, backup.attachments, includeFiles = true) { fileName ->
+                            app.attachmentFileStore.file(fileName).takeIf { it.exists() }?.inputStream()
+                        }
+                    }.toByteArray()
+                } else {
+                    null
+                }
+                BackupPayload(json, zipBytes)
+            },
         )
         val outcome = runner.run(
             today = LocalDate.now(),

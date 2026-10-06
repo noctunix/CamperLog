@@ -6,10 +6,14 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.share.writeBackupExport
 import app.restvolt.camperlog.share.writeBackupTo
+import app.restvolt.camperlog.share.writeBackupZipExport
+import app.restvolt.camperlog.share.writeBackupZipTo
 import app.restvolt.camperlog.share.writeCsvExport
 import app.restvolt.camperlog.share.writeStationsCsvExport
+import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.util.UUID
 
 /**
  * Dateizugriffe des Daten-Screens. URIs werden als Strings übergeben, damit [DataViewModel]
@@ -50,12 +54,21 @@ interface DataFiles {
      */
     suspend fun writeBackup(target: String, json: String)
 
+    /** Wie [writeBackupExport], aber für eine ZIP-Sicherung samt Fotos und Dokumenten. */
+    suspend fun writeBackupZipExport(zipBytes: ByteArray): String
+
+    /** Wie [writeBackup], aber für eine ZIP-Sicherung samt Fotos und Dokumenten. */
+    suspend fun writeBackupZip(target: String, zipBytes: ByteArray)
+
     /**
      * Öffnet die vom Nutzer gewählte Datei [source]; `null`, wenn kein Strom geliefert wird.
      *
      * @throws IOException wenn der Zugriff verweigert wird
      */
     fun open(source: String): InputStream?
+
+    /** Neuer, leerer Ordner für die Zwischenablage einer ZIP-Sicherung, während [readBackupZip][app.restvolt.camperlog.backup.readBackupZip] sie prüft. */
+    fun newImportStagingDir(): File
 }
 
 /** [DataFiles] über den Application-Context, damit das ViewModel keine Activity festhält. */
@@ -80,9 +93,16 @@ class AndroidDataFiles(context: Context) : DataFiles {
 
     override suspend fun writeBackup(target: String, json: String) = writeBackupTo(context, target.toUri(), json)
 
+    override suspend fun writeBackupZipExport(zipBytes: ByteArray): String = writeBackupZipExport(context, zipBytes).toString()
+
+    override suspend fun writeBackupZip(target: String, zipBytes: ByteArray) = writeBackupZipTo(context, target.toUri(), zipBytes)
+
     override fun open(source: String): InputStream? = try {
         context.contentResolver.openInputStream(source.toUri())
     } catch (e: SecurityException) {
         throw IOException(e)
     }
+
+    override fun newImportStagingDir(): File =
+        File(context.cacheDir, "import-staging/${UUID.randomUUID()}").apply { mkdirs() }
 }

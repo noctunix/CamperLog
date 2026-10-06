@@ -46,7 +46,9 @@ import app.restvolt.camperlog.data.AndroidLocationPermissionGate
 import app.restvolt.camperlog.data.AndroidLocationProvider
 import app.restvolt.camperlog.data.AndroidTileLoader
 import app.restvolt.camperlog.data.AndroidWeatherProvider
+import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.data.BackupFolderWriter
+import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.LocationProvider
@@ -58,9 +60,11 @@ import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TileLoader
 import app.restvolt.camperlog.domain.TourRepository
+import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.WeatherProvider
 import app.restvolt.camperlog.domain.camperLogUserAgent
+import app.restvolt.camperlog.domain.documentReminders
 import app.restvolt.camperlog.domain.dueReminders
 import app.restvolt.camperlog.domain.isMapAvailable
 import app.restvolt.camperlog.domain.shouldShowKeepAndroidOpen
@@ -213,6 +217,9 @@ fun CamperLogNavHost(
     logbook: LogRepository,
     stations: StationRepository,
     exchangeRates: ExchangeRateRepository,
+    documents: VehicleDocumentRepository,
+    attachments: AttachmentRepository,
+    attachmentFileStore: AttachmentFileStore,
     backupImporter: BackupImporter,
     themeMode: ThemeMode,
     canShowStartDialogs: Boolean = true,
@@ -248,8 +255,13 @@ fun CamperLogNavHost(
     val backupFolderWriter = remember { AndroidBackupFolderWriter(context) }
     val currentVehicleFlow = remember(vehicles) { vehicles.observeCurrentVehicle() }
     val currentVehicle by currentVehicleFlow.collectAsStateWithLifecycle(initialValue = null)
+    val currentVehicleDocumentsFlow = remember(documents, currentVehicle?.id) {
+        currentVehicle?.id?.let { documents.observeForVehicle(it) } ?: kotlinx.coroutines.flow.flowOf(emptyList())
+    }
+    val currentVehicleDocuments by currentVehicleDocumentsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val reminderCount = currentVehicle?.let { vehicle ->
-        dueReminders(vehicle, LocalDate.now(), reminderPreferences.leadDays, reminderPreferences.oilChangeIntervalMonths).size
+        dueReminders(vehicle, LocalDate.now(), reminderPreferences.leadDays, reminderPreferences.oilChangeIntervalMonths).size +
+            documentReminders(currentVehicleDocuments, LocalDate.now(), reminderPreferences.leadDays).size
     } ?: 0
     val bottomBar: @Composable () -> Unit = { CamperLogBottomBar(navController, currentDestination, reminderCount) }
 
@@ -377,7 +389,7 @@ fun CamperLogNavHost(
             val vehicleContext = LocalContext.current
             val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
             VehicleScreen(
-                viewModel = viewModel { VehicleViewModel(vehicles) },
+                viewModel = viewModel { VehicleViewModel(vehicles, documents) },
                 whereAmIViewModel = viewModel { WhereAmIViewModel(locationProvider, AndroidLocationPermissionGate(vehicleContext)) },
                 locationEnabled = locationEnabled,
                 reminderSettings = reminderSettings,
@@ -408,7 +420,7 @@ fun CamperLogNavHost(
         }
         composable<RepairEditRoute> { entry ->
             val route = entry.toRoute<RepairEditRoute>()
-            val vehicleViewModel = navController.vehicleViewModel(entry, vehicles)
+            val vehicleViewModel = navController.vehicleViewModel(entry, vehicles, documents)
             RepairEditScreen(
                 viewModel = viewModel {
                     RepairEditViewModel(vehicles, exchangeRates, route.vehicleId, route.repairId, createSavedStateHandle())
@@ -576,6 +588,9 @@ fun CamperLogNavHost(
                         vehicles,
                         logbook,
                         stations,
+                        documents,
+                        attachments,
+                        attachmentFileStore,
                         backupImporter,
                         AndroidDataFiles(context),
                         backupFolderWriter,
@@ -741,9 +756,9 @@ private fun NavController.toursViewModel(
  * auslöst. [RepairEditRoute] liegt immer über [VehicleRoute] im Stapel, da nur von dort erreichbar.
  */
 @Composable
-private fun NavController.vehicleViewModel(entry: NavBackStackEntry, vehicles: VehicleRepository): VehicleViewModel {
+private fun NavController.vehicleViewModel(entry: NavBackStackEntry, vehicles: VehicleRepository, documents: VehicleDocumentRepository): VehicleViewModel {
     val vehicleEntry = remember(entry) { getBackStackEntry<VehicleRoute>() }
-    return viewModel(viewModelStoreOwner = vehicleEntry) { VehicleViewModel(vehicles) }
+    return viewModel(viewModelStoreOwner = vehicleEntry) { VehicleViewModel(vehicles, documents) }
 }
 
 /**

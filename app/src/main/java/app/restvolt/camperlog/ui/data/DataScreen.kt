@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -48,9 +49,13 @@ import app.restvolt.camperlog.backup.BackupError
 import app.restvolt.camperlog.backup.BackupReadResult
 import app.restvolt.camperlog.data.BackupFolderWriter
 import app.restvolt.camperlog.domain.shouldShowBackupReminderCard
+import app.restvolt.camperlog.domain.formatByteSize
 import app.restvolt.camperlog.share.BACKUP_MIME
+import app.restvolt.camperlog.share.BACKUP_ZIP_MIME
 import app.restvolt.camperlog.share.backupFileName
+import app.restvolt.camperlog.share.backupZipFileName
 import app.restvolt.camperlog.share.shareBackup
+import app.restvolt.camperlog.share.shareBackupZip
 import app.restvolt.camperlog.share.shareCsv
 import app.restvolt.camperlog.share.shareStationsCsv
 import app.restvolt.camperlog.ui.BackTopBar
@@ -85,8 +90,11 @@ fun DataScreen(
     val notificationsEnabled by notificationSettings.values.collectAsStateWithLifecycle()
     var pickBackupReminderWeeks by rememberSaveable { mutableStateOf(false) }
 
-    val saveBackup = rememberLauncherForActivityResult(CreateDocument(BACKUP_MIME)) { target ->
-        if (target != null) viewModel.saveBackup(target.toString())
+    var exportWithoutFiles by rememberSaveable { mutableStateOf(false) }
+    val saveBackup = key(exportWithoutFiles) {
+        rememberLauncherForActivityResult(CreateDocument(if (exportWithoutFiles) BACKUP_MIME else BACKUP_ZIP_MIME)) { target ->
+            if (target != null) viewModel.saveBackup(target.toString(), includeFiles = !exportWithoutFiles)
+        }
     }
     val chooseBackup = rememberLauncherForActivityResult(OpenDocument()) { source ->
         if (source != null) viewModel.loadBackup(source.toString())
@@ -116,6 +124,7 @@ fun DataScreen(
             is ShareRequest.Csv -> context.shareCsv(uri)
             is ShareRequest.StationsCsv -> context.shareStationsCsv(uri)
             is ShareRequest.Backup -> context.shareBackup(uri)
+            is ShareRequest.BackupZip -> context.shareBackupZip(uri)
         }
         viewModel.shareHandled(started)
     }
@@ -192,14 +201,33 @@ fun DataScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    var backupSize by remember { mutableStateOf<Long?>(null) }
+                    LaunchedEffect(Unit) { backupSize = viewModel.backupSizeEstimate() }
+                    backupSize?.let {
+                        Text(
+                            stringResource(R.string.data_backup_size, formatByteSize(it, currentLocale())),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    SwitchSettingRow(
+                        title = stringResource(R.string.data_backup_without_files_title),
+                        supportingText = stringResource(R.string.data_backup_without_files_support),
+                        checked = exportWithoutFiles,
+                        onCheckedChange = { exportWithoutFiles = it },
+                    )
                     Button(
-                        onClick = { saveBackup.launch(backupFileName()) },
+                        onClick = { saveBackup.launch(if (exportWithoutFiles) backupFileName() else backupZipFileName()) },
                         enabled = !busy,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(stringResource(R.string.data_backup_save))
                     }
-                    OutlinedButton(onClick = viewModel::shareBackup, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        onClick = { viewModel.shareBackup(includeFiles = !exportWithoutFiles) },
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(stringResource(R.string.data_backup_share))
                     }
                     Text(
@@ -336,8 +364,8 @@ private fun BackupOverdueCard() {
     }
 }
 
-/** Viele Dateimanager und Messenger melden JSON-Dateien nicht als `application/json`; geprüft wird der Inhalt. */
-private val BACKUP_OPEN_MIMES = arrayOf(BACKUP_MIME, "application/octet-stream", "text/plain")
+/** Viele Dateimanager und Messenger melden JSON- oder ZIP-Dateien nicht als solche; geprüft wird der Inhalt. */
+private val BACKUP_OPEN_MIMES = arrayOf(BACKUP_MIME, BACKUP_ZIP_MIME, "application/octet-stream", "text/plain")
 
 private fun Resources.dataMessageText(message: DataMessage): String = when (message) {
     is DataMessage.Text -> getString(message.text)
@@ -346,6 +374,7 @@ private fun Resources.dataMessageText(message: DataMessage): String = when (mess
     is DataMessage.Imported -> message.result.let { result ->
         val logEntries = getQuantityString(R.plurals.import_done_log_entries, result.addedLogEntries, result.addedLogEntries)
         val rates = getQuantityString(R.plurals.import_done_rates, result.importedRates, result.importedRates)
+        val attachments = getQuantityString(R.plurals.import_done_attachments, result.addedAttachments, result.addedAttachments)
         getString(
             R.string.import_done,
             result.addedTours,
@@ -357,8 +386,11 @@ private fun Resources.dataMessageText(message: DataMessage): String = when (mess
             result.updatedStations,
             result.addedRepairs,
             result.updatedRepairs,
+            result.addedDocuments,
+            result.updatedDocuments,
             logEntries,
             rates,
+            attachments,
         )
     }
 }
@@ -373,6 +405,8 @@ private fun Resources.backupErrorMessage(failure: BackupReadResult.Failure): Str
         failure.logEntryNumber != null -> getString(R.string.import_error_invalid_vehicle_log_entry, failure.vehicleNumber, failure.logEntryNumber)
         failure.vehicleNumber != null -> getString(R.string.import_error_invalid_vehicle, failure.vehicleNumber)
         failure.stationNumber != null -> getString(R.string.import_error_invalid_station, failure.stationNumber)
+        failure.documentNumber != null -> getString(R.string.import_error_invalid_document, failure.documentNumber)
+        failure.attachmentNumber != null -> getString(R.string.import_error_invalid_attachment, failure.attachmentNumber)
         else -> getString(R.string.import_error_invalid)
     }
 }

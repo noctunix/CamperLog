@@ -4,7 +4,10 @@ import androidx.room.withTransaction
 import app.restvolt.camperlog.backup.Backup
 import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.backup.BackupVehicle
+import app.restvolt.camperlog.domain.Attachment
+import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.VehicleDocument
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.domain.ExchangeRate
@@ -17,10 +20,14 @@ import java.util.UUID
 
 /**
  * Spielt Sicherungen in einer einzigen Datenbank-Transaktion ein: Bei einem Fehler bleibt alles beim Alten.
+ * Betrifft nur die Datenbank - liegen zu importierenden Anhängen Dateien aus einer ZIP-Sicherung bei,
+ * verschiebt sie der Aufrufer erst nach einem erfolgreichen Aufruf von [import] an ihren endgültigen
+ * Platz (siehe `commitStagedAttachmentFiles`, aufgerufen von `DataViewModel.startImport`).
  *
  * Zeitstempel und Datumswerte aus der Zukunft – etwa von einem Gerät mit falsch gestellter Uhr – werden
  * auf den Importzeitpunkt begrenzt. Sonst würden solche Einträge bei jedem Zusammenführen gegen
- * spätere lokale Änderungen gewinnen.
+ * spätere lokale Änderungen gewinnen. [VehicleDocument.expiryDate] ist davon ausgenommen: ein
+ * Ablaufdatum in der Zukunft ist dort der Normalfall, nicht ein Zeichen einer falschen Uhr.
  */
 class RoomBackupImporter(
     private val database: CamperLogDatabase,
@@ -36,10 +43,14 @@ class RoomBackupImporter(
         val tourDao = database.tourDao()
         val stationDao = database.stationDao()
         val rateDao = database.exchangeRateDao()
+        val documentDao = database.vehicleDocumentDao()
+        val attachmentDao = database.attachmentDao()
 
         val importedVehicles = backup.vehicles.map { it.notAfter(now, today) }
 
         if (mode == ImportMode.REPLACE) {
+            attachmentDao.deleteAll()
+            documentDao.deleteAll()
             stationDao.deleteAll()
             tourDao.deleteAll()
             vehicleDao.deleteAllRepairs()
@@ -100,21 +111,29 @@ class RoomBackupImporter(
         }
         var addedRepairs = 0
         var updatedRepairs = 0
+        val repairLocalIdByUuid = HashMap<String, Long>()
         if (mode == ImportMode.REPLACE) {
-            importedRepairs.forEach { vehicleDao.insertRepair(it.copy(id = 0).toEntity()); addedRepairs++ }
+            importedRepairs.forEach { repair ->
+                val id = vehicleDao.insertRepair(repair.copy(id = 0).toEntity())
+                repairLocalIdByUuid[repair.uuid] = id
+                addedRepairs++
+            }
         } else {
             val storedRepairs = vehicleDao.getRepairVersions().associateBy(RepairVersionRow::uuid)
             for (repair in importedRepairs) {
                 val existing = storedRepairs[repair.uuid]
                 when {
                     existing == null -> {
-                        vehicleDao.insertRepair(repair.copy(id = 0).toEntity())
+                        val id = vehicleDao.insertRepair(repair.copy(id = 0).toEntity())
+                        repairLocalIdByUuid[repair.uuid] = id
                         addedRepairs++
                     }
                     repair.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
                         vehicleDao.updateRepair(repair.copy(id = existing.id).toEntity())
+                        repairLocalIdByUuid[repair.uuid] = existing.id
                         updatedRepairs++
                     }
+                    else -> repairLocalIdByUuid[repair.uuid] = existing.id
                 }
             }
         }
@@ -211,14 +230,75 @@ class RoomBackupImporter(
             }
         }
         var addedLogEntries = 0
+        val logEntryLocalIdByUuid = HashMap<String, Long>()
         if (mode == ImportMode.REPLACE) {
-            importedLogEntries.forEach { logDao.insert(it.copy(id = 0).toEntity()); addedLogEntries++ }
+            importedLogEntries.forEach { entry ->
+                val id = logDao.insert(entry.copy(id = 0).toEntity())
+                logEntryLocalIdByUuid[entry.uuid] = id
+                addedLogEntries++
+            }
         } else {
             val storedLogEntryUuids = logDao.getUuids().toHashSet()
             for (entry in importedLogEntries) {
                 if (storedLogEntryUuids.add(entry.uuid)) {
-                    logDao.insert(entry.copy(id = 0).toEntity())
+                    val id = logDao.insert(entry.copy(id = 0).toEntity())
+                    logEntryLocalIdByUuid[entry.uuid] = id
                     addedLogEntries++
+                }
+            }
+        }
+
+        // --- Fahrzeugdokumente: wie Fahrzeuge über ihre UUID abgeglichen ---
+        val importedDocuments = backup.documents.mapNotNull { backupDocument ->
+            localIdByVehicleUuid[backupDocument.vehicleUuid]?.let { localVehicleId ->
+                backupDocument.document.copy(vehicleId = localVehicleId).notAfter(now)
+            }
+        }
+        var addedDocuments = 0
+        var updatedDocuments = 0
+        val documentLocalIdByUuid = HashMap<String, Long>()
+        if (mode == ImportMode.REPLACE) {
+            importedDocuments.forEach { document ->
+                val id = documentDao.insert(document.copy(id = 0).toEntity())
+                documentLocalIdByUuid[document.uuid] = id
+                addedDocuments++
+            }
+        } else {
+            val storedDocuments = documentDao.getVersions().associateBy(VehicleDocumentVersionRow::uuid)
+            for (document in importedDocuments) {
+                val existing = storedDocuments[document.uuid]
+                when {
+                    existing == null -> {
+                        val id = documentDao.insert(document.copy(id = 0).toEntity())
+                        documentLocalIdByUuid[document.uuid] = id
+                        addedDocuments++
+                    }
+                    document.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
+                        documentDao.update(document.copy(id = existing.id).toEntity())
+                        documentLocalIdByUuid[document.uuid] = existing.id
+                        updatedDocuments++
+                    }
+                    else -> documentLocalIdByUuid[document.uuid] = existing.id
+                }
+            }
+        }
+
+        // --- Anhänge: unveränderlich wie Bordbuch-Einträge, daher nur anlegen, wenn die uuid noch unbekannt ist ---
+        val importedAttachments = backup.attachments.mapNotNull { backupAttachment ->
+            val ownerId = backupAttachment.attachment.ownerId(
+                backupAttachment.ownerUuid, stationLocalIdByUuid, repairLocalIdByUuid, logEntryLocalIdByUuid, documentLocalIdByUuid,
+            ) ?: return@mapNotNull null
+            backupAttachment.attachment.copy(ownerId = ownerId, createdAt = minOf(backupAttachment.attachment.createdAt, now))
+        }
+        var addedAttachments = 0
+        if (mode == ImportMode.REPLACE) {
+            importedAttachments.forEach { attachmentDao.insert(it.copy(id = 0).toEntity()); addedAttachments++ }
+        } else {
+            val storedAttachmentUuids = attachmentDao.getVersions().mapTo(HashSet()) { it.uuid }
+            for (attachment in importedAttachments) {
+                if (storedAttachmentUuids.add(attachment.uuid)) {
+                    attachmentDao.insert(attachment.copy(id = 0).toEntity())
+                    addedAttachments++
                 }
             }
         }
@@ -243,6 +323,9 @@ class RoomBackupImporter(
             addedLogEntries = addedLogEntries,
             addedStations = addedStations,
             updatedStations = updatedStations,
+            addedDocuments = addedDocuments,
+            updatedDocuments = updatedDocuments,
+            addedAttachments = addedAttachments,
         )
     }
 }
@@ -265,6 +348,26 @@ private fun Station.notAfter(now: Instant, today: LocalDate): Station = copy(
     createdAt = minOf(createdAt, now),
     updatedAt = minOf(updatedAt, now),
 )
+
+/** Begrenzt Anlage- und Änderungszeit wie [Tour.notAfter]; [VehicleDocument.expiryDate] bleibt unverändert, siehe Klassen-KDoc. */
+private fun VehicleDocument.notAfter(now: Instant): VehicleDocument = copy(
+    createdAt = minOf(createdAt, now),
+    updatedAt = minOf(updatedAt, now),
+)
+
+/** Lokale id des Eintrags, zu dem [Attachment.ownerType] von [this] gehört, oder `null`, wenn dessen uuid beim Import verworfen wurde. */
+private fun Attachment.ownerId(
+    ownerUuid: String,
+    stationLocalIdByUuid: Map<String, Long>,
+    repairLocalIdByUuid: Map<String, Long>,
+    logEntryLocalIdByUuid: Map<String, Long>,
+    documentLocalIdByUuid: Map<String, Long>,
+): Long? = when (ownerType) {
+    AttachmentOwnerType.STATION -> stationLocalIdByUuid[ownerUuid]
+    AttachmentOwnerType.REPAIR -> repairLocalIdByUuid[ownerUuid]
+    AttachmentOwnerType.LOG_ENTRY -> logEntryLocalIdByUuid[ownerUuid]
+    AttachmentOwnerType.VEHICLE_DOCUMENT -> documentLocalIdByUuid[ownerUuid]
+}
 
 /**
  * Die id des einzigen Fahrzeugs, falls es unberührt ist: ohne Angaben, Touren, Reparaturen,

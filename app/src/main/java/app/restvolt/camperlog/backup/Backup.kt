@@ -3,8 +3,11 @@ package app.restvolt.camperlog.backup
 import app.restvolt.camperlog.domain.ALL_COUNTRY_CODES
 import app.restvolt.camperlog.domain.ALL_CURRENCIES
 import app.restvolt.camperlog.domain.AmountReading
+import app.restvolt.camperlog.domain.Attachment
+import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ElectricityFlatRate
@@ -45,6 +48,7 @@ import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.VehicleDocument
 import app.restvolt.camperlog.domain.WeatherSnapshot
 import app.restvolt.camperlog.domain.allowedServices
 import app.restvolt.camperlog.domain.amountReading
@@ -76,7 +80,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 5
+const val BACKUP_SCHEMA_VERSION = 6
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -92,6 +96,22 @@ internal const val MAX_DESTINATION_LENGTH = 500
 internal const val MAX_NOTES_LENGTH = 20_000
 internal const val MAX_LINK_LENGTH = 4_000
 internal const val MAX_SOURCE_LENGTH = 500
+internal const val MAX_VEHICLE_DOCUMENTS = 10_000
+internal const val MAX_ATTACHMENTS = 200_000
+internal const val MAX_CAPTION_LENGTH = 2_000
+
+/** Wie `AttachmentFileStore.MAX_DOCUMENT_BYTES`; hier verdoppelt statt importiert, damit `backup/` ohne Android-Abhängigkeiten bleibt. */
+private const val MAX_ATTACHMENT_SIZE_BYTES = 20L * 1024 * 1024
+private const val MAX_ATTACHMENT_DIMENSION = 20_000
+
+/** Dateiendung je unterstütztem MIME-Typ eines Anhangs; ebenfalls dupliziert statt aus `AttachmentFileStore` importiert. */
+private val ATTACHMENT_EXTENSION_BY_MIME_TYPE = mapOf(
+    "image/jpeg" to "jpg",
+    "image/png" to "png",
+    "image/webp" to "webp",
+    "application/pdf" to "pdf",
+)
+internal val ATTACHMENT_FILE_NAME_PATTERN = Regex("""[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\.[a-z]+""")
 private val MAX_RATE = BigDecimal("1000000000")
 private const val MAX_WEATHER_TEMPERATURE_DECI_C = 1_000
 private const val MAX_WEATHER_CODE = 99
@@ -123,7 +143,11 @@ private val MAX_INSTANT = Instant.parse("2199-12-31T00:00:00Z")
  * ordnet einer Stations-UUID die UUID ihres Fahrzeugs zu (fehlt bei einer aus einer Tour abgeleiteten
  * Station: ihr Fahrzeug ist das der Tour), [stationTourUuid] die UUID ihrer Tour, falls sie zu einer
  * gehört. [logEntryStationUuid] ordnet einer Bordbuch-Eintrags-UUID die UUID ihrer verknüpften
- * Station zu; fehlt ein Eintrag hier, ist er nicht verknüpft.
+ * Station zu; fehlt ein Eintrag hier, ist er nicht verknüpft. [documents] enthält alle
+ * Fahrzeugdokumente, [attachments] alle Anhänge (Fotos und Dokumentdateien) zu Stationen,
+ * Reparaturen, Bordbuch-Einträgen und Fahrzeugdokumenten (Formatversion 6); beides fehlt in älteren
+ * Sicherungen. Eine Sicherung ohne Dateien (JSON-only-Export) enthält [attachments] trotzdem als
+ * Metadaten, nur ohne die zugehörigen Dateien im ZIP.
  */
 data class Backup(
     val exportedAt: Instant,
@@ -137,6 +161,8 @@ data class Backup(
     val stationVehicleUuid: Map<String, String> = emptyMap(),
     val stationTourUuid: Map<String, String> = emptyMap(),
     val logEntryStationUuid: Map<String, String> = emptyMap(),
+    val documents: List<BackupVehicleDocument> = emptyList(),
+    val attachments: List<BackupAttachment> = emptyList(),
 )
 
 /** Ein Fahrzeug einer Sicherung mit seinen Reparaturen und Bordbuch-Einträgen. */
@@ -145,6 +171,16 @@ data class BackupVehicle(
     val repairs: List<Repair>,
     val logEntries: List<LogEntry>,
 )
+
+/** Ein Fahrzeugdokument einer Sicherung mit [vehicleUuid], der UUID seines Fahrzeugs. */
+data class BackupVehicleDocument(val document: VehicleDocument, val vehicleUuid: String)
+
+/**
+ * Ein Anhang einer Sicherung mit [ownerUuid], der UUID des Eintrags, zu dem er gehört (je
+ * [Attachment.ownerType] eine Station, Reparatur, Bordbuch-Eintrag oder ein Fahrzeugdokument), statt
+ * seiner lokalen Datenbank-id.
+ */
+data class BackupAttachment(val attachment: Attachment, val ownerUuid: String)
 
 /**
  * Ein beim Lesen der Bordbuch-Einträge gefundener Stationsbezug, dessen Existenz erst geprüft werden
@@ -182,6 +218,8 @@ sealed interface BackupReadResult {
         val repairNumber: Int? = null,
         val logEntryNumber: Int? = null,
         val stationNumber: Int? = null,
+        val documentNumber: Int? = null,
+        val attachmentNumber: Int? = null,
     ) : BackupReadResult
 }
 
@@ -213,6 +251,8 @@ fun encodeBackup(backup: Backup): String = json.encodeToString(
             )
             json.encodeToJsonElement(StationDto.serializer(), dto)
         },
+        vehicleDocuments = backup.documents.map { json.encodeToJsonElement(VehicleDocumentDto.serializer(), it.toDto()) },
+        attachments = backup.attachments.map { json.encodeToJsonElement(AttachmentDto.serializer(), it.toDto()) },
     ),
 )
 
@@ -422,10 +462,55 @@ private fun BackupDto.toBackup(): BackupReadResult {
         logEntryStationUuid[pending.entryUuid] = pending.stationUuid
     }
 
+    if (vehicleDocuments.size > MAX_VEHICLE_DOCUMENTS || attachments.size > MAX_ATTACHMENTS) return invalid
+    val seenDocumentUuids = HashSet<String>()
+    val documents = vehicleDocuments.mapIndexed { index, element ->
+        val documentNumber = index + 1
+        val dto = decodeJson(VehicleDocumentDto.serializer(), element)
+            ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, documentNumber = documentNumber)
+        val document = dto.toVehicleDocument() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, documentNumber = documentNumber)
+        if (!seenDocumentUuids.add(document.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, documentNumber = documentNumber)
+        val vehicleUuid = parseUuid(dto.vehicleUuid) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, documentNumber = documentNumber)
+        if (backupVehicles.none { it.vehicle.uuid == vehicleUuid }) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, documentNumber = documentNumber)
+        }
+        BackupVehicleDocument(document, vehicleUuid)
+    }
+
+    val seenAttachmentUuids = HashSet<String>()
+    val backupAttachments = attachments.mapIndexed { index, element ->
+        val attachmentNumber = index + 1
+        val dto = decodeJson(AttachmentDto.serializer(), element)
+            ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
+        val ownerType = enumOrNull<AttachmentOwnerType>(dto.ownerType) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
+        val attachment = dto.toAttachment(ownerType) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
+        if (!seenAttachmentUuids.add(attachment.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
+        val ownerUuid = parseUuid(dto.ownerUuid) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
+        val ownerKnown = when (ownerType) {
+            AttachmentOwnerType.STATION -> ownerUuid in seenStationUuids
+            AttachmentOwnerType.REPAIR -> ownerUuid in seenRepairUuids
+            AttachmentOwnerType.LOG_ENTRY -> ownerUuid in seenLogEntryUuids
+            AttachmentOwnerType.VEHICLE_DOCUMENT -> ownerUuid in seenDocumentUuids
+        }
+        if (!ownerKnown) return BackupReadResult.Failure(BackupError.INVALID_DATA, attachmentNumber = attachmentNumber)
+        BackupAttachment(attachment, ownerUuid)
+    }
+
     return BackupReadResult.Success(
         Backup(
-            exportedAt, mainCurrency, rates, tours, tourVehicleUuid, backupVehicles, currentVehicleUuid, allStations,
-            stationVehicleUuid, stationTourUuid, logEntryStationUuid,
+            exportedAt = exportedAt,
+            mainCurrency = mainCurrency,
+            rates = rates,
+            tours = tours,
+            tourVehicleUuid = tourVehicleUuid,
+            vehicles = backupVehicles,
+            currentVehicleUuid = currentVehicleUuid,
+            stations = allStations,
+            stationVehicleUuid = stationVehicleUuid,
+            stationTourUuid = stationTourUuid,
+            logEntryStationUuid = logEntryStationUuid,
+            documents = documents,
+            attachments = backupAttachments,
         ),
     )
 }
@@ -900,6 +985,71 @@ private fun StationCostDto.toStationCost(): StationCost? {
     if (note.length > MAX_NOTES_LENGTH) return null
     return StationCost(categoryValue, money, note)
 }
+
+private fun VehicleDocumentDto.toVehicleDocument(): VehicleDocument? {
+    val uuid = parseUuid(uuid) ?: return null
+    val kindValue = enumOrNull<DocumentKind>(kind) ?: return null
+    val titleValue = title.trim().takeIf { it.length <= MAX_DESTINATION_LENGTH } ?: return null
+    val expiry = expiryDate?.let { parseDate(it) ?: return null }
+    return VehicleDocument(
+        uuid = uuid,
+        vehicleId = 0,
+        kind = kindValue,
+        title = titleValue,
+        expiryDate = expiry,
+        createdAt = parseInstant(createdAt) ?: return null,
+        updatedAt = parseInstant(updatedAt) ?: return null,
+    )
+}
+
+private fun BackupVehicleDocument.toDto() = VehicleDocumentDto(
+    uuid = document.uuid,
+    vehicleUuid = vehicleUuid,
+    kind = document.kind.name,
+    title = document.title,
+    expiryDate = document.expiryDate?.toString(),
+    createdAt = document.createdAt.toString(),
+    updatedAt = document.updatedAt.toString(),
+)
+
+/** Prüft Dateiname, MIME-Typ und Abmessungen eines Anhangs; `null` bei jeder Unstimmigkeit, nicht nur offensichtlich falschen Werten. */
+private fun AttachmentDto.toAttachment(ownerType: AttachmentOwnerType): Attachment? {
+    val uuid = parseUuid(uuid) ?: return null
+    val extension = ATTACHMENT_EXTENSION_BY_MIME_TYPE[mimeType] ?: return null
+    if (!ATTACHMENT_FILE_NAME_PATTERN.matches(fileName) || !fileName.endsWith(".$extension")) return null
+    if (sizeBytes < 0 || sizeBytes > MAX_ATTACHMENT_SIZE_BYTES) return null
+    if (caption.length > MAX_CAPTION_LENGTH) return null
+    val isPhoto = mimeType.startsWith("image/")
+    if (!isPhoto && (width != null || height != null)) return null
+    if (isPhoto && (width == null || height == null)) return null
+    if (width != null && width !in 1..MAX_ATTACHMENT_DIMENSION) return null
+    if (height != null && height !in 1..MAX_ATTACHMENT_DIMENSION) return null
+    return Attachment(
+        uuid = uuid,
+        ownerType = ownerType,
+        ownerId = 0,
+        fileName = fileName,
+        mimeType = mimeType,
+        sizeBytes = sizeBytes,
+        width = width,
+        height = height,
+        caption = caption,
+        createdAt = parseInstant(createdAt) ?: return null,
+    )
+}
+
+private fun BackupAttachment.toDto() = AttachmentDto(
+    uuid = attachment.uuid,
+    ownerType = attachment.ownerType.name,
+    ownerUuid = ownerUuid,
+    fileName = attachment.fileName,
+    mimeType = attachment.mimeType,
+    sizeBytes = attachment.sizeBytes,
+    width = attachment.width,
+    height = attachment.height,
+    caption = attachment.caption,
+    createdAt = attachment.createdAt.toString(),
+)
 
 private fun WeatherDto.toWeather(): WeatherSnapshot? {
     if (temperatureDeciC !in -MAX_WEATHER_TEMPERATURE_DECI_C..MAX_WEATHER_TEMPERATURE_DECI_C) return null

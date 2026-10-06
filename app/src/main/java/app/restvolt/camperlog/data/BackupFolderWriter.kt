@@ -11,6 +11,7 @@ import java.time.format.DateTimeFormatter
 
 private val BACKUP_FOLDER_STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss")
 private const val BACKUP_MIME_TYPE = "application/json"
+private const val BACKUP_ZIP_MIME_TYPE = "application/zip"
 
 /**
  * Schreibzugriff auf den vom Nutzer gewählten Sicherungsordner (SAF `OPEN_DOCUMENT_TREE`).
@@ -29,6 +30,9 @@ interface BackupFolderWriter {
      * oder `null`, wenn der Ordner nicht mehr zugreifbar ist oder das Schreiben fehlschlägt.
      */
     suspend fun writeTimestampedBackup(folderUri: String, json: String): String?
+
+    /** Wie [writeTimestampedBackup], aber für eine ZIP-Sicherung samt Fotos und Dokumenten. */
+    suspend fun writeTimestampedBackupZip(folderUri: String, zipBytes: ByteArray): String?
 }
 
 /** [BackupFolderWriter] über `DocumentFile` auf einem SAF-Tree-URI, ohne zusätzliche Berechtigung. */
@@ -39,20 +43,27 @@ class AndroidBackupFolderWriter(context: Context) : BackupFolderWriter {
 
     override fun folderDisplayName(folderUri: String): String? = folder(folderUri)?.name
 
-    override suspend fun writeTimestampedBackup(folderUri: String, json: String): String? = withContext(Dispatchers.IO) {
-        val dir = folder(folderUri)?.takeIf { it.canWrite() } ?: return@withContext null
-        val name = "camperlog-sicherung-${LocalDateTime.now().format(BACKUP_FOLDER_STAMP)}.json"
-        val file = dir.createFile(BACKUP_MIME_TYPE, name) ?: return@withContext null
-        try {
-            val output = context.contentResolver.openOutputStream(file.uri) ?: return@withContext null
-            output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
-        } catch (_: IOException) {
-            return@withContext null
-        } catch (_: SecurityException) {
-            return@withContext null
+    override suspend fun writeTimestampedBackup(folderUri: String, json: String): String? =
+        write(folderUri, BACKUP_MIME_TYPE, "json") { it.write(json.toByteArray(Charsets.UTF_8)) }
+
+    override suspend fun writeTimestampedBackupZip(folderUri: String, zipBytes: ByteArray): String? =
+        write(folderUri, BACKUP_ZIP_MIME_TYPE, "zip") { it.write(zipBytes) }
+
+    private suspend fun write(folderUri: String, mimeType: String, extension: String, writeContent: (java.io.OutputStream) -> Unit): String? =
+        withContext(Dispatchers.IO) {
+            val dir = folder(folderUri)?.takeIf { it.canWrite() } ?: return@withContext null
+            val name = "camperlog-sicherung-${LocalDateTime.now().format(BACKUP_FOLDER_STAMP)}.$extension"
+            val file = dir.createFile(mimeType, name) ?: return@withContext null
+            try {
+                val output = context.contentResolver.openOutputStream(file.uri) ?: return@withContext null
+                output.use(writeContent)
+            } catch (_: IOException) {
+                return@withContext null
+            } catch (_: SecurityException) {
+                return@withContext null
+            }
+            file.name ?: name
         }
-        file.name ?: name
-    }
 
     private fun folder(folderUri: String): DocumentFile? =
         try {

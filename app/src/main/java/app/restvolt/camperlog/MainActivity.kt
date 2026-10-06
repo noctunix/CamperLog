@@ -23,6 +23,7 @@ import app.restvolt.camperlog.ui.CamperLogNavHost
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeSettings
 import kotlinx.coroutines.launch
+import java.time.Instant
 
 /**
  * Einzige Activity; hostet die Compose-Navigation. `launchMode="singleTask"` (siehe Manifest) sorgt
@@ -40,6 +41,7 @@ class MainActivity : ComponentActivity() {
         val app = application as CamperLogApp
         if (savedInstanceState == null) {
             lifecycleScope.launch { cleanUpExports(applicationContext) }
+            lifecycleScope.launch { app.attachmentFileStore.sweepOrphanFiles(app.attachments.allFileNames(), Instant.now()) }
             pendingGeoIntent = parseGeoIntent(intent?.dataString)
             pendingVehicleId = intent?.openVehicleIdExtra()
             pendingOpenData = intent?.getBooleanExtra(EXTRA_OPEN_DATA, false) == true
@@ -59,6 +61,9 @@ class MainActivity : ComponentActivity() {
                     vehicles = app.vehicles,
                     logbook = app.logbook,
                     exchangeRates = app.exchangeRates,
+                    documents = app.vehicleDocuments,
+                    attachments = app.attachments,
+                    attachmentFileStore = app.attachmentFileStore,
                     backupImporter = app.backupImporter,
                     themeMode = themeMode,
                     stations = app.stations,
