@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -27,7 +26,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,14 +35,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -57,9 +53,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
-import app.restvolt.camperlog.domain.ElectricityFlatRate
-import app.restvolt.camperlog.domain.LteQuality
-import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
@@ -225,26 +218,6 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
             )
         }
         SectionCard {
-            SwitchRow(stringResource(R.string.field_pitch_assigned), input.pitchAssigned) { value ->
-                change { it.copy(pitchAssigned = value) }
-            }
-            ChoiceField(
-                stringResource(R.string.field_electricity),
-                ElectricityFlatRate.entries,
-                input.electricityFlatRate,
-                ElectricityFlatRate::labelRes,
-            ) { value -> change { it.copy(electricityFlatRate = value) } }
-            ChoiceField(stringResource(R.string.field_lte), LteQuality.entries, input.lteQuality, LteQuality::labelRes) { value ->
-                change { it.copy(lteQuality = value) }
-            }
-            ChoiceField(stringResource(R.string.field_pitch), PitchSlope.entries, input.pitchSlope, PitchSlope::labelRes) { value ->
-                change { it.copy(pitchSlope = value) }
-            }
-            SwitchRow(stringResource(R.string.field_leveling_blocks), input.levelingBlocksUsed) { value ->
-                change { it.copy(levelingBlocksUsed = value) }
-            }
-        }
-        SectionCard {
             FormTextField(
                 label = stringResource(R.string.field_notes),
                 value = input.notes,
@@ -398,19 +371,5 @@ private fun <T> ChoiceField(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        Switch(checked = checked, onCheckedChange = null)
     }
 }

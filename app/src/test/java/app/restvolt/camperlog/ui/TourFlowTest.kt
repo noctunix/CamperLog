@@ -290,12 +290,12 @@ class TourFlowTest {
         compose.onNodeWithText("Neue Tour").performClick()
 
         // Gruppenname nur einmal pro Option, nicht als eigener Fokusstopp.
-        compose.onAllNodesWithText("LTE").assertCountEquals(0)
-        val bad = compose.onNodeWithContentDescription("LTE: schlecht")
-        bad.performScrollTo().assertIsNotSelected().performClick()
+        compose.onAllNodesWithText("Tourart").assertCountEquals(0)
+        val vacation = compose.onNodeWithContentDescription("Tourart: Urlaub")
+        vacation.performScrollTo().assertIsNotSelected().performClick()
 
-        bad.assertIsSelected()
-        compose.onNodeWithContentDescription("LTE: gut").assertIsNotSelected()
+        vacation.assertIsSelected()
+        compose.onNodeWithContentDescription("Tourart: Wochenende").assertIsNotSelected()
     }
 
     @Test
@@ -474,11 +474,6 @@ class TourFlowTest {
         overnightStays = 2,
         distanceKm = 420,
         costs = listOf(Money(8_990, EUR)),
-        pitchAssigned = true,
-        electricityFlatRate = ElectricityFlatRate.YES,
-        lteQuality = LteQuality.GOOD,
-        pitchSlope = PitchSlope.LEVEL,
-        levelingBlocksUsed = false,
         notes = "",
         mapLink = null,
         createdAt = Instant.EPOCH,

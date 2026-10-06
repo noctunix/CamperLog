@@ -48,7 +48,6 @@ import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.vehicleDisplayName
-import app.restvolt.camperlog.ui.yesNoRes
 import kotlinx.coroutines.launch
 
 /**
@@ -136,13 +135,6 @@ private fun TourDetails(
             LabeledValue(stringResource(R.string.field_overnight_stays), tour.overnightStays.toString())
             LabeledValue(stringResource(R.string.field_distance), stringResource(R.string.distance_km, tour.distanceKm))
             LabeledValue(stringResource(R.string.field_cost), formatAmounts(tour.costs, locale))
-        }
-        SectionCard {
-            LabeledValue(stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(tour.pitchAssigned)))
-            LabeledValue(stringResource(R.string.field_electricity), stringResource(tour.electricityFlatRate.labelRes))
-            LabeledValue(stringResource(R.string.field_lte), stringResource(tour.lteQuality.labelRes))
-            LabeledValue(stringResource(R.string.field_pitch), stringResource(tour.pitchSlope.labelRes))
-            LabeledValue(stringResource(R.string.field_leveling_blocks), stringResource(yesNoRes(tour.levelingBlocksUsed)))
         }
         if (tour.notes.isNotBlank() || tour.mapLink != null) {
             SectionCard {

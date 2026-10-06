@@ -3,10 +3,7 @@ package app.restvolt.camperlog.share
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.EUR
-import app.restvolt.camperlog.domain.ElectricityFlatRate
-import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
-import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import org.junit.Assert.assertEquals
@@ -34,11 +31,6 @@ class TourTextTest {
         overnightStays = 2,
         distanceKm = 412,
         costs = listOf(Money(8_950, EUR)),
-        pitchAssigned = true,
-        electricityFlatRate = ElectricityFlatRate.NOT_USED,
-        lteQuality = LteQuality.OK,
-        pitchSlope = PitchSlope.SLOPED,
-        levelingBlocksUsed = true,
         notes = "Ruhiger Platz",
         mapLink = "https://example.org/karte",
         createdAt = Instant.EPOCH,
@@ -53,10 +45,6 @@ class TourTextTest {
                 "10.07.2026 – 12.07.2026 (Wochenende)",
                 "3 Reisetage, 2 Übernachtungen, 412 km",
                 "Kosten: 89,50\u00A0€",
-                "Stellplatz zugewiesen: ja",
-                "Strompauschale: nicht genutzt",
-                "LTE: geht so",
-                "Stellplatz: abschüssig, Keile genutzt",
                 "Notizen: Ruhiger Platz",
                 "Karte: https://example.org/karte",
             ),
@@ -82,7 +70,6 @@ class TourTextTest {
             endDate = tour.startDate,
             travelDays = 1,
             overnightStays = 1,
-            levelingBlocksUsed = false,
             notes = " ",
             mapLink = null,
         )
@@ -90,7 +77,7 @@ class TourTextTest {
         val lines = tourShareText(resources, dayTrip).lines()
 
         assertEquals("1 Reisetag, 1 Übernachtung, 412 km", lines[2])
-        assertEquals("Stellplatz: abschüssig, Keile nicht genutzt", lines.last())
+        assertEquals("Kosten: 89,50\u00A0€", lines.last())
         assertEquals("10.07.2026 (Wochenende)", lines[1])
     }
 
