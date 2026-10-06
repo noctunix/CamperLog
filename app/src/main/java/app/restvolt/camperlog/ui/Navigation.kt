@@ -46,6 +46,7 @@ import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
+import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleRepository
@@ -298,7 +299,7 @@ fun CamperLogNavHost(
         composable<LogHistoryRoute> { entry ->
             val route = entry.toRoute<LogHistoryRoute>()
             LogHistoryScreen(
-                viewModel = viewModel { LogHistoryViewModel(logbook, route.vehicleId, route.type) },
+                viewModel = viewModel { LogHistoryViewModel(logbook, stations, route.vehicleId, route.type) },
                 onBack = { navController.popFrom(entry) },
             )
         }
@@ -381,6 +382,14 @@ fun CamperLogNavHost(
         }
         composable<StationEditRoute> { entry ->
             val route = entry.toRoute<StationEditRoute>()
+            // Wohin die Speichermeldung geht, hängt davon ab, von wo das Formular geöffnet wurde (4.6):
+            // eine bestehende Station kam immer vom Stationsdetail, eine neue von der Tourdetailseite
+            // (dann trägt die Route eine tourId) oder sonst vom Stationen-Reiter.
+            val onStationSaved: (Set<StationService>) -> Unit = when {
+                route.stationId != 0L -> navController.stationDetailViewModel(entry, stations, repository, route.stationId)::onStationSaved
+                route.tourId != null -> navController.tourDetailViewModel(entry, repository, vehicles, stations)::onStationSaved
+                else -> navController.stationsViewModel(entry, stations, repository, vehicles)::onStationSaved
+            }
             EditStationScreen(
                 viewModel = viewModel {
                     EditStationViewModel(
@@ -397,7 +406,10 @@ fun CamperLogNavHost(
                     )
                 },
                 onDone = { navController.popFrom(entry) },
-                onSaved = { navController.popFrom(entry) },
+                onSaved = { loggedServices ->
+                    onStationSaved(loggedServices)
+                    navController.popFrom(entry)
+                },
             )
         }
         composable<StationDetailRoute> { entry ->
@@ -638,6 +650,21 @@ private fun NavController.stationsViewModel(
     return viewModel(viewModelStoreOwner = stationsEntry) {
         StationsViewModel(stations, tours, vehicles, VehicleScopeSettings(context), StationsWhatsNewSettings(context))
     }
+}
+
+/**
+ * Das [StationDetailViewModel] der Stationsdetailseite, damit das Bearbeiten dort die Speichermeldung
+ * auslöst (4.6). [StationEditRoute] liegt in diesem Fall immer über [StationDetailRoute] im Stapel.
+ */
+@Composable
+private fun NavController.stationDetailViewModel(
+    entry: NavBackStackEntry,
+    stations: StationRepository,
+    tours: TourRepository,
+    stationId: Long,
+): StationDetailViewModel {
+    val detailEntry = remember(entry) { getBackStackEntry<StationDetailRoute>() }
+    return viewModel(viewModelStoreOwner = detailEntry) { StationDetailViewModel(stations, tours, stationId) }
 }
 
 /** Verlässt [entry] nur, solange er sichtbar ist; verhindert doppeltes Zurück bei schnellem Tippen. */

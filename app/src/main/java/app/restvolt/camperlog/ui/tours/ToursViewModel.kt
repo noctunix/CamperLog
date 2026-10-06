@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.Tour
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -48,7 +50,15 @@ private data class VehicleFilter(
 
 /** Rückmeldungen, die die Tourenliste als Snackbar anzeigt. */
 sealed interface ToursMessage {
-    data class Deleted(val tour: Tour) : ToursMessage
+    /**
+     * [stations] sind die mit der Tour gelöschten Stationen, [linkedEntryIdsByStation] je Stations-id
+     * die davor mit ihr verknüpften Bordbuch-Einträge, für ein vollständiges Rückgängig (8.3, 13.4).
+     */
+    data class Deleted(
+        val tour: Tour,
+        val stations: List<Station> = emptyList(),
+        val linkedEntryIdsByStation: Map<Long, List<Long>> = emptyMap(),
+    ) : ToursMessage
     data object Saved : ToursMessage
     data class Failed(@StringRes val text: Int) : ToursMessage
 }
@@ -126,23 +136,32 @@ class ToursViewModel(
     /** Einmalige Rückmeldung für die Snackbar der Liste; nach der Anzeige [onMessageShown] aufrufen. */
     val message: StateFlow<ToursMessage?> = _message.asStateFlow()
 
-    /** Löscht [tour] und bietet über [ToursMessage.Deleted] das Rückgängigmachen an. */
+    /**
+     * Löscht [tour]; ihre Stationen gehen per CASCADE mit, ihre verknüpften Bordbuch-Einträge bleiben
+     * (SET NULL). Bietet über [ToursMessage.Deleted] das vollständige Rückgängigmachen an (8.3, 13.4).
+     */
     fun delete(tour: Tour) {
         viewModelScope.launch {
             _message.value = try {
+                val tourStations = stations.observeForTour(tour.id).first()
+                val linkedEntryIds = tourStations.associate { it.id to stations.linkedLogEntries(it.id).map(LogEntry::id) }
                 repository.delete(tour.id)
-                ToursMessage.Deleted(tour)
+                ToursMessage.Deleted(tour, tourStations, linkedEntryIds)
             } catch (_: SQLException) {
                 ToursMessage.Failed(R.string.tours_delete_failed)
             }
         }
     }
 
-    /** Stellt eine über [delete] entfernte Tour unverändert wieder her. */
-    fun undoDelete(tour: Tour) {
+    /** Stellt eine über [delete] entfernte Tour samt ihren Stationen wieder her und verknüpft deren Bordbuch-Einträge erneut (13.4). */
+    fun undoDelete(message: ToursMessage.Deleted) {
         viewModelScope.launch {
             try {
-                repository.restore(tour)
+                repository.restore(message.tour)
+                message.stations.forEach { stations.restore(it) }
+                message.stations.forEach { station ->
+                    stations.relinkLogEntries(message.linkedEntryIdsByStation[station.id].orEmpty(), station.id)
+                }
             } catch (_: SQLException) {
                 _message.value = ToursMessage.Failed(R.string.tours_restore_failed)
             }

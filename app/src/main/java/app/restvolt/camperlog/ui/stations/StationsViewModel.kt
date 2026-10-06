@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
+import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
@@ -55,7 +56,9 @@ private data class StationsSource(
 
 /** Rückmeldungen, die der Stationen-Reiter als Snackbar anzeigt. */
 sealed interface StationsMessage {
-    data class Deleted(val station: Station) : StationsMessage
+    /** [linkedEntryIds] sind die Bordbuch-Einträge, die vor dem Löschen mit der Station verknüpft waren (8.3, 13.4). */
+    data class Deleted(val station: Station, val linkedEntryIds: List<Long> = emptyList()) : StationsMessage
+    data class Saved(val loggedServices: Set<StationService>) : StationsMessage
     data class Failed(@StringRes val text: Int) : StationsMessage
 }
 
@@ -173,23 +176,30 @@ class StationsViewModel(
     fun deleteStation(station: Station) {
         viewModelScope.launch {
             _message.value = try {
+                val linkedEntryIds = stations.linkedLogEntries(station.id).map { it.id }
                 stations.delete(station.id)
-                StationsMessage.Deleted(station)
+                StationsMessage.Deleted(station, linkedEntryIds)
             } catch (_: SQLException) {
                 StationsMessage.Failed(R.string.station_delete_failed)
             }
         }
     }
 
-    /** Stellt eine über [deleteStation] entfernte Station unverändert wieder her. */
-    fun undoDeleteStation(station: Station) {
+    /** Stellt eine über [deleteStation] entfernte Station wieder her und verknüpft ihre Bordbuch-Einträge erneut (8.3, 13.4). */
+    fun undoDeleteStation(message: StationsMessage.Deleted) {
         viewModelScope.launch {
             try {
-                stations.restore(station)
+                stations.restore(message.station)
+                stations.relinkLogEntries(message.linkedEntryIds, message.station.id)
             } catch (_: SQLException) {
                 _message.value = StationsMessage.Failed(R.string.station_restore_failed)
             }
         }
+    }
+
+    /** Meldet, dass eine neue Station gespeichert wurde, für die Snackbar der Liste (4.6). */
+    fun onStationSaved(loggedServices: Set<StationService>) {
+        _message.value = StationsMessage.Saved(loggedServices)
     }
 
     /** Verwirft [shown], sofern inzwischen keine neuere Meldung vorliegt. */

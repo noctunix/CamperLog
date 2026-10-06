@@ -61,6 +61,7 @@ import app.restvolt.camperlog.ui.VehicleSwitcherTitle
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
 import app.restvolt.camperlog.ui.labelRes
+import app.restvolt.camperlog.ui.stationSavedText
 import java.util.Locale
 
 /** Stationen-Reiter (6.3): fahrzeugübergreifende Liste mit Suche, Filtern, laufender Tour und Hinweiskarte. */
@@ -178,8 +179,9 @@ fun StationsScreen(
                     withDismissAction = true,
                     duration = SnackbarDuration.Long,
                 )
-                if (result == SnackbarResult.ActionPerformed) viewModel.undoDeleteStation(current.station)
+                if (result == SnackbarResult.ActionPerformed) viewModel.undoDeleteStation(current)
             }
+            is StationsMessage.Saved -> snackbar.showSnackbar(stationSavedText(resources, current.loggedServices))
             is StationsMessage.Failed -> snackbar.showSnackbar(resources.getString(current.text), withDismissAction = true)
         }
         viewModel.onMessageShown(current)

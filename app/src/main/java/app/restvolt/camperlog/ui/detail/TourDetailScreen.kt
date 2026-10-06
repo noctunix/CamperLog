@@ -70,6 +70,7 @@ import app.restvolt.camperlog.ui.StationTypePickerSheet
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
 import app.restvolt.camperlog.ui.labelRes
+import app.restvolt.camperlog.ui.stationSavedText
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -186,8 +187,9 @@ fun TourDetailScreen(
                     withDismissAction = true,
                     duration = SnackbarDuration.Long,
                 )
-                if (result == SnackbarResult.ActionPerformed) viewModel.undoDeleteStation(current.station)
+                if (result == SnackbarResult.ActionPerformed) viewModel.undoDeleteStation(current)
             }
+            is StationMessage.Saved -> snackbar.showSnackbar(stationSavedText(resources, current.loggedServices))
             is StationMessage.Failed -> snackbar.showSnackbar(resources.getString(current.text), withDismissAction = true)
         }
         viewModel.onMessageShown(current)

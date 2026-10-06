@@ -20,6 +20,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +51,7 @@ import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
 import app.restvolt.camperlog.ui.labelRes
+import app.restvolt.camperlog.ui.stationSavedText
 import app.restvolt.camperlog.ui.yesNoRes
 import kotlinx.coroutines.launch
 
@@ -72,6 +74,13 @@ fun StationDetailScreen(
     val snackbar = remember { SnackbarHostState() }
     val station = (state as? StationDetailUiState.Loaded)?.station
     var overflowExpanded by remember { mutableStateOf(false) }
+    val message by viewModel.message.collectAsStateWithLifecycle()
+
+    LaunchedEffect(message) {
+        val current = message ?: return@LaunchedEffect
+        snackbar.showSnackbar(stationSavedText(resources, current.loggedServices))
+        viewModel.onMessageShown(current)
+    }
 
     Scaffold(
         topBar = {

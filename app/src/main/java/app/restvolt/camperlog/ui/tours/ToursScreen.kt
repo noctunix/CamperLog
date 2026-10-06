@@ -154,7 +154,7 @@ fun ToursScreen(
                     withDismissAction = true,
                     duration = SnackbarDuration.Long,
                 )
-                if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete(current.tour)
+                if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete(current)
             }
             ToursMessage.Saved -> snackbar.showSnackbar(resources.getString(R.string.tours_saved))
             is ToursMessage.Failed -> snackbar.showSnackbar(resources.getString(current.text), withDismissAction = true)
