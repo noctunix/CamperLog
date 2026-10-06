@@ -10,6 +10,7 @@ import app.restvolt.camperlog.backup.encodeBackup
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.FakeBackupImporter
@@ -181,6 +182,49 @@ class DataViewModelTest {
     }
 
     @Test
+    fun exportStationsCsv_withStations_requestsShare() {
+        val station = Station(
+            vehicleId = 1,
+            tourId = null,
+            type = StationType.SIGHT,
+            date = LocalDate.of(2026, 7, 2),
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        val repository = FakeTourRepository()
+        val viewModel = DataViewModel(
+            repository,
+            FakeExchangeRateRepository(),
+            FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1, name = "Standard").copy(uuid = VEHICLE_UUID))),
+            FakeLogRepository(),
+            FakeStationRepository(listOf(station)),
+            FakeBackupImporter(),
+            files,
+            background = dispatcher,
+        )
+
+        viewModel.exportStationsCsv(DEFAULT_VEHICLE_NAME)
+
+        assertEquals(ShareRequest.StationsCsv("stations-csv:1"), viewModel.share.value)
+        assertEquals(1, files.stationsCsvExports.size)
+        val (exportedStations, vehicleNames, defaultName) = files.stationsCsvExports.single()
+        assertEquals(listOf(station), exportedStations)
+        assertEquals(mapOf(1L to "Standard"), vehicleNames)
+        assertEquals(DEFAULT_VEHICLE_NAME, defaultName)
+    }
+
+    @Test
+    fun exportStationsCsv_withoutStations_reportsNothingToExport() {
+        val viewModel = viewModel()
+
+        viewModel.exportStationsCsv(DEFAULT_VEHICLE_NAME)
+
+        assertNull(viewModel.share.value)
+        assertEquals(DataMessage.Text(R.string.export_stations_nothing), viewModel.message.value)
+        assertTrue(files.stationsCsvExports.isEmpty())
+    }
+
+    @Test
     fun saveBackup_writesTargetAndReportsSuccess() {
         val viewModel = viewModel(tours = listOf(tour))
 
@@ -285,6 +329,7 @@ private class FakeDataFiles : DataFiles {
     val sources = mutableMapOf<String, String>()
     val written = mutableMapOf<String, String>()
     val csvExports = mutableListOf<Triple<List<Tour>, Map<Long, String>, String>>()
+    val stationsCsvExports = mutableListOf<Triple<List<Station>, Map<Long, String>, String>>()
     var gate: CompletableDeferred<Unit>? = null
     var failure: IOException? = null
     private var backups = 0
@@ -299,6 +344,18 @@ private class FakeDataFiles : DataFiles {
         failure?.let { throw it }
         csvExports += Triple(tours, vehicleNames, defaultVehicleName)
         return "csv:${csvExports.size}"
+    }
+
+    override suspend fun writeStationsCsvExport(
+        stations: List<Station>,
+        tourNames: Map<Long, String>,
+        vehicleNames: Map<Long, String>,
+        defaultVehicleName: String,
+    ): String {
+        gate?.await()
+        failure?.let { throw it }
+        stationsCsvExports += Triple(stations, vehicleNames, defaultVehicleName)
+        return "stations-csv:${stationsCsvExports.size}"
     }
 
     override suspend fun writeBackupExport(json: String): String {

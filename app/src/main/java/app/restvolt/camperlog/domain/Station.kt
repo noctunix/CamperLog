@@ -5,15 +5,33 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 
-/** Art einer Station; die Reihenfolge ist die Reihenfolge in der Auswahl. */
-enum class StationType { OVERNIGHT, SUPPLY, FUEL, SIGHT, FOOD, FERRY, OTHER }
+/** Art einer Station; die Reihenfolge ist die Reihenfolge in der Auswahl. Mit stabilem Exportwert [csvValue]. */
+enum class StationType(val csvValue: String) {
+    OVERNIGHT("schlafplatz"),
+    SUPPLY("ver_entsorgung"),
+    FUEL("tanken_laden"),
+    SIGHT("sehenswertes"),
+    FOOD("essen"),
+    FERRY("faehre"),
+    OTHER("sonstiges"),
+}
 
 /**
  * Vor Ort genutzte Versorgung. Die "Ver-/Entsorgung"-Gruppe ist auf [StationType.OVERNIGHT],
  * [StationType.SUPPLY] und [StationType.FUEL] erlaubt, die "Tanken"-Gruppe nur auf [StationType.FUEL]
- * (siehe [StationType.allowedServices]).
+ * (siehe [StationType.allowedServices]). Mit stabilem Exportwert [csvValue].
  */
-enum class StationService { FRESH_WATER, GREY_WATER, CASSETTE, GAS, DIESEL, PETROL, ADBLUE, LPG, ELECTRICITY }
+enum class StationService(val csvValue: String) {
+    FRESH_WATER("frischwasser"),
+    GREY_WATER("grauwasser"),
+    CASSETTE("kassette"),
+    GAS("gas"),
+    DIESEL("diesel"),
+    PETROL("benzin"),
+    ADBLUE("adblue"),
+    LPG("fluessiggas"),
+    ELECTRICITY("strom"),
+}
 
 /** Die "Ver-/Entsorgung"-Gruppe, auch für die gleichnamige UI-Sektion (6.5). */
 val SUPPLY_SERVICES: Set<StationService> = setOf(StationService.FRESH_WATER, StationService.GREY_WATER, StationService.CASSETTE, StationService.GAS)
@@ -29,11 +47,18 @@ val StationType.allowedServices: Set<StationService>
         StationType.SIGHT, StationType.FOOD, StationType.FERRY, StationType.OTHER -> emptySet()
     }
 
-/** Art des Platzes einer Übernachtungs-Station. */
-enum class SiteKind { CAMPSITE, MOTORHOME_AREA, WILD }
+/** Art des Platzes einer Übernachtungs-Station, mit stabilem Exportwert [csvValue]. */
+enum class SiteKind(val csvValue: String) {
+    CAMPSITE("campingplatz"),
+    MOTORHOME_AREA("stellplatz"),
+    WILD("frei_stehen"),
+}
 
-/** Herkunft gespeicherter Koordinaten. */
-enum class CoordinateSource { GPS, ENTERED }
+/** Herkunft gespeicherter Koordinaten, mit stabilem Exportwert [csvValue]. */
+enum class CoordinateSource(val csvValue: String) {
+    GPS("gps"),
+    ENTERED("erfasst"),
+}
 
 /**
  * Einmalige Wetterabfrage zu einer Station (Open-Meteo); [observedAt] ist der einzige Zeitpunktwert,

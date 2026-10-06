@@ -58,6 +58,8 @@ sealed interface ShareRequest {
 
     data class Csv(override val uri: String) : ShareRequest
 
+    data class StationsCsv(override val uri: String) : ShareRequest
+
     data class Backup(override val uri: String) : ShareRequest
 }
 
@@ -129,6 +131,22 @@ class DataViewModel(
             val vehicleNames = vehicles.allVehicles().associate { it.id to it.name }
             val allStations = stations.allStations()
             _share.value = ShareRequest.Csv(files.writeCsvExport(tours, allStations, vehicleNames, defaultVehicleName))
+            null
+        }
+    }
+
+    /**
+     * Schreibt alle Stationen als eigene CSV und fordert das Teilen an; ohne Stationen gibt es nur
+     * einen Hinweis. [defaultVehicleName] gilt für Stationen eines Fahrzeugs mit leerem Namen.
+     */
+    fun exportStationsCsv(defaultVehicleName: String) = launchTask(R.string.export_stations_failed) {
+        val allStations = stations.allStations()
+        if (allStations.isEmpty()) {
+            DataMessage.Text(R.string.export_stations_nothing)
+        } else {
+            val vehicleNames = vehicles.allVehicles().associate { it.id to it.name }
+            val tourNames = repository.allTours().associate { it.id to it.destination }
+            _share.value = ShareRequest.StationsCsv(files.writeStationsCsvExport(allStations, tourNames, vehicleNames, defaultVehicleName))
             null
         }
     }

@@ -41,6 +41,7 @@ import app.restvolt.camperlog.share.BACKUP_MIME
 import app.restvolt.camperlog.share.backupFileName
 import app.restvolt.camperlog.share.shareBackup
 import app.restvolt.camperlog.share.shareCsv
+import app.restvolt.camperlog.share.shareStationsCsv
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.SectionCard
 import kotlinx.coroutines.flow.filterNotNull
@@ -69,6 +70,7 @@ fun DataScreen(viewModel: DataViewModel, onBack: () -> Unit) {
         val uri = request.uri.toUri()
         val started = when (request) {
             is ShareRequest.Csv -> context.shareCsv(uri)
+            is ShareRequest.StationsCsv -> context.shareStationsCsv(uri)
             is ShareRequest.Backup -> context.shareBackup(uri)
         }
         viewModel.shareHandled(started)
@@ -125,6 +127,13 @@ fun DataScreen(viewModel: DataViewModel, onBack: () -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(stringResource(R.string.tours_export_csv))
+                    }
+                    OutlinedButton(
+                        onClick = { viewModel.exportStationsCsv(defaultVehicleName) },
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.stations_export_csv))
                     }
                 }
             }

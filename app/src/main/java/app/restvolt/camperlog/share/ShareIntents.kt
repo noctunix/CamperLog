@@ -51,6 +51,24 @@ suspend fun writeCsvExport(
 }
 
 /**
+ * Schreibt alle [stations] als eigene CSV in den Cache-Ordner `exports/` und liefert eine teilbare
+ * Content-URI, wie [writeCsvExport] für Touren. [tourNames] löst [Station.tourId] in den Zielnamen auf.
+ */
+suspend fun writeStationsCsvExport(
+    context: Context,
+    stations: List<Station>,
+    tourNames: Map<Long, String>,
+    vehicleNames: Map<Long, String>,
+    defaultVehicleName: String,
+): Uri = withContext(Dispatchers.IO) {
+    val dir = File(context.cacheDir, EXPORT_DIR).apply { mkdirs() }
+    deleteOldExports(dir, System.currentTimeMillis())
+    val file = uniqueFile(dir, "camperlog-stationen-${LocalDateTime.now().format(exportStamp)}")
+    file.writeText(UTF8_BOM + stationsToCsv(stations, tourNames, vehicleNames, defaultVehicleName), Charsets.UTF_8)
+    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
+/**
  * Schreibt die Sicherung [json] in den Cache-Ordner `exports/` und liefert eine teilbare Content-URI.
  * Ältere Exporte werden dabei wie bei [writeCsvExport] aufgeräumt.
  */
@@ -111,6 +129,22 @@ fun Context.shareCsv(uri: Uri): Boolean {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     return startChooser(send, getString(R.string.export_chooser))
+}
+
+/**
+ * Öffnet das Sharesheet für eine Stationen-CSV-Datei unter [uri].
+ *
+ * @return `false`, wenn kein Sharesheet geöffnet werden konnte
+ */
+fun Context.shareStationsCsv(uri: Uri): Boolean {
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = CSV_MIME
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_SUBJECT, getString(R.string.export_stations_subject))
+        clipData = ClipData.newRawUri(null, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    return startChooser(send, getString(R.string.export_stations_chooser))
 }
 
 /**
