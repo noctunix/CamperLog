@@ -54,6 +54,7 @@ data class Vehicle(
     val solarPowerWp: Int? = null,
     val nextInspectionDate: LocalDate? = null,
     val nextGasCheckDate: LocalDate? = null,
+    val nextLeakTestDate: LocalDate? = null,
     val lastOilChangeDate: LocalDate? = null,
     val lastOilChangeOdometerKm: Int? = null,
     val createdAt: Instant,

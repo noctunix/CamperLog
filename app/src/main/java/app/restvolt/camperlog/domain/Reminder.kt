@@ -3,7 +3,7 @@ package app.restvolt.camperlog.domain
 import java.time.LocalDate
 
 /** Art der Erinnerung. */
-enum class ReminderKind { INSPECTION, GAS_CHECK, OIL_CHANGE }
+enum class ReminderKind { INSPECTION, GAS_CHECK, LEAK_TEST, OIL_CHANGE }
 
 /** Fällige Erinnerung; [overdue], wenn [dueDate] bereits vor dem Bezugstag liegt. */
 data class Reminder(val kind: ReminderKind, val dueDate: LocalDate, val overdue: Boolean)
@@ -21,6 +21,7 @@ fun dueReminders(vehicle: Vehicle, today: LocalDate, leadDays: Int, oilIntervalM
     val dueDates = listOfNotNull(
         vehicle.nextInspectionDate?.let { ReminderKind.INSPECTION to it },
         vehicle.nextGasCheckDate?.let { ReminderKind.GAS_CHECK to it },
+        vehicle.nextLeakTestDate?.let { ReminderKind.LEAK_TEST to it },
         vehicle.lastOilChangeDate?.plusMonths(oilIntervalMonths.toLong())?.let { ReminderKind.OIL_CHANGE to it },
     )
     return dueDates
