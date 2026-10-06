@@ -1,0 +1,3 @@
+• Karte der Stationen einer Tour (mit eingeschaltetem „Wetter & Karte“): Marker, gestrichelte Verbindungen in Reihenfolge, Stationsliste für Screenreader
+• Kartenkacheln von OpenStreetMap werden auf dem Gerät zwischengespeichert; geladen wird nur der Ausschnitt, den du ansiehst
+• Die Einstellungen zeigen, was übertragen wird und wie viel Kartenspeicher belegt ist, mit Knopf zum Leeren

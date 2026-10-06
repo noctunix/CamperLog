@@ -1,0 +1,3 @@
+• Map of a tour's stops (with "Weather & map" switched on): markers, dashed connections in order, list of stops for screen readers
+• Map tiles from OpenStreetMap are cached on the device; only the area you look at is loaded
+• Settings show what is transferred and how much map storage is used, with a button to clear it
