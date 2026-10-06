@@ -1,21 +1,27 @@
 package app.restvolt.camperlog.ui
 
 import android.content.Context
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.isOn
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
 import app.restvolt.camperlog.ui.settings.LocationSettings
+import app.restvolt.camperlog.ui.settings.WeatherSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -35,11 +41,25 @@ class IntroductionTourFlowTest {
 
     private val context get() = ApplicationProvider.getApplicationContext<Context>()
 
+    /**
+     * Scrollt die Einstellungen-Liste so lange nach unten, bis [text] komponiert ist: eine
+     * `LazyColumn` komponiert nur sichtbare Einträge, daher reicht ein einzelnes `performScrollTo()`
+     * nicht, wenn der gesuchte Knoten noch gar nicht existiert.
+     */
+    private fun scrollUntilVisible(text: String, maxAttempts: Int = 10) {
+        repeat(maxAttempts) {
+            if (compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()) return
+            compose.onNode(hasScrollAction()).performTouchInput { swipeUp() }
+            compose.waitForIdle()
+        }
+    }
+
     private fun clearPreferences() {
         context.getSharedPreferences("introduction", Context.MODE_PRIVATE).edit().clear().commit()
         context.getSharedPreferences("keep_android_open", Context.MODE_PRIVATE).edit().clear().commit()
         context.getSharedPreferences("reminders", Context.MODE_PRIVATE).edit().clear().commit()
         context.getSharedPreferences("location", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("weather", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     private fun start(
@@ -153,10 +173,31 @@ class IntroductionTourFlowTest {
                 compose.waitForIdle()
             }
 
-            compose.onNodeWithText("Optional: Standort").assertExists()
+            compose.onNodeWithText("Optional: Standort, Wetter, Karte").assertExists()
             compose.onNodeWithText("Aktuellen Standort nutzen").performClick()
 
             assertTrue(LocationSettings(context).values.value)
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
+    fun optInPage_weatherSwitchDefaultsOffAndTogglingPersists() {
+        clearPreferences()
+        try {
+            start()
+
+            repeat(5) {
+                compose.onNodeWithText("Weiter").performClick()
+                compose.waitForIdle()
+            }
+
+            compose.onNodeWithText("Wetter & Karte (Internet)").performClick()
+
+            assertTrue(WeatherSettings(context).values.value)
+            // Der Standort-Schalter bleibt von der Wetter-Umschaltung unberührt (6.10: zwei unabhängige Schalter).
+            assertFalse(LocationSettings(context).values.value)
         } finally {
             clearPreferences()
         }
@@ -171,6 +212,7 @@ class IntroductionTourFlowTest {
 
             start()
             compose.onNodeWithContentDescription("Einstellungen").performClick()
+            scrollUntilVisible("Über CamperLog")
             compose.onNodeWithText("Über CamperLog").performClick()
             compose.onNodeWithText("Einführung erneut anzeigen").performClick()
             repeat(5) {
@@ -197,6 +239,7 @@ class IntroductionTourFlowTest {
             compose.onNodeWithText("Willkommen bei CamperLog").assertDoesNotExist()
 
             compose.onNodeWithContentDescription("Einstellungen").performClick()
+            scrollUntilVisible("Über CamperLog")
             compose.onNodeWithText("Über CamperLog").performClick()
             compose.onNodeWithText("Einführung erneut anzeigen").performClick()
 
