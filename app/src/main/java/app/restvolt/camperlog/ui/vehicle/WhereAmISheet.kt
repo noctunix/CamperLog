@@ -12,6 +12,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -23,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +35,7 @@ import app.restvolt.camperlog.domain.LocationCaptureState
 import app.restvolt.camperlog.share.locationShareText
 import app.restvolt.camperlog.share.shareLocation
 import app.restvolt.camperlog.ui.LocationCaptureSection
+import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.locationFixSummary
 import app.restvolt.camperlog.ui.rememberLocationCaptureHandlers
@@ -72,7 +75,13 @@ fun WhereAmISheet(viewModel: WhereAmIViewModel, onDismiss: () -> Unit) {
             )
             when (val current = state) {
                 is LocationCaptureState.Found -> {
-                    Text(locationFixSummary(current.fix, locale), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+                    val description = coordinatesContentDescription(current.fix.latitude, current.fix.longitude, current.fix.accuracyM, locale)
+                    Text(
+                        locationFixSummary(current.fix, locale),
+                        modifier = Modifier.fillMaxWidth().semantics { contentDescription = description },
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center,
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = {
                             context.copyLocationToClipboard(current.fix.latitude, current.fix.longitude, locale)
@@ -89,6 +98,7 @@ fun WhereAmISheet(viewModel: WhereAmIViewModel, onDismiss: () -> Unit) {
                     handlers = handlers,
                 )
             }
+            SnackbarHost(snackbar)
         }
     }
 }

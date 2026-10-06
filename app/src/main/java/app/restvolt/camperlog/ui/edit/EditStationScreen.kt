@@ -100,6 +100,7 @@ import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LocationCaptureSection
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
 import app.restvolt.camperlog.ui.labelRes
@@ -595,7 +596,12 @@ private fun GpsSuccessRow(fix: LocationFix, locationSettings: LocationSettings, 
     val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(locationFixSummary(fix, locale), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            val description = coordinatesContentDescription(fix.latitude, fix.longitude, fix.accuracyM, locale)
+            Text(
+                locationFixSummary(fix, locale),
+                modifier = Modifier.weight(1f).semantics { contentDescription = description },
+                style = MaterialTheme.typography.bodyLarge,
+            )
             IconButton(onClick = onRemove) {
                 Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.location_remove_coordinates))
             }
