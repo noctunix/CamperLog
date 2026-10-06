@@ -314,6 +314,110 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migration7To8AddsStationLinkAndKeepsExistingEntriesUnlinked() = runTest {
+        createVersion7(
+            defaultVehicleInsert,
+            "INSERT INTO tours VALUES (1, 'tour-1', 1, '2026-07-04', '2026-07-05', 'Lofoten', 'WEEKEND', 2, 1, " +
+                "100, '', NULL, 1000, 2000)",
+            "INSERT INTO stations (id, uuid, vehicle_id, tour_id, type, date, name, place, notes, services, " +
+                "favorite, created_at, updated_at) VALUES (1, 'station-1', 1, 1, 'SUPPLY', '2026-07-04', '', '', " +
+                "'', 'CASSETTE', 0, 1000, 2000)",
+            "INSERT INTO log_entries (id, uuid, vehicle_id, type, date, created_at) VALUES " +
+                "(1, 'log-1', 1, 'CASSETTE_EMPTIED', '2026-07-04', 1000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val entry = RoomLogRepository(db.logDao()).allEntries().single()
+            assertEquals(null, entry.stationId)
+
+            // Der neue Fremdschlüssel greift auch nach der Migration: Verknüpfen und Löschen der Station setzt zurück.
+            db.logDao().link(entry.id, 1)
+            assertEquals(1L, RoomLogRepository(db.logDao()).allEntries().single().stationId)
+            db.openHelper.writableDatabase.execSQL("DELETE FROM stations WHERE id = 1")
+            assertEquals(null, RoomLogRepository(db.logDao()).allEntries().single().stationId)
+        } finally {
+            db.close()
+        }
+    }
+
+    /** Legt `camperlog.db` im Stand von Version 7 nach `schemas/…/7.json` an und füllt sie mit [inserts]. */
+    private fun createVersion7(vararg inserts: String) = createDatabase(
+        version = 7,
+        identityHash = "0191d3a784cbbe17d960c28b6b036419",
+        schema = listOf(
+            "CREATE TABLE IF NOT EXISTS `vehicles` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `license_plate` TEXT NOT NULL, " +
+                "`manufacturer` TEXT NOT NULL, `model` TEXT NOT NULL, `vin` TEXT NOT NULL, " +
+                "`first_registration` TEXT, `notes` TEXT NOT NULL, `purchase_date` TEXT, " +
+                "`purchase_price_currency` TEXT, `purchase_price_minor` INTEGER, `purchase_odometer_km` INTEGER, " +
+                "`sale_date` TEXT, `sale_price_currency` TEXT, `sale_price_minor` INTEGER, " +
+                "`insurer` TEXT NOT NULL, `insurance_policy_number` TEXT NOT NULL, " +
+                "`insurance_premium_per_year_currency` TEXT, `insurance_premium_per_year_minor` INTEGER, " +
+                "`vehicle_tax_per_year_currency` TEXT, `vehicle_tax_per_year_minor` INTEGER, " +
+                "`length_cm` INTEGER, `width_cm` INTEGER, `height_cm` INTEGER, `gross_weight_kg` INTEGER, " +
+                "`measured_empty_weight_kg` INTEGER, `breakdown_provider` TEXT NOT NULL, " +
+                "`breakdown_membership_number` TEXT NOT NULL, `breakdown_phone` TEXT NOT NULL, " +
+                "`travel_protection_provider` TEXT NOT NULL, `travel_protection_contract_number` TEXT NOT NULL, " +
+                "`travel_protection_phone` TEXT NOT NULL, `insurer_claims_phone` TEXT NOT NULL, " +
+                "`power_kw` INTEGER, `tire_size` TEXT NOT NULL, `tire_pressure_front_mbar` INTEGER, " +
+                "`tire_pressure_rear_mbar` INTEGER, `fuel_tank_dl` INTEGER, `ad_blue_tank_dl` INTEGER, " +
+                "`fresh_water_tank_dl` INTEGER, `grey_water_tank_dl` INTEGER, `boiler_dl` INTEGER, " +
+                "`cassette_dl` INTEGER, `battery_capacity_ah` INTEGER, `solar_power_wp` INTEGER, " +
+                "`next_inspection_date` TEXT, `next_gas_check_date` TEXT, `last_oil_change_date` TEXT, " +
+                "`last_oil_change_odometer_km` INTEGER, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_vehicles_uuid` ON `vehicles` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `repairs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `date` TEXT NOT NULL, " +
+                "`description` TEXT NOT NULL, `odometer_km` INTEGER, `cost_currency` TEXT, `cost_minor` INTEGER, " +
+                "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE INDEX IF NOT EXISTS `index_repairs_vehicle_id` ON `repairs` (`vehicle_id`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_repairs_uuid` ON `repairs` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `log_entries` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `type` TEXT NOT NULL, `date` TEXT NOT NULL, " +
+                "`created_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE INDEX IF NOT EXISTS `index_log_entries_vehicle_id_type_date` ON `log_entries` " +
+                "(`vehicle_id`, `type`, `date`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_log_entries_uuid` ON `log_entries` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL DEFAULT '', `vehicle_id` INTEGER NOT NULL, `start_date` TEXT NOT NULL, " +
+                "`end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, `tour_type` TEXT NOT NULL, " +
+                "`travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, " +
+                "`notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+            "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_tours_uuid` ON `tours` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_tours_vehicle_id` ON `tours` (`vehicle_id`)",
+            "CREATE TABLE IF NOT EXISTS `tour_costs` (`tour_id` INTEGER NOT NULL, `currency` TEXT NOT NULL, " +
+                "`amount_minor` INTEGER NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`tour_id`, `currency`), " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE TABLE IF NOT EXISTS `exchange_rates` (`currency` TEXT NOT NULL, `per_euro` TEXT NOT NULL, " +
+                "`rate_date` TEXT NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`currency`))",
+            "CREATE TABLE IF NOT EXISTS `settings` (`id` INTEGER NOT NULL, `main_currency` TEXT NOT NULL, " +
+                "`current_vehicle_id` INTEGER, PRIMARY KEY(`id`))",
+            "CREATE TABLE IF NOT EXISTS `stations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `tour_id` INTEGER, `type` TEXT NOT NULL, " +
+                "`date` TEXT NOT NULL, `time` TEXT, `name` TEXT NOT NULL, `place` TEXT NOT NULL, `latitude` REAL, " +
+                "`longitude` REAL, `coordinate_source` TEXT, `accuracy_m` INTEGER, `map_link` TEXT, " +
+                "`notes` TEXT NOT NULL, `nights` INTEGER, `site_kind` TEXT, `pitch_assigned` INTEGER, " +
+                "`electricity_flat_rate` TEXT, `lte_quality` TEXT, `pitch_slope` TEXT, `leveling_blocks_used` INTEGER, " +
+                "`services` TEXT NOT NULL, `weather_temperature_deci_c` INTEGER, `weather_code` INTEGER, " +
+                "`weather_wind_kmh` INTEGER, `weather_gust_kmh` INTEGER, `weather_wind_direction_deg` INTEGER, " +
+                "`weather_observed_at` INTEGER, `favorite` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, " +
+                "`updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_stations_uuid` ON `stations` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_stations_vehicle_id` ON `stations` (`vehicle_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_stations_tour_id` ON `stations` (`tour_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_stations_date` ON `stations` (`date`)",
+        ),
+        inserts = inserts.toList(),
+    )
+
     private val defaultVehicleInsert =
         "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
             "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
