@@ -103,7 +103,7 @@
     <string name="settings_theme_dark">Dunkel</string>
     <string name="settings_open_rates">Wechselkurse verwalten</string>
     <string name="settings_reminders">Erinnerungen</string>
-    <string name="settings_reminders_hint">Erinnerungen werden nur in der App angezeigt; CamperLog versendet keine Benachrichtigungen.</string>
+    <string name="settings_reminders_hint">Erinnerungen werden immer in der App angezeigt. Schalte unten Benachrichtigungen ein, um sie zusätzlich als täglichen Hintergrund-Check zu bekommen.</string>
     <string name="settings_reminder_lead_days">Vor Fälligkeit erinnern</string>
     <string name="settings_reminder_oil_interval">Ölwechsel-Intervall</string>
     <plurals name="settings_reminder_lead_days_option">
@@ -114,6 +114,17 @@
         <item quantity="one">%1$d Monat</item>
         <item quantity="other">%1$d Monate</item>
     </plurals>
+    <string name="settings_notifications_switch_title">Benachrichtigungen</string>
+    <string name="settings_notifications_switch_support">Solange das an ist, läuft einmal täglich ein Hintergrund-Check, der dich auf fällige Wartung und deine Sicherungs-Erinnerung hinweist.</string>
+    <string name="settings_notifications_denied_hint">Benachrichtigungen sind für CamperLog blockiert. Erlaube sie in den Benachrichtigungseinstellungen, wenn du den täglichen Hintergrund-Check willst.</string>
+    <string name="settings_notifications_open_settings">Benachrichtigungseinstellungen</string>
+    <string name="settings_reminder_backup_weeks">An Sicherung erinnern</string>
+    <string name="settings_reminder_backup_weeks_off">Aus</string>
+    <plurals name="settings_reminder_backup_weeks_option">
+        <item quantity="one">Alle %1$d Woche</item>
+        <item quantity="other">Alle %1$d Wochen</item>
+    </plurals>
+    <string name="settings_reminder_backup_weeks_support">Benachrichtigt im Hintergrund, solange Benachrichtigungen an sind; sonst erscheint hier eine Karte, wenn es fällig ist.</string>
     <string name="settings_location_section">Standort &amp; Internet</string>
     <string name="settings_location_switch_support">Zeigt bei Stationen „Aktuellen Standort verwenden“. Die Position wird nur auf Knopfdruck einmal bestimmt, nie im Hintergrund.</string>
     <string name="settings_location_revoked_hint">Der Zugriff wird nach dem nächsten Neustart der App vollständig entfernt.</string>
@@ -218,6 +229,20 @@
     <string name="backup_saved">Sicherung gespeichert</string>
     <string name="backup_failed">Sicherung fehlgeschlagen</string>
     <string name="backup_subject">CamperLog-Sicherung</string>
+    <string name="data_backup_last_never">Noch keine Sicherung</string>
+    <string name="data_backup_last_at">Letzte Sicherung: %1$s</string>
+    <string name="data_backup_overdue_card">Du hast länger nicht gesichert. Nutze eine der Sicherungsmöglichkeiten unten.</string>
+    <string name="data_backup_folder_title">Sicherungsordner</string>
+    <string name="data_backup_folder_description">Wähle einen Ordner, z. B. per Syncthing oder Nextcloud synchronisiert, um mit einem Tipp dorthin zu sichern.</string>
+    <string name="data_backup_folder_choose">Ordner wählen</string>
+    <string name="data_backup_folder_change">Ordner wechseln</string>
+    <string name="data_backup_folder_name">Ordner: %1$s</string>
+    <string name="data_backup_folder_inaccessible">Der Sicherungsordner ist nicht mehr erreichbar. Wähle einen neuen.</string>
+    <string name="data_backup_now">Jetzt sichern</string>
+    <string name="data_backup_folder_saved">Sicherung in %1$s gespeichert</string>
+    <string name="data_backup_folder_failed">Der Sicherungsordner konnte nicht beschrieben werden.</string>
+    <string name="data_backup_auto_switch_title">Automatisch sichern, wenn fällig</string>
+    <string name="data_backup_auto_switch_support">Ist die Sicherungs-Erinnerung fällig, schreibt der tägliche Hintergrund-Check statt nur zu benachrichtigen eine Sicherung in diesen Ordner.</string>
     <string name="data_import_title">Sicherung einspielen</string>
     <string name="data_import_description">Liest eine CamperLog-Sicherung ein. Bevor etwas geändert wird, siehst du, was sie enthält.</string>
     <string name="data_import_choose">Sicherungsdatei wählen</string>
@@ -406,6 +431,17 @@
         <item quantity="other">%1$s, %2$d Erinnerungen</item>
     </plurals>
 
+    <!-- Benachrichtigungen (1.9.0): täglicher Hintergrund-Check, optional -->
+    <string name="notification_channel_maintenance_name">Wartungserinnerungen</string>
+    <string name="notification_channel_maintenance_description">Fällige Wartung am Fahrzeug und die Sicherungs-Erinnerung, einmal täglich geprüft.</string>
+    <string name="notification_reminders_summary_title">Erinnerungen fällig</string>
+    <plurals name="notification_reminders_summary_text">
+        <item quantity="one">%1$d Erinnerung fällig</item>
+        <item quantity="other">%1$d Erinnerungen fällig</item>
+    </plurals>
+    <string name="notification_backup_title">Sicherungs-Erinnerung</string>
+    <string name="notification_backup_text">Du hast deine Daten länger nicht gesichert. Öffne CamperLog, um jetzt zu sichern.</string>
+
     <!-- Fahrzeuge verwalten -->
     <string name="vehicles_add">Fahrzeug hinzufügen</string>
     <string name="vehicles_empty">Noch keine Fahrzeuge.</string>
@@ -477,6 +513,7 @@
     <string name="about_privacy_bullet_opt_in">Standort- und Internetfunktionen sind ausgeschaltet. Ohne sie arbeitet CamperLog vollständig offline.</string>
     <string name="about_privacy_bullet_location">Standort (optional): Nur wenn du auf „Aktuellen Standort verwenden“ tippst, liest CamperLog deine Position einmal und speichert sie bei der Station. Nie im Hintergrund, nie übertragen.</string>
     <string name="about_privacy_bullet_weather_map">Wetter &amp; Karte (optional): CamperLog hat die Internet-Berechtigung, nutzt sie aber nur, wenn du das einschaltest. Beim Wetterabruf gehen die Koordinaten der Station, auf etwa 1 km gerundet, an Open-Meteo. Die Karte lädt den angezeigten Ausschnitt von OpenStreetMap. Beide Dienste sehen deine IP-Adresse.</string>
+    <string name="about_privacy_bullet_notifications">Benachrichtigungen (optional): aus, bis du sie einschaltest. Das Einschalten fragt nach der Benachrichtigungsberechtigung und startet einen täglichen Hintergrund-Check für fällige Wartung und deine Sicherungs-Erinnerung, vollständig auf deinem Gerät. Dafür kommt die Berechtigung für den Neustart-Empfang hinzu, damit der Check einen Neustart überlebt; es wird dabei nichts irgendwohin gesendet.</string>
     <string name="about_privacy_bullet_no_tracking">Kein Konto, keine Werbung, keine Analyse. Sonst verlässt nichts dein Gerät.</string>
     <string name="about_privacy_bullet_local">Alle Daten bleiben auf diesem Gerät.</string>
     <string name="about_privacy_bullet_backup">Sicherungen entstehen nur, wenn du sie exportierst.</string>

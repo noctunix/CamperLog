@@ -64,4 +64,25 @@ class PrivacyStringsTest {
         assertTrue(de.contains("Open-Meteo.com (CC BY 4.0)"))
         assertTrue(de.contains("OpenStreetMap-Mitwirkende (ODbL)"))
     }
+
+    /** ROADMAP 1.9.0: Benachrichtigungen sind jetzt optional möglich - die alte Aussage wäre falsch. */
+    @Test
+    fun noStaleNoNotificationsClaimRemains() {
+        assertFalse(en.contains("does not send notifications", ignoreCase = true))
+        assertFalse(en.contains("No notifications.", ignoreCase = false))
+        assertFalse(de.contains("versendet keine Benachrichtigungen", ignoreCase = true))
+        assertFalse(de.contains("Keine Benachrichtigungen.", ignoreCase = false))
+    }
+
+    @Test
+    fun readmeAndStoreTextsDescribeNotificationsAsOptional() {
+        val readme = File("../README.md").readText()
+        val fullDescriptionEn = File("../fastlane/metadata/android/en-US/full_description.txt").readText()
+        val fullDescriptionDe = File("../fastlane/metadata/android/de-DE/full_description.txt").readText()
+
+        assertTrue(readme.contains("Notifications are optional"))
+        assertTrue(readme.contains("boot-completed permission"))
+        assertTrue(fullDescriptionEn.contains("Notifications\" run a daily background check"))
+        assertTrue(fullDescriptionDe.contains("Benachrichtigungen“, ein täglicher"))
+    }
 }
