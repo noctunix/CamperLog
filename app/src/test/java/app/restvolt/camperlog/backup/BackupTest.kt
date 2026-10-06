@@ -325,7 +325,7 @@ class BackupTest {
         assertEquals(emptyList<BackupVehicle>(), decoded.vehicles)
         assertEquals(null, decoded.currentVehicleUuid)
 
-        // Die alten Stellplatz-Felder der Tour (13 Übernachtungen) werden zu einer Übernachtungs-Station (3.4).
+        // Die alten Stellplatz-Felder der Tour (13 Übernachtungen) werden zu einer Übernachtungs-Station.
         val station = decoded.stations.single()
         assertEquals(StationType.OVERNIGHT, station.type)
         assertEquals("Lofoten", station.name)

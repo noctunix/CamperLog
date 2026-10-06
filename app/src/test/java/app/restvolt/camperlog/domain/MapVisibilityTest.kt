@@ -8,7 +8,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 
-/** Sichtbarkeitsregeln der Karte (5.3, 13): Schalter aus / keine Koordinaten / teilweise Koordinaten. */
+/** Sichtbarkeitsregeln der Karte: Schalter aus / keine Koordinaten / teilweise Koordinaten. */
 class MapVisibilityTest {
 
     private fun station(
@@ -70,7 +70,7 @@ class MapVisibilityTest {
         // Reihenfolge wie im Stationen-Reiter: neueste zuerst, trotzdem muss die Karte chronologisch verbinden.
         val result = stationsForMap(listOf(third, unlocated, second, first))
 
-        // Stationen ohne Uhrzeit sortieren nach den terminierten des gleichen Tages (3.3).
+        // Stationen ohne Uhrzeit sortieren nach den terminierten des gleichen Tages.
         assertEquals(listOf(second, first, third), result)
     }
 

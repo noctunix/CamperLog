@@ -7,7 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant
 
-/** Zustandsautomat der einmaligen Wetterabfrage (6.8), mit einem Fake statt Netzwerk. */
+/** Zustandsautomat der einmaligen Wetterabfrage, mit einem Fake statt Netzwerk. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class WeatherCaptureControllerTest {
 

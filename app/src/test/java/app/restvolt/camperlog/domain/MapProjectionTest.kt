@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Web-Mercator-Projektion und Einpassen (6.9, 11 Phase G): reine Mathematik, kein Android. */
+/** Web-Mercator-Projektion und Einpassen: reine Mathematik, kein Android. */
 class MapProjectionTest {
 
     @Test

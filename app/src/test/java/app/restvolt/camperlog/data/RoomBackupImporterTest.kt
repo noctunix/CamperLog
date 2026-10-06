@@ -603,7 +603,7 @@ class RoomBackupImporterTest {
 
     @Test
     fun merge_resolvesLegacyStationVehicleFromItsTourWhenVehicleUuidIsAbsent() = runTest {
-        // Aus alten Stellplatz-Feldern abgeleitete Stationen (3.4) tragen keine eigene Fahrzeug-UUID.
+        // Aus alten Stellplatz-Feldern abgeleitete Stationen tragen keine eigene Fahrzeug-UUID.
         val result = importer.import(
             backup(
                 tours = listOf(tour(1)),

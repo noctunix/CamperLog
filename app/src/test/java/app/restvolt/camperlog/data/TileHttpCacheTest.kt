@@ -10,7 +10,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
 
-/** Settings "Kartenspeicher: N MB [Leeren]" (6.11): Größe und Löschen auf Dateisystemebene. */
+/** Settings "Kartenspeicher: N MB [Leeren]": Größe und Löschen auf Dateisystemebene. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class TileHttpCacheTest {

@@ -5,7 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Kachel-URL und Fehlerschwelle (6.9, 13, ROADMAP 1.8.0). */
+/** Kachel-URL und Fehlerschwelle. */
 class MapTilesTest {
 
     @Test

@@ -8,7 +8,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Zustandsautomat der einmaligen Standortbestimmung (6.7), mit Fakes statt echter Standorthardware. */
+/** Zustandsautomat der einmaligen Standortbestimmung, mit Fakes statt echter Standorthardware. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class LocationCaptureControllerTest {
 
