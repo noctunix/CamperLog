@@ -43,7 +43,7 @@ data class StationInput(
     val levelingBlocksUsed: Boolean? = null,
     val services: Set<StationService> = emptySet(),
     val favorite: Boolean = false,
-    /** Rohtext des Felds "Koordinaten oder Kartenlink" (5.1); nur fürs Formular, nicht Teil der Station. */
+    /** Rohtext des Felds "Koordinaten oder Kartenlink"; nur fürs Formular, nicht Teil der Station. */
     val locationText: String = "",
     val weather: WeatherSnapshot? = null,
 )
@@ -68,7 +68,7 @@ enum class StationError {
  * gehören (z. B. Stellplatz-Details bei einer Nicht-Übernachtung), werden nicht geprüft, sondern in
  * [toStation] stillschweigend verworfen, falls der Typ zuvor gewechselt wurde.
  *
- * @param today Bezugsdatum für die Zukunftsprüfung der Ver-/Entsorgungs-Häkchen (4, Regel 5)
+ * @param today Bezugsdatum für die Zukunftsprüfung der Ver-/Entsorgungs-Häkchen
  * @return Fehlergrund je fehlerhaftem Feld; leer, wenn die Eingabe gültig ist
  */
 fun StationInput.validate(today: LocalDate = LocalDate.now()): Map<StationField, StationError> = buildMap {
@@ -108,7 +108,7 @@ fun StationInput.validate(today: LocalDate = LocalDate.now()): Map<StationField,
 /**
  * Erzeugt aus einer gültigen Eingabe eine [Station]. Vorher muss [validate] leer sein.
  * Typspezifische Felder und nicht erlaubte [StationService]-Werte werden hier anhand von
- * [StationInput.type] verworfen (siehe 6.5: ein Typwechsel lässt nicht passende Werte fallen).
+ * [StationInput.type] verworfen: ein Typwechsel lässt nicht passende Werte fallen.
  * [mapLink] wird nur übernommen, wenn keine Koordinaten gesetzt sind.
  *
  * @param original die bearbeitete Station oder `null` für eine neue Station

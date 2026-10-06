@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** Zustand der einmaligen Wetterabfrage auf Tastendruck (6.8). */
+/** Zustand der einmaligen Wetterabfrage auf Tastendruck. */
 sealed interface WeatherCaptureState {
 
     /** Bereit für einen Tastendruck: "Wetter abrufen". */
@@ -19,15 +19,15 @@ sealed interface WeatherCaptureState {
     /** Ein Schnappschuss liegt vor. */
     data class Success(val snapshot: WeatherSnapshot) : WeatherCaptureState
 
-    /** Keine Internetverbindung (6.8: `UnknownHostException`, ohne `ACCESS_NETWORK_STATE`). */
+    /** Keine Internetverbindung (`UnknownHostException`, ohne `ACCESS_NETWORK_STATE`). */
     data object Offline : WeatherCaptureState
 
-    /** Dienst nicht erreichbar, auch bei HTTP 429 ([WeatherResult.RateLimited]); 6.8 zeigt denselben Text. */
+    /** Dienst nicht erreichbar, auch bei HTTP 429 ([WeatherResult.RateLimited]); zeigt denselben Text. */
     data object ServiceUnavailable : WeatherCaptureState
 }
 
 /**
- * Steuert eine einmalige Wetterabfrage (6.8); eingebettet in ein ViewModel über dessen
+ * Steuert eine einmalige Wetterabfrage; eingebettet in ein ViewModel über dessen
  * `viewModelScope`, damit eine laufende Abfrage einen Konfigurationswechsel überlebt.
  */
 class WeatherCaptureController(private val provider: WeatherProvider, private val scope: CoroutineScope) {

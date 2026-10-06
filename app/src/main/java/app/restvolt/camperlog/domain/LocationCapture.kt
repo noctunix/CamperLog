@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
-/** Zustand der einmaligen Standortbestimmung auf Tastendruck (6.7). */
+/** Zustand der einmaligen Standortbestimmung auf Tastendruck. */
 sealed interface LocationCaptureState {
 
     /** Bereit für einen Tastendruck; zeigt keinen eigenen Inhalt. */
@@ -35,7 +35,7 @@ sealed interface LocationCaptureState {
 }
 
 /**
- * Steuert eine einmalige Standortbestimmung (6.7); eingebettet in ein ViewModel über dessen
+ * Steuert eine einmalige Standortbestimmung; eingebettet in ein ViewModel über dessen
  * `viewModelScope`, damit eine Suche einen Konfigurationswechsel überlebt. Die Entscheidung, ob ein
  * abgelehnter Tastendruck eine Begründung oder den dauerhaft-abgelehnt-Hinweis zeigt, braucht
  * `shouldShowRequestPermissionRationale` einer Activity; das bleibt bewusst außerhalb dieser Klasse

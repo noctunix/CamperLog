@@ -34,10 +34,10 @@ enum class StationService(val csvValue: String) {
     ELECTRICITY("strom"),
 }
 
-/** Die "Ver-/Entsorgung"-Gruppe, auch für die gleichnamige UI-Sektion (6.5). */
+/** Die "Ver-/Entsorgung"-Gruppe, auch für die gleichnamige UI-Sektion. */
 val SUPPLY_SERVICES: Set<StationService> = setOf(StationService.FRESH_WATER, StationService.GREY_WATER, StationService.CASSETTE, StationService.GAS)
 
-/** Die "Tanken"-Gruppe, auch für die UI-Sektion "Getankt" (6.5). */
+/** Die "Tanken"-Gruppe, auch für die UI-Sektion "Getankt". */
 val FUEL_SERVICES: Set<StationService> = setOf(StationService.DIESEL, StationService.PETROL, StationService.ADBLUE, StationService.LPG, StationService.ELECTRICITY)
 
 /** An diesem [StationType] erlaubte [StationService]-Werte; leer, wenn der Typ keine Versorgung kennt. */
@@ -144,15 +144,15 @@ interface StationRepository {
     suspend fun restore(station: Station)
 
     /**
-     * Löst die Tour für eine neue Station nach 3.3 auf: die Tour von [vehicleId], deren Zeitraum
+     * Löst die Tour für eine neue Station auf: die Tour von [vehicleId], deren Zeitraum
      * [date] enthält, bei mehreren Treffern die mit dem spätesten Start; `null`, wenn keine passt.
      */
     suspend fun defaultTourId(vehicleId: Long, date: LocalDate): Long?
 
-    /** Liefert die aktuell mit [stationId] verknüpften Bordbuch-Einträge, für ein Rückgängig nach dem Löschen (8.3, 13.4). */
+    /** Liefert die aktuell mit [stationId] verknüpften Bordbuch-Einträge, für ein Rückgängig nach dem Löschen. */
     suspend fun linkedLogEntries(stationId: Long): List<LogEntry>
 
-    /** Verknüpft die Bordbuch-Einträge mit den ids [entryIds] wieder mit [stationId] (Rückgängig, 8.3, 13.4). */
+    /** Verknüpft die Bordbuch-Einträge mit den ids [entryIds] wieder mit [stationId] (Rückgängig). */
     suspend fun relinkLogEntries(entryIds: List<Long>, stationId: Long)
 
     /**
@@ -166,7 +166,7 @@ interface StationRepository {
 }
 
 /**
- * Datumsvorschlag für eine neue Station einer Tour (3.3): [today], falls das in den Tourzeitraum
+ * Datumsvorschlag für eine neue Station einer Tour: [today], falls das in den Tourzeitraum
  * fällt, sonst der Tag nach [stations]' letzter Station (bei einer Übernachtung inklusive ihrer
  * Nächte), gekappt auf das Tourende. Ohne Stationen ist der Vorschlag der Tourstart.
  */

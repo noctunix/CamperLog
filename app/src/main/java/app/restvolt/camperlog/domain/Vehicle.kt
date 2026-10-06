@@ -93,7 +93,7 @@ data class Repair(
 enum class VehicleDeleteResult {
     DELETED,
 
-    /** Abgelehnt: das Fahrzeug hat noch Touren oder Stationen (2.4). */
+    /** Abgelehnt: das Fahrzeug hat noch Touren oder Stationen. */
     HAS_TOURS_OR_STATIONS,
 
     /** Abgelehnt: es ist das letzte verbliebene Fahrzeug. */

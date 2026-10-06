@@ -2,7 +2,7 @@ package app.restvolt.camperlog.domain
 
 import java.net.URLDecoder
 
-/** Aus einem eingehenden `geo:`-Link gelesener Ort (13.5 Nr. 4), zum Vorbelegen einer neuen Station. */
+/** Aus einem eingehenden `geo:`-Link gelesener Ort, zum Vorbelegen einer neuen Station. */
 data class GeoIntentLocation(val latitude: Double? = null, val longitude: Double? = null, val label: String? = null)
 
 private val GEO_SCHEME = Regex("""(?i)^geo:""")

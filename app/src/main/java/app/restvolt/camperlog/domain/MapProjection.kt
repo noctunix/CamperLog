@@ -8,14 +8,14 @@ import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-/** Kantenlänge einer OSM-Rasterkachel in Pixeln (6.9). */
+/** Kantenlänge einer OSM-Rasterkachel in Pixeln. */
 const val MAP_TILE_SIZE = 256
 
-/** Erlaubter Zoombereich der Karte (6.9, 11 Phase G). */
+/** Erlaubter Zoombereich der Karte. */
 const val MAP_MIN_ZOOM = 2
 const val MAP_MAX_ZOOM = 18
 
-/** Anfangszoom bei genau einer Station, da dort keine Ausdehnung zum Einpassen existiert (6.9). */
+/** Anfangszoom bei genau einer Station, da dort keine Ausdehnung zum Einpassen existiert. */
 const val MAP_SINGLE_POINT_ZOOM = 13.0
 
 /** Begrenzt einen Zoomwert auf [MAP_MIN_ZOOM]..[MAP_MAX_ZOOM]. */
@@ -78,9 +78,9 @@ fun panCamera(camera: MapCamera, dxPx: Double, dyPx: Double): MapCamera {
 fun zoomCamera(camera: MapCamera, deltaZoom: Double): MapCamera = camera.copy(zoom = clampZoom(camera.zoom + deltaZoom))
 
 /**
- * Kamera, die alle [points] mit [paddingPx] Rand in den Anzeigebereich einpasst (6.9: "fit bounds
- * with 48 dp padding"). Ein einzelner Punkt (oder mehrere identische Punkte) ergibt
- * [MAP_SINGLE_POINT_ZOOM], da es dort keine Ausdehnung zum Einpassen gibt.
+ * Kamera, die alle [points] mit [paddingPx] Rand in den Anzeigebereich einpasst. Ein einzelner
+ * Punkt (oder mehrere identische Punkte) ergibt [MAP_SINGLE_POINT_ZOOM], da es dort keine
+ * Ausdehnung zum Einpassen gibt.
  */
 fun fitBounds(points: List<LatLon>, viewportWidthPx: Int, viewportHeightPx: Int, paddingPx: Int): MapCamera {
     require(points.isNotEmpty()) { "fitBounds benötigt mindestens einen Punkt" }
@@ -108,7 +108,7 @@ fun fitBounds(points: List<LatLon>, viewportWidthPx: Int, viewportHeightPx: Int,
 
 /**
  * Sichtbare Kacheln für [camera] im Anzeigebereich [viewportWidthPx]x[viewportHeightPx], ohne
- * Vorlademarge (6.9, 13: "only visible tiles; no prefetch"). Der Kachel-Zoom ist der gerundete
+ * Vorlademarge. Der Kachel-Zoom ist der gerundete
  * Kamerazoom; die X-Koordinate wird am Datumswechsel umlaufend normalisiert, die Y-Koordinate an
  * den Polen gekappt.
  */

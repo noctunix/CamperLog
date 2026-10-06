@@ -13,7 +13,7 @@ fun supportedLocale(locale: Locale): Locale =
 fun formatDate(date: LocalDate, locale: Locale = Locale.getDefault()): String =
     DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(supportedLocale(locale)).format(date)
 
-/** Month and year in upper case for a sticky list header, e.g. "JULY 2026" / "JULI 2026" (6.3). */
+/** Month and year in upper case for a sticky list header, e.g. "JULY 2026" / "JULI 2026". */
 fun formatMonthYear(date: LocalDate, locale: Locale = Locale.getDefault()): String {
     val resolved = supportedLocale(locale)
     return DateTimeFormatter.ofPattern("LLLL yyyy", resolved).format(date).uppercase(resolved)

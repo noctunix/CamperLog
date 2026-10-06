@@ -5,7 +5,7 @@ import java.time.LocalDate
 
 /**
  * Die alten Stellplatz-Felder einer Tour vor Room-Schema 7 bzw. vor Sicherungsformat 3, die seither
- * auf der Übernachtungs-Station liegen (siehe 3.4).
+ * auf der Übernachtungs-Station liegen.
  */
 data class LegacyPitchFields(
     val pitchAssigned: Boolean,
@@ -39,7 +39,7 @@ data class LegacyPitchMigration(
 
 /**
  * Baut aus den alten Stellplatz-Feldern einer Tour exakt die Station, die Room-Migration 6→7 und der
- * Sicherungs-Import für ältere Formate gleichermaßen anlegen (3.4, Punkte 2 und 3). Bei
+ * Sicherungs-Import für ältere Formate gleichermaßen anlegen. Bei
  * [overnightStays] `0` entsteht keine Station; stattdessen nennt [LegacyPitchMigration.dayTripAttributes],
  * welche Werte von den alten Vorgaben abweichen, damit der Aufrufer daraus eine lokalisierte
  * Notiz-Zeile bauen kann.

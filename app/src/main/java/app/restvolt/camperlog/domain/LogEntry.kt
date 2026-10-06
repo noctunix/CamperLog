@@ -9,7 +9,7 @@ enum class LogType { CASSETTE_EMPTIED, GREY_WATER_EMPTIED, DIESEL_HEATER_RUN, GA
 
 /**
  * Ein Bordbuch-Eintrag. Nach dem Anlegen unveränderlich, mit einer Ausnahme: [stationId] folgt der
- * Verknüpfung mit einer Station (4), also dem Setzen/Lösen des Häkchens, einem Verschieben von Datum
+ * Verknüpfung mit einer Station, also dem Setzen/Lösen des Häkchens, einem Verschieben von Datum
  * oder Fahrzeug (dort als Löschen und Neuanlegen mit derselben uuid) und dem Fremdschlüssel
  * `ON DELETE SET NULL` beim Löschen der Station.
  */
@@ -47,15 +47,15 @@ interface LogRepository {
     /** Legt einen zuvor gelöschten [entry] mit seiner bisherigen id wieder an. */
     suspend fun restore(entry: LogEntry)
 
-    /** Liefert den mit [stationId] und [type] verknüpften Eintrag, oder `null` (4). */
+    /** Liefert den mit [stationId] und [type] verknüpften Eintrag, oder `null`. */
     suspend fun linkedEntry(stationId: Long, type: LogType): LogEntry?
 
-    /** Liefert einen noch unverknüpften Eintrag von [vehicleId]/[type]/[date], für die Dublettenprüfung (4.1). */
+    /** Liefert einen noch unverknüpften Eintrag von [vehicleId]/[type]/[date], für die Dublettenprüfung. */
     suspend fun findUnlinked(vehicleId: Long, type: LogType, date: LocalDate): LogEntry?
 
-    /** Verknüpft den Eintrag [entryId] mit [stationId] (4.1, 8.3). */
+    /** Verknüpft den Eintrag [entryId] mit [stationId]. */
     suspend fun link(entryId: Long, stationId: Long)
 
-    /** Legt einen neuen, mit [stationId] verknüpften Eintrag an; [uuid] stammt von einer verschobenen Station, falls gesetzt (4.3). */
+    /** Legt einen neuen, mit [stationId] verknüpften Eintrag an; [uuid] stammt von einer verschobenen Station, falls gesetzt. */
     suspend fun addLinked(vehicleId: Long, type: LogType, date: LocalDate, stationId: Long, uuid: String? = null): LogEntry
 }

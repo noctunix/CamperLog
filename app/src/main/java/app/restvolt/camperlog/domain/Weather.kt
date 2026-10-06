@@ -5,20 +5,20 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
 
-/** Host, den der Wetterabruf ausschließlich ansprechen darf (6.8, 9). */
+/** Host, den der Wetterabruf ausschließlich ansprechen darf. */
 const val OPEN_METEO_HOST = "api.open-meteo.com"
 
-/** Zeitbudget für Verbindungsaufbau und Antwort des Wetterabrufs (6.8). */
+/** Zeitbudget für Verbindungsaufbau und Antwort des Wetterabrufs. */
 const val WEATHER_TIMEOUT_MS = 8_000
 
 /**
- * Rundet eine Koordinate auf 2 Nachkommastellen (~1 km), bevor sie den Dienst verlässt (6.8, 9):
+ * Rundet eine Koordinate auf 2 Nachkommastellen (~1 km), bevor sie den Dienst verlässt:
  * das Wettermodellraster ist ohnehin gröber, und Open-Meteo speichert Koordinaten in Server-Logs.
  */
 fun roundCoordinate(value: Double): Double = Math.round(value * 100.0) / 100.0
 
 /**
- * Open-Meteo-Anfrage für den aktuellen Wetterstand (6.8): [latitude]/[longitude] werden vor dem
+ * Open-Meteo-Anfrage für den aktuellen Wetterstand: [latitude]/[longitude] werden vor dem
  * Aufruf mit [roundCoordinate] gerundet. `timeformat=unixtime` liefert `current.time` in Sekunden
  * seit Epoch, `wind_speed_unit=kmh` erspart eine Umrechnung.
  */
@@ -32,7 +32,7 @@ fun buildWeatherRequestUrl(latitude: Double, longitude: Double): URL {
     )
 }
 
-/** Ergebnis eines Wetterabrufs (6.8); [RateLimited] und [Error] zeigen denselben Hinweistext. */
+/** Ergebnis eines Wetterabrufs; [RateLimited] und [Error] zeigen denselben Hinweistext. */
 sealed interface WeatherResult {
     data class Success(val snapshot: WeatherSnapshot) : WeatherResult
     data object Offline : WeatherResult
@@ -41,14 +41,14 @@ sealed interface WeatherResult {
 }
 
 /**
- * Einmalige Wetterabfrage zu Koordinaten (6.8). Die Android-Implementierung ruft Open-Meteo über
+ * Einmalige Wetterabfrage zu Koordinaten. Die Android-Implementierung ruft Open-Meteo über
  * `HttpsURLConnection` auf; siehe [app.restvolt.camperlog.data.AndroidWeatherProvider].
  */
 interface WeatherProvider {
     suspend fun fetchCurrent(latitude: Double, longitude: Double): WeatherResult
 }
 
-/** Wetterlage nach dem WMO-Code (6.8), für Anzeigetext und Symbol in `ui/Labels.kt`. */
+/** Wetterlage nach dem WMO-Code, für Anzeigetext und Symbol in `ui/Labels.kt`. */
 enum class WeatherCondition {
     CLEAR,
     PARTLY_CLOUDY,
@@ -61,7 +61,7 @@ enum class WeatherCondition {
 }
 
 /**
- * Ordnet einen WMO-Wettercode (`current.weather_code`) einer [WeatherCondition] zu (6.8).
+ * Ordnet einen WMO-Wettercode (`current.weather_code`) einer [WeatherCondition] zu.
  * Unbekannte Codes fallen auf [WeatherCondition.OVERCAST] zurück, statt nichts anzuzeigen.
  */
 fun weatherCondition(code: Int): WeatherCondition = when (code) {
@@ -76,7 +76,7 @@ fun weatherCondition(code: Int): WeatherCondition = when (code) {
     else -> WeatherCondition.OVERCAST
 }
 
-/** Windrichtung als 8-Punkte-Kompass (6.8), für den Anzeigetext in `ui/Labels.kt`. */
+/** Windrichtung als 8-Punkte-Kompass, für den Anzeigetext in `ui/Labels.kt`. */
 enum class CompassDirection { N, NE, E, SE, S, SW, W, NW }
 
 /** Ordnet eine Windrichtung in Grad (`current.wind_direction_10m`) einer [CompassDirection] zu. */
@@ -85,7 +85,7 @@ fun compassDirection(degrees: Int): CompassDirection {
     return CompassDirection.entries[(normalized + 22) / 45 % 8]
 }
 
-/** Uhrzeit eines Wetter-Zeitpunkts in der Zeitzone des Geräts, z. B. `18:30` (6.6, 6.8). */
+/** Uhrzeit eines Wetter-Zeitpunkts in der Zeitzone des Geräts, z. B. `18:30`. */
 fun formatObservedTime(instant: Instant, zone: ZoneId = ZoneId.systemDefault()): String {
     val time = instant.atZone(zone).toLocalTime()
     return "%02d:%02d".format(time.hour, time.minute)
