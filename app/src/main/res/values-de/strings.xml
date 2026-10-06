@@ -431,7 +431,7 @@
         <item quantity="other">%1$s, %2$d Erinnerungen</item>
     </plurals>
 
-    <!-- Benachrichtigungen (1.9.0): täglicher Hintergrund-Check, optional -->
+    <!-- Benachrichtigungen: täglicher Hintergrund-Check, optional -->
     <string name="notification_channel_maintenance_name">Wartungserinnerungen</string>
     <string name="notification_channel_maintenance_description">Fällige Wartung am Fahrzeug und die Sicherungs-Erinnerung, einmal täglich geprüft.</string>
     <string name="notification_reminders_summary_title">Erinnerungen fällig</string>
@@ -552,7 +552,7 @@
     <string name="migration_pitch_note_lte">LTE: %1$s</string>
     <string name="migration_pitch_note_blocks">Keile genutzt</string>
 
-    <!-- Stationstypen und Versorgung (3.2) -->
+    <!-- Stationstypen und Versorgung -->
     <string name="station_type_overnight">Schlafplatz</string>
     <string name="station_type_supply">Ver-/Entsorgung</string>
     <string name="station_type_fuel">Tanken &amp; Laden</string>
@@ -573,7 +573,7 @@
     <string name="site_kind_motorhome_area">Stellplatz</string>
     <string name="site_kind_wild">Frei stehen</string>
 
-    <!-- Tourdetail: Stationen-Zeitleiste (6.2) -->
+    <!-- Tourdetail: Stationen-Zeitleiste -->
     <string name="stations_section_title">Stationen (%1$d)</string>
     <string name="stations_timeline_empty">Noch keine Stationen.</string>
     <string name="stations_add_stop">Station hinzufügen</string>
@@ -584,10 +584,10 @@
         <item quantity="other">%1$d Nächte</item>
     </plurals>
 
-    <!-- Station hinzufügen: Typauswahl (6.4) -->
+    <!-- Station hinzufügen: Typauswahl -->
     <string name="station_type_picker_title">Was für eine Station?</string>
 
-    <!-- Stationsformular (6.5) -->
+    <!-- Stationsformular -->
     <string name="station_edit_title_new">Neue Station</string>
     <string name="station_edit_title_existing">Station bearbeiten</string>
     <string name="station_edit_save_failed">Station konnte nicht gespeichert werden.</string>
@@ -630,7 +630,7 @@
     <string name="error_text_too_long">Zu lang</string>
     <string name="error_station_service_future_date">Kann nicht in der Zukunft passiert sein.</string>
 
-    <!-- Stationsdetail (6.6) -->
+    <!-- Stationsdetail -->
     <string name="station_detail_delete">Station löschen</string>
     <string name="station_detail_edit">Station bearbeiten</string>
     <string name="station_detail_open_maps">In Karten-App öffnen</string>
@@ -654,7 +654,7 @@
     <!-- Untere Navigation: Stationen-Reiter -->
     <string name="nav_stops">Stationen</string>
 
-    <!-- Stationen-Reiter (6.3) -->
+    <!-- Stationen-Reiter -->
     <string name="stations_title">Stationen</string>
     <string name="stations_search">Station suchen</string>
     <string name="stations_filter_all">Alle</string>
@@ -671,7 +671,7 @@
     <string name="export_stations_subject">CamperLog-Stationen</string>
     <string name="export_stations_chooser">Stationen exportieren</string>
 
-    <!-- Standort (Phase E, 6.7, 6.10, 6.11, 6.12, 9) -->
+    <!-- Standort -->
     <string name="location_switch_title">Aktuellen Standort nutzen</string>
     <string name="location_switch_support_intro">Position nur auf Knopfdruck, nie im Hintergrund. Bleibt auf dem Gerät.</string>
     <string name="title_intro_optin">Optional: Standort, Wetter, Karte</string>
@@ -707,7 +707,7 @@
     <string name="where_am_i_share">Koordinaten teilen</string>
     <string name="where_am_i_share_chooser">Koordinaten teilen</string>
 
-    <!-- Wetter (Phase F, 6.8, 6.10, 6.11, 9) -->
+    <!-- Wetter -->
     <string name="weather_switch_title">Wetter &amp; Karte (Internet)</string>
     <string name="weather_switch_support_intro">Wetter von Open-Meteo, Karte von OpenStreetMap. Dabei erhalten diese Dienste Koordinaten bzw. den Kartenausschnitt und deine IP-Adresse.</string>
     <string name="station_section_weather">Wetter</string>
@@ -743,7 +743,7 @@
     <string name="wind_direction_w">W</string>
     <string name="wind_direction_nw">NW</string>
 
-    <!-- Karte (Phase G, 6.9, 7, 13) -->
+    <!-- Karte -->
     <string name="action_map">Karte</string>
     <string name="map_title">%1$s · Karte</string>
     <string name="map_zoom_in">Vergrößern</string>
