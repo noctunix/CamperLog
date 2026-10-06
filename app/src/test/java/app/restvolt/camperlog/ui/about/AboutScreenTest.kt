@@ -74,6 +74,31 @@ class AboutScreenTest {
     }
 
     @Test
+    fun dataSourcesSectionShowsBothAttributionsAndLinksToOpenMeteo() {
+        start()
+
+        compose.onNodeWithText("Datenquellen").performScrollTo().performClick()
+        compose.onNodeWithText("Kartendaten © OpenStreetMap-Mitwirkende (ODbL)").assertExists()
+        compose.onNodeWithText("Wetterdaten von Open-Meteo.com (CC BY 4.0)").performClick()
+
+        val started = shadowOf(compose.activity).nextStartedActivity
+        assertEquals(Intent.ACTION_VIEW, started.action)
+        assertEquals("https://open-meteo.com/", started.data?.toString())
+    }
+
+    @Test
+    fun privacySectionMentionsTheInternetPermissionHonestly() {
+        start()
+
+        compose.onNodeWithText("Datenschutz").performScrollTo().performClick()
+        compose.onNodeWithText(
+            "Wetter & Karte (optional): CamperLog hat die Internet-Berechtigung, nutzt sie aber nur, wenn du das einschaltest. " +
+                "Beim Wetterabruf gehen die Koordinaten der Station, auf etwa 1 km gerundet, an Open-Meteo. " +
+                "Die Karte lädt den angezeigten Ausschnitt von OpenStreetMap. Beide Dienste sehen deine IP-Adresse.",
+        ).assertExists()
+    }
+
+    @Test
     fun showIntroductionAgainRowInvokesCallback() {
         var invoked = false
         start(onShowIntroductionAgain = { invoked = true })
