@@ -54,8 +54,10 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Reminder
+import app.restvolt.camperlog.domain.ReminderKind
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.VehicleDocument
 import app.restvolt.camperlog.domain.documentReminders
 import app.restvolt.camperlog.domain.dueReminders
 import app.restvolt.camperlog.domain.formatAh
@@ -74,6 +76,8 @@ import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.TabTopBar
 import app.restvolt.camperlog.ui.VehicleSwitcherTitle
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.iconRes
+import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.text
 import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.vehicleDisplayName
@@ -97,6 +101,8 @@ fun VehicleScreen(
     onEditVehicle: (Long) -> Unit,
     onAddRepair: (Long) -> Unit,
     onOpenRepair: (Long, Long) -> Unit,
+    onAddDocument: (Long) -> Unit,
+    onOpenDocument: (Long, Long) -> Unit,
     bottomBar: @Composable () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -150,12 +156,22 @@ fun VehicleScreen(
                 reminders = reminders,
                 today = today,
                 repairs = state.repairs,
+                documents = state.documents,
                 locationEnabled = locationEnabled,
                 onWhereAmI = { showWhereAmI = true },
                 onAddDetails = { onEditVehicle(vehicle.id) },
-                onOpenReminder = { onEditVehicle(vehicle.id) },
+                onOpenReminder = { reminder ->
+                    val documentId = reminder.documentId
+                    if (reminder.kind == ReminderKind.DOCUMENT_EXPIRY && documentId != null) {
+                        onOpenDocument(vehicle.id, documentId)
+                    } else {
+                        onEditVehicle(vehicle.id)
+                    }
+                },
                 onAddRepair = { onAddRepair(vehicle.id) },
                 onOpenRepair = { repair -> onOpenRepair(vehicle.id, repair.id) },
+                onAddDocument = { onAddDocument(vehicle.id) },
+                onOpenDocument = { document -> onOpenDocument(vehicle.id, document.id) },
                 onCall = { phone -> dialOrOfferCopy(scope, context, snackbar, noDialerApp, copyNumber, phone) },
                 modifier = Modifier
                     .padding(padding)
@@ -192,12 +208,15 @@ private fun VehicleSheet(
     reminders: List<Reminder>,
     today: LocalDate,
     repairs: List<Repair>,
+    documents: List<VehicleDocument>,
     locationEnabled: Boolean,
     onWhereAmI: () -> Unit,
     onAddDetails: () -> Unit,
-    onOpenReminder: () -> Unit,
+    onOpenReminder: (Reminder) -> Unit,
     onAddRepair: () -> Unit,
     onOpenRepair: (Repair) -> Unit,
+    onAddDocument: () -> Unit,
+    onOpenDocument: (VehicleDocument) -> Unit,
     onCall: (String) -> Unit,
     modifier: Modifier,
 ) {
@@ -225,7 +244,7 @@ private fun VehicleSheet(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         if (vehicle.hasBreakdownInfo) BreakdownAssistanceCard(vehicle, onCall, locationEnabled, onWhereAmI)
-        reminders.forEach { reminder -> ReminderCard(reminder, today, onClick = onOpenReminder) }
+        reminders.forEach { reminder -> ReminderCard(reminder, today, onClick = { onOpenReminder(reminder) }) }
         if (!hasAnyValue) {
             EmptyHint(stringResource(R.string.vehicle_sheet_empty_hint))
             Button(
@@ -269,6 +288,54 @@ private fun VehicleSheet(
             }
         }
         RepairsSection(repairs, onAddRepair, onOpenRepair)
+        DocumentsSection(documents, today, onAddDocument, onOpenDocument)
+    }
+}
+
+@Composable
+private fun DocumentsSection(documents: List<VehicleDocument>, today: LocalDate, onAdd: () -> Unit, onOpen: (VehicleDocument) -> Unit) {
+    val locale = currentLocale()
+    SectionCard {
+        SectionHeading(stringResource(R.string.section_documents))
+        if (documents.isEmpty()) {
+            Text(
+                stringResource(R.string.vehicle_documents_empty),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            // Bereits nach Ablaufdatum sortiert, siehe VehicleDocumentRepository.observeForVehicle.
+            documents.forEach { document -> DocumentRow(document, today, locale, onClick = { onOpen(document) }) }
+        }
+        TextButton(onClick = onAdd) {
+            Icon(painterResource(R.drawable.ic_add), contentDescription = null)
+            Text(stringResource(R.string.vehicle_documents_add), Modifier.padding(start = 8.dp))
+        }
+    }
+}
+
+@Composable
+private fun DocumentRow(document: VehicleDocument, today: LocalDate, locale: Locale, onClick: () -> Unit) {
+    val overdue = document.expiryDate?.isBefore(today) == true
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = stringResource(R.string.document_detail_edit), onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(painterResource(document.kind.iconRes), contentDescription = null)
+        Column(Modifier.weight(1f)) {
+            Text(document.title, style = MaterialTheme.typography.bodyLarge)
+            document.expiryDate?.let { expiry ->
+                Text(
+                    stringResource(R.string.document_expiry_value, formatDate(expiry, locale)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

@@ -76,6 +76,12 @@ data class StationEditUiState(
     val saveFailed: Boolean = false,
     /** Zählt an der Validierung gescheiterte Speicherversuche; jede Erhöhung fokussiert das erste fehlerhafte Feld. */
     val rejectedSaves: Int = 0,
+    /**
+     * Die id dieser Station, sobald bekannt (bei einer bestehenden Station von Anfang an, bei einer
+     * neuen erst nach dem ersten Speichern); `0` bis dahin. Der Foto-Streifen hängt Fotos erst an diese
+     * id an, statt an eine noch nicht gespeicherte Station - einfachste robuste Lösung gegen verwaiste Anhänge.
+     */
+    val savedStationId: Long = 0,
 )
 
 /** Ungespeicherte Formulareingaben, die ein Beenden des Prozesses im Hintergrund überstehen. */
@@ -120,7 +126,7 @@ class EditStationViewModel(
     private val draft: StationDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)?.let { decodeFromSavedState(it) }
 
     private val _uiState = MutableStateFlow(
-        StationEditUiState(isNew = stationId == 0L, isLoading = stationId != 0L).let { state ->
+        StationEditUiState(isNew = stationId == 0L, isLoading = stationId != 0L, savedStationId = stationId).let { state ->
             when {
                 draft != null -> state.copy(input = draft.input, isDirty = true)
                 stationId == 0L -> state.copy(
@@ -319,9 +325,9 @@ class EditStationViewModel(
         _uiState.update { it.copy(isSaving = true, errors = emptyMap(), costErrors = emptyMap(), saveFailed = false) }
         viewModelScope.launch {
             try {
-                repository.save(station)
+                val id = repository.save(station)
                 savedStateHandle.remove<SavedState>(DRAFT_KEY)
-                _uiState.update { it.copy(isSaving = false, isSaved = true, loggedServices = loggedServices) }
+                _uiState.update { it.copy(isSaving = false, isSaved = true, loggedServices = loggedServices, savedStationId = id) }
             } catch (_: SQLException) {
                 // Eingaben bleiben erhalten, damit der Nutzer es erneut versuchen kann.
                 _uiState.update { it.copy(isSaving = false, saveFailed = true) }

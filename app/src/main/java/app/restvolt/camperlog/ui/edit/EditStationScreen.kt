@@ -70,6 +70,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.data.AttachmentFileStore
+import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.FUEL_SERVICES
@@ -104,6 +107,7 @@ import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.WeatherFetchRow
 import app.restvolt.camperlog.ui.WeatherRefreshRow
 import app.restvolt.camperlog.ui.WeatherSummary
+import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
@@ -126,6 +130,8 @@ fun EditStationScreen(
     viewModel: EditStationViewModel,
     locationSettings: LocationSettings,
     weatherSettings: WeatherSettings,
+    attachments: AttachmentRepository,
+    attachmentFileStore: AttachmentFileStore,
     onDone: () -> Unit,
     onSaved: (Set<StationService>) -> Unit,
 ) {
@@ -173,6 +179,9 @@ fun EditStationScreen(
                 locationEnabled = locationEnabled,
                 locationSettings = locationSettings,
                 weatherEnabled = weatherEnabled,
+                attachments = attachments,
+                attachmentFileStore = attachmentFileStore,
+                snackbarHostState = snackbar,
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
@@ -199,6 +208,9 @@ private fun StationForm(
     locationEnabled: Boolean,
     locationSettings: LocationSettings,
     weatherEnabled: Boolean,
+    attachments: AttachmentRepository,
+    attachmentFileStore: AttachmentFileStore,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier,
 ) {
     val input = state.input
@@ -349,6 +361,14 @@ private fun StationForm(
                 onRemove = viewModel::onRemoveCost,
             )
         }
+        PhotoAttachmentsSection(
+            ownerType = AttachmentOwnerType.STATION,
+            ownerId = state.savedStationId,
+            repository = attachments,
+            fileStore = attachmentFileStore,
+            snackbarHostState = snackbarHostState,
+            stopLocation = if (input.latitude != null && input.longitude != null) input.latitude to input.longitude else null,
+        )
         SectionCard {
             FormTextField(
                 label = stringResource(R.string.field_notes),

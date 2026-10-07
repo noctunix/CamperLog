@@ -48,6 +48,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.data.AttachmentFileStore
+import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.MAX_AMOUNT_MINOR
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.RepairError
@@ -59,6 +62,7 @@ import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.messageRes
@@ -70,7 +74,14 @@ import java.util.Locale
  * dem Speichern; [onDelete] löscht eine bestehende Reparatur und wird mit ihr aufgerufen.
  */
 @Composable
-fun RepairEditScreen(viewModel: RepairEditViewModel, onDone: () -> Unit, onSaved: () -> Unit, onDelete: (Repair) -> Unit) {
+fun RepairEditScreen(
+    viewModel: RepairEditViewModel,
+    attachments: AttachmentRepository,
+    attachmentFileStore: AttachmentFileStore,
+    onDone: () -> Unit,
+    onSaved: () -> Unit,
+    onDelete: (Repair) -> Unit,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
@@ -118,6 +129,9 @@ fun RepairEditScreen(viewModel: RepairEditViewModel, onDone: () -> Unit, onSaved
             else -> RepairForm(
                 state = state,
                 viewModel = viewModel,
+                attachments = attachments,
+                attachmentFileStore = attachmentFileStore,
+                snackbarHostState = snackbar,
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
@@ -138,7 +152,14 @@ fun RepairEditScreen(viewModel: RepairEditViewModel, onDone: () -> Unit, onSaved
 }
 
 @Composable
-private fun RepairForm(state: RepairEditUiState, viewModel: RepairEditViewModel, modifier: Modifier) {
+private fun RepairForm(
+    state: RepairEditUiState,
+    viewModel: RepairEditViewModel,
+    attachments: AttachmentRepository,
+    attachmentFileStore: AttachmentFileStore,
+    snackbarHostState: SnackbarHostState,
+    modifier: Modifier,
+) {
     val input = state.input
     val change = viewModel::onInputChange
     val required = stringResource(R.string.edit_required)
@@ -196,6 +217,13 @@ private fun RepairForm(state: RepairEditUiState, viewModel: RepairEditViewModel,
                 modifier = focusOf(RepairField.COST),
             )
         }
+        PhotoAttachmentsSection(
+            ownerType = AttachmentOwnerType.REPAIR,
+            ownerId = state.savedRepairId,
+            repository = attachments,
+            fileStore = attachmentFileStore,
+            snackbarHostState = snackbarHostState,
+        )
         Button(
             onClick = viewModel::save,
             enabled = !state.isSaving,

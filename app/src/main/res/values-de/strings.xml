@@ -839,4 +839,57 @@
         <item quantity="one">%1$d ohne Koordinaten</item>
         <item quantity="other">%1$d ohne Koordinaten</item>
     </plurals>
+
+    <!-- Anhänge: Fotostreifen und Betrachter -->
+    <string name="attachments_section_title">Fotos</string>
+    <string name="attachments_save_first_hint">Erst speichern, um Fotos anzuhängen.</string>
+    <string name="attachments_add_action">Foto hinzufügen</string>
+    <string name="attachments_add_camera">Foto aufnehmen</string>
+    <string name="attachments_add_gallery">Aus der Galerie wählen</string>
+    <string name="attachments_gallery_no_location_hint">Galeriefotos kommen ohne Standort.</string>
+    <string name="attachments_add_document">Datei wählen</string>
+    <string name="attachments_importing">Wird importiert…</string>
+    <string name="attachments_photo_deleted">Foto gelöscht</string>
+    <string name="attachment_thumbnail_description">Foto %1$d von %2$d</string>
+    <string name="attachment_thumbnail_description_with_location">Foto %1$d von %2$d, mit Standort</string>
+    <string name="attachment_import_error_unreadable">Die Datei ließ sich nicht öffnen.</string>
+    <string name="attachment_import_error_unsupported">Dieser Dateityp wird nicht unterstützt.</string>
+    <string name="attachment_import_error_too_large">Die Datei ist zu groß.</string>
+    <string name="attachment_import_error_decode_failed">Das Bild ließ sich nicht lesen.</string>
+    <string name="attachment_viewer_position">%1$d von %2$d</string>
+    <string name="attachment_viewer_share">Foto teilen</string>
+    <string name="attachment_viewer_delete">Foto löschen</string>
+    <string name="attachment_viewer_previous">Vorheriges Foto</string>
+    <string name="attachment_viewer_next">Nächstes Foto</string>
+    <string name="attachment_use_stop_location">Standort der Station übernehmen</string>
+    <string name="attachment_caption_label">Beschriftung</string>
+
+    <!-- Fahrzeugdokumente -->
+    <string name="section_documents">Dokumente</string>
+    <string name="vehicle_documents_empty">Noch keine Dokumente.</string>
+    <string name="vehicle_documents_add">Dokument hinzufügen</string>
+    <string name="document_kind_registration">Fahrzeugschein</string>
+    <string name="document_kind_insurance">Versicherung</string>
+    <string name="document_kind_warranty">Garantie</string>
+    <string name="document_kind_inspection_report">Prüfbericht</string>
+    <string name="document_kind_manual">Anleitung</string>
+    <string name="document_kind_other">Sonstiges</string>
+    <string name="document_edit_title_new">Dokument hinzufügen</string>
+    <string name="document_edit_title_existing">Dokument bearbeiten</string>
+    <string name="document_not_found">Dokument nicht gefunden.</string>
+    <string name="document_edit_save_failed">Dokument konnte nicht gespeichert werden.</string>
+    <string name="field_document_title">Titel</string>
+    <string name="field_document_expiry">Ablaufdatum</string>
+    <string name="document_expiry_value">Läuft ab %1$s</string>
+    <string name="document_detail_edit">Dokument bearbeiten</string>
+    <string name="document_detail_delete">Dokument löschen</string>
+    <string name="document_delete_confirm_title">Dokument löschen?</string>
+    <string name="document_delete_confirm_text">Damit werden auch seine Dateien gelöscht.</string>
+
+    <!-- Daten-Screen: Dateien in die automatische Sicherung einschließen -->
+    <string name="data_backup_auto_include_files_title">Fotos und Dokumente einschließen</string>
+    <string name="data_backup_auto_include_files_support">Sichert auch Foto- und Dokumentdateien, nicht nur die Daten. Ab einer großen Sicherung standardmäßig aus.</string>
+
+    <!-- Bordbuch-Verlauf: Fotos je Eintrag -->
+    <string name="logbook_entry_photos_action">Fotos</string>
 </resources>

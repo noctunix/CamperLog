@@ -42,6 +42,11 @@ data class RepairEditUiState(
     val rejectedSaves: Int = 0,
     /** Die geladene, gespeicherte Reparatur; nötig, um sie über die Kopfzeile löschen zu können. */
     val original: Repair? = null,
+    /**
+     * Die id dieser Reparatur, sobald bekannt (bei einer bestehenden von Anfang an, bei einer neuen
+     * erst nach dem ersten Speichern); `0` bis dahin, siehe [app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection].
+     */
+    val savedRepairId: Long = 0,
 )
 
 /** Ungespeicherte Formulareingaben, die ein Beenden des Prozesses im Hintergrund überstehen. */
@@ -70,7 +75,7 @@ class RepairEditViewModel(
     private val draft: RepairDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)?.let { decodeFromSavedState(it) }
 
     private val _uiState = MutableStateFlow(
-        RepairEditUiState(isNew = repairId == 0L, isLoading = repairId != 0L).let { state ->
+        RepairEditUiState(isNew = repairId == 0L, isLoading = repairId != 0L, savedRepairId = repairId).let { state ->
             when {
                 draft != null -> state.copy(input = draft.input, isDirty = true)
                 repairId == 0L -> state.copy(input = RepairInput(date = today()))
@@ -126,9 +131,9 @@ class RepairEditViewModel(
         _uiState.update { it.copy(isSaving = true, errors = emptyMap(), saveFailed = false) }
         viewModelScope.launch {
             try {
-                repository.saveRepair(repair)
+                val id = repository.saveRepair(repair)
                 savedStateHandle.remove<SavedState>(DRAFT_KEY)
-                _uiState.update { it.copy(isSaving = false, isSaved = true) }
+                _uiState.update { it.copy(isSaving = false, isSaved = true, savedRepairId = id) }
             } catch (_: SQLException) {
                 // Eingaben bleiben erhalten, damit der Nutzer es erneut versuchen kann.
                 _uiState.update { it.copy(isSaving = false, saveFailed = true) }

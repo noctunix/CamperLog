@@ -39,6 +39,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.data.AttachmentFileStore
+import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TollKind
@@ -56,6 +59,7 @@ import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.WeatherSummary
+import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
@@ -71,6 +75,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun StationDetailScreen(
     viewModel: StationDetailViewModel,
+    attachments: AttachmentRepository,
+    attachmentFileStore: AttachmentFileStore,
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: (Station) -> Unit,
@@ -123,6 +129,9 @@ fun StationDetailScreen(
             is StationDetailUiState.Loaded -> StationDetails(
                 station = current.station,
                 tourDestination = current.tour?.destination,
+                attachments = attachments,
+                attachmentFileStore = attachmentFileStore,
+                snackbarHostState = snackbar,
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize(),
@@ -141,6 +150,9 @@ fun StationDetailScreen(
 private fun StationDetails(
     station: Station,
     tourDestination: String?,
+    attachments: AttachmentRepository,
+    attachmentFileStore: AttachmentFileStore,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier,
     onOpenTour: () -> Unit,
     onOpenMaps: () -> Unit,
@@ -266,6 +278,14 @@ private fun StationDetails(
                 Text(station.notes, style = MaterialTheme.typography.bodyLarge)
             }
         }
+        PhotoAttachmentsSection(
+            ownerType = AttachmentOwnerType.STATION,
+            ownerId = station.id,
+            repository = attachments,
+            fileStore = attachmentFileStore,
+            snackbarHostState = snackbarHostState,
+            stopLocation = if (station.latitude != null && station.longitude != null) station.latitude to station.longitude else null,
+        )
     }
 }
 

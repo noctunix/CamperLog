@@ -8,6 +8,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.LogRecency
 import app.restvolt.camperlog.domain.LogType
@@ -270,6 +271,30 @@ val ReminderKind.labelRes: Int
         ReminderKind.LEAK_TEST -> R.string.reminder_kind_leak_test
         ReminderKind.OIL_CHANGE -> R.string.reminder_kind_oil_change
         ReminderKind.DOCUMENT_EXPIRY -> R.string.reminder_kind_document_expiry
+    }
+
+/** Anzeigename der Fahrzeugdokumentart. */
+@get:StringRes
+val DocumentKind.labelRes: Int
+    get() = when (this) {
+        DocumentKind.REGISTRATION -> R.string.document_kind_registration
+        DocumentKind.INSURANCE -> R.string.document_kind_insurance
+        DocumentKind.WARRANTY -> R.string.document_kind_warranty
+        DocumentKind.INSPECTION_REPORT -> R.string.document_kind_inspection_report
+        DocumentKind.MANUAL -> R.string.document_kind_manual
+        DocumentKind.OTHER -> R.string.document_kind_other
+    }
+
+/** Symbol der Fahrzeugdokumentart. */
+@get:DrawableRes
+val DocumentKind.iconRes: Int
+    get() = when (this) {
+        DocumentKind.REGISTRATION -> R.drawable.ic_directions_car
+        DocumentKind.INSURANCE -> R.drawable.ic_description
+        DocumentKind.WARRANTY -> R.drawable.ic_description
+        DocumentKind.INSPECTION_REPORT -> R.drawable.ic_check
+        DocumentKind.MANUAL -> R.drawable.ic_book
+        DocumentKind.OTHER -> R.drawable.ic_description
     }
 
 /** Anzeigetext einer Erinnerung, z. B. „HU (TÜV) fällig in 12 Tagen (1. Nov. 2026)". Bei [Reminder.label] (Dokumenttitel) steht er statt der Erinnerungsart. */

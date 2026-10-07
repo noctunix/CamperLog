@@ -48,6 +48,7 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.backup.BackupError
 import app.restvolt.camperlog.backup.BackupReadResult
 import app.restvolt.camperlog.data.BackupFolderWriter
+import app.restvolt.camperlog.domain.shouldIncludeFilesInAutoBackup
 import app.restvolt.camperlog.domain.shouldShowBackupReminderCard
 import app.restvolt.camperlog.domain.formatByteSize
 import app.restvolt.camperlog.share.BACKUP_MIME
@@ -112,6 +113,8 @@ fun DataScreen(
             }
         }
     }
+    var backupSize by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(Unit) { backupSize = viewModel.backupSizeEstimate() }
     val pendingImport by viewModel.pendingImport.collectAsStateWithLifecycle()
     pendingImport?.let { pending ->
         ImportDialog(pending = pending, onImport = viewModel::startImport, onCancel = viewModel::cancelImport)
@@ -201,8 +204,6 @@ fun DataScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    var backupSize by remember { mutableStateOf<Long?>(null) }
-                    LaunchedEffect(Unit) { backupSize = viewModel.backupSizeEstimate() }
                     backupSize?.let {
                         Text(
                             stringResource(R.string.data_backup_size, formatByteSize(it, currentLocale())),
@@ -290,6 +291,15 @@ fun DataScreen(
                             checked = backupPrefs.autoBackupToFolder,
                             onCheckedChange = { backupSettings.autoBackupToFolder = it },
                         )
+                        if (backupPrefs.autoBackupToFolder) {
+                            val defaultIncludeFiles = backupSize?.let(::shouldIncludeFilesInAutoBackup) ?: true
+                            SwitchSettingRow(
+                                title = stringResource(R.string.data_backup_auto_include_files_title),
+                                supportingText = stringResource(R.string.data_backup_auto_include_files_support),
+                                checked = backupPrefs.autoBackupIncludeFilesOverride ?: defaultIncludeFiles,
+                                onCheckedChange = { backupSettings.autoBackupIncludeFilesOverride = it },
+                            )
+                        }
                     }
                 }
             }

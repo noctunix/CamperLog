@@ -6,21 +6,29 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
@@ -29,11 +37,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.data.AttachmentFileStore
+import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.logDateText
@@ -43,6 +55,8 @@ import java.time.LocalDate
 @Composable
 fun LogHistoryScreen(
     viewModel: LogHistoryViewModel,
+    attachments: AttachmentRepository,
+    attachmentFileStore: AttachmentFileStore,
     onBack: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -51,6 +65,7 @@ fun LogHistoryScreen(
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
     val message by viewModel.message.collectAsStateWithLifecycle()
+    var photosEntry by rememberSaveable { mutableStateOf<Long?>(null) }
 
     Scaffold(
         topBar = { BackTopBar(title = stringResource(viewModel.type.labelRes), onBack = onBack) },
@@ -70,7 +85,13 @@ fun LogHistoryScreen(
             ) {
                 items(state.entries, key = LogEntry::id) { entry ->
                     val station = entry.stationId?.let { id -> state.stations.firstOrNull { it.id == id } }
-                    HistoryRow(entry = entry, station = station, today = today, onDelete = { viewModel.delete(entry) })
+                    HistoryRow(
+                        entry = entry,
+                        station = station,
+                        today = today,
+                        onDelete = { viewModel.delete(entry) },
+                        onPhotos = { photosEntry = entry.id },
+                    )
                 }
             }
         }
@@ -94,10 +115,19 @@ fun LogHistoryScreen(
         }
         viewModel.onMessageShown(current)
     }
+
+    photosEntry?.let { entryId ->
+        LogEntryPhotosSheet(
+            entryId = entryId,
+            attachments = attachments,
+            attachmentFileStore = attachmentFileStore,
+            onDismiss = { photosEntry = null },
+        )
+    }
 }
 
 @Composable
-private fun HistoryRow(entry: LogEntry, station: Station?, today: LocalDate, onDelete: () -> Unit) {
+private fun HistoryRow(entry: LogEntry, station: Station?, today: LocalDate, onDelete: () -> Unit, onPhotos: () -> Unit) {
     val locale = currentLocale()
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -112,11 +142,38 @@ private fun HistoryRow(entry: LogEntry, station: Station?, today: LocalDate, onD
             } ?: dateText
             Text(text, style = MaterialTheme.typography.bodyLarge)
         }
+        IconButton(onClick = onPhotos) {
+            Icon(painterResource(R.drawable.ic_add_a_photo), contentDescription = stringResource(R.string.logbook_entry_photos_action))
+        }
         IconButton(onClick = onDelete) {
             Icon(
                 painterResource(R.drawable.ic_delete),
                 contentDescription = stringResource(R.string.logbook_delete_entry, formatDate(entry.date, locale)),
             )
         }
+    }
+}
+
+/** Fotos eines einzelnen Bordbuch-Eintrags als Bottom Sheet, damit die Verlaufsliste selbst schlank bleibt. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LogEntryPhotosSheet(
+    entryId: Long,
+    attachments: AttachmentRepository,
+    attachmentFileStore: AttachmentFileStore,
+    onDismiss: () -> Unit,
+) {
+    val snackbar = remember { SnackbarHostState() }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState()) {
+        Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)) {
+            PhotoAttachmentsSection(
+                ownerType = AttachmentOwnerType.LOG_ENTRY,
+                ownerId = entryId,
+                repository = attachments,
+                fileStore = attachmentFileStore,
+                snackbarHostState = snackbar,
+            )
+        }
+        SnackbarHost(snackbar)
     }
 }

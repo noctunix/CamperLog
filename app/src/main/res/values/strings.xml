@@ -848,4 +848,57 @@
         <item quantity="one">%1$d without coordinates</item>
         <item quantity="other">%1$d without coordinates</item>
     </plurals>
+
+    <!-- Attachments: photo row and viewer -->
+    <string name="attachments_section_title">Photos</string>
+    <string name="attachments_save_first_hint">Save first to add photos.</string>
+    <string name="attachments_add_action">Add photo</string>
+    <string name="attachments_add_camera">Take photo</string>
+    <string name="attachments_add_gallery">Choose from gallery</string>
+    <string name="attachments_gallery_no_location_hint">Gallery photos come without location.</string>
+    <string name="attachments_add_document">Choose file</string>
+    <string name="attachments_importing">Importing…</string>
+    <string name="attachments_photo_deleted">Photo deleted</string>
+    <string name="attachment_thumbnail_description">Photo %1$d of %2$d</string>
+    <string name="attachment_thumbnail_description_with_location">Photo %1$d of %2$d, with location</string>
+    <string name="attachment_import_error_unreadable">The file could not be opened.</string>
+    <string name="attachment_import_error_unsupported">This file type is not supported.</string>
+    <string name="attachment_import_error_too_large">The file is too large.</string>
+    <string name="attachment_import_error_decode_failed">The image could not be read.</string>
+    <string name="attachment_viewer_position">%1$d of %2$d</string>
+    <string name="attachment_viewer_share">Share photo</string>
+    <string name="attachment_viewer_delete">Delete photo</string>
+    <string name="attachment_viewer_previous">Previous photo</string>
+    <string name="attachment_viewer_next">Next photo</string>
+    <string name="attachment_use_stop_location">Use the stop\'s location</string>
+    <string name="attachment_caption_label">Caption</string>
+
+    <!-- Vehicle documents -->
+    <string name="section_documents">Documents</string>
+    <string name="vehicle_documents_empty">No documents yet.</string>
+    <string name="vehicle_documents_add">Add document</string>
+    <string name="document_kind_registration">Registration</string>
+    <string name="document_kind_insurance">Insurance</string>
+    <string name="document_kind_warranty">Warranty</string>
+    <string name="document_kind_inspection_report">Inspection report</string>
+    <string name="document_kind_manual">Manual</string>
+    <string name="document_kind_other">Other</string>
+    <string name="document_edit_title_new">Add document</string>
+    <string name="document_edit_title_existing">Edit document</string>
+    <string name="document_not_found">Document not found.</string>
+    <string name="document_edit_save_failed">Could not save the document.</string>
+    <string name="field_document_title">Title</string>
+    <string name="field_document_expiry">Expiry date</string>
+    <string name="document_expiry_value">Expires %1$s</string>
+    <string name="document_detail_edit">Edit document</string>
+    <string name="document_detail_delete">Delete document</string>
+    <string name="document_delete_confirm_title">Delete document?</string>
+    <string name="document_delete_confirm_text">This also deletes its files.</string>
+
+    <!-- Data screen: include files in auto-backup -->
+    <string name="data_backup_auto_include_files_title">Include photos and documents</string>
+    <string name="data_backup_auto_include_files_support">Also backs up photo and document files, not just the data. Off by default once the backup grows large.</string>
+
+    <!-- Logbook history: per-entry photos -->
+    <string name="logbook_entry_photos_action">Photos</string>
 </resources>

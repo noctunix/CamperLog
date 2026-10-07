@@ -113,6 +113,10 @@ import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import app.restvolt.camperlog.ui.tours.ToursScreen
 import app.restvolt.camperlog.ui.tours.ToursViewModel
+import app.restvolt.camperlog.ui.vehicle.VehicleDocumentDetailScreen
+import app.restvolt.camperlog.ui.vehicle.VehicleDocumentDetailViewModel
+import app.restvolt.camperlog.ui.vehicle.VehicleDocumentEditScreen
+import app.restvolt.camperlog.ui.vehicle.VehicleDocumentEditViewModel
 import app.restvolt.camperlog.ui.vehicle.VehicleScreen
 import app.restvolt.camperlog.ui.vehicle.VehicleViewModel
 import app.restvolt.camperlog.ui.vehicle.WhereAmIViewModel
@@ -153,6 +157,14 @@ internal data class VehicleEditRoute(val vehicleId: Long = 0)
 /** Reparaturformular eines Fahrzeugs; [repairId] 0 legt eine neue Reparatur an. */
 @Serializable
 internal data class RepairEditRoute(val vehicleId: Long, val repairId: Long = 0)
+
+/** Formular eines Fahrzeugdokuments; [documentId] 0 legt ein neues Dokument an. */
+@Serializable
+internal data class DocumentEditRoute(val vehicleId: Long, val documentId: Long = 0)
+
+/** Detailseite eines Fahrzeugdokuments. */
+@Serializable
+internal data class DocumentDetailRoute(val vehicleId: Long, val documentId: Long)
 
 @Serializable
 internal data class EditRoute(val tourId: Long = 0)
@@ -231,6 +243,10 @@ fun CamperLogNavHost(
     pendingVehicleId: Long? = null,
     /** [pendingVehicleId] wurde übernommen und soll nicht erneut ausgelöst werden. */
     onVehicleIntentHandled: () -> Unit = {},
+    /** Fahrzeugdokument-id aus einer getippten Ablauf-Erinnerung; `null` außerhalb dieses Starts. */
+    pendingDocumentId: Long? = null,
+    /** [pendingDocumentId] wurde übernommen und soll nicht erneut ausgelöst werden. */
+    onDocumentIntentHandled: () -> Unit = {},
     /** Direkt der Daten-Screen soll geöffnet werden, aus einer getippten Sicherungs-Erinnerung. */
     pendingOpenData: Boolean = false,
     /** [pendingOpenData] wurde übernommen und soll nicht erneut ausgelöst werden. */
@@ -318,6 +334,20 @@ fun CamperLogNavHost(
         }
     }
 
+    // Eine getippte Ablauf-Erinnerung wählt das Fahrzeug des Dokuments aus und öffnet dessen Detailseite.
+    LaunchedEffect(pendingDocumentId) {
+        val documentId = pendingDocumentId
+        if (documentId != null) {
+            val document = documents.allDocuments().firstOrNull { it.id == documentId }
+            if (document != null) {
+                vehicles.setCurrentVehicle(document.vehicleId)
+                navController.navigateToTab(VehicleRoute)
+                navController.navigate(DocumentDetailRoute(document.vehicleId, documentId))
+            }
+            onDocumentIntentHandled()
+        }
+    }
+
     // Eine getippte Sicherungs-Erinnerung öffnet direkt den Daten-Screen.
     LaunchedEffect(pendingOpenData) {
         if (pendingOpenData) {
@@ -382,6 +412,8 @@ fun CamperLogNavHost(
             val route = entry.toRoute<LogHistoryRoute>()
             LogHistoryScreen(
                 viewModel = viewModel { LogHistoryViewModel(logbook, stations, route.vehicleId, route.type) },
+                attachments = attachments,
+                attachmentFileStore = attachmentFileStore,
                 onBack = { navController.popFrom(entry) },
             )
         }
@@ -399,6 +431,8 @@ fun CamperLogNavHost(
                 onEditVehicle = { id -> navController.navigate(VehicleEditRoute(id)) },
                 onAddRepair = { vehicleId -> navController.navigate(RepairEditRoute(vehicleId)) },
                 onOpenRepair = { vehicleId, repairId -> navController.navigate(RepairEditRoute(vehicleId, repairId)) },
+                onAddDocument = { vehicleId -> navController.navigate(DocumentEditRoute(vehicleId)) },
+                onOpenDocument = { vehicleId, documentId -> navController.navigate(DocumentDetailRoute(vehicleId, documentId)) },
                 bottomBar = bottomBar,
             )
         }
@@ -425,11 +459,51 @@ fun CamperLogNavHost(
                 viewModel = viewModel {
                     RepairEditViewModel(vehicles, exchangeRates, route.vehicleId, route.repairId, createSavedStateHandle())
                 },
+                attachments = attachments,
+                attachmentFileStore = attachmentFileStore,
                 onDone = { navController.popFrom(entry) },
                 onSaved = { navController.popFrom(entry) },
                 onDelete = { repair ->
                     if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
                         vehicleViewModel.deleteRepair(repair)
+                        navController.popBackStack()
+                    }
+                },
+            )
+        }
+        composable<DocumentEditRoute> { entry ->
+            val route = entry.toRoute<DocumentEditRoute>()
+            val documentEditViewModel = viewModel {
+                VehicleDocumentEditViewModel(documents, route.vehicleId, route.documentId, createSavedStateHandle())
+            }
+            VehicleDocumentEditScreen(
+                viewModel = documentEditViewModel,
+                attachments = attachments,
+                attachmentFileStore = attachmentFileStore,
+                onDone = { navController.popFrom(entry) },
+                onSaved = {
+                    if (route.documentId == 0L) {
+                        val savedId = documentEditViewModel.uiState.value.savedDocumentId
+                        navController.popBackStack()
+                        navController.navigate(DocumentDetailRoute(route.vehicleId, savedId))
+                    } else {
+                        navController.popFrom(entry)
+                    }
+                },
+            )
+        }
+        composable<DocumentDetailRoute> { entry ->
+            val route = entry.toRoute<DocumentDetailRoute>()
+            val detailViewModel = viewModel { VehicleDocumentDetailViewModel(documents, route.vehicleId, route.documentId) }
+            VehicleDocumentDetailScreen(
+                viewModel = detailViewModel,
+                attachments = attachments,
+                attachmentFileStore = attachmentFileStore,
+                onBack = { navController.popFrom(entry) },
+                onEdit = { navController.navigate(DocumentEditRoute(route.vehicleId, route.documentId)) },
+                onDelete = { document ->
+                    if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                        detailViewModel.delete(document)
                         navController.popBackStack()
                     }
                 },
@@ -529,6 +603,8 @@ fun CamperLogNavHost(
                 },
                 locationSettings = locationSettings,
                 weatherSettings = weatherSettings,
+                attachments = attachments,
+                attachmentFileStore = attachmentFileStore,
                 onDone = { navController.popFrom(entry) },
                 onSaved = { loggedServices ->
                     onStationSaved(loggedServices)
@@ -548,6 +624,8 @@ fun CamperLogNavHost(
             }
             StationDetailScreen(
                 viewModel = viewModel { StationDetailViewModel(stations, repository, route.stationId) },
+                attachments = attachments,
+                attachmentFileStore = attachmentFileStore,
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(StationEditRoute(stationId = route.stationId)) },
                 onOpenTour = if (route.fromStationsTab) {
