@@ -5,12 +5,16 @@ import android.database.SQLException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.backup.Backup
+import app.restvolt.camperlog.backup.BackupChecklist
 import app.restvolt.camperlog.backup.BackupDiaryEntry
 import app.restvolt.camperlog.backup.BackupReadResult
 import app.restvolt.camperlog.backup.BackupVehicle
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.backup.decodeBackup
+import app.restvolt.camperlog.domain.Checklist
+import app.restvolt.camperlog.domain.ChecklistItem
+import app.restvolt.camperlog.domain.ChecklistTemplate
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.EUR
@@ -83,6 +87,8 @@ class RoomBackupImporterTest {
     private fun logEntryUuid(n: Int) = "30000000-0000-4000-8000-%012d".format(n)
     private fun stationUuid(n: Int) = "40000000-0000-4000-8000-%012d".format(n)
     private fun diaryEntryUuid(n: Int) = "50000000-0000-4000-8000-%012d".format(n)
+    private fun checklistTemplateUuid(n: Int) = "60000000-0000-4000-8000-%012d".format(n)
+    private fun checklistUuid(n: Int) = "70000000-0000-4000-8000-%012d".format(n)
 
     private fun tour(n: Int, destination: String = "Ziel $n", updatedAt: String = "2026-07-10T10:00:00Z") = Tour(
         uuid = uuid(n),
@@ -148,6 +154,28 @@ class RoomBackupImporterTest {
         updatedAt = Instant.parse(updatedAt),
     )
 
+    private fun checklistTemplate(n: Int, name: String = "Vorlage $n", items: List<String> = listOf("Punkt $n"), updatedAt: String = "2026-07-01T10:00:00Z") =
+        ChecklistTemplate(
+            uuid = checklistTemplateUuid(n),
+            name = name,
+            items = items,
+            createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+            updatedAt = Instant.parse(updatedAt),
+        )
+
+    private fun checklist(n: Int, tourUuid: String?, title: String = "Checkliste $n", updatedAt: String = "2026-07-01T10:00:00Z") = BackupChecklist(
+        Checklist(
+            uuid = checklistUuid(n),
+            vehicleId = 0,
+            title = title,
+            items = listOf(ChecklistItem("Punkt $n")),
+            createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+            updatedAt = Instant.parse(updatedAt),
+        ),
+        vehicleUuid(1),
+        tourUuid,
+    )
+
     private fun backup(
         tours: List<Tour>,
         rates: List<ExchangeRate> = emptyList(),
@@ -160,6 +188,8 @@ class RoomBackupImporterTest {
         stationTourUuid: Map<String, String> = emptyMap(),
         logEntryStationUuid: Map<String, String> = emptyMap(),
         diaryEntries: List<BackupDiaryEntry> = emptyList(),
+        checklistTemplates: List<ChecklistTemplate> = emptyList(),
+        checklists: List<BackupChecklist> = emptyList(),
     ) = Backup(
         exportedAt = Instant.parse("2026-10-04T12:00:00Z"),
         mainCurrency = main,
@@ -173,6 +203,8 @@ class RoomBackupImporterTest {
         stationTourUuid = stationTourUuid,
         logEntryStationUuid = logEntryStationUuid,
         diaryEntries = diaryEntries,
+        checklistTemplates = checklistTemplates,
+        checklists = checklists,
     )
 
     /** Gespeicherte Touren ohne Datenbank-id, damit sie mit Sicherungs-Touren vergleichbar sind. */
@@ -783,6 +815,160 @@ class RoomBackupImporterTest {
 
         assertEquals(1, result.addedDiaryEntries)
         assertEquals(listOf("Import"), db.diaryEntryDao().getAll().map { it.text })
+    }
+
+    @Test
+    fun merge_checklistTemplates_addsNewUpdatesNewerKeepsOlderOrEqualUnchanged() = runTest {
+        db.checklistTemplateDao().insertWithItems(
+            checklistTemplate(1, name = "Lokal alt", updatedAt = "2026-07-10T10:00:00Z").toEntity(),
+            emptyList(),
+        )
+        db.checklistTemplateDao().insertWithItems(
+            checklistTemplate(2, name = "Lokal neu", updatedAt = "2026-07-20T10:00:00Z").toEntity(),
+            emptyList(),
+        )
+
+        val result = importer.import(
+            backup(
+                tours = emptyList(),
+                checklistTemplates = listOf(
+                    checklistTemplate(1, name = "Import neu", updatedAt = "2026-07-15T10:00:00Z"),
+                    checklistTemplate(2, name = "Import alt", updatedAt = "2026-07-15T10:00:00Z"),
+                    checklistTemplate(3, name = "Import zusätzlich"),
+                ),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(1, result.addedChecklistTemplates)
+        assertEquals(1, result.updatedChecklistTemplates)
+        assertEquals(
+            setOf("Import neu", "Lokal neu", "Import zusätzlich"),
+            RoomChecklistTemplateRepository(db).observeAll().first().map { it.name }.toSet(),
+        )
+    }
+
+    @Test
+    fun replace_checklistTemplates_removesEverythingNotInBackup() = runTest {
+        db.checklistTemplateDao().insertWithItems(checklistTemplate(1, name = "Lokal").toEntity(), emptyList())
+
+        val result = importer.import(
+            backup(tours = emptyList(), checklistTemplates = listOf(checklistTemplate(2, name = "Import"))),
+            ImportMode.REPLACE,
+        )
+
+        assertEquals(1, result.addedChecklistTemplates)
+        assertEquals(listOf("Import"), RoomChecklistTemplateRepository(db).observeAll().first().map { it.name })
+    }
+
+    @Test
+    fun merge_checklists_addsNewUpdatesNewerKeepsOlderOrEqualUnchanged() = runTest {
+        val localTourId = db.tourDao().insert(tour(1).toEntity())
+        db.checklistDao().insertWithItems(
+            checklist(1, tourUuid = null).checklist.copy(title = "Lokal alt", updatedAt = Instant.parse("2026-07-10T10:00:00Z"), vehicleId = vehicleId).toEntity(),
+            emptyList(),
+        )
+        db.checklistDao().insertWithItems(
+            checklist(2, tourUuid = null).checklist.copy(title = "Lokal neu", updatedAt = Instant.parse("2026-07-20T10:00:00Z"), vehicleId = vehicleId).toEntity(),
+            emptyList(),
+        )
+
+        val result = importer.import(
+            backup(
+                tours = listOf(tour(1)),
+                vehicles = listOf(BackupVehicle(vehicle(1), emptyList(), emptyList())),
+                tourVehicleUuid = mapOf(uuid(1) to vehicleUuid(1)),
+                checklists = listOf(
+                    checklist(1, tourUuid = null, title = "Import neu", updatedAt = "2026-07-15T10:00:00Z"),
+                    checklist(2, tourUuid = null, title = "Import alt", updatedAt = "2026-07-15T10:00:00Z"),
+                    checklist(3, tourUuid = null, title = "Import zusätzlich"),
+                ),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(1, result.addedChecklists)
+        assertEquals(1, result.updatedChecklists)
+        assertEquals(
+            setOf("Import neu", "Lokal neu", "Import zusätzlich"),
+            RoomChecklistRepository(db).allChecklists().map { it.title }.toSet(),
+        )
+    }
+
+    @Test
+    fun merge_resolvesChecklistVehicleAndTourFromTheirUuids() = runTest {
+        val result = importer.import(
+            backup(
+                tours = listOf(tour(1).copy(vehicleId = 0)),
+                vehicles = listOf(BackupVehicle(vehicle(1), emptyList(), emptyList())),
+                tourVehicleUuid = mapOf(uuid(1) to vehicleUuid(1)),
+                checklists = listOf(checklist(1, tourUuid = uuid(1))),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(1, result.addedChecklists)
+        val storedChecklist = RoomChecklistRepository(db).allChecklists().single()
+        val importedVehicleId = vehicles.allVehicles().single { it.uuid == vehicleUuid(1) }.id
+        assertEquals(importedVehicleId, storedChecklist.vehicleId)
+        assertEquals(tours.allTours().single().id, storedChecklist.tourId)
+    }
+
+    @Test
+    fun merge_checklistWithoutATour_staysWithoutATour() = runTest {
+        val result = importer.import(
+            backup(
+                tours = emptyList(),
+                vehicles = listOf(BackupVehicle(vehicle(1), emptyList(), emptyList())),
+                checklists = listOf(checklist(1, tourUuid = null)),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(1, result.addedChecklists)
+        assertEquals(null, RoomChecklistRepository(db).allChecklists().single().tourId)
+    }
+
+    @Test
+    fun replace_checklists_removesEverythingNotInBackup() = runTest {
+        db.checklistDao().insertWithItems(
+            checklist(1, tourUuid = null).checklist.copy(title = "Lokal", vehicleId = vehicleId).toEntity(),
+            emptyList(),
+        )
+
+        val result = importer.import(
+            backup(
+                tours = emptyList(),
+                vehicles = listOf(BackupVehicle(vehicle(1), emptyList(), emptyList())),
+                checklists = listOf(checklist(2, tourUuid = null, title = "Import")),
+            ),
+            ImportMode.REPLACE,
+        )
+
+        assertEquals(1, result.addedChecklists)
+        assertEquals(listOf("Import"), RoomChecklistRepository(db).allChecklists().map { it.title })
+    }
+
+    @Test
+    fun legacyFormat8Backup_importsWithoutChecklistTemplatesOrChecklists() = runTest {
+        val text = """
+            {
+              "format": "camperlog-backup",
+              "schemaVersion": 8,
+              "exportedAt": "2026-10-04T12:00:00Z",
+              "mainCurrency": "SEK",
+              "exchangeRates": [],
+              "tours": []
+            }
+        """.trimIndent()
+        val decoded = (decodeBackup(text) as BackupReadResult.Success).backup
+
+        val result = importer.import(decoded, ImportMode.MERGE)
+
+        assertEquals(0, result.addedChecklistTemplates)
+        assertEquals(0, result.addedChecklists)
+        assertEquals(emptyList<ChecklistTemplate>(), RoomChecklistTemplateRepository(db).observeAll().first())
+        assertEquals(emptyList<Checklist>(), RoomChecklistRepository(db).allChecklists())
     }
 
     @Test
