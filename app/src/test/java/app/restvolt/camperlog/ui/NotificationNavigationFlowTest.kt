@@ -2,7 +2,9 @@ package app.restvolt.camperlog.ui
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.VehicleDocument
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
@@ -12,6 +14,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.Instant
+import java.time.LocalDate
 
 /**
  * Deep Links aus getippten Benachrichtigungen: eine Wartungs-Benachrichtigung wählt ihr
@@ -73,5 +76,40 @@ class NotificationNavigationFlowTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("Sicherung", substring = false).assertExists()
+    }
+
+    @Test
+    fun pendingDocumentId_selectsItsVehicleAndOpensTheDocumentDetail() {
+        val vehicles = FakeVehicleRepository(initial = listOf(vehicle(1, "Erstes"), vehicle(2, "Zweites")), currentVehicleId = 1)
+        val document = VehicleDocument(
+            id = 7,
+            uuid = "document-7",
+            vehicleId = 2,
+            kind = DocumentKind.INSURANCE,
+            title = "KFZ-Police",
+            expiryDate = LocalDate.now(),
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        compose.setContent {
+            CamperLogTheme {
+                CamperLogNavHost(
+                    FakeTourRepository(),
+                    vehicles,
+                    FakeLogRepository(),
+                    FakeStationRepository(),
+                    FakeExchangeRateRepository(),
+                    FakeVehicleDocumentRepository(listOf(document)), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
+                    ThemeMode.SYSTEM,
+                    canShowStartDialogs = false,
+                    pendingDocumentId = 7,
+                ) {}
+            }
+        }
+        compose.waitForIdle()
+
+        assertEquals(2L, vehicles.currentVehicleId)
+        compose.onNodeWithText("KFZ-Police").assertExists()
+        compose.onNodeWithText("Versicherung").assertExists()
     }
 }
