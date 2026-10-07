@@ -186,7 +186,7 @@ internal object StationsMapRoute
 
 /**
  * Stationsformular; [stationId] 0 legt eine neue Station an. [initialType] (Name von [StationType])
- * und die Vorbelegung aus Koordinaten/Ort gelten nur dafür, siehe 3.3 bzw. 13.5 Nr. 4.
+ * und die Vorbelegung aus Koordinaten/Ort gelten nur dafür.
  */
 @Serializable
 internal data class StationEditRoute(
@@ -326,8 +326,8 @@ fun CamperLogNavHost(
         return
     }
 
-    // Ein geo:-Link startet die Stationsaufnahme mit Typauswahl, siehe 13.5 Nr. 4; ausgelöst nach der
-    // Einführungstour, nie zusammen mit ihr.
+    // Ein geo:-Link startet die Stationsaufnahme mit Typauswahl, ausgelöst nach der Einführungstour,
+    // nie zusammen mit ihr.
     var geoLocationForPicker by remember { mutableStateOf<GeoIntentLocation?>(null) }
     LaunchedEffect(pendingGeoIntent) {
         if (pendingGeoIntent != null) {
