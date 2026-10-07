@@ -36,6 +36,10 @@ val ALL_COUNTRY_CODES: Set<String> by lazy { Locale.getISOCountries().toSet() }
 /** Lokalisierter Anzeigename eines ISO-3166-1-alpha-2-Ländercodes, z. B. „Norwegen" für `NO` auf Deutsch. */
 fun countryDisplayName(code: String, locale: Locale): String = Locale.Builder().setRegion(code).build().getDisplayCountry(locale)
 
+/** Flaggen-Emoji eines ISO-3166-1-alpha-2-Ländercodes, aus den beiden Unicode-Regional-Indicator-Symbolen seiner Buchstaben. */
+fun countryFlagEmoji(code: String): String = code.uppercase().map { letter -> Character.toChars(0x1F1E6 + (letter - 'A')) }
+    .joinToString(separator = "") { String(it) }
+
 /**
  * Vor Ort genutzte Versorgung. Die "Ver-/Entsorgung"-Gruppe ist auf [StationType.OVERNIGHT],
  * [StationType.SUPPLY] und [StationType.FUEL] erlaubt, die "Tanken"-Gruppe nur auf [StationType.FUEL]
