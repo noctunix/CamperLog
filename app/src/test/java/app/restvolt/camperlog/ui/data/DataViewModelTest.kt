@@ -18,6 +18,7 @@ import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.VehicleDocument
+import app.restvolt.camperlog.share.CsvVocabulary
 import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import app.restvolt.camperlog.ui.FakeAttachmentRepository
 import app.restvolt.camperlog.ui.FakeBackupImporter
@@ -120,7 +121,11 @@ class DataViewModelTest {
 
     private val backupText = Backup(Instant.parse("2026-10-04T12:00:00Z"), nok, emptyList(), listOf(tour)).let(::encodeBackup)
 
-    private fun viewModel(importer: FakeBackupImporter = FakeBackupImporter(), tours: List<Tour> = emptyList()) =
+    private fun viewModel(
+        importer: FakeBackupImporter = FakeBackupImporter(),
+        tours: List<Tour> = emptyList(),
+        vocabulary: CsvVocabulary = CsvVocabulary.GERMAN,
+    ) =
         DataViewModel(
             FakeTourRepository(tours),
             FakeExchangeRateRepository(),
@@ -135,6 +140,7 @@ class DataViewModelTest {
             folderWriter,
             onBackupSaved = { backupSavedAt += it },
             background = dispatcher,
+            vocabulary = { vocabulary },
         ).also { files.sources["backup"] = backupText; files.sources["empty"] = "{}" }
 
     @Test
@@ -181,15 +187,25 @@ class DataViewModelTest {
 
         assertEquals(ShareRequest.Csv("csv:1"), viewModel.share.value)
         assertEquals(1, files.csvExports.size)
-        val (exportedTours, vehicleNames, defaultName) = files.csvExports.single()
-        assertEquals(listOf(tour.copy(vehicleId = 1)), exportedTours)
-        assertEquals(mapOf(1L to "Standard"), vehicleNames)
-        assertEquals(DEFAULT_VEHICLE_NAME, defaultName)
+        val export = files.csvExports.single()
+        assertEquals(listOf(tour.copy(vehicleId = 1)), export.tours)
+        assertEquals(mapOf(1L to "Standard"), export.vehicleNames)
+        assertEquals(DEFAULT_VEHICLE_NAME, export.defaultVehicleName)
+        assertEquals(CsvVocabulary.GERMAN, export.vocabulary)
         viewModel.shareHandled(started = false)
         assertNull(viewModel.share.value)
         assertEquals(DataMessage.Text(R.string.no_share_app), viewModel.message.value)
         viewModel.messageShown()
         assertNull(viewModel.message.value)
+    }
+
+    @Test
+    fun exportCsv_withEnglishVocabulary_passesItToTheCsvExport() {
+        val viewModel = viewModel(tours = listOf(tour), vocabulary = CsvVocabulary.ENGLISH)
+
+        viewModel.exportCsv(DEFAULT_VEHICLE_NAME)
+
+        assertEquals(CsvVocabulary.ENGLISH, files.csvExports.single().vocabulary)
     }
 
     @Test
@@ -227,16 +243,18 @@ class DataViewModelTest {
             files,
             folderWriter,
             background = dispatcher,
+            vocabulary = { CsvVocabulary.ENGLISH },
         )
 
         viewModel.exportStationsCsv(DEFAULT_VEHICLE_NAME)
 
         assertEquals(ShareRequest.StationsCsv("stations-csv:1"), viewModel.share.value)
         assertEquals(1, files.stationsCsvExports.size)
-        val (exportedStations, vehicleNames, defaultName) = files.stationsCsvExports.single()
-        assertEquals(listOf(station), exportedStations)
-        assertEquals(mapOf(1L to "Standard"), vehicleNames)
-        assertEquals(DEFAULT_VEHICLE_NAME, defaultName)
+        val export = files.stationsCsvExports.single()
+        assertEquals(listOf(station), export.stations)
+        assertEquals(mapOf(1L to "Standard"), export.vehicleNames)
+        assertEquals(DEFAULT_VEHICLE_NAME, export.defaultVehicleName)
+        assertEquals(CsvVocabulary.ENGLISH, export.vocabulary)
     }
 
     @Test
@@ -466,12 +484,23 @@ private fun extractBackupJson(zipBytes: ByteArray): String {
     }
 }
 
+/** Ein über [FakeDataFiles.writeCsvExport] erfasster Export der Touren-CSV. */
+private data class CsvExport(val tours: List<Tour>, val vehicleNames: Map<Long, String>, val defaultVehicleName: String, val vocabulary: CsvVocabulary)
+
+/** Ein über [FakeDataFiles.writeStationsCsvExport] erfasster Export der Stationen-CSV. */
+private data class StationsCsvExport(
+    val stations: List<Station>,
+    val vehicleNames: Map<Long, String>,
+    val defaultVehicleName: String,
+    val vocabulary: CsvVocabulary,
+)
+
 /** Speichert Exporte im Speicher; [gate] hält Exporte an, [failure] lässt Schreibzugriffe scheitern. */
 private class FakeDataFiles : DataFiles {
     val sources = mutableMapOf<String, String>()
     val written = mutableMapOf<String, String>()
-    val csvExports = mutableListOf<Triple<List<Tour>, Map<Long, String>, String>>()
-    val stationsCsvExports = mutableListOf<Triple<List<Station>, Map<Long, String>, String>>()
+    val csvExports = mutableListOf<CsvExport>()
+    val stationsCsvExports = mutableListOf<StationsCsvExport>()
     var gate: CompletableDeferred<Unit>? = null
     var failure: IOException? = null
     private var backups = 0
@@ -484,10 +513,11 @@ private class FakeDataFiles : DataFiles {
         stations: List<Station>,
         vehicleNames: Map<Long, String>,
         defaultVehicleName: String,
+        vocabulary: CsvVocabulary,
     ): String {
         gate?.await()
         failure?.let { throw it }
-        csvExports += Triple(tours, vehicleNames, defaultVehicleName)
+        csvExports += CsvExport(tours, vehicleNames, defaultVehicleName, vocabulary)
         return "csv:${csvExports.size}"
     }
 
@@ -496,10 +526,11 @@ private class FakeDataFiles : DataFiles {
         tourNames: Map<Long, String>,
         vehicleNames: Map<Long, String>,
         defaultVehicleName: String,
+        vocabulary: CsvVocabulary,
     ): String {
         gate?.await()
         failure?.let { throw it }
-        stationsCsvExports += Triple(stations, vehicleNames, defaultVehicleName)
+        stationsCsvExports += StationsCsvExport(stations, vehicleNames, defaultVehicleName, vocabulary)
         return "stations-csv:${stationsCsvExports.size}"
     }
 

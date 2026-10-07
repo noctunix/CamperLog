@@ -35,6 +35,73 @@ class StationCsvTest {
     }
 
     @Test
+    fun germanHeaderMatchesThePinnedLegacyFormat() {
+        assertEquals(
+            "id,datum,uhrzeit,typ,name,ort,breitengrad,laengengrad,koordinatenquelle,genauigkeit_m,kartenlink,naechte," +
+                "platzart,stellplatz_zugewiesen,strompauschale,lte,neigung,keile_genutzt,versorgung,gerne_wieder,notizen," +
+                "angelegt,geaendert,tour,fahrzeug,kosten_stellplatz,kosten_strom,kosten_ver_entsorgung,kosten_tanken_laden," +
+                "kosten_maut,kosten_faehre,kosten_essen,kosten_sonstiges,strom_kwh",
+            STATION_CSV_HEADER.joinToString(","),
+        )
+        assertEquals(STATION_CSV_HEADER, stationCsvHeader(CsvVocabulary.GERMAN))
+    }
+
+    @Test
+    fun englishHeaderAndRowUseEnglishVocabulary() {
+        assertEquals(
+            "id,date,time,type,name,place,latitude,longitude,coordinate_source,accuracy_m,map_link,nights,site_kind," +
+                "pitch_assigned,electricity_billing,lte_quality,pitch_slope,leveling_blocks_used,services,favorite,notes," +
+                "created_at,updated_at,tour,vehicle,costs_pitch,costs_electricity,costs_supply_disposal,costs_fuel_charging," +
+                "costs_toll,costs_ferry,costs_food,costs_other,electricity_kwh",
+            stationCsvHeader(CsvVocabulary.ENGLISH).joinToString(","),
+        )
+
+        val station = Station(
+            id = 7,
+            vehicleId = 1,
+            tourId = 3,
+            type = StationType.OVERNIGHT,
+            date = LocalDate.of(2026, 7, 4),
+            time = LocalTime.of(18, 40),
+            name = "Camping Moskenes",
+            place = "Moskenes, Norway",
+            latitude = 68.0912,
+            longitude = 13.1023,
+            coordinateSource = CoordinateSource.ENTERED,
+            accuracyM = null,
+            mapLink = null,
+            notes = "Nice view",
+            nights = 2,
+            siteKind = SiteKind.CAMPSITE,
+            pitchAssigned = true,
+            lteQuality = LteQuality.GOOD,
+            pitchSlope = PitchSlope.LEVEL,
+            levelingBlocksUsed = false,
+            electricityBilling = ElectricityBilling.METERED,
+            electricityCurrency = EUR,
+            electricityPricePerKwh = BigDecimal("0.35"),
+            electricityMeterStart = BigDecimal("100"),
+            electricityMeterEnd = BigDecimal("110"),
+            costs = listOf(StationCost(CostCategory.SUPPLY, Money(500, EUR))),
+            services = setOf(StationService.CASSETTE, StationService.FRESH_WATER),
+            favorite = true,
+            createdAt = Instant.parse("2026-07-04T08:00:00Z"),
+            updatedAt = Instant.parse("2026-07-05T09:30:00Z"),
+        )
+
+        val row = stationsToCsv(listOf(station), mapOf(3L to "Lofoten"), mapOf(1L to "Bulli"), DEFAULT_NAME, CsvVocabulary.ENGLISH).split("\r\n")[1]
+
+        assertEquals(
+            "7,2026-07-04,18:40,overnight,Camping Moskenes,\"Moskenes, Norway\"," +
+                "68.0912,13.1023,entered,,,2,campsite,yes," +
+                "metered,good,level,no," +
+                "\"fresh_water; cassette_toilet\",yes,Nice view," +
+                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,10",
+            row,
+        )
+    }
+
+    @Test
     fun exportHasHeaderAndOneCrlfTerminatedRowPerStation() {
         val station = Station(
             id = 7,

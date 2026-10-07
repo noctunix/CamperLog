@@ -209,6 +209,59 @@ class TourCsvTest {
     }
 
     @Test
+    fun germanHeaderMatchesThePinnedLegacyFormat() {
+        assertEquals(
+            "id,startdatum,enddatum,ziel,tourart,reisetage,uebernachtungen,km,kosten_eur,stellplatz_zugewiesen," +
+                "strompauschale,lte,stellplatz_neigung,keile_genutzt,notizen,kartenlink,angelegt,geaendert,kosten,fahrzeug,kosten_gesamt",
+            CSV_HEADER.joinToString(","),
+        )
+        assertEquals(CSV_HEADER, tourCsvHeader(CsvVocabulary.GERMAN))
+    }
+
+    @Test
+    fun englishHeaderAndRowUseEnglishVocabulary() {
+        assertEquals(
+            "id,start_date,end_date,destination,trip_type,travel_days,overnight_stays,distance_km,costs_eur,pitch_assigned," +
+                "electricity_flat_rate,lte_quality,pitch_slope,leveling_blocks_used,notes,map_link,created_at,updated_at,costs,vehicle,total_costs",
+            tourCsvHeader(CsvVocabulary.ENGLISH).joinToString(","),
+        )
+
+        val tour = Tour(
+            id = 3,
+            vehicleId = 1,
+            startDate = LocalDate.of(2026, 7, 10),
+            endDate = LocalDate.of(2026, 7, 12),
+            destination = "Lake Garda",
+            tourType = TourType.DAY_TRIP,
+            travelDays = 3,
+            overnightStays = 2,
+            distanceKm = 412,
+            costs = listOf(Money(8_950, EUR)),
+            notes = "",
+            mapLink = null,
+            createdAt = Instant.parse("2026-07-13T08:00:00Z"),
+            updatedAt = Instant.parse("2026-07-14T09:30:00Z"),
+        )
+        val station = overnightStation(
+            tourId = 3,
+            date = LocalDate.of(2026, 7, 10),
+            pitchAssigned = true,
+            electricity = ElectricityBilling.NONE,
+            lte = LteQuality.GOOD,
+            slope = PitchSlope.LEVEL,
+            blocksUsed = false,
+        )
+
+        val row = toursToCsv(listOf(tour), listOf(station), mapOf(1L to "Bulli"), DEFAULT_NAME, CsvVocabulary.ENGLISH).split("\r\n")[1]
+
+        assertEquals(
+            "3,2026-07-10,2026-07-12,Lake Garda,day trip,3,2,412,89.50,yes,not used,good,level,no," +
+                ",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z,89.50 EUR,Bulli,89.50 EUR",
+            row,
+        )
+    }
+
+    @Test
     fun totalCostsColumnIsAppendedAfterTheVehicleColumn() {
         assertEquals("fahrzeug", CSV_HEADER[CSV_HEADER.size - 2])
         assertEquals("kosten_gesamt", CSV_HEADER.last())

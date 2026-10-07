@@ -36,8 +36,40 @@ val CSV_HEADER = listOf(
     "kosten_gesamt",
 )
 
+/** Englische Kopfzeile des Touren-CSV-Exports, Spalte für Spalte wie [CSV_HEADER]. */
+private val ENGLISH_CSV_HEADER = listOf(
+    "id",
+    "start_date",
+    "end_date",
+    "destination",
+    "trip_type",
+    "travel_days",
+    "overnight_stays",
+    "distance_km",
+    "costs_eur",
+    "pitch_assigned",
+    "electricity_flat_rate",
+    "lte_quality",
+    "pitch_slope",
+    "leveling_blocks_used",
+    "notes",
+    "map_link",
+    "created_at",
+    "updated_at",
+    "costs",
+    "vehicle",
+    "total_costs",
+)
+
+/** Kopfzeile des Touren-CSV-Exports in [vocabulary]. */
+fun tourCsvHeader(vocabulary: CsvVocabulary): List<String> = when (vocabulary) {
+    CsvVocabulary.GERMAN -> CSV_HEADER
+    CsvVocabulary.ENGLISH -> ENGLISH_CSV_HEADER
+}
+
 /**
- * Erzeugt eine CSV-Datei nach RFC 4180 (Komma, CRLF) mit Kopfzeile.
+ * Erzeugt eine CSV-Datei nach RFC 4180 (Komma, CRLF) mit Kopfzeile, Kopfzeile und Werte in der
+ * Sprache von [vocabulary] (Deutsch per Vorgabe, unverändert gegenüber früheren Exporten).
  * Datumswerte sind ISO-8601, Kosten exakte Dezimalzahlen mit Punkt. `kosten_eur` enthält nur den
  * Euro-Anteil, `kosten` alle manuell erfassten Tourkosten mit ISO-Code, z. B.
  * `120.00 EUR; 1450.00 NOK; 3500 ISK`; `kosten_gesamt` zusätzlich dazu die Kosten aller Stationen der
@@ -48,13 +80,21 @@ val CSV_HEADER = listOf(
  * ergibt [defaultVehicleName]. Freitextfelder werden per [neutralizeFormula] gegen Formel-Injection
  * entschärft.
  */
-fun toursToCsv(tours: List<Tour>, stations: List<Station>, vehicleNames: Map<Long, String>, defaultVehicleName: String): String {
+fun toursToCsv(
+    tours: List<Tour>,
+    stations: List<Station>,
+    vehicleNames: Map<Long, String>,
+    defaultVehicleName: String,
+    vocabulary: CsvVocabulary = CsvVocabulary.GERMAN,
+): String {
     val firstOvernightStation = firstOvernightStationsByTour(stations)
     val stationsByTour = stations.filter { it.tourId != null }.groupBy { it.tourId as Long }
     return buildString {
-        appendCsvRow(CSV_HEADER)
+        appendCsvRow(tourCsvHeader(vocabulary))
         tours.forEach { tour ->
-            appendCsvRow(tour.csvFields(firstOvernightStation[tour.id], stationsByTour[tour.id].orEmpty(), vehicleNames, defaultVehicleName))
+            appendCsvRow(
+                tour.csvFields(firstOvernightStation[tour.id], stationsByTour[tour.id].orEmpty(), vehicleNames, defaultVehicleName, vocabulary),
+            )
         }
     }
 }
@@ -95,22 +135,28 @@ private fun StringBuilder.appendCsvRow(fields: List<String>) {
     append("\r\n")
 }
 
-private fun Tour.csvFields(station: Station?, tourStations: List<Station>, vehicleNames: Map<Long, String>, defaultVehicleName: String): List<String> =
+private fun Tour.csvFields(
+    station: Station?,
+    tourStations: List<Station>,
+    vehicleNames: Map<Long, String>,
+    defaultVehicleName: String,
+    vocabulary: CsvVocabulary,
+): List<String> =
     listOf(
         id.toString(),
         startDate.toString(),
         endDate.toString(),
         neutralizeFormula(destination),
-        tourType.csvValue,
+        tourType.csvValue(vocabulary),
         travelDays.toString(),
         overnightStays.toString(),
         distanceKm.toString(),
         amountToDecimal(costs.filter { it.currency == EUR }.sumMinor(), EUR),
-        yesNoOrEmpty(station?.pitchAssigned),
-        station?.electricityBilling?.let(::legacyFlatRate)?.csvValue.orEmpty(),
-        station?.lteQuality?.csvValue.orEmpty(),
-        station?.pitchSlope?.csvValue.orEmpty(),
-        yesNoOrEmpty(station?.levelingBlocksUsed),
+        yesNoOrEmpty(station?.pitchAssigned, vocabulary),
+        station?.electricityBilling?.let(::legacyFlatRate)?.csvValue(vocabulary).orEmpty(),
+        station?.lteQuality?.csvValue(vocabulary).orEmpty(),
+        station?.pitchSlope?.csvValue(vocabulary).orEmpty(),
+        yesNoOrEmpty(station?.levelingBlocksUsed, vocabulary),
         neutralizeFormula(notes),
         neutralizeFormula(mapLink.orEmpty()),
         createdAt.toString(),
@@ -120,9 +166,9 @@ private fun Tour.csvFields(station: Station?, tourStations: List<Station>, vehic
         totalCosts(tourStations).joinToString("; ") { "${amountToDecimal(it.minor, it.currency)} ${it.currency.currencyCode}" },
     )
 
-private fun yesNoOrEmpty(value: Boolean?) = when (value) {
-    true -> "ja"
-    false -> "nein"
+private fun yesNoOrEmpty(value: Boolean?, vocabulary: CsvVocabulary) = when (value) {
+    true -> vocabulary.yes
+    false -> vocabulary.no
     null -> ""
 }
 

@@ -40,8 +40,9 @@ private val exportStamp = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss")
 
 /**
  * Schreibt alle [tours] als CSV in den Cache-Ordner `exports/` und liefert eine teilbare Content-URI.
- * Die Datei beginnt mit einem UTF-8-BOM, damit Tabellenprogramme Umlaute korrekt erkennen.
- * Jeder Export bekommt einen eigenen Dateinamen; ältere Exporte werden dabei aufgeräumt.
+ * Kopfzeile und Werte folgen [vocabulary]. Die Datei beginnt mit einem UTF-8-BOM, damit
+ * Tabellenprogramme Umlaute korrekt erkennen. Jeder Export bekommt einen eigenen Dateinamen; ältere
+ * Exporte werden dabei aufgeräumt.
  */
 suspend fun writeCsvExport(
     context: Context,
@@ -49,11 +50,12 @@ suspend fun writeCsvExport(
     stations: List<Station>,
     vehicleNames: Map<Long, String>,
     defaultVehicleName: String,
+    vocabulary: CsvVocabulary,
 ): Uri = withContext(Dispatchers.IO) {
     val dir = File(context.cacheDir, EXPORT_DIR).apply { mkdirs() }
     deleteOldExports(dir, System.currentTimeMillis())
     val file = uniqueFile(dir, "camperlog-touren-${LocalDateTime.now().format(exportStamp)}")
-    file.writeText(UTF8_BOM + toursToCsv(tours, stations, vehicleNames, defaultVehicleName), Charsets.UTF_8)
+    file.writeText(UTF8_BOM + toursToCsv(tours, stations, vehicleNames, defaultVehicleName, vocabulary), Charsets.UTF_8)
     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 }
 
@@ -67,11 +69,12 @@ suspend fun writeStationsCsvExport(
     tourNames: Map<Long, String>,
     vehicleNames: Map<Long, String>,
     defaultVehicleName: String,
+    vocabulary: CsvVocabulary,
 ): Uri = withContext(Dispatchers.IO) {
     val dir = File(context.cacheDir, EXPORT_DIR).apply { mkdirs() }
     deleteOldExports(dir, System.currentTimeMillis())
     val file = uniqueFile(dir, "camperlog-stationen-${LocalDateTime.now().format(exportStamp)}")
-    file.writeText(UTF8_BOM + stationsToCsv(stations, tourNames, vehicleNames, defaultVehicleName), Charsets.UTF_8)
+    file.writeText(UTF8_BOM + stationsToCsv(stations, tourNames, vehicleNames, defaultVehicleName, vocabulary), Charsets.UTF_8)
     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 }
 

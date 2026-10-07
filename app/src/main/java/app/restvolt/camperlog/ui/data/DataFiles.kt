@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.core.net.toUri
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.share.CsvVocabulary
 import app.restvolt.camperlog.share.writeBackupExport
 import app.restvolt.camperlog.share.writeBackupTo
 import app.restvolt.camperlog.share.writeBackupZipExport
@@ -24,25 +25,27 @@ interface DataFiles {
     /**
      * Schreibt [tours] und [stations] als CSV in den Export-Cache und liefert die teilbare URI.
      * [vehicleNames] löst [Tour.vehicleId] in einen Anzeigenamen auf; [defaultVehicleName] gilt
-     * bei einem leeren oder fehlenden Namen.
+     * bei einem leeren oder fehlenden Namen. Kopfzeile und Werte folgen [vocabulary].
      */
     suspend fun writeCsvExport(
         tours: List<Tour>,
         stations: List<Station>,
         vehicleNames: Map<Long, String>,
         defaultVehicleName: String,
+        vocabulary: CsvVocabulary,
     ): String
 
     /**
      * Schreibt [stations] als eigene CSV in den Export-Cache und liefert die teilbare URI.
-     * [tourNames] löst [Station.tourId] in den Zielnamen auf, [vehicleNames] und [defaultVehicleName]
-     * wie bei [writeCsvExport].
+     * [tourNames] löst [Station.tourId] in den Zielnamen auf, [vehicleNames], [defaultVehicleName]
+     * und [vocabulary] wie bei [writeCsvExport].
      */
     suspend fun writeStationsCsvExport(
         stations: List<Station>,
         tourNames: Map<Long, String>,
         vehicleNames: Map<Long, String>,
         defaultVehicleName: String,
+        vocabulary: CsvVocabulary,
     ): String
 
     /** Schreibt die Sicherung [json] in den Export-Cache und liefert die teilbare URI. */
@@ -85,14 +88,16 @@ class AndroidDataFiles(context: Context) : DataFiles {
         stations: List<Station>,
         vehicleNames: Map<Long, String>,
         defaultVehicleName: String,
-    ): String = writeCsvExport(context, tours, stations, vehicleNames, defaultVehicleName).toString()
+        vocabulary: CsvVocabulary,
+    ): String = writeCsvExport(context, tours, stations, vehicleNames, defaultVehicleName, vocabulary).toString()
 
     override suspend fun writeStationsCsvExport(
         stations: List<Station>,
         tourNames: Map<Long, String>,
         vehicleNames: Map<Long, String>,
         defaultVehicleName: String,
-    ): String = writeStationsCsvExport(context, stations, tourNames, vehicleNames, defaultVehicleName).toString()
+        vocabulary: CsvVocabulary,
+    ): String = writeStationsCsvExport(context, stations, tourNames, vehicleNames, defaultVehicleName, vocabulary).toString()
 
     override suspend fun writeBackupExport(json: String): String = writeBackupExport(context, json).toString()
 

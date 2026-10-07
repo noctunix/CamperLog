@@ -28,6 +28,7 @@ import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.shouldIncludeFilesInAutoBackup
+import app.restvolt.camperlog.share.CsvVocabulary
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +40,7 @@ import java.io.File
 import java.io.IOException
 import java.io.OutputStream
 import java.time.Instant
+import java.util.Locale
 
 /**
  * Geprüfte Sicherung, die auf die Entscheidung des Nutzers wartet; [existingTours] zählt die gespeicherten Touren.
@@ -106,6 +108,8 @@ class DataViewModel(
     private val onBackupSaved: (Instant) -> Unit = {},
     private val clock: () -> Instant = Instant::now,
     private val background: CoroutineDispatcher = Dispatchers.IO,
+    /** Vokabular der CSV-Exporte, nach der App-Sprache des Geräts. */
+    private val vocabulary: () -> CsvVocabulary = { CsvVocabulary.fromLocale(Locale.getDefault()) },
 ) : ViewModel() {
 
     private val _busy = MutableStateFlow(false)
@@ -157,7 +161,7 @@ class DataViewModel(
         } else {
             val vehicleNames = vehicles.allVehicles().associate { it.id to it.name }
             val allStations = stations.allStations()
-            _share.value = ShareRequest.Csv(files.writeCsvExport(tours, allStations, vehicleNames, defaultVehicleName))
+            _share.value = ShareRequest.Csv(files.writeCsvExport(tours, allStations, vehicleNames, defaultVehicleName, vocabulary()))
             null
         }
     }
@@ -173,7 +177,7 @@ class DataViewModel(
         } else {
             val vehicleNames = vehicles.allVehicles().associate { it.id to it.name }
             val tourNames = repository.allTours().associate { it.id to it.destination }
-            _share.value = ShareRequest.StationsCsv(files.writeStationsCsvExport(allStations, tourNames, vehicleNames, defaultVehicleName))
+            _share.value = ShareRequest.StationsCsv(files.writeStationsCsvExport(allStations, tourNames, vehicleNames, defaultVehicleName, vocabulary()))
             null
         }
     }

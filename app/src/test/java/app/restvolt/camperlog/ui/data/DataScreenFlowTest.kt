@@ -149,6 +149,7 @@ private object NoOpDataFiles : DataFiles {
         stations: List<app.restvolt.camperlog.domain.Station>,
         vehicleNames: Map<Long, String>,
         defaultVehicleName: String,
+        vocabulary: app.restvolt.camperlog.share.CsvVocabulary,
     ): String = error("not used in this test")
 
     override suspend fun writeStationsCsvExport(
@@ -156,6 +157,7 @@ private object NoOpDataFiles : DataFiles {
         tourNames: Map<Long, String>,
         vehicleNames: Map<Long, String>,
         defaultVehicleName: String,
+        vocabulary: app.restvolt.camperlog.share.CsvVocabulary,
     ): String = error("not used in this test")
 
     override suspend fun writeBackupExport(json: String): String = error("not used in this test")

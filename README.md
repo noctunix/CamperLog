@@ -2,7 +2,7 @@
 
 # CamperLog
 
-CamperLog is an Android app for recording camper trips, their costs, and the currencies they were paid in, alongside a vehicle data sheet, maintenance, and a logbook. It is built with Kotlin, Jetpack Compose, and Room. The app uses English by default and German on devices configured for German. CSV export keeps its existing column names and values for compatibility with earlier exports, plus a new trailing vehicle column.
+CamperLog is an Android app for recording camper trips, their costs, and the currencies they were paid in, alongside a vehicle data sheet, maintenance, and a logbook. It is built with Kotlin, Jetpack Compose, and Room. The app uses English by default and German on devices configured for German. CSV export column headers and values follow the app language; German keeps the earlier format for compatibility with existing exports.
 
 <p align="center">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_tours.png" width="200" alt="Tour list">
