@@ -28,7 +28,7 @@ import org.robolectric.RobolectricTestRunner
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
-/** Prüft den Bordbuch-Abgleich einer Station (Abschnitt 4) gegen eine echte, transaktionale Room-Datenbank. */
+/** Prüft den Bordbuch-Abgleich einer Station gegen eine echte, transaktionale Room-Datenbank. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class RoomStationRepositoryTest {
