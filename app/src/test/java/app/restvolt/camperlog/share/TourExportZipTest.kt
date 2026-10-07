@@ -163,4 +163,14 @@ class TourExportZipTest {
         val csv = String(entries.getValue("Stops.csv"), Charsets.UTF_8)
         assertTrue(csv.lines().filter { it.isNotBlank() }.size == 1) // nur die Kopfzeile
     }
+
+    @Test
+    fun diaryEntries_reachTourHtmlAndTourMarkdown() {
+        val entry = DiaryEntry(tourId = tour.id, date = LocalDate.of(2026, 7, 10), text = "Sonnig und warm.", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+
+        val entries = writeZip(stations = emptyList(), diaryEntries = listOf(entry))
+
+        assertTrue(String(entries.getValue("Tour.html"), Charsets.UTF_8).contains("Sonnig und warm."))
+        assertTrue(String(entries.getValue("Tour.md"), Charsets.UTF_8).contains("Sonnig und warm."))
+    }
 }

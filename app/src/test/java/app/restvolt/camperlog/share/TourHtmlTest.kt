@@ -2,6 +2,7 @@ package app.restvolt.camperlog.share
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
@@ -82,6 +83,18 @@ class TourHtmlTest {
         val html = tourHtml(resources, tour, listOf(station), emptySet(), photosByStation)
 
         assertTrue(html.contains("""<img src="Photos/2026-07-10%20Platz%201.jpg" alt="">"""))
+    }
+
+    @Test
+    fun diaryEntriesAppearAfterTheStopsWithEscapedText() {
+        val evil = """<script>&"'"""
+        val entry = DiaryEntry(tourId = 1, date = LocalDate.of(2026, 7, 11), text = evil, createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+
+        val html = tourHtml(resources, tour, emptyList(), emptySet(), emptyMap(), listOf(entry))
+
+        assertFalse("raw markup must not reach the page", html.contains("<script>"))
+        assertTrue(html.contains("&lt;script&gt;&amp;&quot;&#39;"))
+        assertTrue(html.contains(">Diary<"))
     }
 
     @Test

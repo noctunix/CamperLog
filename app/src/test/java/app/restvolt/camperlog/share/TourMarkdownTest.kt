@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
@@ -95,5 +96,15 @@ class TourMarkdownTest {
 
         assertTrue(markdown.contains("# Tour to Bodensee"))
         assertTrue(markdown.contains("### Strandbad"))
+    }
+
+    @Test
+    fun diaryEntriesAppearAfterTheStopsWithEscapedText() {
+        val entry = DiaryEntry(tourId = 1, date = LocalDate.of(2026, 7, 11), text = "1. Tag\n- *fett*", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+
+        val markdown = tourMarkdown(resources, tour, emptyList(), emptySet(), emptyMap(), listOf(entry))
+
+        assertTrue(markdown.contains("## Diary"))
+        assertTrue(markdown.contains("1\\. Tag\n\\- \\*fett\\*"))
     }
 }
