@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
-import app.restvolt.camperlog.domain.CompassDirection
 import app.restvolt.camperlog.domain.WeatherCaptureController
 import app.restvolt.camperlog.domain.WeatherCaptureState
 import app.restvolt.camperlog.domain.WeatherSnapshot
@@ -89,18 +88,6 @@ private fun WeatherErrorRow(body: String, onRetry: () -> Unit, modifier: Modifie
         TextButton(onClick = onRetry) { Text(stringResource(R.string.weather_action_retry)) }
     }
 }
-
-private val CompassDirection.labelRes: Int
-    get() = when (this) {
-        CompassDirection.N -> R.string.wind_direction_n
-        CompassDirection.NE -> R.string.wind_direction_ne
-        CompassDirection.E -> R.string.wind_direction_e
-        CompassDirection.SE -> R.string.wind_direction_se
-        CompassDirection.S -> R.string.wind_direction_s
-        CompassDirection.SW -> R.string.wind_direction_sw
-        CompassDirection.W -> R.string.wind_direction_w
-        CompassDirection.NW -> R.string.wind_direction_nw
-    }
 
 /** Temperatur, Wetterlage, Wind und Zeitpunkt eines Schnappschusses, mit Open-Meteo-Attribution. */
 @Composable

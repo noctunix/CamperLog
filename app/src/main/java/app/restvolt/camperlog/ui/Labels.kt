@@ -7,6 +7,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.CompassDirection
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.ElectricityBilling
@@ -483,6 +484,20 @@ val WeatherCondition.iconRes: Int
         WeatherCondition.FREEZING_RAIN -> R.drawable.ic_weather_mix
         WeatherCondition.SNOW -> R.drawable.ic_weather_snowy
         WeatherCondition.THUNDERSTORM -> R.drawable.ic_thunderstorm
+    }
+
+/** Anzeigetext der Windrichtung. */
+@get:StringRes
+val CompassDirection.labelRes: Int
+    get() = when (this) {
+        CompassDirection.N -> R.string.wind_direction_n
+        CompassDirection.NE -> R.string.wind_direction_ne
+        CompassDirection.E -> R.string.wind_direction_e
+        CompassDirection.SE -> R.string.wind_direction_se
+        CompassDirection.S -> R.string.wind_direction_s
+        CompassDirection.SW -> R.string.wind_direction_sw
+        CompassDirection.W -> R.string.wind_direction_w
+        CompassDirection.NW -> R.string.wind_direction_nw
     }
 
 /**

@@ -151,6 +151,8 @@
     <string name="detail_delete">Delete tour</string>
     <string name="detail_edit">Edit</string>
     <string name="detail_share">Share tour</string>
+    <string name="detail_export_tour">Export tour</string>
+    <string name="export_tour_failed">Tour export failed</string>
     <string name="detail_open_maps">Open in Maps</string>
     <string name="detail_no_maps_app">No maps app found</string>
 

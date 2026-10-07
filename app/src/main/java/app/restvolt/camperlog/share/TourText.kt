@@ -3,47 +3,32 @@ package app.restvolt.camperlog.share
 import android.content.res.Resources
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Station
-import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
-import app.restvolt.camperlog.domain.costsByCategory
-import app.restvolt.camperlog.domain.countryDisplayName
-import app.restvolt.camperlog.domain.formatAmounts
-import app.restvolt.camperlog.domain.period
-import app.restvolt.camperlog.domain.supportedLocale
-import app.restvolt.camperlog.domain.totalCosts
-import app.restvolt.camperlog.ui.labelRes
 
 /**
  * Lesbare Zusammenfassung einer Tour zum Teilen per Messenger oder E-Mail, in der Sprache von [res].
  * [stations] sind die Stationen der Tour, [countries] ihre schon um manuelle Anpassungen bereinigten
- * Länder (siehe [app.restvolt.camperlog.domain.tourCountries]).
+ * Länder (siehe [app.restvolt.camperlog.domain.tourCountries]); Kosten-, Länder- und
+ * "Gerne wieder"-Logik stecken in [tourSummary], gemeinsam mit dem HTML- und dem Markdown-Export.
  */
-fun tourShareText(res: Resources, tour: Tour, stations: List<Station>, countries: Set<String>): String = buildString {
-    val locale = supportedLocale(res.configuration.locales[0])
-    appendLine(res.getString(R.string.share_subject, tour.destination))
-    appendLine(res.getString(R.string.share_period, tour.period(locale), res.getString(tour.tourType.labelRes)))
-    appendLine(
-        res.getString(
-            R.string.share_trip_stats,
-            res.getQuantityString(R.plurals.share_travel_days, tour.travelDays, tour.travelDays),
-            res.getQuantityString(R.plurals.share_overnight_stays, tour.overnightStays, tour.overnightStays),
-            res.getString(R.string.distance_km, tour.distanceKm),
-        ),
-    )
-    appendLine(res.getString(R.string.share_cost, formatAmounts(tour.totalCosts(stations), locale)))
-    stations.costsByCategory().entries.sortedBy { it.key.ordinal }.forEach { (category, amounts) ->
-        appendLine(res.getString(R.string.station_summary_field, res.getString(category.labelRes), formatAmounts(amounts, locale)))
-    }
-    if (countries.isNotEmpty()) {
-        val names = countries.sortedBy { countryDisplayName(it, locale) }.joinToString(", ") { countryDisplayName(it, locale) }
-        appendLine(res.getString(R.string.station_summary_field, res.getString(R.string.tour_section_countries), names))
-    }
-    appendLine(res.getString(R.string.stations_section_title, stations.size))
-    val wouldReturn = stations.filter { it.type == StationType.OVERNIGHT && it.favorite }
-    if (wouldReturn.isNotEmpty()) {
-        val names = wouldReturn.joinToString(", ") { it.name.ifBlank { res.getString(it.type.labelRes) } }
-        appendLine(res.getString(R.string.station_summary_field, res.getString(R.string.station_would_return), names))
-    }
-    if (tour.notes.isNotBlank()) appendLine(res.getString(R.string.share_notes, tour.notes))
-    tour.mapLink?.let { appendLine(res.getString(R.string.share_map, it)) }
-}.trimEnd()
+fun tourShareText(res: Resources, tour: Tour, stations: List<Station>, countries: Set<String>): String {
+    val summary = tourSummary(res, tour, stations, countries)
+    return buildString {
+        appendLine(res.getString(R.string.share_subject, summary.destination))
+        appendLine(res.getString(R.string.share_period, summary.period, summary.tourType))
+        appendLine(summary.tripStats)
+        appendLine(res.getString(R.string.share_cost, summary.totalCosts))
+        summary.categoryCosts.forEach { (label, amounts) -> appendLine(res.getString(R.string.station_summary_field, label, amounts)) }
+        if (summary.countryNames.isNotEmpty()) {
+            val names = summary.countryNames.joinToString(", ")
+            appendLine(res.getString(R.string.station_summary_field, res.getString(R.string.tour_section_countries), names))
+        }
+        appendLine(res.getString(R.string.stations_section_title, summary.stopCount))
+        if (summary.wouldReturnNames.isNotEmpty()) {
+            val names = summary.wouldReturnNames.joinToString(", ")
+            appendLine(res.getString(R.string.station_summary_field, res.getString(R.string.station_would_return), names))
+        }
+        if (tour.notes.isNotBlank()) appendLine(res.getString(R.string.share_notes, tour.notes))
+        tour.mapLink?.let { appendLine(res.getString(R.string.share_map, it)) }
+    }.trimEnd()
+}

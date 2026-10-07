@@ -9,6 +9,7 @@ import android.provider.Settings
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.backup.sanitizeZipName
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.formatCoordinates
@@ -30,6 +31,9 @@ const val BACKUP_MIME = "application/json"
 
 /** MIME-Typ einer ZIP-Sicherungsdatei (mit Fotos und Dokumenten). */
 const val BACKUP_ZIP_MIME = "application/zip"
+
+/** MIME-Typ der ZIP-Datei eines Tour-Exports. */
+const val TOUR_EXPORT_ZIP_MIME = "application/zip"
 private const val UTF8_BOM = "\uFEFF"
 private const val EXPORT_DIR = "exports"
 
@@ -145,6 +149,28 @@ fun backupFileName(date: LocalDate = LocalDate.now()): String = "camperlog-siche
 /** Vorgeschlagener Dateiname für eine ZIP-Sicherung, z. B. `camperlog-sicherung-2026-10-04.zip`. */
 fun backupZipFileName(date: LocalDate = LocalDate.now()): String = "camperlog-sicherung-$date.zip"
 
+/** Dateiname (ohne Endung) der ZIP-Datei eines Tour-Exports, z. B. `CamperLog Bodensee 2026-07-10`. */
+fun tourExportBaseName(destination: String, startDate: LocalDate): String =
+    "CamperLog ${sanitizeZipName(destination, "Tour")} $startDate"
+
+/**
+ * Schreibt die ZIP-Datei eines Tour-Exports in den Cache-Ordner `exports/` und liefert eine
+ * teilbare Content-URI, wie [writeBackupZipExport]. [baseName] (siehe [tourExportBaseName]) ergibt
+ * zusammen mit der Endung den Dateinamen; ältere Exporte werden dabei ebenso aufgeräumt.
+ */
+suspend fun writeTourExportZipExport(context: Context, baseName: String, writeZip: (OutputStream) -> Unit): Uri = withContext(Dispatchers.IO) {
+    val dir = File(context.cacheDir, EXPORT_DIR).apply { mkdirs() }
+    deleteOldExports(dir, System.currentTimeMillis())
+    val file = uniqueFile(dir, baseName, extension = "zip")
+    try {
+        file.outputStream().use(writeZip)
+    } catch (e: IOException) {
+        file.delete()
+        throw e
+    }
+    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
 /** Löscht Export-Dateien, die älter als eine Stunde sind; für den App-Start gedacht. */
 suspend fun cleanUpExports(context: Context) = withContext(Dispatchers.IO) {
     deleteOldExports(File(context.cacheDir, EXPORT_DIR), System.currentTimeMillis())
@@ -225,6 +251,23 @@ fun Context.shareBackupZip(uri: Uri): Boolean {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     return startChooser(send, getString(R.string.export_chooser))
+}
+
+/**
+ * Öffnet das Sharesheet für die ZIP-Datei eines Tour-Exports unter [uri]; [destination] füllt den
+ * Betreff wie beim Textteilen ([tourShareText]).
+ *
+ * @return `false`, wenn kein Sharesheet geöffnet werden konnte
+ */
+fun Context.shareTourExportZip(uri: Uri, destination: String): Boolean {
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = TOUR_EXPORT_ZIP_MIME
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share_subject, destination))
+        clipData = ClipData.newRawUri(null, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    return startChooser(send, getString(R.string.detail_export_tour))
 }
 
 /**
