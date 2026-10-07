@@ -1,0 +1,3 @@
+• Diary: one entry per travel day, separate from stop notes; included in backups and the tour export
+• Checklists: your own templates (suggestions for departure, arrival, winterizing and spring check), ticked off per tour or vehicle
+• Search across tours, stops, diary, logbook, repairs, checklists and documents – from every tab, ignoring case and accents

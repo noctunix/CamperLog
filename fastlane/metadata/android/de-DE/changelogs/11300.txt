@@ -1,0 +1,3 @@
+• Tagebuch: ein Eintrag pro Reisetag, getrennt von den Stationsnotizen; in Sicherung und Tour-Export enthalten
+• Checklisten: eigene Vorlagen (Vorschläge für Abfahrt, Ankunft, Einwintern und Frühjahrscheck), pro Tour oder Fahrzeug abzuhaken
+• Suche über Touren, Stationen, Tagebuch, Bordbuch, Reparaturen, Checklisten und Dokumente – aus jedem Tab, unabhängig von Groß-/Kleinschreibung und Akzenten
