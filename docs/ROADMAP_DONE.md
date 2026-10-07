@@ -2,6 +2,7 @@
 
 Shipped features, newest first.
 
+- 1.12.0 – Countries per tour detected offline (Natural Earth, coast/border tolerance), countries in overview, richer tour share text, tour export ZIP (HTML, Markdown, GPX, CSV, photos)
 - 1.11.1 – Photos (with location) on stops, repairs and logbook; document wallet with expiry reminders; ZIP backups with readable folders; older backups import with missing fields
 - 1.10.0 – Costs on stops by category, electricity billing variants, toll/vignette stops, ferry booking reference, cost breakdowns
 - 1.9.0 – Optional notifications (daily check, one per due item), backup reminder, backup folder with auto-backup; unused WorkManager permissions removed

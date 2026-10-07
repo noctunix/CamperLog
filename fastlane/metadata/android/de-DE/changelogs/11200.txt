@@ -1,0 +1,4 @@
+• Länder pro Tour, offline aus den Koordinaten der Stationen erkannt – auch an Küsten und Grenzen; Länder lassen sich von Hand ergänzen oder entfernen
+• Die Übersicht zeigt die Länder pro Jahr
+• Geteilte Touren enthalten jetzt Kosten nach Kategorie, Länder und die Plätze mit „Gerne wieder“
+• Tour als ZIP exportieren: druckbare HTML-Seite, Markdown, GPX-Wegpunkte für Karten-Apps, Stationen-CSV und Fotos

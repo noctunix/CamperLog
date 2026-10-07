@@ -1,0 +1,4 @@
+• Countries per tour, detected offline from the stops' coordinates – also near coasts and borders; add or remove countries by hand
+• Overview shows the countries per year
+• Sharing a tour now includes costs per category, countries and the places you'd return to
+• Export a tour as a ZIP: printable HTML page, Markdown, GPX waypoints for map apps, stops CSV and photos
