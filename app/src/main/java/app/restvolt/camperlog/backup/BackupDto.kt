@@ -63,9 +63,10 @@ internal data class TourDto(
     /** uuid des Fahrzeugs dieser Tour; `null` bedeutet beim Import „aktuelles Fahrzeug" (Formatversion 1). */
     val vehicleUuid: String? = null,
     /**
-     * Nur in Sicherungen vor Formatversion 3: die alten Stellplatz-Felder der Tour, zusammen
-     * gelesen und beim Import nach [app.restvolt.camperlog.domain.migrateLegacyPitch] in eine
-     * Übernachtungs-Station umgewandelt. Neue Sicherungen lassen sie leer.
+     * Nur in Sicherungen vor Formatversion 3: die alten Stellplatz-Felder der Tour, einzeln gelesen
+     * und beim Import nach [app.restvolt.camperlog.domain.migrateLegacyPitch] in eine
+     * Übernachtungs-Station umgewandelt. Neue Sicherungen lassen sie leer. Ein fehlendes oder
+     * unbekanntes Feld wird beim Import `null`, statt die ganze Tour abzulehnen.
      */
     val pitchAssigned: Boolean? = null,
     val electricityFlatRate: String? = null,
@@ -174,7 +175,7 @@ internal data class StationDto(
     /**
      * Nur in Sicherungen vor Formatversion 5: die alte Strompauschale der Station, beim Import nach
      * [app.restvolt.camperlog.domain.migrateLegacyElectricityFlatRate] auf [electricityBilling]
-     * umgelegt. Neue Sicherungen lassen sie leer.
+     * umgelegt. Neue Sicherungen lassen sie leer. Ein unbekannter Wert wird beim Import `null`.
      */
     val electricityFlatRate: String? = null,
     val electricityBilling: String? = null,

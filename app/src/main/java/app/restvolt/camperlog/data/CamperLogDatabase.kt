@@ -337,7 +337,7 @@ internal fun migration6To7(context: Context, onToursMigrated: () -> Unit = {}): 
                         "NULL, NULL, NULL, NULL, NULL, NULL, 0, ?, ?)",
                     arrayOf<Any?>(
                         station.uuid, station.vehicleId, station.tourId, station.type.name, station.date.toString(),
-                        station.name, station.nights, station.pitchAssigned?.toSqlInt(), pitch.electricityFlatRate.name,
+                        station.name, station.nights, station.pitchAssigned?.toSqlInt(), checkNotNull(pitch.electricityFlatRate).name,
                         station.lteQuality?.name, station.pitchSlope?.name, station.levelingBlocksUsed?.toSqlInt(),
                         station.createdAt.toEpochMilli(), station.updatedAt.toEpochMilli(),
                     ),
@@ -389,12 +389,15 @@ private fun android.database.Cursor.toLegacyPitchFields(startIndex: Int): Legacy
 
 private fun Boolean.toSqlInt(): Int = if (this) 1 else 0
 
-/** Kurzer, lokalisierter Textbaustein für ein von den alten Vorgaben abweichendes Stellplatz-Attribut. */
+/**
+ * Kurzer, lokalisierter Textbaustein für ein von den alten Vorgaben abweichendes Stellplatz-Attribut;
+ * `checkNotNull`, weil [LegacyPitchMigration.dayTripAttributes] ein Attribut nur enthält, wenn sein Feld gesetzt ist.
+ */
 private fun Context.pitchNoteFragment(attribute: LegacyPitchAttribute, pitch: LegacyPitchFields): String = when (attribute) {
     LegacyPitchAttribute.PITCH_ASSIGNED -> getString(R.string.migration_pitch_note_assigned)
-    LegacyPitchAttribute.ELECTRICITY -> getString(R.string.migration_pitch_note_electricity, getString(electricityLabel(pitch.electricityFlatRate)))
-    LegacyPitchAttribute.LTE -> getString(R.string.migration_pitch_note_lte, getString(lteLabel(pitch.lteQuality)))
-    LegacyPitchAttribute.PITCH_SLOPE -> getString(pitchSlopeLabel(pitch.pitchSlope))
+    LegacyPitchAttribute.ELECTRICITY -> getString(R.string.migration_pitch_note_electricity, getString(electricityLabel(checkNotNull(pitch.electricityFlatRate))))
+    LegacyPitchAttribute.LTE -> getString(R.string.migration_pitch_note_lte, getString(lteLabel(checkNotNull(pitch.lteQuality))))
+    LegacyPitchAttribute.PITCH_SLOPE -> getString(pitchSlopeLabel(checkNotNull(pitch.pitchSlope)))
     LegacyPitchAttribute.LEVELING_BLOCKS -> getString(R.string.migration_pitch_note_blocks)
 }
 

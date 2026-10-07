@@ -411,7 +411,7 @@ private fun BackupDto.toBackup(): BackupReadResult {
             tourVehicleUuid[tour.uuid] = normalized
         }
         if (dto.hasAnyLegacyPitchField()) {
-            val pitch = dto.legacyPitch() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
+            val pitch = dto.legacyPitch()
             val stationUuid = UUID.nameUUIDFromBytes("camperlog-legacy-pitch:${tour.uuid}".toByteArray()).toString()
             val migration = migrateLegacyPitch(
                 uuid = stationUuid,
@@ -532,15 +532,14 @@ private fun BackupDto.toBackup(): BackupReadResult {
 private fun TourDto.hasAnyLegacyPitchField(): Boolean =
     listOf(pitchAssigned, electricityFlatRate, lteQuality, pitchSlope, levelingBlocksUsed).any { it != null }
 
-/** Alle fünf alten Stellplatz-Felder, sofern sie vollständig und gültig gesetzt sind; sonst `null`. */
-private fun TourDto.legacyPitch(): LegacyPitchFields? {
-    val assigned = pitchAssigned ?: return null
-    val electricity = electricityFlatRate?.let { enumOrNull<ElectricityFlatRate>(it) } ?: return null
-    val lte = lteQuality?.let { enumOrNull<LteQuality>(it) } ?: return null
-    val slope = pitchSlope?.let { enumOrNull<PitchSlope>(it) } ?: return null
-    val blocks = levelingBlocksUsed ?: return null
-    return LegacyPitchFields(assigned, electricity, lte, slope, blocks)
-}
+/** Jedes der fünf alten Stellplatz-Felder einzeln; ein fehlendes oder unbekanntes Feld wird `null` statt die ganze Tour zu verwerfen. */
+private fun TourDto.legacyPitch(): LegacyPitchFields = LegacyPitchFields(
+    pitchAssigned = pitchAssigned,
+    electricityFlatRate = electricityFlatRate?.let { enumOrNull<ElectricityFlatRate>(it) },
+    lteQuality = lteQuality?.let { enumOrNull<LteQuality>(it) },
+    pitchSlope = pitchSlope?.let { enumOrNull<PitchSlope>(it) },
+    levelingBlocksUsed = levelingBlocksUsed,
+)
 
 private fun <T> decodeJson(serializer: KSerializer<T>, element: JsonElement): T? = try {
     json.decodeFromJsonElement(serializer, element)
@@ -864,7 +863,8 @@ private fun StationDto.toStation(): Station? {
         }
         electricityFlatRate != null -> {
             if (stationType != StationType.OVERNIGHT) return null
-            migrateLegacyElectricityFlatRate(enumOrNull<ElectricityFlatRate>(electricityFlatRate) ?: return null)
+            // Unbekannter Wert der alten Strompauschale (vor Formatversion 5) wird wie ein fehlender behandelt.
+            migrateLegacyElectricityFlatRate(enumOrNull<ElectricityFlatRate>(electricityFlatRate))
         }
         else -> null
     }

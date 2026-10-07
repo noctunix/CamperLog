@@ -5,14 +5,16 @@ import java.time.LocalDate
 
 /**
  * Die alten Stellplatz-Felder einer Tour vor Room-Schema 7 bzw. vor Sicherungsformat 3, die seither
- * auf der Übernachtungs-Station liegen.
+ * auf der Übernachtungs-Station liegen. Beim Sicherungs-Import ist jedes Feld einzeln `null`, wenn es
+ * in der alten Datei fehlt oder einen unbekannten Wert trägt, statt die ganze Tour zu verwerfen; die
+ * Room-Migration liefert dagegen immer alle fünf Werte.
  */
 data class LegacyPitchFields(
-    val pitchAssigned: Boolean,
-    val electricityFlatRate: ElectricityFlatRate,
-    val lteQuality: LteQuality,
-    val pitchSlope: PitchSlope,
-    val levelingBlocksUsed: Boolean,
+    val pitchAssigned: Boolean?,
+    val electricityFlatRate: ElectricityFlatRate?,
+    val lteQuality: LteQuality?,
+    val pitchSlope: PitchSlope?,
+    val levelingBlocksUsed: Boolean?,
 )
 
 /** Die alten Formular-Vorgaben, gegen die ein Tagestrip auf "unverändert" geprüft wird. */
@@ -83,12 +85,13 @@ fun migrateLegacyPitch(
             dayTripAttributes = emptyList(),
         )
     }
+    // Ein fehlendes Feld (null) gilt als unbekannt, nicht als Abweichung, und bleibt ungemeldet.
     val attributes = buildList {
-        if (pitch.pitchAssigned != DEFAULT_LEGACY_PITCH.pitchAssigned) add(LegacyPitchAttribute.PITCH_ASSIGNED)
-        if (pitch.electricityFlatRate != DEFAULT_LEGACY_PITCH.electricityFlatRate) add(LegacyPitchAttribute.ELECTRICITY)
-        if (pitch.lteQuality != DEFAULT_LEGACY_PITCH.lteQuality) add(LegacyPitchAttribute.LTE)
-        if (pitch.pitchSlope != DEFAULT_LEGACY_PITCH.pitchSlope) add(LegacyPitchAttribute.PITCH_SLOPE)
-        if (pitch.levelingBlocksUsed != DEFAULT_LEGACY_PITCH.levelingBlocksUsed) add(LegacyPitchAttribute.LEVELING_BLOCKS)
+        if (pitch.pitchAssigned != null && pitch.pitchAssigned != DEFAULT_LEGACY_PITCH.pitchAssigned) add(LegacyPitchAttribute.PITCH_ASSIGNED)
+        if (pitch.electricityFlatRate != null && pitch.electricityFlatRate != DEFAULT_LEGACY_PITCH.electricityFlatRate) add(LegacyPitchAttribute.ELECTRICITY)
+        if (pitch.lteQuality != null && pitch.lteQuality != DEFAULT_LEGACY_PITCH.lteQuality) add(LegacyPitchAttribute.LTE)
+        if (pitch.pitchSlope != null && pitch.pitchSlope != DEFAULT_LEGACY_PITCH.pitchSlope) add(LegacyPitchAttribute.PITCH_SLOPE)
+        if (pitch.levelingBlocksUsed != null && pitch.levelingBlocksUsed != DEFAULT_LEGACY_PITCH.levelingBlocksUsed) add(LegacyPitchAttribute.LEVELING_BLOCKS)
     }
     return LegacyPitchMigration(overnightStation = null, dayTripAttributes = attributes)
 }
