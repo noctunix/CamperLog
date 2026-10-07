@@ -1047,4 +1047,11 @@
     <string name="search_group_checklist_templates">Checklisten-Vorlagen</string>
     <string name="search_group_vehicle_documents">Fahrzeugdokumente</string>
     <string name="search_group_vehicles">Fahrzeuge</string>
+    <string name="track_interval_seconds">%1$d s</string>
+    <string name="track_interval_minutes">%1$d min</string>
+    <string name="track_notification_channel_name">Trackaufzeichnung</string>
+    <string name="track_notification_channel_description">Wird angezeigt, solange der Track einer Tour aufgezeichnet wird.</string>
+    <string name="track_notification_title">Track wird aufgezeichnet</string>
+    <string name="track_notification_text">Position alle %1$s</string>
+    <string name="track_notification_stop">Beenden</string>
 </resources>

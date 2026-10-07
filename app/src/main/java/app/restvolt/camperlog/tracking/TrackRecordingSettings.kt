@@ -115,6 +115,13 @@ class TrackRecordingSettings(
         private const val KEY_ACTIVE_TOUR = "active_tour_id"
         private const val KEY_ACTIVE_SEGMENT = "active_segment"
 
+        @Volatile
+        private var shared: TrackRecordingSettings? = null
+
+        /** Gemeinsame Instanz für Oberfläche und Aufzeichnungsdienst, damit beide denselben Zustand sehen. */
+        fun get(context: Context): TrackRecordingSettings =
+            shared ?: synchronized(this) { shared ?: TrackRecordingSettings(context.applicationContext).also { shared = it } }
+
         /** Ob der Schalter "Trackaufzeichnung" an ist, ohne eine Instanz anzulegen. */
         fun isSwitchOn(context: Context): Boolean =
             context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE).getBoolean(KEY_ENABLED, false)

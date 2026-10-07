@@ -1058,4 +1058,11 @@
     <string name="search_group_checklist_templates">Checklist templates</string>
     <string name="search_group_vehicle_documents">Vehicle documents</string>
     <string name="search_group_vehicles">Vehicles</string>
+    <string name="track_interval_seconds">%1$d s</string>
+    <string name="track_interval_minutes">%1$d min</string>
+    <string name="track_notification_channel_name">Track recording</string>
+    <string name="track_notification_channel_description">Shown while a tour track is being recorded.</string>
+    <string name="track_notification_title">Recording track</string>
+    <string name="track_notification_text">Position every %1$s</string>
+    <string name="track_notification_stop">Stop</string>
 </resources>

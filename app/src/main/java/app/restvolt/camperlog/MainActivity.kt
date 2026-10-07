@@ -19,6 +19,7 @@ import app.restvolt.camperlog.domain.parseGeoIntent
 import app.restvolt.camperlog.reminders.EXTRA_OPEN_DATA
 import app.restvolt.camperlog.reminders.EXTRA_OPEN_DOCUMENT_ID
 import app.restvolt.camperlog.reminders.EXTRA_OPEN_VEHICLE_ID
+import app.restvolt.camperlog.tracking.TrackRecordingService
 import app.restvolt.camperlog.share.cleanUpExports
 import app.restvolt.camperlog.ui.CamperLogNavHost
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
@@ -88,6 +89,12 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Eine durch Prozessende unterbrochene Trackaufzeichnung läuft weiter, sobald die App sichtbar ist.
+        TrackRecordingService.resumeIfNeeded(this)
     }
 
     override fun onNewIntent(intent: Intent) {

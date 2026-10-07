@@ -1,0 +1,355 @@
+package app.restvolt.camperlog.tracking
+
+import android.annotation.SuppressLint
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
+import android.location.Location
+import android.location.LocationManager
+import android.os.BatteryManager
+import android.os.IBinder
+import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
+import androidx.core.location.LocationListenerCompat
+import androidx.core.location.LocationManagerCompat
+import androidx.core.location.LocationRequestCompat
+import app.restvolt.camperlog.CamperLogApp
+import app.restvolt.camperlog.MainActivity
+import app.restvolt.camperlog.R
+import app.restvolt.camperlog.data.LOCATION_PERMISSIONS
+import app.restvolt.camperlog.domain.TrackInterval
+import app.restvolt.camperlog.domain.TrackPoint
+import app.restvolt.camperlog.domain.TrackRepository
+import app.restvolt.camperlog.domain.TrackSamplingConfig
+import app.restvolt.camperlog.domain.effectiveTrackInterval
+import app.restvolt.camperlog.domain.isUsableTrackFix
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import java.time.Instant
+import kotlin.math.roundToInt
+
+/**
+ * Vordergrunddienst der Trackaufzeichnung (Typ `location`). Wird nur aus der Oberfläche gestartet,
+ * daher reicht die Standortberechtigung "bei Nutzung der App"; ACCESS_BACKGROUND_LOCATION ist nicht nötig.
+ *
+ * Fixes kommen über `LocationManagerCompat` mit Intervall, Mindestdistanz und Batching
+ * ([TrackSamplingConfig]); unbrauchbare Fixes ([isUsableTrackFix]) werden verworfen. Punkte sammeln
+ * sich im Speicher und werden gebündelt geschrieben ([FLUSH_POINTS], [FLUSH_INTERVAL_MILLIS]) sowie
+ * beim Beenden.
+ */
+class TrackRecordingService : Service() {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val bufferLock = Mutex()
+    private val buffer = mutableListOf<TrackPoint>()
+
+    private lateinit var settings: TrackRecordingSettings
+    private lateinit var tracks: TrackRepository
+    private val locationManager get() = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+    private var recording: ActiveRecording? = null
+    private var startingTourId: Long? = null
+    private var requestedInterval: TrackInterval? = null
+    private var charging = false
+    private var receiverRegistered = false
+
+    private val listener = LocationListenerCompat { location -> onFix(location) }
+
+    private val powerReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            charging = intent.action == Intent.ACTION_POWER_CONNECTED
+            updateRequest()
+        }
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        settings = TrackRecordingSettings.get(this)
+        tracks = (application as CamperLogApp).tracks
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {
+            settings.activeRecording = null
+            shutDown()
+            return START_NOT_STICKY
+        }
+        if (!settings.enabled || !hasLocationPermission(this)) {
+            settings.activeRecording = null
+            shutDown()
+            return START_NOT_STICKY
+        }
+        val requestedTour = intent?.getLongExtra(EXTRA_TOUR_ID, -1L)?.takeIf { it > 0 }
+        val tourId = requestedTour ?: settings.activeRecording?.tourId
+        if (tourId == null) {
+            shutDown()
+            return START_NOT_STICKY
+        }
+        if (recording?.tourId == tourId || startingTourId == tourId) return START_STICKY
+        if (!enterForeground()) {
+            // Android lässt einen Standortdienst nicht aus dem Hintergrund starten; die Oberfläche setzt fort.
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        startingTourId = tourId
+        scope.launch {
+            flush()
+            // Jeder Start (auch die Fortsetzung nach einem Neustart) beginnt ein neues Segment.
+            val segment = tracks.nextSegment(tourId)
+            if (startingTourId != tourId) return@launch // Inzwischen gestoppt.
+            val active = ActiveRecording(tourId, segment)
+            settings.activeRecording = active
+            recording = active
+            startingTourId = null
+            startUpdates()
+        }
+        return START_STICKY
+    }
+
+    @SuppressLint("InlinedApi") // ServiceCompat ignoriert den Diensttyp unter API 29.
+    private fun enterForeground(): Boolean = try {
+        ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
+        true
+    } catch (e: RuntimeException) {
+        // ForegroundServiceStartNotAllowedException oder SecurityException ohne Berechtigung.
+        Log.w(TAG, "Trackaufzeichnung konnte nicht in den Vordergrund", e)
+        false
+    }
+
+    private fun startUpdates() {
+        if (!receiverRegistered) {
+            charging = isCharging()
+            val filter = IntentFilter().apply {
+                addAction(Intent.ACTION_POWER_CONNECTED)
+                addAction(Intent.ACTION_POWER_DISCONNECTED)
+            }
+            ContextCompat.registerReceiver(this, powerReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+            receiverRegistered = true
+            scope.launch { settings.values.collect { prefs -> if (prefs.enabled) updateRequest() else stopRecording() } }
+            scope.launch {
+                while (isActive) {
+                    delay(FLUSH_INTERVAL_MILLIS)
+                    flush()
+                }
+            }
+        }
+        updateRequest()
+    }
+
+    /** Fordert Updates mit dem aktuell wirksamen Intervall an, falls es sich geändert hat. */
+    @SuppressLint("MissingPermission") // hasLocationPermission wird direkt davor geprüft.
+    private fun updateRequest() {
+        if (recording == null) return
+        val prefs = settings.values.value
+        val interval = effectiveTrackInterval(prefs.interval, prefs.fasterWhileCharging, charging)
+        if (interval == requestedInterval) return
+        if (!hasLocationPermission(this)) {
+            stopRecording()
+            return
+        }
+        val config = TrackSamplingConfig.forInterval(interval)
+        val request = LocationRequestCompat.Builder(config.intervalMillis)
+            .setMinUpdateDistanceMeters(config.minDistanceMeters)
+            .setMaxUpdateDelayMillis(config.maxUpdateDelayMillis)
+            .setQuality(
+                if (interval.seconds <= TrackInterval.MINUTES_2.seconds) LocationRequestCompat.QUALITY_HIGH_ACCURACY
+                else LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY,
+            )
+            .build()
+        removeUpdates()
+        LocationManagerCompat.requestLocationUpdates(locationManager, provider(), request, ContextCompat.getMainExecutor(this), listener)
+        requestedInterval = interval
+        updateNotification()
+    }
+
+    /** Abmelden braucht keine gültige Berechtigung; eine entzogene wird nur abgefangen. */
+    @SuppressLint("MissingPermission")
+    private fun removeUpdates() {
+        try {
+            LocationManagerCompat.removeUpdates(locationManager, listener)
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Standort-Updates nicht abgemeldet", e)
+        }
+    }
+
+    private fun provider(): String {
+        val manager = locationManager
+        return when {
+            manager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
+            manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+            else -> LocationManager.GPS_PROVIDER
+        }
+    }
+
+    private fun onFix(location: Location) {
+        val active = recording ?: return
+        val accuracy = if (location.hasAccuracy()) location.accuracy.roundToInt() else null
+        if (!isUsableTrackFix(accuracy)) return
+        val point = TrackPoint(
+            tourId = active.tourId,
+            segment = active.segment,
+            recordedAt = Instant.ofEpochMilli(location.time),
+            latitude = location.latitude,
+            longitude = location.longitude,
+            accuracyM = accuracy,
+            altitudeM = if (location.hasAltitude()) location.altitude.roundToInt() else null,
+        )
+        scope.launch {
+            val full = bufferLock.withLock {
+                buffer += point
+                buffer.size >= FLUSH_POINTS
+            }
+            if (full) flush()
+        }
+    }
+
+    /** Schreibt gesammelte Punkte. Scheitert das (z. B. Tour gelöscht), endet die Aufzeichnung. */
+    private suspend fun flush() {
+        val pending = bufferLock.withLock { buffer.toList().also { buffer.clear() } }
+        if (pending.isEmpty()) return
+        try {
+            withContext(NonCancellable) { tracks.addAll(pending) }
+        } catch (e: android.database.SQLException) {
+            Log.w(TAG, "Trackpunkte konnten nicht gespeichert werden", e)
+            settings.activeRecording = null
+            shutDown()
+        }
+    }
+
+    private fun stopRecording() {
+        settings.activeRecording = null
+        shutDown()
+    }
+
+    private fun shutDown() {
+        removeUpdates()
+        recording = null
+        startingTourId = null
+        requestedInterval = null
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        stopSelf()
+    }
+
+    override fun onDestroy() {
+        removeUpdates()
+        if (receiverRegistered) unregisterReceiver(powerReceiver)
+        receiverRegistered = false
+        // Restliche Punkte noch schreiben, unabhängig vom beendeten Dienst-Scope.
+        val pending = buffer.toList()
+        buffer.clear()
+        if (pending.isNotEmpty()) {
+            CoroutineScope(Dispatchers.IO).launch { runCatching { tracks.addAll(pending) } }
+        }
+        scope.cancel()
+        super.onDestroy()
+    }
+
+    private fun isCharging(): Boolean {
+        val battery = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) ?: return false
+        val status = battery.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+        return status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+    }
+
+    private fun updateNotification() {
+        getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, buildNotification())
+    }
+
+    private fun buildNotification(): Notification {
+        ensureChannel(this)
+        val interval = requestedInterval ?: settings.values.value.interval
+        val open = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val stop = PendingIntent.getService(
+            this,
+            1,
+            Intent(this, TrackRecordingService::class.java).setAction(ACTION_STOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_route)
+            .setContentTitle(getString(R.string.track_notification_title))
+            .setContentText(getString(R.string.track_notification_text, trackIntervalLabel(resources, interval)))
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .setContentIntent(open)
+            .addAction(0, getString(R.string.track_notification_stop), stop)
+            .build()
+    }
+
+    companion object {
+        private const val TAG = "TrackRecording"
+        private const val CHANNEL_ID = "track_recording"
+        private const val NOTIFICATION_ID = 4711
+        private const val ACTION_START = "app.restvolt.camperlog.tracking.START"
+        private const val ACTION_STOP = "app.restvolt.camperlog.tracking.STOP"
+        private const val EXTRA_TOUR_ID = "tour_id"
+
+        /** Spätestens nach so vielen Punkten wird geschrieben. */
+        const val FLUSH_POINTS = 20
+
+        /** Spätestens nach dieser Zeit wird geschrieben. */
+        const val FLUSH_INTERVAL_MILLIS = 5 * 60_000L
+
+        fun hasLocationPermission(context: Context): Boolean = LOCATION_PERMISSIONS.any {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+        }
+
+        /** Startet die Aufzeichnung für [tourId]; nur aus der sichtbaren Oberfläche aufrufen. */
+        fun start(context: Context, tourId: Long) {
+            val intent = Intent(context, TrackRecordingService::class.java).setAction(ACTION_START).putExtra(EXTRA_TOUR_ID, tourId)
+            ContextCompat.startForegroundService(context, intent)
+        }
+
+        /** Setzt eine gespeicherte, durch Prozessende unterbrochene Aufzeichnung fort. */
+        fun resumeIfNeeded(context: Context) {
+            val settings = TrackRecordingSettings.get(context)
+            val active = settings.activeRecording ?: return
+            if (!settings.enabled || !hasLocationPermission(context)) {
+                settings.activeRecording = null
+                return
+            }
+            start(context, active.tourId)
+        }
+
+        fun stop(context: Context) {
+            TrackRecordingSettings.get(context).activeRecording = null
+            context.startService(Intent(context, TrackRecordingService::class.java).setAction(ACTION_STOP))
+        }
+
+        private fun ensureChannel(context: Context) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                context.getString(R.string.track_notification_channel_name),
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply { description = context.getString(R.string.track_notification_channel_description) }
+            context.getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
+        }
+    }
+}

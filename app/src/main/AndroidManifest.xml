@@ -2,7 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Standort nur auf Tastendruck, nie im Hintergrund; kein ACCESS_BACKGROUND_LOCATION. -->
+    <!-- Standort auf Tastendruck; im Hintergrund nur bei eingeschalteter Trackaufzeichnung über den
+         sichtbaren Vordergrunddienst unten. Kein ACCESS_BACKGROUND_LOCATION. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
@@ -15,10 +16,14 @@
          WorkManager dafür selbst mit. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- WorkManager deklariert diese nur für Netzwerk-Constraints und Vordergrund-Jobs; der Check
-         nutzt beides nicht, und die Berechtigungsliste soll nichts Ungenutztes zeigen. -->
+    <!-- Nur für die eingeschaltete Trackaufzeichnung: ein aus der App gestarteter Vordergrunddienst
+         mit sichtbarer Benachrichtigung; weiterhin kein ACCESS_BACKGROUND_LOCATION. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <!-- WorkManager deklariert dies nur für Netzwerk-Constraints; der Check nutzt keine, und die
+         Berechtigungsliste soll nichts Ungenutztes zeigen. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
 
     <application
         android:name=".CamperLogApp"
@@ -47,6 +52,11 @@
                 <data android:scheme="geo" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".tracking.TrackRecordingService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
