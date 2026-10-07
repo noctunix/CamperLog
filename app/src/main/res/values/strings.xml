@@ -1066,4 +1066,12 @@
     <string name="track_notification_title">Recording track</string>
     <string name="track_notification_text">Position every %1$s</string>
     <string name="track_notification_stop">Stop</string>
+    <string name="settings_track_switch_title">Track recording</string>
+    <string name="settings_track_switch_support">Lets you record a tour\'s route from the tour screen. Positions are only read while a recording runs, also with the screen off, and a notification is shown the whole time. Stays on your device.</string>
+    <string name="settings_track_interval">Position every</string>
+    <string name="settings_track_charging_title">More often while charging</string>
+    <string name="settings_track_charging_support">Every 2 minutes while the phone is charging, e.g. on the vehicle\'s USB socket.</string>
+    <string name="settings_track_denied_hint">Track recording needs the location permission. You can allow it in the system settings.</string>
+    <string name="settings_track_open_app_settings">Open app settings</string>
+    <string name="settings_track_off_hint">Track recording off. Recorded tracks stay saved.</string>
 </resources>

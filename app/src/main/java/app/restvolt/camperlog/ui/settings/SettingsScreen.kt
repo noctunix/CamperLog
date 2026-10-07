@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CurrencyPicker
 import app.restvolt.camperlog.ui.SectionCard
@@ -52,6 +53,7 @@ fun SettingsScreen(
     notificationSettings: NotificationSettings,
     locationSettings: LocationSettings,
     weatherSettings: WeatherSettings,
+    trackSettings: TrackRecordingSettings,
     onBack: () -> Unit,
     onOpenRates: () -> Unit,
     onOpenAbout: () -> Unit,
@@ -183,6 +185,9 @@ fun SettingsScreen(
                             }
                         },
                     )
+                    TrackRecordingSettingsSection(trackSettings) {
+                        scope.launch { snackbar.showSnackbar(resources.getString(R.string.settings_track_off_hint)) }
+                    }
                     if (weatherEnabled) {
                         WeatherTransferDetailRow()
                         MapStorageRow(snackbar, scope)

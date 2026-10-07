@@ -1055,4 +1055,12 @@
     <string name="track_notification_title">Track wird aufgezeichnet</string>
     <string name="track_notification_text">Position alle %1$s</string>
     <string name="track_notification_stop">Beenden</string>
+    <string name="settings_track_switch_title">Trackaufzeichnung</string>
+    <string name="settings_track_switch_support">Damit kannst du im Tour-Bildschirm die Strecke einer Tour aufzeichnen. Der Standort wird nur gelesen, während eine Aufzeichnung läuft, auch bei ausgeschaltetem Bildschirm, und solange ist eine Benachrichtigung zu sehen. Bleibt auf deinem Gerät.</string>
+    <string name="settings_track_interval">Position alle</string>
+    <string name="settings_track_charging_title">Beim Laden öfter</string>
+    <string name="settings_track_charging_support">Alle 2 Minuten, solange das Handy lädt, z. B. an der USB-Buchse im Fahrzeug.</string>
+    <string name="settings_track_denied_hint">Die Trackaufzeichnung braucht die Standortberechtigung. Du kannst sie in den Systemeinstellungen erlauben.</string>
+    <string name="settings_track_open_app_settings">App-Einstellungen öffnen</string>
+    <string name="settings_track_off_hint">Trackaufzeichnung aus. Aufgezeichnete Tracks bleiben gespeichert.</string>
 </resources>

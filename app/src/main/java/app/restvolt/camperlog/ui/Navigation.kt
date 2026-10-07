@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui
 
+import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -334,6 +335,7 @@ fun CamperLogNavHost(
     val reminderSettings = remember { ReminderSettings(context) }
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
     val locationSettings = remember { LocationSettings(context) }
+    val trackSettings = remember { TrackRecordingSettings.get(context) }
     val weatherSettings = remember { WeatherSettings(context) }
     val notificationSettings = remember { NotificationSettings(context) }
     val backupSettings = remember { BackupSettings(context) }
@@ -931,6 +933,7 @@ fun CamperLogNavHost(
                 notificationSettings = notificationSettings,
                 locationSettings = locationSettings,
                 weatherSettings = weatherSettings,
+                trackSettings = trackSettings,
                 onBack = { navController.popFrom(entry) },
                 onOpenRates = { navController.navigate(RatesRoute) },
                 onOpenAbout = { navController.navigate(AboutRoute) },

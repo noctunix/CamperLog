@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.tracking
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import androidx.core.content.edit
 import app.restvolt.camperlog.data.AndroidLocationPermissionRevoker
 import app.restvolt.camperlog.data.LocationPermissionRevoker
@@ -121,6 +122,12 @@ class TrackRecordingSettings(
         /** Gemeinsame Instanz für Oberfläche und Aufzeichnungsdienst, damit beide denselben Zustand sehen. */
         fun get(context: Context): TrackRecordingSettings =
             shared ?: synchronized(this) { shared ?: TrackRecordingSettings(context.applicationContext).also { shared = it } }
+
+        /** Verwirft die gemeinsame Instanz; Robolectric legt pro Test eine neue Application an. */
+        @VisibleForTesting
+        fun resetShared() {
+            shared = null
+        }
 
         /** Ob der Schalter "Trackaufzeichnung" an ist, ohne eine Instanz anzulegen. */
         fun isSwitchOn(context: Context): Boolean =
