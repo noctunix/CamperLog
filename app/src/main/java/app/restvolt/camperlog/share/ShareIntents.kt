@@ -34,7 +34,7 @@ const val BACKUP_ZIP_MIME = "application/zip"
 
 /** MIME-Typ der ZIP-Datei eines Tour-Exports. */
 const val TOUR_EXPORT_ZIP_MIME = "application/zip"
-private const val UTF8_BOM = "\uFEFF"
+internal const val UTF8_BOM = "\uFEFF"
 private const val EXPORT_DIR = "exports"
 
 /** So lange darf eine Export-Datei liegen bleiben, damit die Empfänger-App sie noch lesen kann. */

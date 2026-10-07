@@ -9,8 +9,6 @@ import java.io.OutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-private const val TOUR_EXPORT_UTF8_BOM = "﻿"
-
 /**
  * Schreibt die ZIP-Datei des Tour-Exports direkt nach [output], ohne sie vorher vollständig im
  * Speicher aufzubauen (wie [writeBackupZipExport]): `Tour.html` ([tourHtml]), `Tour.md`
@@ -38,7 +36,7 @@ fun writeTourExportZip(
         zip.writeTextEntry("Tour.html") { tourHtml(res, tour, stations, countries, photoPaths) }
         zip.writeTextEntry("Tour.md") { tourMarkdown(res, tour, stations, countries, photoPaths) }
         tourGpx(res, stations)?.let { gpx -> zip.writeTextEntry("Tour.gpx") { gpx } }
-        zip.writeTextEntry("Stops.csv") { TOUR_EXPORT_UTF8_BOM + stationsToCsv(stations, tourNames, vehicleNames, defaultVehicleName, vocabulary) }
+        zip.writeTextEntry("Stops.csv") { UTF8_BOM + stationsToCsv(stations, tourNames, vehicleNames, defaultVehicleName, vocabulary) }
         for (photos in photoPaths.values) {
             for (photo in photos) {
                 photoContent(photo.attachment.fileName)?.use { input ->
