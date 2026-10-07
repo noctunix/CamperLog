@@ -130,7 +130,7 @@ class TrackRecordingCardFlowTest {
         settings.enabled = true
         val tracks = FakeTrackRepository(listOf(point(1, 1, 0), point(1, 1, 60), point(1, 2, 120), point(2, 1, 0)))
         openTour(tracks, scrollTo = "Track löschen")
-        compose.onNodeWithText("3 Punkte · 2 Aufzeichnungen").assertExists()
+        compose.onNodeWithText("0,0 km · 3 Punkte · 2 Aufzeichnungen").assertExists()
 
         compose.onNodeWithText("Track löschen").performClick()
         compose.onNodeWithText("Alle 3 aufgezeichneten Punkte dieser Tour werden gelöscht. Die Stationen bleiben.").assertExists()
@@ -156,11 +156,22 @@ class TrackRecordingCardFlowTest {
 
     private fun hasClickActionInDialog() = androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.isDialog())
 
-    private fun point(tourId: Long, segment: Int, seconds: Long) = TrackPoint(
+    @Test
+    fun trackLength_isShownWithoutJoiningSegments() {
+        settings.enabled = true
+        // 0.01° Breite sind etwa 1112 m; der Sprung zwischen den Segmenten zählt nicht.
+        val tracks = FakeTrackRepository(
+            listOf(point(1, 1, 0), point(1, 1, 60, latitude = 68.21), point(1, 2, 120, latitude = 69.0), point(1, 2, 180, latitude = 69.01)),
+        )
+        openTour(tracks, scrollTo = "Track löschen")
+        compose.onNodeWithText("2,2 km · 4 Punkte · 2 Aufzeichnungen").assertExists()
+    }
+
+    private fun point(tourId: Long, segment: Int, seconds: Long, latitude: Double = 68.2) = TrackPoint(
         tourId = tourId,
         segment = segment,
         recordedAt = Instant.ofEpochSecond(1_600_000_000 + seconds),
-        latitude = 68.2,
+        latitude = latitude,
         longitude = 13.6,
     )
 

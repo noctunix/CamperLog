@@ -35,13 +35,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.TrackSummary
+import app.restvolt.camperlog.domain.trackLengthMeters
 import app.restvolt.camperlog.share.openAppDetailsSettings
 import app.restvolt.camperlog.tracking.TrackRecordingService
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.tracking.trackIntervalLabel
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.settings.trackPermissions
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
+import java.util.Locale
 
 /**
  * Karte "Track" im Tourdetail: Zusammenfassung, Start/Stopp der Aufzeichnung für [tourId] und Löschen
@@ -55,6 +60,9 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
     val scope = rememberCoroutineScope()
     val summaryFlow = remember(tracks, tourId) { tracks.observeSummary(tourId) }
     val summary by summaryFlow.collectAsStateWithLifecycle(initialValue = TrackSummary.EMPTY)
+    val lengthFlow = remember(tracks, tourId) { tracks.observeForTour(tourId).map { trackLengthMeters(it) } }
+    val lengthMeters by lengthFlow.collectAsStateWithLifecycle(initialValue = 0.0)
+    val locale = currentLocale()
     val active by settings.active.collectAsStateWithLifecycle()
     val preferences by settings.values.collectAsStateWithLifecycle()
     var showBatteryHint by rememberSaveable { mutableStateOf(false) }
@@ -86,7 +94,8 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
             if (summary.points == 0) {
                 stringResource(R.string.tour_track_empty)
             } else {
-                pluralStringResource(R.plurals.tour_track_points, summary.points, summary.points) + " · " +
+                stringResource(R.string.tour_track_length, formatTrackKm(lengthMeters, locale)) + " · " +
+                    pluralStringResource(R.plurals.tour_track_points, summary.points, summary.points) + " · " +
                     pluralStringResource(R.plurals.tour_track_segments, summary.segments, summary.segments)
             },
             style = MaterialTheme.typography.bodyMedium,
@@ -181,3 +190,10 @@ private fun openBatteryOptimizationSettings(context: Context) {
         context.openAppDetailsSettings()
     }
 }
+
+/** Tracklänge in Kilometern mit einer Nachkommastelle im Format der [locale]. */
+internal fun formatTrackKm(meters: Double, locale: Locale): String =
+    NumberFormat.getNumberInstance(locale).apply {
+        minimumFractionDigits = 1
+        maximumFractionDigits = 1
+    }.format(meters / 1000)

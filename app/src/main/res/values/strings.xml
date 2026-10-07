@@ -1085,6 +1085,7 @@
     <string name="settings_track_off_hint">Track recording off. Recorded tracks stay saved.</string>
     <string name="tour_track_title">Track</string>
     <string name="tour_track_empty">No track recorded yet.</string>
+    <string name="tour_track_length">%1$s km</string>
     <plurals name="tour_track_points">
         <item quantity="one">%1$d point</item>
         <item quantity="other">%1$d points</item>

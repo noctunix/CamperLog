@@ -1074,6 +1074,7 @@
     <string name="settings_track_off_hint">Trackaufzeichnung aus. Aufgezeichnete Tracks bleiben gespeichert.</string>
     <string name="tour_track_title">Track</string>
     <string name="tour_track_empty">Noch kein Track aufgezeichnet.</string>
+    <string name="tour_track_length">%1$s km</string>
     <plurals name="tour_track_points">
         <item quantity="one">%1$d Punkt</item>
         <item quantity="other">%1$d Punkte</item>
