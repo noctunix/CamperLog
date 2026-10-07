@@ -26,6 +26,9 @@ import java.util.Locale
 /** Intent-Extra mit der Fahrzeug-id, die der Fahrzeug-Reiter beim Start auswählen soll. */
 const val EXTRA_OPEN_VEHICLE_ID = "app.restvolt.camperlog.EXTRA_OPEN_VEHICLE_ID"
 
+/** Intent-Extra mit der Fahrzeugdokument-id, deren Detailseite beim Start geöffnet werden soll (Ablauf-Erinnerung). */
+const val EXTRA_OPEN_DOCUMENT_ID = "app.restvolt.camperlog.EXTRA_OPEN_DOCUMENT_ID"
+
 /** Intent-Extra, das beim Start direkt den Daten-Screen öffnet (Sicherungs-Erinnerung). */
 const val EXTRA_OPEN_DATA = "app.restvolt.camperlog.EXTRA_OPEN_DATA"
 
@@ -63,7 +66,13 @@ class AndroidReminderNotifier(private val context: Context) : ReminderNotifier {
                 .setContentText(reminderNotificationBody(context.resources, item, today, locale))
                 .setGroup(GROUP_KEY)
                 .setAutoCancel(true)
-                .setContentIntent(vehiclePendingIntent(context, item.vehicleId, requestCode = index))
+                .setContentIntent(
+                    if (item.kind == ReminderKind.DOCUMENT_EXPIRY && item.documentId != null) {
+                        documentPendingIntent(context, item.documentId, requestCode = index)
+                    } else {
+                        vehiclePendingIntent(context, item.vehicleId, requestCode = index)
+                    },
+                )
                 .build()
             notify(manager, notificationId(item), notification)
         }
@@ -135,6 +144,16 @@ internal fun vehiclePendingIntent(context: Context, vehicleId: Long, requestCode
         action = Intent.ACTION_VIEW
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         putExtra(EXTRA_OPEN_VEHICLE_ID, vehicleId)
+    }
+    return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+}
+
+/** Öffnet die App auf der Detailseite des Fahrzeugdokuments [documentId] (Ablauf-Erinnerung). */
+internal fun documentPendingIntent(context: Context, documentId: Long, requestCode: Int): PendingIntent {
+    val intent = Intent(context, MainActivity::class.java).apply {
+        action = Intent.ACTION_VIEW
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        putExtra(EXTRA_OPEN_DOCUMENT_ID, documentId)
     }
     return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 }

@@ -17,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.parseGeoIntent
 import app.restvolt.camperlog.reminders.EXTRA_OPEN_DATA
+import app.restvolt.camperlog.reminders.EXTRA_OPEN_DOCUMENT_ID
 import app.restvolt.camperlog.reminders.EXTRA_OPEN_VEHICLE_ID
 import app.restvolt.camperlog.share.cleanUpExports
 import app.restvolt.camperlog.ui.CamperLogNavHost
@@ -34,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
     private var pendingGeoIntent by mutableStateOf<GeoIntentLocation?>(null)
     private var pendingVehicleId by mutableStateOf<Long?>(null)
+    private var pendingDocumentId by mutableStateOf<Long?>(null)
     private var pendingOpenData by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,6 +46,7 @@ class MainActivity : ComponentActivity() {
             lifecycleScope.launch { app.attachmentFileStore.sweepOrphanFiles(app.attachments.allFileNames(), Instant.now()) }
             pendingGeoIntent = parseGeoIntent(intent?.dataString)
             pendingVehicleId = intent?.openVehicleIdExtra()
+            pendingDocumentId = intent?.openDocumentIdExtra()
             pendingOpenData = intent?.getBooleanExtra(EXTRA_OPEN_DATA, false) == true
         }
         setContent {
@@ -71,6 +74,8 @@ class MainActivity : ComponentActivity() {
                     onGeoIntentHandled = { pendingGeoIntent = null },
                     pendingVehicleId = pendingVehicleId,
                     onVehicleIntentHandled = { pendingVehicleId = null },
+                    pendingDocumentId = pendingDocumentId,
+                    onDocumentIntentHandled = { pendingDocumentId = null },
                     pendingOpenData = pendingOpenData,
                     onOpenDataHandled = { pendingOpenData = false },
                     onThemeModeChange = { selected ->
@@ -87,9 +92,13 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         pendingGeoIntent = parseGeoIntent(intent.dataString)
         pendingVehicleId = intent.openVehicleIdExtra()
+        pendingDocumentId = intent.openDocumentIdExtra()
         pendingOpenData = intent.getBooleanExtra(EXTRA_OPEN_DATA, false)
     }
 }
 
 /** Fahrzeug-id einer getippten Wartungs-Benachrichtigung, oder `null` ohne diesen Extra. */
 private fun Intent.openVehicleIdExtra(): Long? = getLongExtra(EXTRA_OPEN_VEHICLE_ID, -1L).takeIf { it > 0 }
+
+/** Fahrzeugdokument-id einer getippten Ablauf-Erinnerung, oder `null` ohne diesen Extra. */
+private fun Intent.openDocumentIdExtra(): Long? = getLongExtra(EXTRA_OPEN_DOCUMENT_ID, -1L).takeIf { it > 0 }
