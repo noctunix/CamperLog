@@ -71,6 +71,7 @@ fun ImportDialog(pending: PendingImport, onImport: (ImportMode) -> Unit, onCance
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 val repairCount = backup.vehicles.sumOf { it.repairs.size }
                 val logEntryCount = backup.vehicles.sumOf { it.logEntries.size }
+                val trackPointCount = backup.tracks.sumOf { it.points.size }
                 Text(
                     stringResource(
                         R.string.import_preview_summary,
@@ -85,6 +86,7 @@ fun ImportDialog(pending: PendingImport, onImport: (ImportMode) -> Unit, onCance
                         pluralStringResource(R.plurals.import_diary_entries, backup.diaryEntries.size, backup.diaryEntries.size),
                         pluralStringResource(R.plurals.import_checklist_templates, backup.checklistTemplates.size, backup.checklistTemplates.size),
                         pluralStringResource(R.plurals.import_checklists, backup.checklists.size, backup.checklists.size),
+                        pluralStringResource(R.plurals.import_track_points, trackPointCount, trackPointCount),
                         backup.mainCurrency.currencyCode,
                     ),
                 )

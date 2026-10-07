@@ -14,6 +14,7 @@ import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import app.restvolt.camperlog.ui.FakeAttachmentRepository
 import app.restvolt.camperlog.ui.FakeBackupImporter
 import app.restvolt.camperlog.ui.FakeChecklistRepository
+import app.restvolt.camperlog.ui.FakeTrackRepository
 import app.restvolt.camperlog.ui.FakeChecklistTemplateRepository
 import app.restvolt.camperlog.ui.FakeDiaryEntryRepository
 import app.restvolt.camperlog.ui.FakeExchangeRateRepository
@@ -91,7 +92,7 @@ class DataScreenFlowTest {
                             FakeLogRepository(),
                             FakeStationRepository(),
                             FakeVehicleDocumentRepository(),
-                            FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(),
+                            FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(), FakeTrackRepository(),
                             FakeAttachmentRepository(),
                             FakeAttachmentFileStore(),
                             FakeBackupImporter(),

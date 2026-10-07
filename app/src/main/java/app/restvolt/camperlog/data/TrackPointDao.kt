@@ -25,9 +25,9 @@ interface TrackPointDao {
     @Query("SELECT COALESCE(MAX(segment), 0) FROM track_points WHERE tour_id = :tourId")
     suspend fun maxSegment(tourId: Long): Int
 
-    /** Doppelte `(tour_id, recorded_at)` werden still übersprungen. */
+    /** Doppelte `(tour_id, recorded_at)` werden still übersprungen (Zeilen-id `-1`). */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertAll(points: List<TrackPointEntity>)
+    suspend fun insertAll(points: List<TrackPointEntity>): List<Long>
 
     @Query("DELETE FROM track_points WHERE tour_id = :tourId")
     suspend fun deleteForTour(tourId: Long)

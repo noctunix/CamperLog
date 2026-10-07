@@ -385,6 +385,7 @@ private fun Resources.dataMessageText(message: DataMessage): String = when (mess
         val logEntries = getQuantityString(R.plurals.import_done_log_entries, result.addedLogEntries, result.addedLogEntries)
         val rates = getQuantityString(R.plurals.import_done_rates, result.importedRates, result.importedRates)
         val attachments = getQuantityString(R.plurals.import_done_attachments, result.addedAttachments, result.addedAttachments)
+        val trackPoints = getQuantityString(R.plurals.import_done_track_points, result.addedTrackPoints, result.addedTrackPoints)
         getString(
             R.string.import_done,
             result.addedTours,
@@ -407,6 +408,7 @@ private fun Resources.dataMessageText(message: DataMessage): String = when (mess
             logEntries,
             rates,
             attachments,
+            trackPoints,
         )
     }
 }
@@ -425,6 +427,7 @@ private fun Resources.backupErrorMessage(failure: BackupReadResult.Failure): Str
         failure.diaryEntryNumber != null -> getString(R.string.import_error_invalid_diary_entry, failure.diaryEntryNumber)
         failure.checklistTemplateNumber != null -> getString(R.string.import_error_invalid_checklist_template, failure.checklistTemplateNumber)
         failure.checklistNumber != null -> getString(R.string.import_error_invalid_checklist, failure.checklistNumber)
+        failure.trackNumber != null -> getString(R.string.import_error_invalid_track, failure.trackNumber)
         failure.attachmentNumber != null -> getString(R.string.import_error_invalid_attachment, failure.attachmentNumber)
         else -> getString(R.string.import_error_invalid)
     }

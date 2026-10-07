@@ -44,6 +44,7 @@ class RoomBackupImporter(
         val vehicleDao = database.vehicleDao()
         val logDao = database.logDao()
         val tourDao = database.tourDao()
+        val trackPointDao = database.trackPointDao()
         val stationDao = database.stationDao()
         val rateDao = database.exchangeRateDao()
         val documentDao = database.vehicleDocumentDao()
@@ -405,6 +406,14 @@ class RoomBackupImporter(
             }
         }
 
+        // --- Trackpunkte: an die lokale Tour gehängt; schon vorhandene Zeitpunkte bleiben unverändert ---
+        var addedTrackPoints = 0
+        for (track in backup.tracks) {
+            val localTourId = tourLocalIdByUuid[track.tourUuid] ?: continue
+            addedTrackPoints += trackPointDao.insertAll(track.points.map { it.copy(id = 0, tourId = localTourId).toEntity() })
+                .count { it != -1L }
+        }
+
         val storedRateDates = rateDao.getRates().associate { it.currency to LocalDate.parse(it.rateDate) }
         val newerRates = importedRates.filter { rate -> storedRateDates[rate.currency.currencyCode]?.let { rate.date > it } ?: true }
         newerRates.map(ExchangeRate::toEntity).forEach { rateDao.upsertRate(it) }
@@ -434,6 +443,7 @@ class RoomBackupImporter(
             addedChecklists = addedChecklists,
             updatedChecklists = updatedChecklists,
             addedAttachments = addedAttachments,
+            addedTrackPoints = addedTrackPoints,
         )
     }
 }

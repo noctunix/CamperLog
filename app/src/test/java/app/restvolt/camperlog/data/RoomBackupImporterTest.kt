@@ -8,6 +8,7 @@ import app.restvolt.camperlog.backup.Backup
 import app.restvolt.camperlog.backup.BackupChecklist
 import app.restvolt.camperlog.backup.BackupDiaryEntry
 import app.restvolt.camperlog.backup.BackupReadResult
+import app.restvolt.camperlog.backup.BackupTrack
 import app.restvolt.camperlog.backup.BackupVehicle
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
@@ -29,6 +30,7 @@ import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.TrackPoint
 import app.restvolt.camperlog.domain.Vehicle
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -190,6 +192,7 @@ class RoomBackupImporterTest {
         diaryEntries: List<BackupDiaryEntry> = emptyList(),
         checklistTemplates: List<ChecklistTemplate> = emptyList(),
         checklists: List<BackupChecklist> = emptyList(),
+        tracks: List<BackupTrack> = emptyList(),
     ) = Backup(
         exportedAt = Instant.parse("2026-10-04T12:00:00Z"),
         mainCurrency = main,
@@ -205,6 +208,7 @@ class RoomBackupImporterTest {
         diaryEntries = diaryEntries,
         checklistTemplates = checklistTemplates,
         checklists = checklists,
+        tracks = tracks,
     )
 
     /** Gespeicherte Touren ohne Datenbank-id, damit sie mit Sicherungs-Touren vergleichbar sind. */
@@ -1346,5 +1350,41 @@ class RoomBackupImporterTest {
 
         assertEquals(1, result.addedDocuments)
         assertEquals(1, result.addedAttachments)
+    }
+
+    private fun trackPoint(minutes: Long, tourId: Long = 0) = TrackPoint(
+        tourId = tourId,
+        segment = 1,
+        recordedAt = Instant.parse("2026-07-01T08:00:00Z").plusSeconds(minutes * 60),
+        latitude = 68.0,
+        longitude = 14.0,
+    )
+
+    @Test
+    fun merge_trackPoints_addsOnlyNewTimestamps() = runTest {
+        val localTourId = db.tourDao().insert(tour(1).toEntity())
+        db.trackPointDao().insertAll(listOf(trackPoint(0, localTourId).toEntity()))
+
+        val result = importer.import(
+            backup(tours = listOf(tour(1)), tracks = listOf(BackupTrack(uuid(1), listOf(trackPoint(0), trackPoint(15))))),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(1, result.addedTrackPoints)
+        assertEquals(2, db.trackPointDao().getAll().count { it.tourId == localTourId })
+    }
+
+    @Test
+    fun replace_trackPoints_removesLocalTrack() = runTest {
+        val localTourId = db.tourDao().insert(tour(1).toEntity())
+        db.trackPointDao().insertAll(listOf(trackPoint(0, localTourId).toEntity(), trackPoint(5, localTourId).toEntity()))
+
+        val result = importer.import(
+            backup(tours = listOf(tour(2)), tracks = listOf(BackupTrack(uuid(2), listOf(trackPoint(30))))),
+            ImportMode.REPLACE,
+        )
+
+        assertEquals(1, result.addedTrackPoints)
+        assertEquals(1, db.trackPointDao().getAll().size)
     }
 }

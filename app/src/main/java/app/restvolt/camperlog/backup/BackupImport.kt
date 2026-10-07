@@ -45,6 +45,7 @@ data class ImportResult(
     val addedChecklists: Int = 0,
     val updatedChecklists: Int = 0,
     val addedAttachments: Int = 0,
+    val addedTrackPoints: Int = 0,
 )
 
 /** Spielt eine geprüfte Sicherung ein, vollständig oder gar nicht. */

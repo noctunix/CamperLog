@@ -921,6 +921,7 @@ fun CamperLogNavHost(
                         diaryEntries,
                         checklistTemplates,
                         checklists,
+                        tracks,
                         attachments,
                         attachmentFileStore,
                         backupImporter,

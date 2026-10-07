@@ -8,6 +8,7 @@ import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.Checklist
 import app.restvolt.camperlog.domain.ChecklistItem
 import app.restvolt.camperlog.domain.ChecklistTemplate
+import app.restvolt.camperlog.domain.TrackPoint
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.DiaryEntry
@@ -85,7 +86,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 9
+const val BACKUP_SCHEMA_VERSION = 10
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -112,6 +113,9 @@ internal const val MAX_CHECKLIST_TEMPLATE_ITEMS = 500
 internal const val MAX_CHECKLISTS = 200_000
 internal const val MAX_CHECKLIST_ITEMS = 500
 internal const val MAX_CHECKLIST_ITEM_TEXT_LENGTH = 500
+internal const val MAX_TRACK_SEGMENTS = 10_000
+internal const val MAX_TRACK_POINTS = 2_000_000
+private const val MAX_ABS_ALTITUDE_M = 12_000
 
 /** Wie `AttachmentFileStore.MAX_DOCUMENT_BYTES`; hier verdoppelt statt importiert, damit `backup/` ohne Android-Abhängigkeiten bleibt. */
 private const val MAX_ATTACHMENT_SIZE_BYTES = 20L * 1024 * 1024
@@ -162,7 +166,7 @@ private val MAX_INSTANT = Instant.parse("2199-12-31T00:00:00Z")
  * Sicherungen. Eine Sicherung ohne Dateien (JSON-only-Export) enthält [attachments] trotzdem als
  * Metadaten, nur ohne die zugehörigen Dateien im ZIP. [diaryEntries] enthält alle Tagebucheinträge
  * (Formatversion 8); fehlt in älteren Sicherungen. [checklistTemplates] und [checklists]
- * (Formatversion 9) fehlen ebenfalls in älteren Sicherungen.
+ * (Formatversion 9) fehlen ebenfalls in älteren Sicherungen, genau wie [tracks] (Formatversion 10).
  */
 data class Backup(
     val exportedAt: Instant,
@@ -181,6 +185,7 @@ data class Backup(
     val diaryEntries: List<BackupDiaryEntry> = emptyList(),
     val checklistTemplates: List<ChecklistTemplate> = emptyList(),
     val checklists: List<BackupChecklist> = emptyList(),
+    val tracks: List<BackupTrack> = emptyList(),
 )
 
 /** Ein Fahrzeug einer Sicherung mit seinen Reparaturen und Bordbuch-Einträgen. */
@@ -198,6 +203,9 @@ data class BackupDiaryEntry(val entry: DiaryEntry, val tourUuid: String)
 
 /** Eine Checkliste einer Sicherung mit [vehicleUuid], der UUID ihres Fahrzeugs, und [tourUuid], der UUID ihrer Tour (falls vorhanden). */
 data class BackupChecklist(val checklist: Checklist, val vehicleUuid: String, val tourUuid: String?)
+
+/** Der aufgezeichnete Track einer Tour mit [tourUuid]; [points] tragen noch keine lokale Tour-id. */
+data class BackupTrack(val tourUuid: String, val points: List<TrackPoint>)
 
 /**
  * Ein Anhang einer Sicherung mit [ownerUuid], der UUID des Eintrags, zu dem er gehört (je
@@ -249,6 +257,7 @@ sealed interface BackupReadResult {
         val diaryEntryNumber: Int? = null,
         val checklistTemplateNumber: Int? = null,
         val checklistNumber: Int? = null,
+        val trackNumber: Int? = null,
     ) : BackupReadResult
 }
 
@@ -285,6 +294,7 @@ fun encodeBackup(backup: Backup): String = json.encodeToString(
         diaryEntries = backup.diaryEntries.map { json.encodeToJsonElement(DiaryEntryDto.serializer(), it.toDto()) },
         checklistTemplates = backup.checklistTemplates.map { json.encodeToJsonElement(ChecklistTemplateDto.serializer(), it.toDto()) },
         checklists = backup.checklists.map { json.encodeToJsonElement(ChecklistDto.serializer(), it.toDto()) },
+        tracks = backup.tracks.map { json.encodeToJsonElement(TrackDto.serializer(), it.toDto()) },
     ),
 )
 
@@ -563,6 +573,32 @@ private fun BackupDto.toBackup(): BackupReadResult {
         BackupChecklist(checklist, vehicleUuid, tourUuid)
     }
 
+    if (tracks.size > MAX_TOURS) return invalid
+    val seenTrackTourUuids = HashSet<String>()
+    var trackPointCount = 0
+    val backupTracks = tracks.mapIndexed { index, element ->
+        val trackNumber = index + 1
+        val failure = BackupReadResult.Failure(BackupError.INVALID_DATA, trackNumber = trackNumber)
+        val dto = decodeJson(TrackDto.serializer(), element) ?: return failure
+        val tourUuid = parseUuid(dto.tourUuid) ?: return failure
+        if (tourUuid !in seenTourUuids || !seenTrackTourUuids.add(tourUuid)) return failure
+        if (dto.segments.size > MAX_TRACK_SEGMENTS) return failure
+        val seenSegments = HashSet<Int>()
+        val seenTimes = HashSet<Instant>()
+        val points = ArrayList<TrackPoint>()
+        for (segment in dto.segments) {
+            if (segment.segment < 1 || !seenSegments.add(segment.segment)) return failure
+            trackPointCount += segment.points.size
+            if (trackPointCount > MAX_TRACK_POINTS) return invalid
+            for (text in segment.points) {
+                val point = parseTrackPoint(text, segment.segment) ?: return failure
+                if (!seenTimes.add(point.recordedAt)) return failure
+                points += point
+            }
+        }
+        BackupTrack(tourUuid, points)
+    }
+
     val seenAttachmentUuids = HashSet<String>()
     val seenZipPaths = HashSet<String>()
     val seenZipPathsLowercase = HashSet<String>()
@@ -610,6 +646,7 @@ private fun BackupDto.toBackup(): BackupReadResult {
             diaryEntries = backupDiaryEntries,
             checklistTemplates = backupChecklistTemplates,
             checklists = backupChecklists,
+            tracks = backupTracks,
         ),
     )
 }
@@ -1199,6 +1236,38 @@ private fun BackupChecklist.toDto() = ChecklistDto(
     items = checklist.items.map { ChecklistItemDto(text = it.text, checked = it.checked) },
     createdAt = checklist.createdAt.toString(),
     updatedAt = checklist.updatedAt.toString(),
+)
+
+/** Liest einen Trackpunkt im Format von [TrackDto]; `null` bei jeder Unstimmigkeit. */
+private fun parseTrackPoint(text: String, segment: Int): TrackPoint? {
+    val parts = text.split(',')
+    if (parts.size != 5) return null
+    val recordedAt = parts[0].toLongOrNull()?.let(Instant::ofEpochMilli)?.takeIf { it in MIN_INSTANT..MAX_INSTANT } ?: return null
+    val latitude = parts[1].toDoubleOrNull()?.takeIf { it in LATITUDE_RANGE } ?: return null
+    val longitude = parts[2].toDoubleOrNull()?.takeIf { it in LONGITUDE_RANGE } ?: return null
+    val accuracy = if (parts[3].isEmpty()) null else parts[3].toIntOrNull()?.takeIf { it >= 0 } ?: return null
+    val altitude = if (parts[4].isEmpty()) null else parts[4].toIntOrNull()?.takeIf { it in -MAX_ABS_ALTITUDE_M..MAX_ABS_ALTITUDE_M } ?: return null
+    return TrackPoint(
+        tourId = 0,
+        segment = segment,
+        recordedAt = recordedAt,
+        latitude = latitude,
+        longitude = longitude,
+        accuracyM = accuracy,
+        altitudeM = altitude,
+    )
+}
+
+private fun BackupTrack.toDto() = TrackDto(
+    tourUuid = tourUuid,
+    segments = points.groupBy(TrackPoint::segment).toSortedMap().map { (segment, segmentPoints) ->
+        TrackSegmentDto(
+            segment = segment,
+            points = segmentPoints.sortedBy(TrackPoint::recordedAt).map { point ->
+                "${point.recordedAt.toEpochMilli()},${point.latitude},${point.longitude},${point.accuracyM ?: ""},${point.altitudeM ?: ""}"
+            },
+        )
+    },
 )
 
 /** Prüft Dateiname, MIME-Typ, Abmessungen und Koordinaten eines Anhangs; `null` bei jeder Unstimmigkeit, nicht nur offensichtlich falschen Werten. */

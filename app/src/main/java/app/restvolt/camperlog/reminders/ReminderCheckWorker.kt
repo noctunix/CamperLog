@@ -43,7 +43,7 @@ class ReminderCheckWorker(appContext: Context, params: WorkerParameters) : Corou
             buildBackupPayload = {
                 val backup = buildBackup(
                     app.repository, app.exchangeRates, app.vehicles, app.logbook, app.stations,
-                    app.vehicleDocuments, app.diaryEntries, app.checklistTemplates, app.checklists, app.attachments, Instant.now(),
+                    app.vehicleDocuments, app.diaryEntries, app.checklistTemplates, app.checklists, app.tracks, app.attachments, Instant.now(),
                 )
                 val json = encodeBackup(backup)
                 val includeFiles = backupSettings.autoBackupIncludeFilesOverride

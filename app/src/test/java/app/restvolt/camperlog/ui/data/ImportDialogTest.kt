@@ -42,7 +42,7 @@ class ImportDialogTest {
         compose.onNodeWithText("Sicherung vom 04.10.2026, ", substring = true).assertExists()
         compose.onNodeWithText(
             "mit 0 Touren, 0 Fahrzeuge, 0 Stationen, 0 Reparaturen, 0 Bordbuch-Einträge, 0 Wechselkursen, 0 Fahrzeugdokumente, 0 Tagebucheinträge, " +
-                "0 Checklisten-Vorlagen und 0 Checklisten. Hauptwährung: NOK.",
+                "0 Checklisten-Vorlagen, 0 Checklisten und 0 Trackpunkte. Hauptwährung: NOK.",
             substring = true,
         ).assertExists()
 

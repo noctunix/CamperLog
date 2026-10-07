@@ -35,6 +35,8 @@ internal data class BackupDto(
     val checklistTemplates: List<JsonElement> = emptyList(),
     /** Einzeln als [ChecklistDto] gelesen; fehlt in Sicherungen vor Formatversion 9. */
     val checklists: List<JsonElement> = emptyList(),
+    /** Einzeln als [TrackDto] gelesen; fehlt in Sicherungen vor Formatversion 10. */
+    val tracks: List<JsonElement> = emptyList(),
 )
 
 @Serializable
@@ -294,6 +296,23 @@ internal data class ChecklistDto(
     val items: List<ChecklistItemDto> = emptyList(),
     val createdAt: String,
     val updatedAt: String,
+)
+
+/**
+ * Aufgezeichneter Track einer Tour, nach Segmenten gruppiert. Jeder Punkt ist bewusst ein kompakter
+ * Text `"zeitpunktMillis,breite,länge,genauigkeitM,höheM"` (die beiden letzten dürfen leer sein),
+ * damit lange Aufzeichnungen trotz eingerückter JSON-Ausgabe die Größengrenze der Sicherung nicht sprengen.
+ */
+@Serializable
+internal data class TrackDto(
+    val tourUuid: String,
+    val segments: List<TrackSegmentDto> = emptyList(),
+)
+
+@Serializable
+internal data class TrackSegmentDto(
+    val segment: Int,
+    val points: List<String> = emptyList(),
 )
 
 @Serializable

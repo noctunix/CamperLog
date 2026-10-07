@@ -9,6 +9,7 @@ import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
+import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import kotlinx.coroutines.flow.first
@@ -29,6 +30,7 @@ suspend fun buildBackup(
     diaryEntries: DiaryEntryRepository,
     checklistTemplates: ChecklistTemplateRepository,
     checklists: ChecklistRepository,
+    tracks: TrackRepository,
     attachments: AttachmentRepository,
     exportedAt: Instant,
 ): Backup {
@@ -41,6 +43,7 @@ suspend fun buildBackup(
     val allDiaryEntries = diaryEntries.allEntries()
     val allChecklistTemplates = checklistTemplates.allTemplates()
     val allChecklists = checklists.allChecklists()
+    val allTrackPoints = tracks.allPoints()
     val vehicleUuidById = allVehicles.associate { it.id to it.uuid }
     val tourUuidById = tours.associate { it.id to it.uuid }
     val stationUuidById = allStations.associate { it.id to it.uuid }
@@ -80,6 +83,9 @@ suspend fun buildBackup(
             vehicleUuidById[checklist.vehicleId]?.let { vehicleUuid ->
                 BackupChecklist(checklist, vehicleUuid, checklist.tourId?.let { tourUuidById[it] })
             }
+        },
+        tracks = allTrackPoints.groupBy { it.tourId }.mapNotNull { (tourId, points) ->
+            tourUuidById[tourId]?.let { BackupTrack(it, points) }
         },
         attachments = attachments.allAttachments().mapNotNull { attachment ->
             val ownerUuid = when (attachment.ownerType) {

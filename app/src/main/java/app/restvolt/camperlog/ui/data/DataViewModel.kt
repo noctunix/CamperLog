@@ -28,6 +28,7 @@ import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
+import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.shouldIncludeFilesInAutoBackup
@@ -106,6 +107,7 @@ class DataViewModel(
     private val diaryEntries: DiaryEntryRepository,
     private val checklistTemplates: ChecklistTemplateRepository,
     private val checklists: ChecklistRepository,
+    private val tracks: TrackRepository,
     private val attachments: AttachmentRepository,
     private val attachmentFileStore: AttachmentFileStore,
     private val importer: BackupImporter,
@@ -275,7 +277,7 @@ class DataViewModel(
     }
 
     private suspend fun currentBackup(): Backup =
-        buildBackup(repository, exchangeRates, vehicles, logs, stations, documents, diaryEntries, checklistTemplates, checklists, attachments, clock())
+        buildBackup(repository, exchangeRates, vehicles, logs, stations, documents, diaryEntries, checklistTemplates, checklists, tracks, attachments, clock())
 
     /** Schreibt [json] und die Dateien der [backup]-Anhänge direkt in den gelieferten Ausgabestrom. */
     private fun zipWriter(json: String, backup: Backup): (OutputStream) -> Unit = { output ->

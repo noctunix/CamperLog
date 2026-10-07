@@ -262,7 +262,7 @@
     <string name="data_import_description">Liest eine CamperLog-Sicherung ein. Bevor etwas geändert wird, siehst du, was sie enthält.</string>
     <string name="data_import_choose">Sicherungsdatei wählen</string>
     <string name="import_preview_title">Sicherung einspielen?</string>
-    <string name="import_preview_summary">Sicherung vom %1$s mit %2$s, %3$s, %4$s, %5$s, %6$s, %7$s, %8$s, %9$s, %10$s und %11$s. Hauptwährung: %12$s.</string>
+    <string name="import_preview_summary">Sicherung vom %1$s mit %2$s, %3$s, %4$s, %5$s, %6$s, %7$s, %8$s, %9$s, %10$s, %11$s und %12$s. Hauptwährung: %13$s.</string>
     <plurals name="import_tours">
         <item quantity="one">%1$d Tour</item>
         <item quantity="other">%1$d Touren</item>
@@ -303,6 +303,10 @@
         <item quantity="one">%1$d Checkliste</item>
         <item quantity="other">%1$d Checklisten</item>
     </plurals>
+    <plurals name="import_track_points">
+        <item quantity="one">%1$d Trackpunkt</item>
+        <item quantity="other">%1$d Trackpunkte</item>
+    </plurals>
     <string name="import_mode_merge">Zusammenführen</string>
     <string name="import_mode_merge_hint">Ergänzt neue Touren, Fahrzeuge, Reparaturen und Bordbuch-Einträge und übernimmt neuere Fassungen vorhandener. Deine Hauptwährung und das aktuelle Fahrzeug bleiben.</string>
     <string name="import_mode_replace">Alles ersetzen</string>
@@ -315,7 +319,7 @@
     </plurals>
     <string name="import_replace_text_no_tours">Alle gespeicherten Fahrzeuge, Reparaturen, Bordbuch-Einträge, Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen.</string>
     <string name="import_replace_confirm">Alles ersetzen</string>
-    <string name="import_done">Sicherung eingespielt. Touren neu: %1$d, aktualisiert: %2$d, unverändert: %3$d. Fahrzeuge neu: %4$d, aktualisiert: %5$d. Stationen neu: %6$d, aktualisiert: %7$d. Reparaturen neu: %8$d, aktualisiert: %9$d. Dokumente neu: %10$d, aktualisiert: %11$d. Tagebucheinträge neu: %12$d, aktualisiert: %13$d. Checklisten-Vorlagen neu: %14$d, aktualisiert: %15$d. Checklisten neu: %16$d, aktualisiert: %17$d. %18$s %19$s %20$s</string>
+    <string name="import_done">Sicherung eingespielt. Touren neu: %1$d, aktualisiert: %2$d, unverändert: %3$d. Fahrzeuge neu: %4$d, aktualisiert: %5$d. Stationen neu: %6$d, aktualisiert: %7$d. Reparaturen neu: %8$d, aktualisiert: %9$d. Dokumente neu: %10$d, aktualisiert: %11$d. Tagebucheinträge neu: %12$d, aktualisiert: %13$d. Checklisten-Vorlagen neu: %14$d, aktualisiert: %15$d. Checklisten neu: %16$d, aktualisiert: %17$d. %18$s %19$s %20$s %21$s</string>
     <plurals name="import_done_log_entries">
         <item quantity="one">%1$d Bordbuch-Eintrag übernommen</item>
         <item quantity="other">%1$d Bordbuch-Einträge übernommen</item>
@@ -327,6 +331,10 @@
     <plurals name="import_done_attachments">
         <item quantity="one">%1$d Foto oder Dokument übernommen</item>
         <item quantity="other">%1$d Fotos und Dokumente übernommen</item>
+    </plurals>
+    <plurals name="import_done_track_points">
+        <item quantity="one">%1$d Trackpunkt übernommen</item>
+        <item quantity="other">%1$d Trackpunkte übernommen</item>
     </plurals>
     <string name="import_running">Sicherung wird eingespielt …</string>
     <string name="data_working">Wird verarbeitet …</string>
@@ -345,6 +353,7 @@
     <string name="import_error_invalid_diary_entry">Tagebucheintrag %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
     <string name="import_error_invalid_checklist_template">Checklisten-Vorlage %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
     <string name="import_error_invalid_checklist">Checkliste %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
+    <string name="import_error_invalid_track">Track %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
     <string name="import_error_invalid_attachment">Datei %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
 
     <!-- Fahrzeugfelder -->
