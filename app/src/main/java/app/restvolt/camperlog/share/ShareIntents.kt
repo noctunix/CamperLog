@@ -260,15 +260,16 @@ fun Context.shareAttachment(file: File, mimeType: String): Boolean {
 }
 
 /**
- * Öffnet das Sharesheet mit einer Textzusammenfassung von [tour].
+ * Öffnet das Sharesheet mit einer Textzusammenfassung von [tour]; [stations] und [countries]
+ * fließen in die Kosten-, Stationen- und Länderangaben der Zusammenfassung ein (siehe [tourShareText]).
  *
  * @return `false`, wenn kein Sharesheet geöffnet werden konnte
  */
-fun Context.shareTour(tour: Tour): Boolean {
+fun Context.shareTour(tour: Tour, stations: List<Station>, countries: Set<String>): Boolean {
     val send = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share_subject, tour.destination))
-        putExtra(Intent.EXTRA_TEXT, tourShareText(resources, tour))
+        putExtra(Intent.EXTRA_TEXT, tourShareText(resources, tour, stations, countries))
     }
     return startChooser(send, getString(R.string.detail_share))
 }

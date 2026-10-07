@@ -66,6 +66,7 @@ import app.restvolt.camperlog.domain.FUEL_SERVICES
 import app.restvolt.camperlog.domain.isMapAvailable
 import app.restvolt.camperlog.domain.SUPPLY_SERVICES
 import app.restvolt.camperlog.domain.sumByCurrency
+import app.restvolt.camperlog.domain.tourCountries
 import app.restvolt.camperlog.share.openInMaps
 import app.restvolt.camperlog.share.shareTour
 import app.restvolt.camperlog.ui.BackTopBar
@@ -111,6 +112,7 @@ fun TourDetailScreen(
         topBar = {
             BackTopBar(title = tour?.destination ?: stringResource(R.string.detail_fallback_title), onBack = onBack) {
                 if (tour != null) {
+                    val loaded = state as DetailUiState.Loaded
                     IconButton(onClick = onEdit) {
                         Icon(painterResource(R.drawable.ic_edit), contentDescription = stringResource(R.string.detail_edit))
                     }
@@ -122,7 +124,8 @@ fun TourDetailScreen(
                             text = { Text(stringResource(R.string.detail_share)) },
                             onClick = {
                                 overflowExpanded = false
-                                if (!context.shareTour(tour)) {
+                                val countries = tourCountries(loaded.autoDetectedCountries, tour.manualCountriesAdded, tour.manualCountriesRemoved)
+                                if (!context.shareTour(tour, loaded.stations, countries)) {
                                     scope.launch { snackbar.showSnackbar(resources.getString(R.string.no_share_app)) }
                                 }
                             },
