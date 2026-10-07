@@ -3,7 +3,7 @@
 Shipped features, newest first.
 
 - 1.14.0 – Place search via Nominatim (behind the Weather & map switch), vignette expiry warning on tours
-- 1.15.0 – Opt-in GPS track recording (foreground service, no background permission), track on the tour map, track length, GPX track export
+- 1.15.1 – Opt-in GPS track recording (foreground service, no background permission), track on the tour map, track length, GPX track export, Gradle 9.8.1 (tag v1.15.0 was never released: its CI failed on the lint check for the newer Gradle)
 - 1.13.0 – Daily diary per tour day, checklists with templates (per tour or vehicle), full-text search from every tab
 - 1.12.0 – Countries per tour detected offline (Natural Earth, coast/border tolerance), countries in overview, richer tour share text, tour export ZIP (HTML, Markdown, GPX, CSV, photos)
 - 1.11.1 – Photos (with location) on stops, repairs and logbook; document wallet with expiry reminders; ZIP backups with readable folders; older backups import with missing fields
