@@ -1,1 +1,1 @@
-Log tours, stops, vehicles and logbook - private, works offline, no tracking
+Log tours, stops, vehicles and logbook - private, offline, no ads or analytics
