@@ -110,20 +110,35 @@ class SearchViewModel(
         ::SearchData,
     )
 
-    /** Ergebnis der aktuellen Sucheingabe, [SEARCH_DEBOUNCE_MILLIS] ms nach der letzten Änderung berechnet. */
+    /**
+     * Gruppen der aktuellen Sucheingabe, [SEARCH_DEBOUNCE_MILLIS] ms nach der letzten Änderung berechnet.
+     * Getrennt von [uiState]s `query`/`isQueryTooShort`, die sofort mit der Eingabe mitlaufen, damit das
+     * Suchfeld nie der Eingabe hinterherhängt.
+     */
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<SearchUiState> = combine(query.debounce(SEARCH_DEBOUNCE_MILLIS), data) { q, d -> q to d }
-        .mapLatest { (q, d) -> withContext(computationDispatcher) { buildUiState(q, d) } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState())
+    private val groups: StateFlow<List<SearchResultGroup>> = combine(query.debounce(SEARCH_DEBOUNCE_MILLIS), data) { q, d -> q.trim() to d }
+        .mapLatest { (trimmedQuery, data) ->
+            if (trimmedQuery.length < SEARCH_MIN_QUERY_LENGTH) {
+                emptyList()
+            } else {
+                withContext(computationDispatcher) { buildGroups(trimmedQuery, data) }
+            }
+        }
+        // StateFlow statt Flow: eine frische Suche zeigt sofort "query"/"isQueryTooShort" in [uiState],
+        // ohne auf die erste entprellte Berechnung warten zu müssen (combine bräuchte sonst von jeder
+        // Quelle mindestens einen Wert).
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Zustand der Suche; `query` und `isQueryTooShort` folgen der Eingabe sofort, `groups` entprellt. */
+    val uiState: StateFlow<SearchUiState> = combine(query, groups) { rawQuery, groups ->
+        SearchUiState(query = rawQuery, isQueryTooShort = rawQuery.trim().length < SEARCH_MIN_QUERY_LENGTH, groups = groups)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState())
 
     fun onQueryChange(value: String) {
         query.value = value
     }
 
-    private fun buildUiState(rawQuery: String, data: SearchData): SearchUiState {
-        val query = rawQuery.trim()
-        if (query.length < SEARCH_MIN_QUERY_LENGTH) return SearchUiState(query = rawQuery, isQueryTooShort = true)
-
+    private fun buildGroups(query: String, data: SearchData): List<SearchResultGroup> {
         val (vehicles, tours, stations, diaryEntries, logEntries) = data.first
         val (documents, checklists, templates, repairs) = data.second
 
@@ -248,7 +263,7 @@ class SearchViewModel(
             )
         }
 
-        val groups = listOf(
+        return listOf(
             SearchResultGroup(SearchResultType.TOUR, tourResults.sortedByDescending { it.date }),
             SearchResultGroup(SearchResultType.STOP, stopResults.sortedByDescending { it.date }),
             SearchResultGroup(SearchResultType.DIARY, diaryResults.sortedByDescending { it.date }),
@@ -259,8 +274,6 @@ class SearchViewModel(
             SearchResultGroup(SearchResultType.VEHICLE_DOCUMENT, documentResults.sortedByDescending { it.date }),
             SearchResultGroup(SearchResultType.VEHICLE, vehicleResults.sortedByDescending { it.date }),
         ).filter { it.results.isNotEmpty() }
-
-        return SearchUiState(query = rawQuery, isQueryTooShort = false, groups = groups)
     }
 
     private fun firstSnippet(query: String, fields: List<String>): SearchSnippet? =
