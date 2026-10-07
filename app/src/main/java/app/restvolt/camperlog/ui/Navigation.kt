@@ -784,8 +784,11 @@ fun CamperLogNavHost(
                 navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)
             val detailState by tourDetailViewModel.uiState.collectAsStateWithLifecycle()
             val loaded = detailState as? DetailUiState.Loaded
+            val track by remember(route.tourId) { tracks.observeForTour(route.tourId) }
+                .collectAsStateWithLifecycle(initialValue = null)
             MapScreen(
                 stations = loaded?.stations ?: emptyList(),
+                track = track,
                 title = loaded?.tour?.destination ?: stringResource(R.string.detail_fallback_title),
                 viewModel = viewModel(key = "map_tour_${route.tourId}") { MapViewModel(tileLoader) },
                 onBack = { navController.popFrom(entry) },

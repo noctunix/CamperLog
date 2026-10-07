@@ -52,4 +52,16 @@ class TrackTest {
         assertEquals(2 * 1111.95, trackLengthMeters(points), 1.0)
         assertEquals(0.0, trackLengthMeters(emptyList()), 0.0)
     }
+
+    @Test
+    fun trackSegmentsForMap_splitsBySegmentAndSortsByTime() {
+        fun point(segment: Int, second: Long, lat: Double) =
+            TrackPoint(tourId = 1, segment = segment, recordedAt = Instant.ofEpochSecond(second), latitude = lat, longitude = 10.0)
+        val points = listOf(point(2, 5, 52.0), point(1, 2, 50.1), point(1, 1, 50.0))
+
+        val segments = trackSegmentsForMap(points)
+
+        assertEquals(listOf(listOf(LatLon(50.0, 10.0), LatLon(50.1, 10.0)), listOf(LatLon(52.0, 10.0))), segments)
+        assertTrue(trackSegmentsForMap(emptyList()).isEmpty())
+    }
 }

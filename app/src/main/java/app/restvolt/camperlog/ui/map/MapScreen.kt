@@ -50,9 +50,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -73,6 +76,7 @@ import app.restvolt.camperlog.domain.MAP_TILE_SIZE
 import app.restvolt.camperlog.domain.MapCamera
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.TileCoord
+import app.restvolt.camperlog.domain.TrackPoint
 import app.restvolt.camperlog.domain.fitBounds
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.latToWorldY
@@ -81,6 +85,7 @@ import app.restvolt.camperlog.domain.panCamera
 import app.restvolt.camperlog.domain.screenPosition
 import app.restvolt.camperlog.domain.stationsForMap
 import app.restvolt.camperlog.domain.toLatLon
+import app.restvolt.camperlog.domain.trackSegmentsForMap
 import app.restvolt.camperlog.domain.visibleTiles
 import app.restvolt.camperlog.domain.zoomCamera
 import app.restvolt.camperlog.share.tryStart
@@ -88,6 +93,7 @@ import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
 import app.restvolt.camperlog.ui.labelRes
+import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -98,12 +104,17 @@ private val FIT_BOUNDS_PADDING = 48.dp
 
 /** Fester Markenton für Marker und Linie, unabhängig vom Theme (OSM-Kacheln bleiben im Dunkelmodus hell). */
 private val MapMarkerColor = Color(0xFF004A86)
+private val MapTrackColor = Color(0xFFD84315)
+
+/** Trackpunkte, die auf dem Bildschirm näher als dies am Vorgänger liegen, werden nicht gezeichnet. */
+private const val TRACK_MIN_STEP_PX = 2f
 
 /**
  * Eigene Compose-Slippy-Map einer Tour oder des Stationen-Reiters: Kachelraster mit
  * Ziehen/Kneifzoom/Doppeltipp, Zoomtasten, Einpassen, Markern und gestrichelten Verbindungen in
  * chronologischer Reihenfolge, sowie die Stationsliste im Bottom Sheet als vollwertige
- * barrierefreie Alternative.
+ * barrierefreie Alternative. Ein aufgezeichneter [track] erscheint je Segment als durchgezogene
+ * Linie; `null` heißt „lädt noch“, das erste Einpassen wartet dann darauf.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,8 +124,11 @@ fun MapScreen(
     viewModel: MapViewModel,
     onBack: () -> Unit,
     onOpenStation: (Long) -> Unit,
+    track: List<TrackPoint>? = emptyList(),
 ) {
     val located = remember(stations) { stationsForMap(stations) }
+    val trackSegments = remember(track) { trackSegmentsForMap(track.orEmpty()) }
+    val fitPoints = remember(located, trackSegments) { located.mapNotNull { it.toLatLon() } + trackSegments.flatten() }
     val unlocated = remember(stations) { stations.filter { it.latitude == null || it.longitude == null } }
     val tiles by viewModel.tiles.collectAsStateWithLifecycle()
     val showFailureBanner by viewModel.showFailureBanner.collectAsStateWithLifecycle()
@@ -148,13 +162,12 @@ fun MapScreen(
             val viewportHeightPx = with(density) { maxHeight.roundToPx() }
             val paddingPx = with(density) { FIT_BOUNDS_PADDING.roundToPx() }
 
-            LaunchedEffect(viewportWidthPx, viewportHeightPx, located) {
-                if (camera == null && viewportWidthPx > 0 && viewportHeightPx > 0) {
-                    val points = located.mapNotNull { it.toLatLon() }
-                    camera = if (points.isEmpty()) {
+            LaunchedEffect(viewportWidthPx, viewportHeightPx, fitPoints, track == null) {
+                if (camera == null && track != null && viewportWidthPx > 0 && viewportHeightPx > 0) {
+                    camera = if (fitPoints.isEmpty()) {
                         MapCamera(LatLon(0.0, 0.0), MAP_MIN_ZOOM.toDouble())
                     } else {
-                        fitBounds(points, viewportWidthPx, viewportHeightPx, paddingPx)
+                        fitBounds(fitPoints, viewportWidthPx, viewportHeightPx, paddingPx)
                     }
                 }
             }
@@ -170,6 +183,7 @@ fun MapScreen(
                     onCameraChange = { camera = it },
                     tiles = tiles,
                     located = located,
+                    trackSegments = trackSegments,
                     selectedStationId = selectedStationId,
                     onMarkerTap = { id -> selectedStationId = id },
                     viewportWidthPx = viewportWidthPx,
@@ -190,8 +204,7 @@ fun MapScreen(
                     }
                     FilledTonalIconButton(
                         onClick = {
-                            val points = located.mapNotNull { it.toLatLon() }
-                            if (points.isNotEmpty()) camera = fitBounds(points, viewportWidthPx, viewportHeightPx, paddingPx)
+                            if (fitPoints.isNotEmpty()) camera = fitBounds(fitPoints, viewportWidthPx, viewportHeightPx, paddingPx)
                         },
                     ) {
                         Icon(painterResource(R.drawable.ic_fit_screen), contentDescription = stringResource(R.string.map_fit_bounds))
@@ -222,13 +235,14 @@ fun MapScreen(
     }
 }
 
-/** Kachelraster, gestrichelte Verbindungslinie und Marker, mit Ziehen/Kneifzoom/Doppeltipp. */
+/** Kachelraster, Track, gestrichelte Verbindungslinie und Marker, mit Ziehen/Kneifzoom/Doppeltipp. */
 @Composable
 private fun MapCanvas(
     camera: MapCamera,
     onCameraChange: (MapCamera) -> Unit,
     tiles: Map<TileCoord, TileState>,
     located: List<Station>,
+    trackSegments: List<List<LatLon>>,
     selectedStationId: Long?,
     onMarkerTap: (Long) -> Unit,
     viewportWidthPx: Int,
@@ -283,6 +297,13 @@ private fun MapCanvas(
                     dstOffset = IntOffset(left.roundToInt(), top.roundToInt()),
                     dstSize = IntSize(sizePx, sizePx),
                 )
+            }
+
+            val trackWidth = 3.dp.toPx()
+            for (segment in trackSegments) {
+                val path = trackPath(segment, camera, viewportWidthPx, viewportHeightPx) ?: continue
+                drawPath(path, color = Color.White, style = Stroke(width = trackWidth + 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+                drawPath(path, color = MapTrackColor, style = Stroke(width = trackWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }
 
             val points = located.mapNotNull { station -> station.toLatLon()?.let { screenPosition(it, camera, viewportWidthPx, viewportHeightPx) } }
@@ -437,4 +458,29 @@ private fun StationListSheet(
             }
         }
     }
+}
+
+/**
+ * Bildschirmpfad eines Tracksegments; Punkte dichter als [TRACK_MIN_STEP_PX] am zuletzt
+ * gezeichneten werden übersprungen, der letzte Punkt immer übernommen. `null` bei weniger als
+ * zwei Punkten.
+ */
+private fun trackPath(segment: List<LatLon>, camera: MapCamera, viewportWidthPx: Int, viewportHeightPx: Int): Path? {
+    if (segment.size < 2) return null
+    val path = Path()
+    var lastX = 0f
+    var lastY = 0f
+    segment.forEachIndexed { index, point ->
+        val (x, y) = screenPosition(point, camera, viewportWidthPx, viewportHeightPx)
+        val fx = x.toFloat()
+        val fy = y.toFloat()
+        when {
+            index == 0 -> path.moveTo(fx, fy)
+            index == segment.lastIndex || abs(fx - lastX) + abs(fy - lastY) >= TRACK_MIN_STEP_PX -> path.lineTo(fx, fy)
+            else -> return@forEachIndexed
+        }
+        lastX = fx
+        lastY = fy
+    }
+    return path
 }

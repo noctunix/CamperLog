@@ -120,6 +120,15 @@ fun trackLengthMeters(points: List<TrackPoint>): Double =
         }.sum()
     }
 
+/**
+ * Linienzüge für die Karte: je Segment (aufsteigend) die Koordinaten nach Zeit sortiert. Segmente
+ * werden nicht verbunden, damit Aufzeichnungspausen nicht als Strecke erscheinen.
+ */
+fun trackSegmentsForMap(points: List<TrackPoint>): List<List<LatLon>> =
+    points.groupBy { it.segment }.toSortedMap().values.map { segment ->
+        segment.sortedBy { it.recordedAt }.map { LatLon(it.latitude, it.longitude) }
+    }
+
 /** Zugriff auf die gespeicherten Trackpunkte. */
 interface TrackRepository {
 
