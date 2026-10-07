@@ -4,16 +4,21 @@ import android.content.Context
 import androidx.core.content.edit
 import app.restvolt.camperlog.data.AndroidLocationPermissionRevoker
 import app.restvolt.camperlog.data.LocationPermissionRevoker
+import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Schalter "Standort", aus bis der Nutzer ihn einschaltet. Beim Ausschalten entzieht
- * [revoker] die Berechtigung; [approximateHintShown] merkt den einmaligen Hinweis zu einem
+ * [revoker] die Berechtigung, außer die Trackaufzeichnung braucht sie noch ([keepPermission]); [approximateHintShown] merkt den einmaligen Hinweis zu einem
  * nur ungefähren Standort.
  */
-class LocationSettings(context: Context, private val revoker: LocationPermissionRevoker = AndroidLocationPermissionRevoker(context)) {
+class LocationSettings(
+    context: Context,
+    private val revoker: LocationPermissionRevoker = AndroidLocationPermissionRevoker(context),
+    private val keepPermission: () -> Boolean = { TrackRecordingSettings.isSwitchOn(context) },
+) {
     private val preferences = context.getSharedPreferences("location", Context.MODE_PRIVATE)
 
     private val state = MutableStateFlow(preferences.getBoolean(KEY_ENABLED, false))
@@ -26,7 +31,7 @@ class LocationSettings(context: Context, private val revoker: LocationPermission
         set(value) {
             preferences.edit { putBoolean(KEY_ENABLED, value) }
             state.value = value
-            if (!value) revoker.revokeOnKill()
+            if (!value && !keepPermission()) revoker.revokeOnKill()
         }
 
     /** Ob der einmalige Hinweis zu einem nur ungefähren Standort schon gezeigt wurde. */

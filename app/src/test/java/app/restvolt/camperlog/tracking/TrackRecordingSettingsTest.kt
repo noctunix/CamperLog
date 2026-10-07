@@ -1,0 +1,90 @@
+package app.restvolt.camperlog.tracking
+
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.data.LocationPermissionRevoker
+import app.restvolt.camperlog.domain.TrackInterval
+import app.restvolt.camperlog.ui.settings.LocationSettings
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+private class CountingRevoker : LocationPermissionRevoker {
+    var calls = 0
+    override fun revokeOnKill() {
+        calls++
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
+class TrackRecordingSettingsTest {
+
+    private val context get() = ApplicationProvider.getApplicationContext<Context>()
+
+    @After
+    fun clear() {
+        context.getSharedPreferences(TrackRecordingSettings.PREFERENCES_NAME, Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("location", Context.MODE_PRIVATE).edit().clear().commit()
+    }
+
+    @Test
+    fun defaultsAreOffFifteenMinutesAndNoChargingBoost() {
+        val values = TrackRecordingSettings(context, CountingRevoker()).values.value
+        assertEquals(TrackRecordingPreferences(false, TrackInterval.MINUTES_15, false), values)
+        assertNull(TrackRecordingSettings(context, CountingRevoker()).activeRecording)
+    }
+
+    @Test
+    fun valuesPersistAcrossInstances() {
+        TrackRecordingSettings(context, CountingRevoker()).apply {
+            enabled = true
+            interval = TrackInterval.SECONDS_30
+            fasterWhileCharging = true
+            batteryHintShown = true
+            activeRecording = ActiveRecording(tourId = 7, segment = 3)
+        }
+
+        val again = TrackRecordingSettings(context, CountingRevoker())
+        assertEquals(TrackRecordingPreferences(true, TrackInterval.SECONDS_30, true), again.values.value)
+        assertTrue(again.batteryHintShown)
+        assertEquals(ActiveRecording(7, 3), again.activeRecording)
+        assertTrue(TrackRecordingSettings.isSwitchOn(context))
+    }
+
+    @Test
+    fun switchingOffEndsRecordingAndRevokesOnlyWhenLocationIsOff() {
+        val revoker = CountingRevoker()
+        var location = true
+        val settings = TrackRecordingSettings(context, revoker) { location }
+        settings.enabled = true
+        settings.activeRecording = ActiveRecording(1, 1)
+
+        settings.enabled = false
+        assertNull(settings.active.value)
+        assertEquals(0, revoker.calls)
+
+        location = false
+        settings.enabled = true
+        settings.enabled = false
+        assertEquals(1, revoker.calls)
+    }
+
+    @Test
+    fun locationSwitchKeepsPermissionWhileTrackRecordingIsOn() {
+        TrackRecordingSettings(context, CountingRevoker()).enabled = true
+        val revoker = CountingRevoker()
+        val location = LocationSettings(context, revoker)
+        location.enabled = true
+
+        location.enabled = false
+        assertEquals(0, revoker.calls)
+        assertFalse(location.enabled)
+    }
+}
