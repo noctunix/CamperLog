@@ -3,12 +3,12 @@ package app.restvolt.camperlog.ui.data
 import android.content.Context
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.data.BackupFolderWriter
-import kotlinx.coroutines.Dispatchers
 import app.restvolt.camperlog.reminders.ReminderWorkScheduler
 import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import app.restvolt.camperlog.ui.FakeAttachmentRepository
@@ -21,6 +21,7 @@ import app.restvolt.camperlog.ui.FakeVehicleDocumentRepository
 import app.restvolt.camperlog.ui.FakeVehicleRepository
 import app.restvolt.camperlog.ui.settings.NotificationSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
+import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -114,7 +115,11 @@ class DataScreenFlowTest {
         backupSettings.folderUri = "content://folder"
         compose.waitForIdle()
 
-        compose.onNodeWithText("Ordner: Sicherungen").assertExists()
+        // Der Ordnername wird außerhalb von Compose ermittelt; waitForIdle allein reicht dafür nicht.
+        compose.waitUntil(5_000) {
+            compose.waitForIdle()
+            compose.onAllNodesWithText("Ordner: Sicherungen").fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithText("Jetzt sichern").performClick()
         compose.waitForIdle()
 
