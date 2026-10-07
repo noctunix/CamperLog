@@ -28,6 +28,8 @@ class RoomChecklistRepository(
 
     override fun observeChecklist(id: Long): Flow<Checklist?> = dao.observeById(id).map { it?.toDomain() }
 
+    override fun observeAll(): Flow<List<Checklist>> = dao.observeAll().map { rows -> rows.map(ChecklistWithItems::toDomain) }
+
     override suspend fun allChecklists(): List<Checklist> = dao.getAll().map(ChecklistWithItems::toDomain)
 
     override suspend fun save(checklist: Checklist): Long {

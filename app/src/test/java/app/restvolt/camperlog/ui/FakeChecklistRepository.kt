@@ -22,6 +22,8 @@ class FakeChecklistRepository(initial: List<Checklist> = emptyList()) : Checklis
 
     override fun observeChecklist(id: Long): Flow<Checklist?> = state.map { list -> list.firstOrNull { it.id == id } }
 
+    override fun observeAll(): Flow<List<Checklist>> = state.map { list -> list.sortedByDescending { it.createdAt } }
+
     override suspend fun allChecklists(): List<Checklist> = state.value
 
     override suspend fun save(checklist: Checklist): Long = if (checklist.id == 0L) {

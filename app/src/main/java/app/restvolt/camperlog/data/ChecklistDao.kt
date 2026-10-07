@@ -24,6 +24,11 @@ interface ChecklistDao {
     @Query("SELECT * FROM checklists WHERE id = :id")
     fun observeById(id: Long): Flow<ChecklistWithItems?>
 
+    /** Alle Checklisten, live aktualisiert, für die Volltextsuche. */
+    @Transaction
+    @Query("SELECT * FROM checklists ORDER BY created_at DESC, id DESC")
+    fun observeAll(): Flow<List<ChecklistWithItems>>
+
     @Transaction
     @Query("SELECT * FROM checklists WHERE tour_id = :tourId")
     suspend fun getForTour(tourId: Long): List<ChecklistWithItems>

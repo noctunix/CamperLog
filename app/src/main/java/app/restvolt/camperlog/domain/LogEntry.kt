@@ -35,6 +35,9 @@ interface LogRepository {
     /** Liefert alle Einträge aller Fahrzeuge für den Sicherungs-Export. */
     suspend fun allEntries(): List<LogEntry>
 
+    /** Liefert alle Einträge aller Fahrzeuge, live aktualisiert, für die Volltextsuche. */
+    fun observeAllEntries(): Flow<List<LogEntry>>
+
     /** Ob mindestens ein Bordbuch-Eintrag gespeichert ist. */
     suspend fun hasEntries(): Boolean
 

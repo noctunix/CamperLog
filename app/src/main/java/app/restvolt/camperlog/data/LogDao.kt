@@ -16,6 +16,10 @@ interface LogDao {
     @Query("SELECT * FROM log_entries WHERE vehicle_id = :vehicleId AND type = :type ORDER BY date DESC, id DESC")
     fun observeEntries(vehicleId: Long, type: String): Flow<List<LogEntryEntity>>
 
+    /** Alle Bordbuch-Einträge aller Fahrzeuge, live aktualisiert, für die Volltextsuche. */
+    @Query("SELECT * FROM log_entries ORDER BY date DESC, id DESC")
+    fun observeAllEntries(): Flow<List<LogEntryEntity>>
+
     /** Alle Bordbuch-Einträge aller Fahrzeuge für den Sicherungs-Export. */
     @Query("SELECT EXISTS(SELECT 1 FROM log_entries)")
     suspend fun hasAny(): Boolean

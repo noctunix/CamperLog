@@ -22,6 +22,8 @@ class RoomDiaryEntryRepository(
     override fun observeForTour(tourId: Long): Flow<List<DiaryEntry>> =
         dao.observeForTour(tourId).map { rows -> rows.map(DiaryEntryEntity::toDomain) }
 
+    override fun observeAllEntries(): Flow<List<DiaryEntry>> = dao.observeAll().map { rows -> rows.map(DiaryEntryEntity::toDomain) }
+
     override suspend fun allEntries(): List<DiaryEntry> = dao.getAll().map(DiaryEntryEntity::toDomain)
 
     override suspend fun save(entry: DiaryEntry): Long {

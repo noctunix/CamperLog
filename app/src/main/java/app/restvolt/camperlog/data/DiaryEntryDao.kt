@@ -14,6 +14,9 @@ interface DiaryEntryDao {
     @Query("SELECT * FROM diary_entries WHERE tour_id = :tourId ORDER BY date ASC, id ASC")
     fun observeForTour(tourId: Long): Flow<List<DiaryEntryEntity>>
 
+    @Query("SELECT * FROM diary_entries ORDER BY date DESC, id DESC")
+    fun observeAll(): Flow<List<DiaryEntryEntity>>
+
     @Query("SELECT * FROM diary_entries ORDER BY tour_id ASC, date ASC")
     suspend fun getAll(): List<DiaryEntryEntity>
 

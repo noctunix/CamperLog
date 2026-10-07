@@ -70,6 +70,8 @@ class FakeVehicleRepository(
 
     override suspend fun allRepairs(): List<Repair> = repairs.value
 
+    override fun observeAllRepairs(): Flow<List<Repair>> = repairs.map { list -> list.sortedByDescending { it.date } }
+
     override suspend fun saveRepair(repair: Repair): Long = if (repair.id == 0L) {
         val id = nextRepairId++
         repairs.value += repair.copy(id = id)

@@ -16,6 +16,8 @@ class FakeDiaryEntryRepository(initial: List<DiaryEntry> = emptyList()) : DiaryE
     override fun observeForTour(tourId: Long): Flow<List<DiaryEntry>> =
         state.map { list -> list.filter { it.tourId == tourId }.sortedBy { it.date } }
 
+    override fun observeAllEntries(): Flow<List<DiaryEntry>> = state.map { list -> list.sortedByDescending { it.date } }
+
     override suspend fun allEntries(): List<DiaryEntry> = state.value
 
     override suspend fun save(entry: DiaryEntry): Long = if (entry.id == 0L) {

@@ -24,6 +24,9 @@ interface DiaryEntryRepository {
     /** Einträge einer Tour, aufsteigend nach Datum. */
     fun observeForTour(tourId: Long): Flow<List<DiaryEntry>>
 
+    /** Alle Einträge aller Touren, live aktualisiert, für die Volltextsuche. */
+    fun observeAllEntries(): Flow<List<DiaryEntry>>
+
     /** Alle Einträge aller Touren, für den Sicherungs-Export. */
     suspend fun allEntries(): List<DiaryEntry>
 

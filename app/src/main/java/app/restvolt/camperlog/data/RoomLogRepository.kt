@@ -33,6 +33,8 @@ class RoomLogRepository(
 
     override suspend fun allEntries(): List<LogEntry> = dao.getAll().map(LogEntryEntity::toDomain)
 
+    override fun observeAllEntries(): Flow<List<LogEntry>> = dao.observeAllEntries().map { rows -> rows.map(LogEntryEntity::toDomain) }
+
     override suspend fun hasEntries(): Boolean = dao.hasAny()
 
     override suspend fun add(vehicleId: Long, type: LogType, date: LocalDate): LogEntry {

@@ -28,6 +28,9 @@ interface VehicleDocumentRepository {
     /** Dokumente eines Fahrzeugs, nächster Ablauf zuerst, Dokumente ohne Ablaufdatum zuletzt. */
     fun observeForVehicle(vehicleId: Long): Flow<List<VehicleDocument>>
 
+    /** Alle Dokumente aller Fahrzeuge, live aktualisiert, für die Volltextsuche. */
+    fun observeAllDocuments(): Flow<List<VehicleDocument>>
+
     /** Alle Dokumente aller Fahrzeuge, für den Sicherungs-Export und den täglichen Erinnerungs-Check. */
     suspend fun allDocuments(): List<VehicleDocument>
 

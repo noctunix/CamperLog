@@ -14,6 +14,10 @@ interface VehicleDocumentDao {
     @Query("SELECT * FROM vehicle_documents WHERE vehicle_id = :vehicleId ORDER BY (expiry_date IS NULL) ASC, expiry_date ASC, id ASC")
     fun observeForVehicle(vehicleId: Long): Flow<List<VehicleDocumentEntity>>
 
+    /** Alle Dokumente aller Fahrzeuge, live aktualisiert, für die Volltextsuche. */
+    @Query("SELECT * FROM vehicle_documents ORDER BY vehicle_id ASC, id ASC")
+    fun observeAll(): Flow<List<VehicleDocumentEntity>>
+
     @Query("SELECT * FROM vehicle_documents ORDER BY vehicle_id ASC, id ASC")
     suspend fun getAll(): List<VehicleDocumentEntity>
 

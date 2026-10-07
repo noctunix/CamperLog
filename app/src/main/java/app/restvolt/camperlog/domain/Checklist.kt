@@ -41,6 +41,9 @@ interface ChecklistRepository {
 
     fun observeChecklist(id: Long): Flow<Checklist?>
 
+    /** Alle Checklisten, live aktualisiert, für die Volltextsuche. */
+    fun observeAll(): Flow<List<Checklist>>
+
     /** Alle Checklisten, für den Sicherungs-Export. */
     suspend fun allChecklists(): List<Checklist>
 

@@ -135,6 +135,9 @@ interface VehicleRepository {
     /** Liefert die Reparaturen eines Fahrzeugs, neueste zuerst. */
     fun observeRepairs(vehicleId: Long): Flow<List<Repair>>
 
+    /** Liefert alle Reparaturen aller Fahrzeuge, live aktualisiert, für die Volltextsuche. */
+    fun observeAllRepairs(): Flow<List<Repair>>
+
     /** Liefert alle Reparaturen aller Fahrzeuge für den Sicherungs-Export. */
     suspend fun allRepairs(): List<Repair>
 

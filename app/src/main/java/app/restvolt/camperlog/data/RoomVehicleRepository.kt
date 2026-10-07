@@ -89,6 +89,8 @@ class RoomVehicleRepository(
 
     override suspend fun allRepairs(): List<Repair> = dao.getAllRepairs().map(RepairEntity::toDomain)
 
+    override fun observeAllRepairs(): Flow<List<Repair>> = dao.observeAllRepairs().map { rows -> rows.map(RepairEntity::toDomain) }
+
     override suspend fun saveRepair(repair: Repair): Long {
         require(repair.description.isNotBlank()) { "Beschreibung darf nicht leer sein" }
         val now = clock()

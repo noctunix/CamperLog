@@ -104,6 +104,10 @@ interface VehicleDao {
     @Query("SELECT * FROM repairs ORDER BY vehicle_id ASC, date DESC, id DESC")
     suspend fun getAllRepairs(): List<RepairEntity>
 
+    /** Alle Reparaturen aller Fahrzeuge, live aktualisiert, für die Volltextsuche. */
+    @Query("SELECT * FROM repairs ORDER BY date DESC, id DESC")
+    fun observeAllRepairs(): Flow<List<RepairEntity>>
+
     @Insert
     suspend fun insertRepair(repair: RepairEntity): Long
 

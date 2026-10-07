@@ -32,6 +32,9 @@ class FakeLogRepository(initial: List<LogEntry> = emptyList()) : LogRepository {
 
     override suspend fun allEntries(): List<LogEntry> = state.value
 
+    override fun observeAllEntries(): Flow<List<LogEntry>> =
+        state.map { list -> list.sortedWith(compareByDescending<LogEntry> { it.date }.thenByDescending { it.id }) }
+
     override suspend fun hasEntries(): Boolean = state.value.isNotEmpty()
 
     override suspend fun add(vehicleId: Long, type: LogType, date: LocalDate): LogEntry {

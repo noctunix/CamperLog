@@ -18,6 +18,8 @@ class FakeVehicleDocumentRepository(initial: List<VehicleDocument> = emptyList()
 
     override suspend fun allDocuments(): List<VehicleDocument> = state.value
 
+    override fun observeAllDocuments(): Flow<List<VehicleDocument>> = state
+
     override suspend fun save(document: VehicleDocument): Long = if (document.id == 0L) {
         val id = nextId++
         state.value += document.copy(id = id)

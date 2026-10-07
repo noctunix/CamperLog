@@ -26,6 +26,8 @@ class RoomVehicleDocumentRepository(
     override fun observeForVehicle(vehicleId: Long): Flow<List<VehicleDocument>> =
         dao.observeForVehicle(vehicleId).map { rows -> rows.map(VehicleDocumentEntity::toDomain) }
 
+    override fun observeAllDocuments(): Flow<List<VehicleDocument>> = dao.observeAll().map { rows -> rows.map(VehicleDocumentEntity::toDomain) }
+
     override suspend fun allDocuments(): List<VehicleDocument> = dao.getAll().map(VehicleDocumentEntity::toDomain)
 
     override suspend fun save(document: VehicleDocument): Long {
