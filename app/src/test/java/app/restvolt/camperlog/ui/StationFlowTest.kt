@@ -27,6 +27,7 @@ import app.restvolt.camperlog.domain.electricityKwh
 import app.restvolt.camperlog.domain.formatAmount
 import app.restvolt.camperlog.domain.formatKwh
 import app.restvolt.camperlog.domain.FakeLocationProvider
+import app.restvolt.camperlog.domain.FakePlaceSearchProvider
 import app.restvolt.camperlog.domain.FakeWeatherProvider
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.LocationFix
@@ -34,6 +35,9 @@ import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Money
+import app.restvolt.camperlog.domain.PlaceSearchHit
+import app.restvolt.camperlog.domain.PlaceSearchProvider
+import app.restvolt.camperlog.domain.PlaceSearchResult
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
@@ -74,6 +78,7 @@ class StationFlowTest {
         logs: FakeLogRepository = FakeLogRepository(),
         locationProvider: LocationProvider = FakeLocationProvider(),
         weatherProvider: WeatherProvider = FakeWeatherProvider(WeatherResult.Error),
+        placeSearchProvider: PlaceSearchProvider = FakePlaceSearchProvider(PlaceSearchResult.Error),
     ): Triple<FakeTourRepository, FakeStationRepository, FakeLogRepository> {
         val stationRepository = FakeStationRepository(stations, logs)
         val tourRepository = FakeTourRepository(tours, stations = stationRepository)
@@ -92,6 +97,7 @@ class StationFlowTest {
                     pendingGeoIntent = pendingGeoIntent,
                     locationProvider = locationProvider,
                     weatherProvider = weatherProvider,
+                    placeSearchProvider = placeSearchProvider,
                 ) { }
             }
         }
@@ -478,6 +484,73 @@ class StationFlowTest {
 
         val saved = stationRepository.stations.single()
         assertEquals(snapshot, saved.weather)
+    }
+
+    @Test
+    fun weatherOff_showsNoPlaceSearchButton() {
+        setWeatherEnabled(false)
+        start()
+
+        compose.onNodeWithText("Stationen").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+
+        compose.onNodeWithText("Ort suchen").assertDoesNotExist()
+    }
+
+    @Test
+    fun weatherOn_placeSearch_pickingAResultFillsCoordinatesAndTheEmptyPlace() {
+        setWeatherEnabled(true)
+        val hit = PlaceSearchHit(
+            displayName = "Camping Moskenes, Lofoten, Norwegen",
+            category = "tourism",
+            type = "camp_site",
+            latitude = 68.0912,
+            longitude = 13.1023,
+        )
+        val (_, stationRepository) = start(placeSearchProvider = FakePlaceSearchProvider(PlaceSearchResult.Success(listOf(hit))))
+
+        compose.onNodeWithText("Stationen").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Ort suchen").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Ort oder Adresse") and hasAnyAncestor(isDialog())).performTextInput("Moskenes")
+        compose.onNodeWithContentDescription("Ort suchen").performClick()
+        compose.onNodeWithText(hit.displayName).performClick()
+
+        compose.onNodeWithText("Erkannt: 68,0912° N · 13,1023° E").assertExists()
+        compose.onNode(hasSetTextAction() and hasText("Ort oder Adresse")).assert(hasText(hit.displayName))
+
+        clickSave()
+
+        val saved = stationRepository.stations.single()
+        assertEquals(68.0912, saved.latitude)
+        assertEquals(13.1023, saved.longitude)
+        assertEquals(CoordinateSource.ENTERED, saved.coordinateSource)
+        assertEquals(hit.displayName, saved.place)
+    }
+
+    @Test
+    fun weatherOn_placeSearch_withANonEmptyPlace_keepsTheTypedText() {
+        setWeatherEnabled(true)
+        val hit = PlaceSearchHit(
+            displayName = "Camping Moskenes, Lofoten, Norwegen",
+            category = "tourism",
+            type = "camp_site",
+            latitude = 68.0912,
+            longitude = 13.1023,
+        )
+        start(placeSearchProvider = FakePlaceSearchProvider(PlaceSearchResult.Success(listOf(hit))))
+
+        compose.onNodeWithText("Stationen").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Ort oder Adresse")).performTextInput("Mein eigener Platz")
+        compose.onNodeWithText("Ort suchen").performClick()
+        compose.onNodeWithContentDescription("Ort suchen").performClick()
+        compose.onNodeWithText(hit.displayName).performClick()
+
+        compose.onNode(hasSetTextAction() and hasText("Ort oder Adresse")).assert(hasText("Mein eigener Platz"))
     }
 
     @Test

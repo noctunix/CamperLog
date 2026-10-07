@@ -17,6 +17,10 @@ import app.restvolt.camperlog.domain.LocationFix
 import app.restvolt.camperlog.domain.LocationPermissionGate
 import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.ParsedLocation
+import app.restvolt.camperlog.domain.PlaceSearchController
+import app.restvolt.camperlog.domain.PlaceSearchHit
+import app.restvolt.camperlog.domain.PlaceSearchProvider
+import app.restvolt.camperlog.domain.PlaceSearchResult
 import app.restvolt.camperlog.domain.SYNCED_SERVICE_LOG_TYPES
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationError
@@ -111,6 +115,7 @@ class EditStationViewModel(
     locationProvider: LocationProvider = NoOpLocationProvider,
     locationPermissionGate: LocationPermissionGate = NoOpLocationPermissionGate,
     weatherProvider: WeatherProvider = NoOpWeatherProvider,
+    placeSearchProvider: PlaceSearchProvider = NoOpPlaceSearchProvider,
     private val savedStateHandle: SavedStateHandle,
     private val today: () -> LocalDate = LocalDate::now,
     private val timeNow: () -> LocalTime = LocalTime::now,
@@ -122,6 +127,9 @@ class EditStationViewModel(
 
     /** Wetterabfrage für die "Wetter"-Karte, nur sichtbar, wenn die Oberfläche den Wetter-Schalter an sieht. */
     val weatherCapture = WeatherCaptureController(weatherProvider, viewModelScope)
+
+    /** Ortssuche für "Ort suchen" im Platzabschnitt, nur sichtbar, wenn die Oberfläche den Wetter-Schalter an sieht. */
+    val placeSearch = PlaceSearchController(placeSearchProvider, viewModelScope)
 
     private val draft: StationDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)?.let { decodeFromSavedState(it) }
 
@@ -281,6 +289,21 @@ class EditStationViewModel(
     /** "Entfernen" im Erfolgszustand der Wetterkarte. */
     fun onRemoveWeather() = onInputChange { it.copy(weather = null) }
 
+    /** Tastendruck auf "Suchen" in der Ortssuche; eine leere Eingabe tut nichts. */
+    fun onSearchPlace(query: String) = placeSearch.search(query, locale().language)
+
+    /**
+     * Übernimmt einen Treffer der Ortssuche: Koordinaten über denselben Pfad wie eine eingefügte
+     * Koordinate, der Platztext nur, wenn er noch leer ist, um keine eigene Eingabe zu überschreiben.
+     */
+    fun onPlaceSearchPick(hit: PlaceSearchHit) {
+        onLocationTextChange("${hit.latitude}, ${hit.longitude}")
+        if (_uiState.value.input.place.isBlank()) {
+            onInputChange { it.copy(place = hit.displayName) }
+        }
+        placeSearch.reset()
+    }
+
     /** Wechselt die Stromabrechnungsart; siehe [withElectricityBilling] für das Verhalten je Feld. */
     fun onElectricityBillingChange(billing: ElectricityBilling?) = onInputChange { it.withElectricityBilling(billing) }
 
@@ -371,4 +394,9 @@ private object NoOpLocationPermissionGate : LocationPermissionGate {
 /** Platzhalter für Tests und Vorschauen ohne Netzwerk; liefert nie ein Ergebnis. */
 private object NoOpWeatherProvider : WeatherProvider {
     override suspend fun fetchCurrent(latitude: Double, longitude: Double): WeatherResult = WeatherResult.Error
+}
+
+/** Platzhalter für Tests und Vorschauen ohne Netzwerk; liefert nie ein Ergebnis. */
+private object NoOpPlaceSearchProvider : PlaceSearchProvider {
+    override suspend fun search(query: String, language: String): PlaceSearchResult = PlaceSearchResult.Error
 }

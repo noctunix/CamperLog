@@ -138,7 +138,7 @@
     <string name="settings_location_section">Standort &amp; Internet</string>
     <string name="settings_location_switch_support">Zeigt bei Stationen „Aktuellen Standort verwenden“. Die Position wird nur auf Knopfdruck einmal bestimmt, nie im Hintergrund.</string>
     <string name="settings_location_revoked_hint">Der Zugriff wird nach dem nächsten Neustart der App vollständig entfernt.</string>
-    <string name="settings_weather_switch_support">Wetter von Open-Meteo und eine Karte von OpenStreetMap, beides nur auf Knopfdruck bzw. beim Öffnen der Karte.</string>
+    <string name="settings_weather_switch_support">Wetter von Open-Meteo, eine Karte von OpenStreetMap und die Ortssuche über Nominatim, alles nur auf Knopfdruck bzw. beim Öffnen der Karte.</string>
     <string name="settings_weather_off_hint">Gespeicherte Positionen und Wetterdaten bleiben bei deinen Stationen.</string>
     <string name="settings_weather_detail_toggle">Was übertragen wird</string>
     <string name="settings_map_storage">Kartenspeicher: %1$d MB</string>
@@ -552,10 +552,11 @@
     <string name="about_link_osm_attribution">Kartendaten © OpenStreetMap-Mitwirkende (ODbL)</string>
     <string name="about_link_open_meteo_attribution">Wetterdaten von Open-Meteo.com (CC BY 4.0)</string>
     <string name="about_link_natural_earth_attribution">Landesgrenzen von Natural Earth (public domain)</string>
+    <string name="about_link_nominatim_attribution">Ortssuche von Nominatim (OpenStreetMap-Daten, ODbL)</string>
     <string name="about_section_privacy">Datenschutz</string>
     <string name="about_privacy_bullet_opt_in">Standort- und Internetfunktionen sind ausgeschaltet. Ohne sie arbeitet CamperLog vollständig offline.</string>
     <string name="about_privacy_bullet_location">Standort (optional): Nur wenn du auf „Aktuellen Standort verwenden“ tippst, liest CamperLog deine Position einmal und speichert sie bei der Station. Nie im Hintergrund, nie übertragen.</string>
-    <string name="about_privacy_bullet_weather_map">Wetter &amp; Karte (optional): CamperLog hat die Internet-Berechtigung, nutzt sie aber nur, wenn du das einschaltest. Beim Wetterabruf gehen die Koordinaten der Station, auf etwa 1 km gerundet, an Open-Meteo. Die Karte lädt den angezeigten Ausschnitt von OpenStreetMap. Beide Dienste sehen deine IP-Adresse.</string>
+    <string name="about_privacy_bullet_weather_map">Wetter &amp; Karte (optional): CamperLog hat die Internet-Berechtigung, nutzt sie aber nur, wenn du das einschaltest. Beim Wetterabruf gehen die Koordinaten der Station, auf etwa 1 km gerundet, an Open-Meteo. Die Karte lädt den angezeigten Ausschnitt von OpenStreetMap. Die Ortssuche sendet deinen eingegebenen Text an OpenStreetMap Nominatim. Alle drei Dienste sehen deine IP-Adresse.</string>
     <string name="about_privacy_bullet_notifications">Benachrichtigungen (optional): aus, bis du sie einschaltest. Das Einschalten fragt nach der Benachrichtigungsberechtigung und startet einen täglichen Hintergrund-Check für fällige Wartung und deine Sicherungs-Erinnerung, vollständig auf deinem Gerät. Für diesen Check hat die App zwei Berechtigungen, die bei der Installation ohne Dialog erteilt werden: nach einem Neustart wieder anzulaufen und das Gerät kurz wach zu halten; genutzt werden sie nur bei eingeschalteten Benachrichtigungen. Es wird dabei nichts irgendwohin gesendet.</string>
     <string name="about_privacy_bullet_no_tracking">Kein Konto, keine Werbung, keine Analyse. Sonst verlässt nichts dein Gerät.</string>
     <string name="about_privacy_bullet_local">Alle Daten bleiben auf diesem Gerät.</string>
@@ -825,7 +826,7 @@
 
     <!-- Wetter -->
     <string name="weather_switch_title">Wetter &amp; Karte (Internet)</string>
-    <string name="weather_switch_support_intro">Wetter von Open-Meteo, Karte von OpenStreetMap. Dabei erhalten diese Dienste Koordinaten bzw. den Kartenausschnitt und deine IP-Adresse.</string>
+    <string name="weather_switch_support_intro">Wetter von Open-Meteo, Karte von OpenStreetMap, Ortssuche über Nominatim. Dabei erhalten diese Dienste Koordinaten, den Kartenausschnitt oder deinen Suchtext, und deine IP-Adresse.</string>
     <string name="station_section_weather">Wetter</string>
     <string name="weather_no_coordinates_hint">Mit Koordinaten kannst du auch das Wetter abrufen.</string>
     <string name="weather_date_not_today_body">Wetter lässt sich nur für Stationen von heute abrufen.</string>
@@ -858,6 +859,11 @@
     <string name="wind_direction_sw">SW</string>
     <string name="wind_direction_w">W</string>
     <string name="wind_direction_nw">NW</string>
+
+    <!-- Ortssuche (Nominatim) -->
+    <string name="station_search_place_button">Ort suchen</string>
+    <string name="station_search_place_loading">Suche läuft …</string>
+    <string name="station_search_place_empty">Keine Orte gefunden</string>
 
     <!-- Karte -->
     <string name="action_map">Karte</string>

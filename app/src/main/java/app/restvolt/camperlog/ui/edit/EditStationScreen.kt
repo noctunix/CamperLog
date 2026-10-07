@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
@@ -288,8 +289,9 @@ private fun StationForm(
                 VehicleField(state.vehicles, input.vehicleId) { id -> change { it.copy(vehicleId = id) } }
             }
         }
+        var revealCoordinates by rememberSaveable { mutableStateOf(input.locationText.isNotBlank()) }
+        var showPlaceSearch by rememberSaveable { mutableStateOf(false) }
         SectionCard {
-            var revealCoordinates by rememberSaveable { mutableStateOf(input.locationText.isNotBlank()) }
             FormTextField(
                 label = stringResource(R.string.field_place),
                 value = input.place,
@@ -313,6 +315,12 @@ private fun StationForm(
                     )
                 }
             }
+            if (weatherEnabled) {
+                TextButton(onClick = { showPlaceSearch = true }) {
+                    Icon(painterResource(R.drawable.ic_search), contentDescription = null, modifier = Modifier.size(18.dp))
+                    Text(stringResource(R.string.station_search_place_button), modifier = Modifier.padding(start = 8.dp))
+                }
+            }
             CoordinatesField(
                 locationText = input.locationText,
                 latitude = input.latitude,
@@ -327,6 +335,22 @@ private fun StationForm(
             if (weatherEnabled && input.latitude == null) {
                 Text(stringResource(R.string.weather_no_coordinates_hint), style = MaterialTheme.typography.bodySmall)
             }
+        }
+        if (showPlaceSearch) {
+            PlaceSearchSheet(
+                controller = viewModel.placeSearch,
+                initialQuery = input.place.ifBlank { input.name },
+                onSearch = viewModel::onSearchPlace,
+                onPick = { hit ->
+                    viewModel.onPlaceSearchPick(hit)
+                    revealCoordinates = true
+                    showPlaceSearch = false
+                },
+                onDismiss = {
+                    viewModel.placeSearch.reset()
+                    showPlaceSearch = false
+                },
+            )
         }
         val servicesError = errors[StationField.SERVICES]
         when (input.type) {

@@ -47,6 +47,7 @@ import app.restvolt.camperlog.data.AndroidBackupFolderWriter
 import app.restvolt.camperlog.data.AndroidLocationPermissionGate
 import app.restvolt.camperlog.data.AndroidLocationProvider
 import app.restvolt.camperlog.data.AndroidTileLoader
+import app.restvolt.camperlog.data.AndroidPlaceSearchProvider
 import app.restvolt.camperlog.data.AndroidWeatherProvider
 import app.restvolt.camperlog.data.AssetCountryLookupRepository
 import app.restvolt.camperlog.data.AttachmentFileStore
@@ -70,6 +71,7 @@ import app.restvolt.camperlog.domain.TileLoader
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.domain.PlaceSearchProvider
 import app.restvolt.camperlog.domain.WeatherProvider
 import app.restvolt.camperlog.domain.camperLogUserAgent
 import app.restvolt.camperlog.domain.documentReminders
@@ -316,6 +318,8 @@ fun CamperLogNavHost(
     locationProvider: LocationProvider = AndroidLocationProvider(LocalContext.current),
     /** Wetterabfrage für die "Wetter"-Karte im Stationsformular; in Tests ein Fake. */
     weatherProvider: WeatherProvider = AndroidWeatherProvider(userAgent = camperLogUserAgent(BuildConfig.VERSION_NAME)),
+    /** Ortssuche für "Ort suchen" im Stationsformular; in Tests ein Fake. */
+    placeSearchProvider: PlaceSearchProvider = AndroidPlaceSearchProvider(userAgent = camperLogUserAgent(BuildConfig.VERSION_NAME)),
     /** Kachellader der Karte; in Tests ein Fake. */
     tileLoader: TileLoader = AndroidTileLoader(userAgent = camperLogUserAgent(BuildConfig.VERSION_NAME)),
     /** Offline-Ländererkennung für Tourdetail und Übersicht; in Tests ein Fake. */
@@ -809,6 +813,7 @@ fun CamperLogNavHost(
                     locationProvider = locationProvider,
                     locationPermissionGate = AndroidLocationPermissionGate(stationEditContext),
                     weatherProvider = weatherProvider,
+                    placeSearchProvider = placeSearchProvider,
                     savedStateHandle = createSavedStateHandle(),
                 )
             }
