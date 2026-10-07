@@ -25,6 +25,7 @@ import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.buildSearchSnippet
 import app.restvolt.camperlog.domain.matchesSearch
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -84,6 +85,8 @@ class SearchViewModel(
     checklists: ChecklistRepository,
     checklistTemplates: ChecklistTemplateRepository,
     private val logTypeLabel: (LogType) -> String = { it.name },
+    /** Dispatcher der Auswertung abseits des Hauptthreads; in Tests ein steuerbarer Test-Dispatcher. */
+    private val computationDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
@@ -110,7 +113,7 @@ class SearchViewModel(
     /** Ergebnis der aktuellen Sucheingabe, [SEARCH_DEBOUNCE_MILLIS] ms nach der letzten Änderung berechnet. */
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<SearchUiState> = combine(query.debounce(SEARCH_DEBOUNCE_MILLIS), data) { q, d -> q to d }
-        .mapLatest { (q, d) -> withContext(Dispatchers.Default) { buildUiState(q, d) } }
+        .mapLatest { (q, d) -> withContext(computationDispatcher) { buildUiState(q, d) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState())
 
     fun onQueryChange(value: String) {
