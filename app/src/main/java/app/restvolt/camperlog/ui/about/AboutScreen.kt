@@ -92,6 +92,7 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
     val osmCopyrightUri = stringResource(R.string.about_osm_copyright_uri)
     val openMeteoUri = stringResource(R.string.about_open_meteo_uri)
     val naturalEarthUri = stringResource(R.string.about_natural_earth_uri)
+    val nominatimUri = stringResource(R.string.about_nominatim_uri)
     val feedbackAddress = stringResource(R.string.about_feedback_address)
     val feedbackSubject = stringResource(R.string.about_feedback_subject, BuildConfig.VERSION_NAME)
     val noMailApp = stringResource(R.string.about_no_mail_app)
@@ -251,6 +252,9 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
                     }
                     AboutLink(stringResource(R.string.about_link_natural_earth_attribution)) {
                         openExternalLink(scope, context, snackbar, noAppAvailable, naturalEarthUri)
+                    }
+                    AboutLink(stringResource(R.string.about_link_nominatim_attribution)) {
+                        openExternalLink(scope, context, snackbar, noAppAvailable, nominatimUri)
                     }
                 }
             }
