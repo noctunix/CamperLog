@@ -54,6 +54,7 @@ import java.time.LocalDate
 fun LogbookScreen(
     viewModel: LogbookViewModel,
     onOpenHistory: (Long, LogType) -> Unit,
+    onOpenSearch: () -> Unit,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenVehicles: () -> Unit,
@@ -78,6 +79,7 @@ fun LogbookScreen(
                         onManageVehicles = onOpenVehicles,
                     )
                 },
+                onOpenSearch = onOpenSearch,
                 onOpenData = onOpenData,
                 onOpenSettings = onOpenSettings,
             )

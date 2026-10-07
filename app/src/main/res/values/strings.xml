@@ -1031,4 +1031,20 @@
         <item>Check brakes</item>
         <item>Check documents (insurance, inspection)</item>
     </string-array>
+
+    <!-- Search -->
+    <string name="action_search">Search</string>
+    <string name="search_hint_min_length">Enter at least 2 characters</string>
+    <string name="search_no_results">No results</string>
+    <string name="search_clear_action">Clear search</string>
+    <string name="search_group_header">%1$s (%2$d)</string>
+    <string name="search_group_tours">Tours</string>
+    <string name="search_group_stops">Stops</string>
+    <string name="search_group_diary">Diary</string>
+    <string name="search_group_logbook">Logbook entries</string>
+    <string name="search_group_repairs">Repairs</string>
+    <string name="search_group_checklists">Checklists</string>
+    <string name="search_group_checklist_templates">Checklist templates</string>
+    <string name="search_group_vehicle_documents">Vehicle documents</string>
+    <string name="search_group_vehicles">Vehicles</string>
 </resources>

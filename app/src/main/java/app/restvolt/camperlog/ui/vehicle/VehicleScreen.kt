@@ -97,6 +97,7 @@ fun VehicleScreen(
     whereAmIViewModel: WhereAmIViewModel,
     locationEnabled: Boolean,
     reminderSettings: ReminderSettings,
+    onOpenSearch: () -> Unit,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenVehicles: () -> Unit,
@@ -146,6 +147,7 @@ fun VehicleScreen(
                     }
                 },
                 overflowMenu = { VehicleOverflowMenu(onManageVehicles = onOpenVehicles) },
+                onOpenSearch = onOpenSearch,
                 onOpenData = onOpenData,
                 onOpenSettings = onOpenSettings,
             )

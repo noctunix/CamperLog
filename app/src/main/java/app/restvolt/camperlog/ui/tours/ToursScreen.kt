@@ -62,6 +62,7 @@ fun ToursScreen(
     viewModel: ToursViewModel,
     onAddTour: () -> Unit,
     onOpenOverview: (Long?) -> Unit,
+    onOpenSearch: () -> Unit,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenTour: (Long) -> Unit,
@@ -86,6 +87,7 @@ fun ToursScreen(
                 onSelectAllVehicles = viewModel::onSelectAllVehicles,
                 onOpenVehicles = onOpenVehicles,
                 onOpenOverview = { onOpenOverview(if (state.showAllVehicles) null else state.currentVehicleId) },
+                onOpenSearch = onOpenSearch,
                 onOpenData = onOpenData,
                 onOpenSettings = onOpenSettings,
             )
@@ -174,6 +176,7 @@ private fun ToursTopBar(
     onSelectAllVehicles: () -> Unit,
     onOpenVehicles: () -> Unit,
     onOpenOverview: () -> Unit,
+    onOpenSearch: () -> Unit,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
@@ -191,6 +194,7 @@ private fun ToursTopBar(
             )
         },
         onOpenOverview = onOpenOverview,
+        onOpenSearch = onOpenSearch,
         onOpenData = onOpenData,
         onOpenSettings = onOpenSettings,
         scrollBehavior = scrollBehavior,

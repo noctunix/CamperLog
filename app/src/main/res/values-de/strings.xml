@@ -1021,4 +1021,20 @@
         <item>Bremsen prüfen</item>
         <item>Unterlagen prüfen (Versicherung, Prüftermin)</item>
     </string-array>
+
+    <!-- Suche -->
+    <string name="action_search">Suchen</string>
+    <string name="search_hint_min_length">Mindestens 2 Zeichen eingeben</string>
+    <string name="search_no_results">Keine Treffer</string>
+    <string name="search_clear_action">Suche leeren</string>
+    <string name="search_group_header">%1$s (%2$d)</string>
+    <string name="search_group_tours">Touren</string>
+    <string name="search_group_stops">Stationen</string>
+    <string name="search_group_diary">Tagebuch</string>
+    <string name="search_group_logbook">Bordbuch-Einträge</string>
+    <string name="search_group_repairs">Reparaturen</string>
+    <string name="search_group_checklists">Checklisten</string>
+    <string name="search_group_checklist_templates">Checklisten-Vorlagen</string>
+    <string name="search_group_vehicle_documents">Fahrzeugdokumente</string>
+    <string name="search_group_vehicles">Fahrzeuge</string>
 </resources>

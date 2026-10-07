@@ -127,6 +127,8 @@ import app.restvolt.camperlog.ui.rates.RateEditScreen
 import app.restvolt.camperlog.ui.rates.RateEditViewModel
 import app.restvolt.camperlog.ui.rates.RatesScreen
 import app.restvolt.camperlog.ui.rates.RatesViewModel
+import app.restvolt.camperlog.ui.search.SearchScreen
+import app.restvolt.camperlog.ui.search.SearchViewModel
 import app.restvolt.camperlog.ui.settings.SettingsScreen
 import app.restvolt.camperlog.ui.stations.StationsScreen
 import app.restvolt.camperlog.ui.stations.StationsViewModel
@@ -151,6 +153,10 @@ import java.time.LocalDate
 
 @Serializable
 internal object ToursRoute
+
+/** Volltextsuche, von der Kopfzeile jedes Hauptreiters aus erreichbar. */
+@Serializable
+internal object SearchRoute
 
 /** Stationen-Reiter: fahrzeugübergreifende Liste mit Suche, Filtern und FAB. */
 @Serializable
@@ -422,11 +428,59 @@ fun CamperLogNavHost(
                 viewModel = viewModel { ToursViewModel(repository, vehicles, stations, VehicleScopeSettings(context)) },
                 onAddTour = { navController.navigate(EditRoute()) },
                 onOpenOverview = { vehicleId -> navController.navigate(OverviewRoute(vehicleId)) },
+                onOpenSearch = { navController.navigate(SearchRoute) },
                 onOpenData = { navController.navigate(DataRoute) },
                 onOpenSettings = { navController.navigate(SettingsRoute) },
                 onOpenTour = { navController.navigate(DetailRoute(it)) },
                 onOpenVehicles = { navController.navigate(VehiclesRoute) },
                 bottomBar = bottomBar,
+            )
+        }
+        composable<SearchRoute> { entry ->
+            val resources = LocalResources.current
+            val scope = rememberCoroutineScope()
+            SearchScreen(
+                viewModel = viewModel {
+                    SearchViewModel(
+                        repository, vehicles, stations, diaryEntries, logbook, documents, checklists, checklistTemplates,
+                        logTypeLabel = { type -> resources.getString(type.labelRes) },
+                    )
+                },
+                onBack = { navController.popFrom(entry) },
+                onOpenTour = { tourId -> navController.navigate(DetailRoute(tourId)) },
+                onOpenStop = { stationId -> navController.navigate(StationDetailRoute(stationId, fromStationsTab = true)) },
+                onOpenDiaryEntry = { tourId, entryId ->
+                    navController.navigate(DetailRoute(tourId))
+                    navController.navigate(DiaryEditRoute(tourId = tourId, entryId = entryId))
+                },
+                onOpenLogbookHistory = { vehicleId, type -> navController.navigate(LogHistoryRoute(vehicleId, type.name)) },
+                onOpenRepair = { vehicleId, repairId ->
+                    scope.launch {
+                        vehicles.setCurrentVehicle(vehicleId)
+                        navController.navigate(VehicleRoute)
+                        navController.navigate(RepairEditRoute(vehicleId, repairId))
+                    }
+                },
+                onOpenChecklist = { checklistId, vehicleId, tourId ->
+                    if (tourId != null) {
+                        navController.navigate(DetailRoute(tourId))
+                        navController.navigate(ChecklistRoute(checklistId = checklistId, tourId = tourId))
+                    } else {
+                        navController.navigate(VehicleChecklistsRoute(vehicleId))
+                        navController.navigate(ChecklistRoute(checklistId = checklistId, vehicleId = vehicleId))
+                    }
+                },
+                onOpenChecklistTemplate = { templateId ->
+                    navController.navigate(ChecklistTemplatesRoute)
+                    navController.navigate(ChecklistTemplateEditRoute(templateId))
+                },
+                onOpenVehicleDocument = { vehicleId, documentId -> navController.navigate(DocumentDetailRoute(vehicleId, documentId)) },
+                onOpenVehicle = { vehicleId ->
+                    scope.launch {
+                        vehicles.setCurrentVehicle(vehicleId)
+                        navController.navigate(VehicleRoute)
+                    }
+                },
             )
         }
         composable<StationsRoute> {
@@ -442,6 +496,7 @@ fun CamperLogNavHost(
                 onOpenTour = { tourId -> navController.navigate(DetailRoute(tourId)) },
                 onOpenStation = { stationId -> navController.navigate(StationDetailRoute(stationId, fromStationsTab = true)) },
                 onOpenMap = { navController.navigate(StationsMapRoute) },
+                onOpenSearch = { navController.navigate(SearchRoute) },
                 onOpenData = { navController.navigate(DataRoute) },
                 onOpenSettings = { navController.navigate(SettingsRoute) },
                 onOpenVehicles = { navController.navigate(VehiclesRoute) },
@@ -461,6 +516,7 @@ fun CamperLogNavHost(
             LogbookScreen(
                 viewModel = viewModel { LogbookViewModel(logbook, vehicles) },
                 onOpenHistory = { vehicleId, type -> navController.navigate(LogHistoryRoute(vehicleId, type.name)) },
+                onOpenSearch = { navController.navigate(SearchRoute) },
                 onOpenData = { navController.navigate(DataRoute) },
                 onOpenSettings = { navController.navigate(SettingsRoute) },
                 onOpenVehicles = { navController.navigate(VehiclesRoute) },
@@ -485,6 +541,7 @@ fun CamperLogNavHost(
                 whereAmIViewModel = viewModel { WhereAmIViewModel(locationProvider, AndroidLocationPermissionGate(vehicleContext)) },
                 locationEnabled = locationEnabled,
                 reminderSettings = reminderSettings,
+                onOpenSearch = { navController.navigate(SearchRoute) },
                 onOpenData = { navController.navigate(DataRoute) },
                 onOpenSettings = { navController.navigate(SettingsRoute) },
                 onOpenVehicles = { navController.navigate(VehiclesRoute) },

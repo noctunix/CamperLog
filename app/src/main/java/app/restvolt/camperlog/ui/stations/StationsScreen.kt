@@ -76,6 +76,7 @@ fun StationsScreen(
     onOpenTour: (Long) -> Unit,
     onOpenStation: (Long) -> Unit,
     onOpenMap: () -> Unit,
+    onOpenSearch: () -> Unit,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenVehicles: () -> Unit,
@@ -111,6 +112,7 @@ fun StationsScreen(
                         }
                     }
                 },
+                onOpenSearch = onOpenSearch,
                 onOpenData = onOpenData,
                 onOpenSettings = onOpenSettings,
                 scrollBehavior = scrollBehavior,
