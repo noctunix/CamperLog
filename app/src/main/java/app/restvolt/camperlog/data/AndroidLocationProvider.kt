@@ -21,7 +21,6 @@ import kotlin.math.roundToInt
 /**
  * [LocationProvider] über `LocationManagerCompat`, ohne Play-Services: fragt GPS, dann den
  * Netzwerk-Provider, und fällt bei einem zuletzt bekannten Standort auf [selectBestLastKnown] zurück.
- * Nach dem Vorbild von EXIFix' `LocationService`.
  */
 class AndroidLocationProvider(private val context: Context) : LocationProvider {
 
