@@ -1063,4 +1063,28 @@
     <string name="settings_track_denied_hint">Die Trackaufzeichnung braucht die Standortberechtigung. Du kannst sie in den Systemeinstellungen erlauben.</string>
     <string name="settings_track_open_app_settings">App-Einstellungen öffnen</string>
     <string name="settings_track_off_hint">Trackaufzeichnung aus. Aufgezeichnete Tracks bleiben gespeichert.</string>
+    <string name="tour_track_title">Track</string>
+    <string name="tour_track_empty">Noch kein Track aufgezeichnet.</string>
+    <plurals name="tour_track_points">
+        <item quantity="one">%1$d Punkt</item>
+        <item quantity="other">%1$d Punkte</item>
+    </plurals>
+    <plurals name="tour_track_segments">
+        <item quantity="one">%1$d Aufzeichnung</item>
+        <item quantity="other">%1$d Aufzeichnungen</item>
+    </plurals>
+    <string name="tour_track_recording">Aufzeichnung läuft, Position alle %1$s.</string>
+    <string name="tour_track_other_tour">Für eine andere Tour läuft gerade eine Aufzeichnung. Ein Start hier beendet sie.</string>
+    <string name="tour_track_start">Aufzeichnung starten</string>
+    <string name="tour_track_stop">Aufzeichnung beenden</string>
+    <string name="tour_track_delete">Track löschen</string>
+    <string name="tour_track_delete_title">Track löschen?</string>
+    <plurals name="tour_track_delete_message">
+        <item quantity="one">Der aufgezeichnete Punkt dieser Tour wird gelöscht. Die Stationen bleiben.</item>
+        <item quantity="other">Alle %1$d aufgezeichneten Punkte dieser Tour werden gelöscht. Die Stationen bleiben.</item>
+    </plurals>
+    <string name="track_battery_title">Aufzeichnung im Hintergrund</string>
+    <string name="track_battery_message">Android darf Apps, die im Hintergrund weiterarbeiten, zum Stromsparen pausieren. Eine Aufzeichnung kann dann mitten in der Fahrt enden, ohne dass du es merkst. Wenn du CamperLog von der Akkuoptimierung ausnimmst, zeichnet die App weiter auf, bis du selbst stoppst. Eingeschaltet ist die Aufzeichnung so oder so.</string>
+    <string name="track_battery_open">Akkueinstellungen öffnen</string>
+    <string name="track_battery_later">Jetzt nicht</string>
 </resources>

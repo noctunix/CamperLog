@@ -104,6 +104,8 @@ fun TourDetailScreen(
     viewModel: TourDetailViewModel,
     weatherMapEnabled: Boolean,
     checklistTemplates: List<ChecklistTemplate>,
+    /** Karte "Track" nach den Ländern; `null`, solange die Trackaufzeichnung ausgeschaltet ist. */
+    trackCard: (@Composable () -> Unit)? = null,
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: (Tour) -> Unit,
@@ -228,6 +230,7 @@ fun TourDetailScreen(
                 onAddStop = { showTypePicker = true },
                 onOpenMap = onOpenMap,
                 onSaveCountries = { added, removed -> viewModel.saveCountries(current.tour, added, removed) },
+                trackCard = trackCard,
                 onAddDiaryEntry = { onAddDiaryEntry(current.tour.id) },
                 onOpenDiaryEntry = onOpenDiaryEntry,
                 onStartChecklist = { showChecklistPicker = true },
@@ -344,6 +347,7 @@ private fun TourDetails(
     onAddStop: () -> Unit,
     onOpenMap: () -> Unit,
     onSaveCountries: (Set<String>, Set<String>) -> Unit,
+    trackCard: (@Composable () -> Unit)?,
     onAddDiaryEntry: () -> Unit,
     onOpenDiaryEntry: (Long) -> Unit,
     onStartChecklist: () -> Unit,
@@ -388,6 +392,9 @@ private fun TourDetails(
                 locale = locale,
                 onSave = onSaveCountries,
             )
+        }
+        if (trackCard != null) {
+            item { trackCard() }
         }
         item {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {

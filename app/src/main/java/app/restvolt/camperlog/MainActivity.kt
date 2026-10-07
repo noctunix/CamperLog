@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
                     backupImporter = app.backupImporter,
                     themeMode = themeMode,
                     stations = app.stations,
+                    tracks = app.tracks,
                     pendingGeoIntent = pendingGeoIntent,
                     onGeoIntentHandled = { pendingGeoIntent = null },
                     pendingVehicleId = pendingVehicleId,

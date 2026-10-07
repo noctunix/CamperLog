@@ -1,5 +1,8 @@
 package app.restvolt.camperlog.ui
 
+import app.restvolt.camperlog.CamperLogApp
+import app.restvolt.camperlog.domain.TrackRepository
+import app.restvolt.camperlog.ui.detail.TrackRecordingCard
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Badge
@@ -327,6 +330,8 @@ fun CamperLogNavHost(
     countryLookup: CountryLookupRepository = AssetCountryLookupRepository(LocalContext.current),
     /** Kamera-/Galerie-/Dokument-Auswahl der Foto-Streifen; in Tests ein Fake ohne echten System-Dialog. */
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
+    /** Aufgezeichnete Trackpunkte; in Tests ein Fake. */
+    tracks: TrackRepository = (LocalContext.current.applicationContext as CamperLogApp).tracks,
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -657,6 +662,7 @@ fun CamperLogNavHost(
             val checklistTemplateList by remember(checklistTemplates) { checklistTemplates.observeAll() }
                 .collectAsStateWithLifecycle(initialValue = emptyList())
             val scope = rememberCoroutineScope()
+            val trackPreferences by trackSettings.values.collectAsStateWithLifecycle()
             TourDetailScreen(
                 viewModel = viewModel {
                     TourDetailViewModel(
@@ -675,6 +681,11 @@ fun CamperLogNavHost(
                 },
                 weatherMapEnabled = weatherMapEnabled,
                 checklistTemplates = checklistTemplateList,
+                trackCard = if (trackPreferences.enabled) {
+                    { TrackRecordingCard(tourId, tracks, trackSettings) }
+                } else {
+                    null
+                },
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(EditRoute(tourId)) },
                 onDelete = { tour ->

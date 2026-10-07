@@ -105,7 +105,8 @@ internal fun TrackRecordingSettingsSection(settings: TrackRecordingSettings, onS
     }
 }
 
-private fun trackPermissions(): Array<String> =
+/** Standort und, ab Android 13, Benachrichtigungen für die Anzeige der laufenden Aufzeichnung. */
+internal fun trackPermissions(): Array<String> =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) LOCATION_PERMISSIONS + Manifest.permission.POST_NOTIFICATIONS
     else LOCATION_PERMISSIONS
 

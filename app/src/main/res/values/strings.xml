@@ -1074,4 +1074,28 @@
     <string name="settings_track_denied_hint">Track recording needs the location permission. You can allow it in the system settings.</string>
     <string name="settings_track_open_app_settings">Open app settings</string>
     <string name="settings_track_off_hint">Track recording off. Recorded tracks stay saved.</string>
+    <string name="tour_track_title">Track</string>
+    <string name="tour_track_empty">No track recorded yet.</string>
+    <plurals name="tour_track_points">
+        <item quantity="one">%1$d point</item>
+        <item quantity="other">%1$d points</item>
+    </plurals>
+    <plurals name="tour_track_segments">
+        <item quantity="one">%1$d recording</item>
+        <item quantity="other">%1$d recordings</item>
+    </plurals>
+    <string name="tour_track_recording">Recording, position every %1$s.</string>
+    <string name="tour_track_other_tour">A recording is running for another tour. Starting here ends it.</string>
+    <string name="tour_track_start">Start recording</string>
+    <string name="tour_track_stop">Stop recording</string>
+    <string name="tour_track_delete">Delete track</string>
+    <string name="tour_track_delete_title">Delete track?</string>
+    <plurals name="tour_track_delete_message">
+        <item quantity="one">The recorded point of this tour is deleted. Stops stay.</item>
+        <item quantity="other">All %1$d recorded points of this tour are deleted. Stops stay.</item>
+    </plurals>
+    <string name="track_battery_title">Recording in the background</string>
+    <string name="track_battery_message">To save power, Android is allowed to pause apps that keep working in the background. A recording can then end mid-drive without telling you. If you exempt CamperLog from battery optimization, it keeps recording until you stop it. Recording is switched on either way.</string>
+    <string name="track_battery_open">Open battery settings</string>
+    <string name="track_battery_later">Not now</string>
 </resources>
