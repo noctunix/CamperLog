@@ -350,7 +350,7 @@ private fun TourDetails(
     onOpenChecklist: (Long) -> Unit,
 ) {
     val locale = currentLocale()
-    val vignetteWarnings = expiringVignettes(tour, stations)
+    val vignetteWarnings = remember(tour, stations) { expiringVignettes(tour, stations) }
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(
