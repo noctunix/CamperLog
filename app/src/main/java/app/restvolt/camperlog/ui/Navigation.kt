@@ -47,9 +47,11 @@ import app.restvolt.camperlog.data.AndroidLocationPermissionGate
 import app.restvolt.camperlog.data.AndroidLocationProvider
 import app.restvolt.camperlog.data.AndroidTileLoader
 import app.restvolt.camperlog.data.AndroidWeatherProvider
+import app.restvolt.camperlog.data.AssetCountryLookupRepository
 import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.data.BackupFolderWriter
 import app.restvolt.camperlog.domain.AttachmentRepository
+import app.restvolt.camperlog.domain.CountryLookupRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.LocationProvider
@@ -267,6 +269,8 @@ fun CamperLogNavHost(
     weatherProvider: WeatherProvider = AndroidWeatherProvider(userAgent = camperLogUserAgent(BuildConfig.VERSION_NAME)),
     /** Kachellader der Karte; in Tests ein Fake. */
     tileLoader: TileLoader = AndroidTileLoader(userAgent = camperLogUserAgent(BuildConfig.VERSION_NAME)),
+    /** Offline-Ländererkennung für Tourdetail und Übersicht; in Tests ein Fake. */
+    countryLookup: CountryLookupRepository = AssetCountryLookupRepository(LocalContext.current),
     /** Kamera-/Galerie-/Dokument-Auswahl der Foto-Streifen; in Tests ein Fake ohne echten System-Dialog. */
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     onThemeModeChange: (ThemeMode) -> Unit,
@@ -542,7 +546,7 @@ fun CamperLogNavHost(
             val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations)
             val weatherMapEnabled by weatherSettings.values.collectAsStateWithLifecycle()
             TourDetailScreen(
-                viewModel = viewModel { TourDetailViewModel(repository, vehicles, stations, exchangeRates, tourId) },
+                viewModel = viewModel { TourDetailViewModel(repository, vehicles, stations, exchangeRates, countryLookup, tourId) },
                 weatherMapEnabled = weatherMapEnabled,
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(EditRoute(tourId)) },
@@ -561,7 +565,7 @@ fun CamperLogNavHost(
         }
         composable<TourMapRoute> { entry ->
             val route = entry.toRoute<TourMapRoute>()
-            val tourDetailViewModel = navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates)
+            val tourDetailViewModel = navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates, countryLookup)
             val detailState by tourDetailViewModel.uiState.collectAsStateWithLifecycle()
             val loaded = detailState as? DetailUiState.Loaded
             MapScreen(
@@ -647,7 +651,7 @@ fun CamperLogNavHost(
                 route.fromStationsTab && navController.hasRoute<StationsRoute>() ->
                     navController.stationsViewModel(entry, stations, repository, vehicles)::deleteStation
                 navController.hasRoute<DetailRoute>() ->
-                    navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates)::deleteStation
+                    navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates, countryLookup)::deleteStation
                 else -> { station -> fallbackDeleteScope.launch { stations.delete(station.id) } }
             }
             StationDetailScreen(
@@ -675,7 +679,7 @@ fun CamperLogNavHost(
         composable<OverviewRoute> { entry ->
             val vehicleId = entry.toRoute<OverviewRoute>().vehicleId
             OverviewScreen(
-                viewModel = viewModel { OverviewViewModel(repository, exchangeRates, vehicleId) },
+                viewModel = viewModel { OverviewViewModel(repository, exchangeRates, stations, countryLookup, vehicleId) },
                 onBack = { navController.popFrom(entry) },
                 onOpenRates = { navController.navigate(RatesRoute) },
             )
@@ -881,10 +885,11 @@ private fun NavController.tourDetailViewModel(
     vehicles: VehicleRepository,
     stations: StationRepository,
     exchangeRates: ExchangeRateRepository,
+    countryLookup: CountryLookupRepository,
 ): TourDetailViewModel {
     val detailEntry = remember(entry) { getBackStackEntry<DetailRoute>() }
     val tourId = detailEntry.toRoute<DetailRoute>().tourId
-    return viewModel(viewModelStoreOwner = detailEntry) { TourDetailViewModel(tours, vehicles, stations, exchangeRates, tourId) }
+    return viewModel(viewModelStoreOwner = detailEntry) { TourDetailViewModel(tours, vehicles, stations, exchangeRates, countryLookup, tourId) }
 }
 
 /**

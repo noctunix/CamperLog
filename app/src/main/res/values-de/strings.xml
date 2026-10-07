@@ -47,6 +47,12 @@
     <string name="tour_section_stops_costs">Stationen</string>
     <string name="tour_section_total_costs">Gesamt</string>
     <string name="cost_breakdown_by_category">Nach Kategorie</string>
+    <string name="tour_section_countries">Länder</string>
+    <string name="countries_empty">Noch keine Länder erkannt</string>
+    <string name="countries_edit_action">Länder bearbeiten</string>
+    <string name="countries_add_action">Land hinzufügen</string>
+    <string name="countries_remove_country">%1$s entfernen</string>
+    <string name="overview_countries">Länder</string>
 
     <!-- Choices -->
     <string name="tour_type_day_trip">Tagestour</string>
@@ -528,6 +534,7 @@
     <string name="about_section_data_sources">Datenquellen</string>
     <string name="about_link_osm_attribution">Kartendaten © OpenStreetMap-Mitwirkende (ODbL)</string>
     <string name="about_link_open_meteo_attribution">Wetterdaten von Open-Meteo.com (CC BY 4.0)</string>
+    <string name="about_link_natural_earth_attribution">Landesgrenzen von Natural Earth (public domain)</string>
     <string name="about_section_privacy">Datenschutz</string>
     <string name="about_privacy_bullet_opt_in">Standort- und Internetfunktionen sind ausgeschaltet. Ohne sie arbeitet CamperLog vollständig offline.</string>
     <string name="about_privacy_bullet_location">Standort (optional): Nur wenn du auf „Aktuellen Standort verwenden“ tippst, liest CamperLog deine Position einmal und speichert sie bei der Station. Nie im Hintergrund, nie übertragen.</string>

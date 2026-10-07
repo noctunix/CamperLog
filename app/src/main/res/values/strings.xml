@@ -47,6 +47,12 @@
     <string name="tour_section_stops_costs">Stops</string>
     <string name="tour_section_total_costs">Total</string>
     <string name="cost_breakdown_by_category">By category</string>
+    <string name="tour_section_countries">Countries</string>
+    <string name="countries_empty">No countries detected yet</string>
+    <string name="countries_edit_action">Edit countries</string>
+    <string name="countries_add_action">Add country</string>
+    <string name="countries_remove_country">Remove %1$s</string>
+    <string name="overview_countries">Countries</string>
 
     <!-- Choices -->
     <string name="tour_type_day_trip">Day trip</string>
@@ -534,8 +540,10 @@
     <string name="about_section_data_sources">Data sources</string>
     <string name="about_link_osm_attribution">Map data © OpenStreetMap contributors (ODbL)</string>
     <string name="about_link_open_meteo_attribution">Weather data by Open-Meteo.com (CC BY 4.0)</string>
+    <string name="about_link_natural_earth_attribution">Country borders by Natural Earth (public domain)</string>
     <string name="about_osm_copyright_uri" translatable="false">https://www.openstreetmap.org/copyright</string>
     <string name="about_open_meteo_uri" translatable="false">https://open-meteo.com/</string>
+    <string name="about_natural_earth_uri" translatable="false">https://www.naturalearthdata.com/</string>
     <string name="about_section_privacy">Privacy</string>
     <string name="about_privacy_bullet_opt_in">Location and internet features are off by default. Without them, CamperLog works completely offline.</string>
     <string name="about_privacy_bullet_location">Location (optional): only when you tap “Use current location”, CamperLog reads your position once and saves it with the stop. Never in the background, never sent anywhere.</string>

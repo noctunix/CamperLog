@@ -24,6 +24,7 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CollapsibleSection
+import app.restvolt.camperlog.ui.CountryChipsRow
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LabeledValue
 import app.restvolt.camperlog.ui.SectionCard
@@ -105,6 +106,14 @@ private fun TotalsCard(title: String, row: TotalsRow) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+        if (row.countries.isNotEmpty()) {
+            Text(
+                stringResource(R.string.overview_countries),
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.titleSmall,
+            )
+            CountryChipsRow(row.countries, locale)
         }
         if (totals.categoryCosts.isNotEmpty()) {
             var expanded by rememberSaveable { mutableStateOf(false) }

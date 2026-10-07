@@ -170,12 +170,14 @@ fun TourDetailScreen(
                 totalCosts = current.totalCosts,
                 categoryCosts = current.categoryCosts,
                 conversion = current.conversion,
+                autoDetectedCountries = current.autoDetectedCountries,
                 weatherMapEnabled = weatherMapEnabled,
                 modifier = Modifier.fillMaxSize(),
                 padding = padding,
                 onOpenStation = onOpenStation,
                 onAddStop = { showTypePicker = true },
                 onOpenMap = onOpenMap,
+                onSaveCountries = { added, removed -> viewModel.saveCountries(current.tour, added, removed) },
             )
         }
     }
@@ -220,12 +222,14 @@ private fun TourDetails(
     totalCosts: List<Money>,
     categoryCosts: Map<CostCategory, List<Money>>,
     conversion: Conversion?,
+    autoDetectedCountries: Set<String>,
     weatherMapEnabled: Boolean,
     modifier: Modifier,
     padding: PaddingValues,
     onOpenStation: (Long) -> Unit,
     onAddStop: () -> Unit,
     onOpenMap: () -> Unit,
+    onSaveCountries: (Set<String>, Set<String>) -> Unit,
 ) {
     val locale = currentLocale()
     LazyColumn(
@@ -254,6 +258,15 @@ private fun TourDetails(
             }
         }
         item { CostsCard(tour.costs, stopCosts, totalCosts, categoryCosts, conversion, locale) }
+        item {
+            TourCountriesCard(
+                autoDetected = autoDetectedCountries,
+                manuallyAdded = tour.manualCountriesAdded,
+                manuallyRemoved = tour.manualCountriesRemoved,
+                locale = locale,
+                onSave = onSaveCountries,
+            )
+        }
         item {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(

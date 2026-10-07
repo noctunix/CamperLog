@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Conversion
 import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.CountryLookupRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
@@ -16,6 +17,7 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.domain.autoDetectedCountries
 import app.restvolt.camperlog.domain.convert
 import app.restvolt.camperlog.domain.costsByCategory
 import app.restvolt.camperlog.domain.stationCostTotals
@@ -47,6 +49,8 @@ sealed interface DetailUiState {
         val totalCosts: List<Money> = emptyList(),
         val categoryCosts: Map<CostCategory, List<Money>> = emptyMap(),
         val conversion: Conversion? = null,
+        /** Aus Stationskoordinaten und Vignetten erkannte Länder, ohne [Tour.manualCountriesAdded]/[Tour.manualCountriesRemoved]. */
+        val autoDetectedCountries: Set<String> = emptySet(),
     ) : DetailUiState
 }
 
@@ -64,6 +68,7 @@ class TourDetailViewModel(
     vehicles: VehicleRepository,
     private val stations: StationRepository,
     exchangeRates: ExchangeRateRepository,
+    private val countryLookup: CountryLookupRepository,
     tourId: Long,
 ) : ViewModel() {
 
@@ -85,6 +90,7 @@ class TourDetailViewModel(
                 totalCosts = totalCosts,
                 categoryCosts = stationList.costsByCategory(),
                 conversion = if (totalCosts.all { it.currency == main }) null else convert(totalCosts, main, rates),
+                autoDetectedCountries = autoDetectedCountries(stationList, countryLookup),
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailUiState.Loading)
@@ -116,6 +122,13 @@ class TourDetailViewModel(
             } catch (_: SQLException) {
                 _message.value = StationMessage.Failed(R.string.station_restore_failed)
             }
+        }
+    }
+
+    /** Speichert die manuellen Länderanpassungen der Tour (siehe [app.restvolt.camperlog.domain.tourCountries]). */
+    fun saveCountries(tour: Tour, manuallyAdded: Set<String>, manuallyRemoved: Set<String>) {
+        viewModelScope.launch {
+            repository.save(tour.copy(manualCountriesAdded = manuallyAdded, manualCountriesRemoved = manuallyRemoved))
         }
     }
 
