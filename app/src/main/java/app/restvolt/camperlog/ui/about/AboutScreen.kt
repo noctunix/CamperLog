@@ -267,6 +267,7 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
                     listOf(
                         R.string.about_privacy_bullet_opt_in,
                         R.string.about_privacy_bullet_location,
+                        R.string.about_privacy_bullet_track,
                         R.string.about_privacy_bullet_weather_map,
                         R.string.about_privacy_bullet_notifications,
                         R.string.about_privacy_bullet_no_tracking,

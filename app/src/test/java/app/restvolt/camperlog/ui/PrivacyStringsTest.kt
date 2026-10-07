@@ -74,6 +74,32 @@ class PrivacyStringsTest {
         assertFalse(de.contains("Keine Benachrichtigungen.", ignoreCase = false))
     }
 
+    /** Seit der Trackaufzeichnung liest die App den Standort auch bei ausgeschaltetem Bildschirm. */
+    @Test
+    fun noStaleNeverInTheBackgroundClaimRemains() {
+        val texts = mapOf(
+            "EN strings" to en,
+            "DE strings" to de,
+            "README" to File("../README.md").readText(),
+            "EN store" to File("../fastlane/metadata/android/en-US/full_description.txt").readText(),
+            "DE store" to File("../fastlane/metadata/android/de-DE/full_description.txt").readText(),
+        )
+        texts.forEach { (name, text) ->
+            assertFalse("$name still claims never in the background", text.contains("never in the background", ignoreCase = true))
+            assertFalse("$name still claims nie im Hintergrund", text.contains("nie im Hintergrund", ignoreCase = true))
+        }
+        assertTrue(en.contains("about_privacy_bullet_track"))
+        assertTrue(de.contains("about_privacy_bullet_track"))
+    }
+
+    @Test
+    fun storeDescriptionsFitThePlayLimit() {
+        listOf("en-US", "de-DE").forEach { locale ->
+            val text = File("../fastlane/metadata/android/$locale/full_description.txt").readText()
+            assertTrue("$locale full description has ${text.length} characters", text.length <= 4000)
+        }
+    }
+
     @Test
     fun readmeAndStoreTextsDescribeNotificationsAsOptional() {
         val readme = File("../README.md").readText()

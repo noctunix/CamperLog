@@ -136,7 +136,7 @@
     </plurals>
     <string name="settings_reminder_backup_weeks_support">Notifies in the background while notifications are on; otherwise shown as a card here when overdue.</string>
     <string name="settings_location_section">Location &amp; internet</string>
-    <string name="settings_location_switch_support">Shows "Use current location" on stops. The position is only determined once, on tap, never in the background.</string>
+    <string name="settings_location_switch_support">Shows "Use current location" on stops. The position is only determined once, on tap. Recording a route has its own switch below.</string>
     <string name="settings_location_revoked_hint">Access is fully removed after the app restarts.</string>
     <string name="settings_weather_switch_support">Weather from Open-Meteo, a map from OpenStreetMap, and place search via Nominatim, all only on button press or when opening the map.</string>
     <string name="settings_weather_off_hint">Saved positions and weather stay with your stops.</string>
@@ -565,7 +565,8 @@
     <string name="about_nominatim_uri" translatable="false">https://nominatim.org/</string>
     <string name="about_section_privacy">Privacy</string>
     <string name="about_privacy_bullet_opt_in">Location and internet features are off by default. Without them, CamperLog works completely offline.</string>
-    <string name="about_privacy_bullet_location">Location (optional): only when you tap “Use current location”, CamperLog reads your position once and saves it with the stop. Never in the background, never sent anywhere.</string>
+    <string name="about_privacy_bullet_location">Location (optional): only when you tap “Use current location”, CamperLog reads your position once and saves it with the stop. Never sent anywhere.</string>
+    <string name="about_privacy_bullet_track">Track recording (optional, its own switch): off by default. Only after you start it on a tour, CamperLog reads your position at the interval you chose and saves the route with the tour, also while the screen is off. A permanent notification shows that it is running and lets you stop it. It never starts on its own and nothing is sent anywhere.</string>
     <string name="about_privacy_bullet_weather_map">Weather &amp; map (optional): CamperLog has the internet permission but only uses it when you turn this on. Getting the weather sends the stop’s coordinates, rounded to about 1 km, to Open-Meteo. The map loads the area you are looking at from OpenStreetMap. Searching for a place sends your typed text to OpenStreetMap Nominatim. All three services see your IP address.</string>
     <string name="about_privacy_bullet_notifications">Notifications (optional): off by default. Turning them on asks for the notification permission and runs a daily background check for due maintenance and your backup reminder, entirely on your device. For that check the app also holds two permissions granted at installation without a prompt: starting again after a restart and briefly keeping the device awake; they are only used while notifications are on. Nothing is ever sent anywhere.</string>
     <string name="about_privacy_bullet_no_tracking">No account, no ads, no analytics. Nothing else ever leaves your device.</string>
@@ -801,7 +802,7 @@
 
     <!-- Location -->
     <string name="location_switch_title">Use current location</string>
-    <string name="location_switch_support_intro">Position only when you tap, never in the background. Stays on this device.</string>
+    <string name="location_switch_support_intro">Position only when you tap. Stays on this device.</string>
     <string name="title_intro_optin">Optional: location, weather, map</string>
     <string name="body_intro_optin">Both are off. CamperLog works fully without them.</string>
     <string name="body_intro_optin_footer">You can change this anytime in Settings.</string>

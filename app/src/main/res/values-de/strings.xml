@@ -136,7 +136,7 @@
     </plurals>
     <string name="settings_reminder_backup_weeks_support">Benachrichtigt im Hintergrund, solange Benachrichtigungen an sind; sonst erscheint hier eine Karte, wenn es fällig ist.</string>
     <string name="settings_location_section">Standort &amp; Internet</string>
-    <string name="settings_location_switch_support">Zeigt bei Stationen „Aktuellen Standort verwenden“. Die Position wird nur auf Knopfdruck einmal bestimmt, nie im Hintergrund.</string>
+    <string name="settings_location_switch_support">Zeigt bei Stationen „Aktuellen Standort verwenden“. Die Position wird nur auf Knopfdruck einmal bestimmt. Für eine Streckenaufzeichnung gibt es unten einen eigenen Schalter.</string>
     <string name="settings_location_revoked_hint">Der Zugriff wird nach dem nächsten Neustart der App vollständig entfernt.</string>
     <string name="settings_weather_switch_support">Wetter von Open-Meteo, eine Karte von OpenStreetMap und die Ortssuche über Nominatim, alles nur auf Knopfdruck bzw. beim Öffnen der Karte.</string>
     <string name="settings_weather_off_hint">Gespeicherte Positionen und Wetterdaten bleiben bei deinen Stationen.</string>
@@ -555,7 +555,8 @@
     <string name="about_link_nominatim_attribution">Ortssuche von Nominatim (OpenStreetMap-Daten, ODbL)</string>
     <string name="about_section_privacy">Datenschutz</string>
     <string name="about_privacy_bullet_opt_in">Standort- und Internetfunktionen sind ausgeschaltet. Ohne sie arbeitet CamperLog vollständig offline.</string>
-    <string name="about_privacy_bullet_location">Standort (optional): Nur wenn du auf „Aktuellen Standort verwenden“ tippst, liest CamperLog deine Position einmal und speichert sie bei der Station. Nie im Hintergrund, nie übertragen.</string>
+    <string name="about_privacy_bullet_location">Standort (optional): Nur wenn du auf „Aktuellen Standort verwenden“ tippst, liest CamperLog deine Position einmal und speichert sie bei der Station. Nie übertragen.</string>
+    <string name="about_privacy_bullet_track">Trackaufzeichnung (optional, eigener Schalter): aus, bis du sie einschaltest. Erst wenn du sie bei einer Tour startest, liest CamperLog deine Position im gewählten Abstand und speichert die Strecke bei der Tour, auch bei ausgeschaltetem Bildschirm. Eine dauerhafte Benachrichtigung zeigt, dass sie läuft, und beendet sie auf Wunsch. Sie startet nie von selbst und nichts wird übertragen.</string>
     <string name="about_privacy_bullet_weather_map">Wetter &amp; Karte (optional): CamperLog hat die Internet-Berechtigung, nutzt sie aber nur, wenn du das einschaltest. Beim Wetterabruf gehen die Koordinaten der Station, auf etwa 1 km gerundet, an Open-Meteo. Die Karte lädt den angezeigten Ausschnitt von OpenStreetMap. Die Ortssuche sendet deinen eingegebenen Text an OpenStreetMap Nominatim. Alle drei Dienste sehen deine IP-Adresse.</string>
     <string name="about_privacy_bullet_notifications">Benachrichtigungen (optional): aus, bis du sie einschaltest. Das Einschalten fragt nach der Benachrichtigungsberechtigung und startet einen täglichen Hintergrund-Check für fällige Wartung und deine Sicherungs-Erinnerung, vollständig auf deinem Gerät. Für diesen Check hat die App zwei Berechtigungen, die bei der Installation ohne Dialog erteilt werden: nach einem Neustart wieder anzulaufen und das Gerät kurz wach zu halten; genutzt werden sie nur bei eingeschalteten Benachrichtigungen. Es wird dabei nichts irgendwohin gesendet.</string>
     <string name="about_privacy_bullet_no_tracking">Kein Konto, keine Werbung, keine Analyse. Sonst verlässt nichts dein Gerät.</string>
@@ -790,7 +791,7 @@
 
     <!-- Standort -->
     <string name="location_switch_title">Aktuellen Standort nutzen</string>
-    <string name="location_switch_support_intro">Position nur auf Knopfdruck, nie im Hintergrund. Bleibt auf dem Gerät.</string>
+    <string name="location_switch_support_intro">Position nur auf Knopfdruck. Bleibt auf dem Gerät.</string>
     <string name="title_intro_optin">Optional: Standort, Wetter, Karte</string>
     <string name="body_intro_optin">Beides ist aus. CamperLog funktioniert vollständig ohne.</string>
     <string name="body_intro_optin_footer">Jederzeit änderbar in den Einstellungen.</string>
