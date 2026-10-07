@@ -40,6 +40,10 @@ data class ImportResult(
     val updatedDocuments: Int = 0,
     val addedDiaryEntries: Int = 0,
     val updatedDiaryEntries: Int = 0,
+    val addedChecklistTemplates: Int = 0,
+    val updatedChecklistTemplates: Int = 0,
+    val addedChecklists: Int = 0,
+    val updatedChecklists: Int = 0,
     val addedAttachments: Int = 0,
 )
 

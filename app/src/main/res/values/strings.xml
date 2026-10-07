@@ -262,7 +262,7 @@
     <string name="data_import_description">Reads a CamperLog backup file. You will see what it contains before anything is changed.</string>
     <string name="data_import_choose">Choose backup file</string>
     <string name="import_preview_title">Restore backup?</string>
-    <string name="import_preview_summary">Backup from %1$s with %2$s, %3$s, %4$s, %5$s, %6$s, %7$s, %8$s and %9$s. Main currency: %10$s.</string>
+    <string name="import_preview_summary">Backup from %1$s with %2$s, %3$s, %4$s, %5$s, %6$s, %7$s, %8$s, %9$s, %10$s and %11$s. Main currency: %12$s.</string>
     <plurals name="import_tours">
         <item quantity="one">%1$d tour</item>
         <item quantity="other">%1$d tours</item>
@@ -295,6 +295,14 @@
         <item quantity="one">%1$d diary entry</item>
         <item quantity="other">%1$d diary entries</item>
     </plurals>
+    <plurals name="import_checklist_templates">
+        <item quantity="one">%1$d checklist template</item>
+        <item quantity="other">%1$d checklist templates</item>
+    </plurals>
+    <plurals name="import_checklists">
+        <item quantity="one">%1$d checklist</item>
+        <item quantity="other">%1$d checklists</item>
+    </plurals>
     <string name="import_mode_merge">Merge</string>
     <string name="import_mode_merge_hint">Adds new tours, vehicles, repairs and logbook entries and takes over newer versions of existing ones. Your main currency and current vehicle stay.</string>
     <string name="import_mode_replace">Replace everything</string>
@@ -307,7 +315,7 @@
     </plurals>
     <string name="import_replace_text_no_tours">All saved vehicles, repairs, logbook entries, exchange rates and the main currency will be deleted and replaced by the backup. This cannot be undone.</string>
     <string name="import_replace_confirm">Replace everything</string>
-    <string name="import_done">Backup restored. Tours new: %1$d, updated: %2$d, unchanged: %3$d. Vehicles new: %4$d, updated: %5$d. Stops new: %6$d, updated: %7$d. Repairs new: %8$d, updated: %9$d. Documents new: %10$d, updated: %11$d. Diary entries new: %12$d, updated: %13$d. %14$s %15$s %16$s</string>
+    <string name="import_done">Backup restored. Tours new: %1$d, updated: %2$d, unchanged: %3$d. Vehicles new: %4$d, updated: %5$d. Stops new: %6$d, updated: %7$d. Repairs new: %8$d, updated: %9$d. Documents new: %10$d, updated: %11$d. Diary entries new: %12$d, updated: %13$d. Checklist templates new: %14$d, updated: %15$d. Checklists new: %16$d, updated: %17$d. %18$s %19$s %20$s</string>
     <plurals name="import_done_log_entries">
         <item quantity="one">%1$d logbook entry imported</item>
         <item quantity="other">%1$d logbook entries imported</item>
@@ -335,6 +343,8 @@
     <string name="import_error_invalid_station">Stop %1$d in the backup contains invalid data. Nothing was changed.</string>
     <string name="import_error_invalid_document">Vehicle document %1$d in the backup contains invalid data. Nothing was changed.</string>
     <string name="import_error_invalid_diary_entry">Diary entry %1$d in the backup contains invalid data. Nothing was changed.</string>
+    <string name="import_error_invalid_checklist_template">Checklist template %1$d in the backup contains invalid data. Nothing was changed.</string>
+    <string name="import_error_invalid_checklist">Checklist %1$d in the backup contains invalid data. Nothing was changed.</string>
     <string name="import_error_invalid_attachment">File %1$d in the backup contains invalid data. Nothing was changed.</string>
 
     <!-- Vehicle fields -->

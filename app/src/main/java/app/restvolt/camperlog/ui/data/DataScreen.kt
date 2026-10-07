@@ -400,6 +400,10 @@ private fun Resources.dataMessageText(message: DataMessage): String = when (mess
             result.updatedDocuments,
             result.addedDiaryEntries,
             result.updatedDiaryEntries,
+            result.addedChecklistTemplates,
+            result.updatedChecklistTemplates,
+            result.addedChecklists,
+            result.updatedChecklists,
             logEntries,
             rates,
             attachments,
@@ -419,6 +423,8 @@ private fun Resources.backupErrorMessage(failure: BackupReadResult.Failure): Str
         failure.stationNumber != null -> getString(R.string.import_error_invalid_station, failure.stationNumber)
         failure.documentNumber != null -> getString(R.string.import_error_invalid_document, failure.documentNumber)
         failure.diaryEntryNumber != null -> getString(R.string.import_error_invalid_diary_entry, failure.diaryEntryNumber)
+        failure.checklistTemplateNumber != null -> getString(R.string.import_error_invalid_checklist_template, failure.checklistTemplateNumber)
+        failure.checklistNumber != null -> getString(R.string.import_error_invalid_checklist, failure.checklistNumber)
         failure.attachmentNumber != null -> getString(R.string.import_error_invalid_attachment, failure.attachmentNumber)
         else -> getString(R.string.import_error_invalid)
     }

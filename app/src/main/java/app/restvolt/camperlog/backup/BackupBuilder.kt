@@ -2,6 +2,8 @@ package app.restvolt.camperlog.backup
 
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.AttachmentRepository
+import app.restvolt.camperlog.domain.ChecklistRepository
+import app.restvolt.camperlog.domain.ChecklistTemplateRepository
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
@@ -25,6 +27,8 @@ suspend fun buildBackup(
     stations: StationRepository,
     documents: VehicleDocumentRepository,
     diaryEntries: DiaryEntryRepository,
+    checklistTemplates: ChecklistTemplateRepository,
+    checklists: ChecklistRepository,
     attachments: AttachmentRepository,
     exportedAt: Instant,
 ): Backup {
@@ -35,6 +39,8 @@ suspend fun buildBackup(
     val logEntriesByVehicle = logs.allEntries().groupBy { it.vehicleId }
     val allDocuments = documents.allDocuments()
     val allDiaryEntries = diaryEntries.allEntries()
+    val allChecklistTemplates = checklistTemplates.allTemplates()
+    val allChecklists = checklists.allChecklists()
     val vehicleUuidById = allVehicles.associate { it.id to it.uuid }
     val tourUuidById = tours.associate { it.id to it.uuid }
     val stationUuidById = allStations.associate { it.id to it.uuid }
@@ -68,6 +74,12 @@ suspend fun buildBackup(
         },
         diaryEntries = allDiaryEntries.mapNotNull { entry ->
             tourUuidById[entry.tourId]?.let { BackupDiaryEntry(entry, it) }
+        },
+        checklistTemplates = allChecklistTemplates,
+        checklists = allChecklists.mapNotNull { checklist ->
+            vehicleUuidById[checklist.vehicleId]?.let { vehicleUuid ->
+                BackupChecklist(checklist, vehicleUuid, checklist.tourId?.let { tourUuidById[it] })
+            }
         },
         attachments = attachments.allAttachments().mapNotNull { attachment ->
             val ownerUuid = when (attachment.ownerType) {

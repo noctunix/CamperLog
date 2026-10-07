@@ -31,6 +31,10 @@ internal data class BackupDto(
     val attachments: List<JsonElement> = emptyList(),
     /** Einzeln als [DiaryEntryDto] gelesen; fehlt in Sicherungen vor Formatversion 8. */
     val diaryEntries: List<JsonElement> = emptyList(),
+    /** Einzeln als [ChecklistTemplateDto] gelesen; fehlt in Sicherungen vor Formatversion 9. */
+    val checklistTemplates: List<JsonElement> = emptyList(),
+    /** Einzeln als [ChecklistDto] gelesen; fehlt in Sicherungen vor Formatversion 9. */
+    val checklists: List<JsonElement> = emptyList(),
 )
 
 @Serializable
@@ -261,6 +265,33 @@ internal data class DiaryEntryDto(
     val tourUuid: String,
     val date: String,
     val text: String = "",
+    val createdAt: String,
+    val updatedAt: String,
+)
+
+@Serializable
+internal data class ChecklistTemplateDto(
+    val uuid: String,
+    val name: String = "",
+    val items: List<String> = emptyList(),
+    val createdAt: String,
+    val updatedAt: String,
+)
+
+@Serializable
+internal data class ChecklistItemDto(
+    val text: String = "",
+    val checked: Boolean = false,
+)
+
+@Serializable
+internal data class ChecklistDto(
+    val uuid: String,
+    val vehicleUuid: String,
+    /** uuid der Tour dieser Checkliste; `null` ohne Tourbezug (z. B. Einwintern). */
+    val tourUuid: String? = null,
+    val title: String = "",
+    val items: List<ChecklistItemDto> = emptyList(),
     val createdAt: String,
     val updatedAt: String,
 )

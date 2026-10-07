@@ -5,6 +5,9 @@ import app.restvolt.camperlog.domain.ALL_CURRENCIES
 import app.restvolt.camperlog.domain.AmountReading
 import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.Checklist
+import app.restvolt.camperlog.domain.ChecklistItem
+import app.restvolt.camperlog.domain.ChecklistTemplate
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.DiaryEntry
@@ -82,7 +85,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 8
+const val BACKUP_SCHEMA_VERSION = 9
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -104,6 +107,11 @@ internal const val MAX_ATTACHMENTS = 200_000
 internal const val MAX_CAPTION_LENGTH = 2_000
 internal const val MAX_DIARY_ENTRIES = 200_000
 internal const val MAX_DIARY_TEXT_LENGTH = 20_000
+internal const val MAX_CHECKLIST_TEMPLATES = 10_000
+internal const val MAX_CHECKLIST_TEMPLATE_ITEMS = 500
+internal const val MAX_CHECKLISTS = 200_000
+internal const val MAX_CHECKLIST_ITEMS = 500
+internal const val MAX_CHECKLIST_ITEM_TEXT_LENGTH = 500
 
 /** Wie `AttachmentFileStore.MAX_DOCUMENT_BYTES`; hier verdoppelt statt importiert, damit `backup/` ohne Android-Abhängigkeiten bleibt. */
 private const val MAX_ATTACHMENT_SIZE_BYTES = 20L * 1024 * 1024
@@ -153,7 +161,8 @@ private val MAX_INSTANT = Instant.parse("2199-12-31T00:00:00Z")
  * Reparaturen, Bordbuch-Einträgen und Fahrzeugdokumenten (Formatversion 6); beides fehlt in älteren
  * Sicherungen. Eine Sicherung ohne Dateien (JSON-only-Export) enthält [attachments] trotzdem als
  * Metadaten, nur ohne die zugehörigen Dateien im ZIP. [diaryEntries] enthält alle Tagebucheinträge
- * (Formatversion 8); fehlt in älteren Sicherungen.
+ * (Formatversion 8); fehlt in älteren Sicherungen. [checklistTemplates] und [checklists]
+ * (Formatversion 9) fehlen ebenfalls in älteren Sicherungen.
  */
 data class Backup(
     val exportedAt: Instant,
@@ -170,6 +179,8 @@ data class Backup(
     val documents: List<BackupVehicleDocument> = emptyList(),
     val attachments: List<BackupAttachment> = emptyList(),
     val diaryEntries: List<BackupDiaryEntry> = emptyList(),
+    val checklistTemplates: List<ChecklistTemplate> = emptyList(),
+    val checklists: List<BackupChecklist> = emptyList(),
 )
 
 /** Ein Fahrzeug einer Sicherung mit seinen Reparaturen und Bordbuch-Einträgen. */
@@ -184,6 +195,9 @@ data class BackupVehicleDocument(val document: VehicleDocument, val vehicleUuid:
 
 /** Ein Tagebucheintrag einer Sicherung mit [tourUuid], der UUID seiner Tour. */
 data class BackupDiaryEntry(val entry: DiaryEntry, val tourUuid: String)
+
+/** Eine Checkliste einer Sicherung mit [vehicleUuid], der UUID ihres Fahrzeugs, und [tourUuid], der UUID ihrer Tour (falls vorhanden). */
+data class BackupChecklist(val checklist: Checklist, val vehicleUuid: String, val tourUuid: String?)
 
 /**
  * Ein Anhang einer Sicherung mit [ownerUuid], der UUID des Eintrags, zu dem er gehört (je
@@ -233,6 +247,8 @@ sealed interface BackupReadResult {
         val documentNumber: Int? = null,
         val attachmentNumber: Int? = null,
         val diaryEntryNumber: Int? = null,
+        val checklistTemplateNumber: Int? = null,
+        val checklistNumber: Int? = null,
     ) : BackupReadResult
 }
 
@@ -267,6 +283,8 @@ fun encodeBackup(backup: Backup): String = json.encodeToString(
         vehicleDocuments = backup.documents.map { json.encodeToJsonElement(VehicleDocumentDto.serializer(), it.toDto()) },
         attachments = backup.attachments.map { json.encodeToJsonElement(AttachmentDto.serializer(), it.toDto()) },
         diaryEntries = backup.diaryEntries.map { json.encodeToJsonElement(DiaryEntryDto.serializer(), it.toDto()) },
+        checklistTemplates = backup.checklistTemplates.map { json.encodeToJsonElement(ChecklistTemplateDto.serializer(), it.toDto()) },
+        checklists = backup.checklists.map { json.encodeToJsonElement(ChecklistDto.serializer(), it.toDto()) },
     ),
 )
 
@@ -508,6 +526,43 @@ private fun BackupDto.toBackup(): BackupReadResult {
         BackupDiaryEntry(entry, tourUuid)
     }
 
+    if (checklistTemplates.size > MAX_CHECKLIST_TEMPLATES) return invalid
+    val seenChecklistTemplateUuids = HashSet<String>()
+    val backupChecklistTemplates = checklistTemplates.mapIndexed { index, element ->
+        val templateNumber = index + 1
+        val dto = decodeJson(ChecklistTemplateDto.serializer(), element)
+            ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, checklistTemplateNumber = templateNumber)
+        if (dto.items.size > MAX_CHECKLIST_TEMPLATE_ITEMS) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, checklistTemplateNumber = templateNumber)
+        }
+        val template = dto.toChecklistTemplate() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, checklistTemplateNumber = templateNumber)
+        if (!seenChecklistTemplateUuids.add(template.uuid)) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, checklistTemplateNumber = templateNumber)
+        }
+        template
+    }
+
+    if (checklists.size > MAX_CHECKLISTS) return invalid
+    val seenChecklistUuids = HashSet<String>()
+    val backupChecklists = checklists.mapIndexed { index, element ->
+        val checklistNumber = index + 1
+        val dto = decodeJson(ChecklistDto.serializer(), element)
+            ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, checklistNumber = checklistNumber)
+        if (dto.items.size > MAX_CHECKLIST_ITEMS) return BackupReadResult.Failure(BackupError.INVALID_DATA, checklistNumber = checklistNumber)
+        val checklist = dto.toChecklist() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, checklistNumber = checklistNumber)
+        if (!seenChecklistUuids.add(checklist.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, checklistNumber = checklistNumber)
+        val vehicleUuid = parseUuid(dto.vehicleUuid) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, checklistNumber = checklistNumber)
+        if (backupVehicles.none { it.vehicle.uuid == vehicleUuid }) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, checklistNumber = checklistNumber)
+        }
+        val tourUuid = dto.tourUuid?.let { candidate ->
+            val normalized = parseUuid(candidate) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, checklistNumber = checklistNumber)
+            if (normalized !in seenTourUuids) return BackupReadResult.Failure(BackupError.INVALID_DATA, checklistNumber = checklistNumber)
+            normalized
+        }
+        BackupChecklist(checklist, vehicleUuid, tourUuid)
+    }
+
     val seenAttachmentUuids = HashSet<String>()
     val seenZipPaths = HashSet<String>()
     val seenZipPathsLowercase = HashSet<String>()
@@ -553,6 +608,8 @@ private fun BackupDto.toBackup(): BackupReadResult {
             documents = documents,
             attachments = backupAttachments,
             diaryEntries = backupDiaryEntries,
+            checklistTemplates = backupChecklistTemplates,
+            checklists = backupChecklists,
         ),
     )
 }
@@ -1093,6 +1150,55 @@ private fun BackupDiaryEntry.toDto() = DiaryEntryDto(
     text = entry.text,
     createdAt = entry.createdAt.toString(),
     updatedAt = entry.updatedAt.toString(),
+)
+
+private fun ChecklistTemplateDto.toChecklistTemplate(): ChecklistTemplate? {
+    val uuid = parseUuid(uuid) ?: return null
+    val nameValue = name.trim().takeIf { it.isNotEmpty() && it.length <= MAX_DESTINATION_LENGTH } ?: return null
+    val itemValues = items.map { it.takeIf { text -> text.isNotBlank() && text.length <= MAX_CHECKLIST_ITEM_TEXT_LENGTH } ?: return null }
+    return ChecklistTemplate(
+        uuid = uuid,
+        name = nameValue,
+        items = itemValues,
+        createdAt = parseInstant(createdAt) ?: return null,
+        updatedAt = parseInstant(updatedAt) ?: return null,
+    )
+}
+
+private fun ChecklistTemplate.toDto() = ChecklistTemplateDto(
+    uuid = uuid,
+    name = name,
+    items = items,
+    createdAt = createdAt.toString(),
+    updatedAt = updatedAt.toString(),
+)
+
+private fun ChecklistDto.toChecklist(): Checklist? {
+    val uuid = parseUuid(uuid) ?: return null
+    val titleValue = title.trim().takeIf { it.length <= MAX_DESTINATION_LENGTH } ?: return null
+    val itemValues = items.map {
+        val text = it.text.takeIf { value -> value.isNotBlank() && value.length <= MAX_CHECKLIST_ITEM_TEXT_LENGTH } ?: return null
+        ChecklistItem(text = text, checked = it.checked)
+    }
+    return Checklist(
+        uuid = uuid,
+        vehicleId = 0,
+        tourId = null,
+        title = titleValue,
+        items = itemValues,
+        createdAt = parseInstant(createdAt) ?: return null,
+        updatedAt = parseInstant(updatedAt) ?: return null,
+    )
+}
+
+private fun BackupChecklist.toDto() = ChecklistDto(
+    uuid = checklist.uuid,
+    vehicleUuid = vehicleUuid,
+    tourUuid = tourUuid,
+    title = checklist.title,
+    items = checklist.items.map { ChecklistItemDto(text = it.text, checked = it.checked) },
+    createdAt = checklist.createdAt.toString(),
+    updatedAt = checklist.updatedAt.toString(),
 )
 
 /** Prüft Dateiname, MIME-Typ, Abmessungen und Koordinaten eines Anhangs; `null` bei jeder Unstimmigkeit, nicht nur offensichtlich falschen Werten. */

@@ -22,6 +22,8 @@ import app.restvolt.camperlog.share.CsvVocabulary
 import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import app.restvolt.camperlog.ui.FakeAttachmentRepository
 import app.restvolt.camperlog.ui.FakeBackupImporter
+import app.restvolt.camperlog.ui.FakeChecklistRepository
+import app.restvolt.camperlog.ui.FakeChecklistTemplateRepository
 import app.restvolt.camperlog.ui.FakeDiaryEntryRepository
 import app.restvolt.camperlog.ui.FakeExchangeRateRepository
 import app.restvolt.camperlog.ui.FakeLogRepository
@@ -99,7 +101,7 @@ class DataViewModelTest {
             FakeLogRepository(),
             FakeStationRepository(),
             FakeVehicleDocumentRepository(),
-            FakeDiaryEntryRepository(),
+            FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(),
             FakeAttachmentRepository(),
             FakeAttachmentFileStore(),
             FakeBackupImporter(),
@@ -135,7 +137,7 @@ class DataViewModelTest {
             FakeLogRepository(),
             FakeStationRepository(),
             FakeVehicleDocumentRepository(),
-            FakeDiaryEntryRepository(),
+            FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(),
             FakeAttachmentRepository(),
             FakeAttachmentFileStore(),
             importer,
@@ -240,7 +242,7 @@ class DataViewModelTest {
             FakeLogRepository(),
             FakeStationRepository(listOf(station)),
             FakeVehicleDocumentRepository(),
-            FakeDiaryEntryRepository(),
+            FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(),
             FakeAttachmentRepository(),
             FakeAttachmentFileStore(),
             FakeBackupImporter(),
@@ -316,7 +318,7 @@ class DataViewModelTest {
             FakeLogRepository(),
             FakeStationRepository(),
             FakeVehicleDocumentRepository(initial = listOf(document)),
-            FakeDiaryEntryRepository(),
+            FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(),
             FakeAttachmentRepository(initial = listOf(attachment)),
             fileStore,
             FakeBackupImporter(),

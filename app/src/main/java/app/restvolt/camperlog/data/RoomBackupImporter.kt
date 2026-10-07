@@ -6,6 +6,8 @@ import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.backup.BackupVehicle
 import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.Checklist
+import app.restvolt.camperlog.domain.ChecklistTemplate
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleDocument
 import app.restvolt.camperlog.backup.ImportMode
@@ -46,12 +48,16 @@ class RoomBackupImporter(
         val rateDao = database.exchangeRateDao()
         val documentDao = database.vehicleDocumentDao()
         val diaryEntryDao = database.diaryEntryDao()
+        val checklistTemplateDao = database.checklistTemplateDao()
+        val checklistDao = database.checklistDao()
         val attachmentDao = database.attachmentDao()
 
         val importedVehicles = backup.vehicles.map { it.notAfter(now, today) }
 
         if (mode == ImportMode.REPLACE) {
             attachmentDao.deleteAll()
+            checklistDao.deleteAll()
+            checklistTemplateDao.deleteAll()
             documentDao.deleteAll()
             diaryEntryDao.deleteAll()
             stationDao.deleteAll()
@@ -317,6 +323,68 @@ class RoomBackupImporter(
             }
         }
 
+        // --- Checklisten-Vorlagen: wie Fahrzeugdokumente über ihre UUID abgeglichen ---
+        val importedChecklistTemplates = backup.checklistTemplates.map { it.notAfter(now) }
+        var addedChecklistTemplates = 0
+        var updatedChecklistTemplates = 0
+        if (mode == ImportMode.REPLACE) {
+            importedChecklistTemplates.forEach { template ->
+                val withId = template.copy(id = 0)
+                checklistTemplateDao.insertWithItems(withId.toEntity(), withId.toItemEntities())
+                addedChecklistTemplates++
+            }
+        } else {
+            val storedChecklistTemplates = checklistTemplateDao.getVersions().associateBy(ChecklistTemplateVersionRow::uuid)
+            for (template in importedChecklistTemplates) {
+                val existing = storedChecklistTemplates[template.uuid]
+                when {
+                    existing == null -> {
+                        val withId = template.copy(id = 0)
+                        checklistTemplateDao.insertWithItems(withId.toEntity(), withId.toItemEntities())
+                        addedChecklistTemplates++
+                    }
+                    template.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
+                        val withId = template.copy(id = existing.id)
+                        checklistTemplateDao.updateWithItems(withId.toEntity(), withId.toItemEntities())
+                        updatedChecklistTemplates++
+                    }
+                }
+            }
+        }
+
+        // --- Checklisten: Fahrzeug und Tour kommen aus ihren UUIDs, wie bei Stationen ---
+        val importedChecklists = backup.checklists.mapNotNull { backupChecklist ->
+            val localVehicleId = localIdByVehicleUuid[backupChecklist.vehicleUuid] ?: return@mapNotNull null
+            val localTourId = backupChecklist.tourUuid?.let { tourLocalIdByUuid[it] }
+            backupChecklist.checklist.copy(vehicleId = localVehicleId, tourId = localTourId).notAfter(now)
+        }
+        var addedChecklists = 0
+        var updatedChecklists = 0
+        if (mode == ImportMode.REPLACE) {
+            importedChecklists.forEach { checklist ->
+                val withId = checklist.copy(id = 0)
+                checklistDao.insertWithItems(withId.toEntity(), withId.toItemEntities())
+                addedChecklists++
+            }
+        } else {
+            val storedChecklists = checklistDao.getVersions().associateBy(ChecklistVersionRow::uuid)
+            for (checklist in importedChecklists) {
+                val existing = storedChecklists[checklist.uuid]
+                when {
+                    existing == null -> {
+                        val withId = checklist.copy(id = 0)
+                        checklistDao.insertWithItems(withId.toEntity(), withId.toItemEntities())
+                        addedChecklists++
+                    }
+                    checklist.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
+                        val withId = checklist.copy(id = existing.id)
+                        checklistDao.updateWithItems(withId.toEntity(), withId.toItemEntities())
+                        updatedChecklists++
+                    }
+                }
+            }
+        }
+
         // --- Anhänge: unveränderlich wie Bordbuch-Einträge, daher nur anlegen, wenn die uuid noch unbekannt ist ---
         val importedAttachments = backup.attachments.mapNotNull { backupAttachment ->
             val ownerId = backupAttachment.attachment.ownerId(
@@ -361,6 +429,10 @@ class RoomBackupImporter(
             updatedDocuments = updatedDocuments,
             addedDiaryEntries = addedDiaryEntries,
             updatedDiaryEntries = updatedDiaryEntries,
+            addedChecklistTemplates = addedChecklistTemplates,
+            updatedChecklistTemplates = updatedChecklistTemplates,
+            addedChecklists = addedChecklists,
+            updatedChecklists = updatedChecklists,
             addedAttachments = addedAttachments,
         )
     }
@@ -393,6 +465,16 @@ private fun VehicleDocument.notAfter(now: Instant): VehicleDocument = copy(
 
 private fun DiaryEntry.notAfter(now: Instant, today: LocalDate): DiaryEntry = copy(
     date = minOf(date, today),
+    createdAt = minOf(createdAt, now),
+    updatedAt = minOf(updatedAt, now),
+)
+
+private fun ChecklistTemplate.notAfter(now: Instant): ChecklistTemplate = copy(
+    createdAt = minOf(createdAt, now),
+    updatedAt = minOf(updatedAt, now),
+)
+
+private fun Checklist.notAfter(now: Instant): Checklist = copy(
     createdAt = minOf(createdAt, now),
     updatedAt = minOf(updatedAt, now),
 )
