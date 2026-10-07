@@ -100,6 +100,18 @@ class AboutScreenTest {
     }
 
     @Test
+    fun nominatimLinkFiresViewIntent() {
+        start()
+
+        compose.onNodeWithText("Datenquellen").performScrollTo().performClick()
+        compose.onNodeWithText("Ortssuche von Nominatim (OpenStreetMap-Daten, ODbL)").performClick()
+
+        val started = shadowOf(compose.activity).nextStartedActivity
+        assertEquals(Intent.ACTION_VIEW, started.action)
+        assertEquals("https://nominatim.org/", started.data?.toString())
+    }
+
+    @Test
     fun privacySectionMentionsTheInternetPermissionHonestly() {
         start()
 
@@ -107,7 +119,8 @@ class AboutScreenTest {
         compose.onNodeWithText(
             "Wetter & Karte (optional): CamperLog hat die Internet-Berechtigung, nutzt sie aber nur, wenn du das einschaltest. " +
                 "Beim Wetterabruf gehen die Koordinaten der Station, auf etwa 1 km gerundet, an Open-Meteo. " +
-                "Die Karte lädt den angezeigten Ausschnitt von OpenStreetMap. Beide Dienste sehen deine IP-Adresse.",
+                "Die Karte lädt den angezeigten Ausschnitt von OpenStreetMap. Die Ortssuche sendet deinen eingegebenen Text " +
+                "an OpenStreetMap Nominatim. Alle drei Dienste sehen deine IP-Adresse.",
         ).assertExists()
     }
 
