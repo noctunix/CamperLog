@@ -66,6 +66,8 @@ class MainActivity : ComponentActivity() {
                     exchangeRates = app.exchangeRates,
                     documents = app.vehicleDocuments,
                     diaryEntries = app.diaryEntries,
+                    checklists = app.checklists,
+                    checklistTemplates = app.checklistTemplates,
                     attachments = app.attachments,
                     attachmentFileStore = app.attachmentFileStore,
                     backupImporter = app.backupImporter,

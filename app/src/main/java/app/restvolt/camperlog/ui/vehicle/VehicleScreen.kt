@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.Checklist
 import app.restvolt.camperlog.domain.Reminder
 import app.restvolt.camperlog.domain.ReminderKind
 import app.restvolt.camperlog.domain.Repair
@@ -103,6 +105,7 @@ fun VehicleScreen(
     onOpenRepair: (Long, Long) -> Unit,
     onAddDocument: (Long) -> Unit,
     onOpenDocument: (Long, Long) -> Unit,
+    onOpenChecklists: (Long) -> Unit,
     bottomBar: @Composable () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -157,6 +160,7 @@ fun VehicleScreen(
                 today = today,
                 repairs = state.repairs,
                 documents = state.documents,
+                checklistsWithoutTour = state.checklistsWithoutTour,
                 locationEnabled = locationEnabled,
                 onWhereAmI = { showWhereAmI = true },
                 onAddDetails = { onEditVehicle(vehicle.id) },
@@ -172,6 +176,7 @@ fun VehicleScreen(
                 onOpenRepair = { repair -> onOpenRepair(vehicle.id, repair.id) },
                 onAddDocument = { onAddDocument(vehicle.id) },
                 onOpenDocument = { document -> onOpenDocument(vehicle.id, document.id) },
+                onOpenChecklists = { onOpenChecklists(vehicle.id) },
                 onCall = { phone -> dialOrOfferCopy(scope, context, snackbar, noDialerApp, copyNumber, phone) },
                 modifier = Modifier
                     .padding(padding)
@@ -209,6 +214,7 @@ private fun VehicleSheet(
     today: LocalDate,
     repairs: List<Repair>,
     documents: List<VehicleDocument>,
+    checklistsWithoutTour: List<Checklist>,
     locationEnabled: Boolean,
     onWhereAmI: () -> Unit,
     onAddDetails: () -> Unit,
@@ -217,6 +223,7 @@ private fun VehicleSheet(
     onOpenRepair: (Repair) -> Unit,
     onAddDocument: () -> Unit,
     onOpenDocument: (VehicleDocument) -> Unit,
+    onOpenChecklists: () -> Unit,
     onCall: (String) -> Unit,
     modifier: Modifier,
 ) {
@@ -289,6 +296,32 @@ private fun VehicleSheet(
         }
         RepairsSection(repairs, onAddRepair, onOpenRepair)
         DocumentsSection(documents, today, onAddDocument, onOpenDocument)
+        ChecklistsSummaryCard(checklistsWithoutTour, onOpenChecklists)
+    }
+}
+
+@Composable
+private fun ChecklistsSummaryCard(checklists: List<Checklist>, onOpen: () -> Unit) {
+    val openLabel = stringResource(R.string.vehicle_checklists_open)
+    SectionCard {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clickable(onClickLabel = openLabel, onClick = onOpen),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(painterResource(R.drawable.ic_checklist), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Column(Modifier.weight(1f)) {
+                SectionHeading(stringResource(R.string.section_checklists))
+                Text(
+                    pluralStringResource(R.plurals.vehicle_checklists_open_count, checklists.size, checklists.size),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

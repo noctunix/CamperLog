@@ -56,10 +56,13 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.Checklist
+import app.restvolt.camperlog.domain.ChecklistTemplate
 import app.restvolt.camperlog.domain.Conversion
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.Money
+import app.restvolt.camperlog.domain.checkedCount
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
@@ -77,6 +80,7 @@ import app.restvolt.camperlog.share.openInMaps
 import app.restvolt.camperlog.share.shareTour
 import app.restvolt.camperlog.share.shareTourExportZip
 import app.restvolt.camperlog.ui.BackTopBar
+import app.restvolt.camperlog.ui.checklists.ChecklistTemplatePickerSheet
 import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LabeledValue
@@ -98,6 +102,7 @@ import java.util.Locale
 fun TourDetailScreen(
     viewModel: TourDetailViewModel,
     weatherMapEnabled: Boolean,
+    checklistTemplates: List<ChecklistTemplate>,
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: (Tour) -> Unit,
@@ -106,10 +111,14 @@ fun TourDetailScreen(
     onOpenMap: () -> Unit,
     onAddDiaryEntry: (Long) -> Unit,
     onOpenDiaryEntry: (Long) -> Unit,
+    onAddSuggestedChecklistTemplates: () -> Unit,
+    onOpenChecklist: (Long) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val diaryMessage by viewModel.diaryMessage.collectAsStateWithLifecycle()
+    val checklistMessage by viewModel.checklistMessage.collectAsStateWithLifecycle()
+    val startedChecklistId by viewModel.startedChecklistId.collectAsStateWithLifecycle()
     val exporting by viewModel.exporting.collectAsStateWithLifecycle()
     val exportRequest by viewModel.exportRequest.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -119,6 +128,7 @@ fun TourDetailScreen(
     val tour = (state as? DetailUiState.Loaded)?.tour
     var overflowExpanded by remember { mutableStateOf(false) }
     var showTypePicker by rememberSaveable { mutableStateOf(false) }
+    var showChecklistPicker by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -209,6 +219,7 @@ fun TourDetailScreen(
                 conversion = current.conversion,
                 autoDetectedCountries = current.autoDetectedCountries,
                 diaryEntries = current.diaryEntries,
+                checklists = current.checklists,
                 weatherMapEnabled = weatherMapEnabled,
                 modifier = Modifier.fillMaxSize(),
                 padding = padding,
@@ -218,6 +229,8 @@ fun TourDetailScreen(
                 onSaveCountries = { added, removed -> viewModel.saveCountries(current.tour, added, removed) },
                 onAddDiaryEntry = { onAddDiaryEntry(current.tour.id) },
                 onOpenDiaryEntry = onOpenDiaryEntry,
+                onStartChecklist = { showChecklistPicker = true },
+                onOpenChecklist = onOpenChecklist,
             )
         }
     }
@@ -230,6 +243,24 @@ fun TourDetailScreen(
             },
             onDismiss = { showTypePicker = false },
         )
+    }
+
+    if (showChecklistPicker) {
+        ChecklistTemplatePickerSheet(
+            templates = checklistTemplates,
+            onSelect = { template ->
+                showChecklistPicker = false
+                viewModel.startChecklist(template)
+            },
+            onAddSuggested = onAddSuggestedChecklistTemplates,
+            onDismiss = { showChecklistPicker = false },
+        )
+    }
+
+    LaunchedEffect(startedChecklistId) {
+        val id = startedChecklistId ?: return@LaunchedEffect
+        onOpenChecklist(id)
+        viewModel.onChecklistStartHandled()
     }
 
     LaunchedEffect(exportRequest) {
@@ -274,6 +305,23 @@ fun TourDetailScreen(
         }
         viewModel.onDiaryMessageShown(current)
     }
+
+    LaunchedEffect(checklistMessage) {
+        val current = checklistMessage ?: return@LaunchedEffect
+        when (current) {
+            is ChecklistMessage.Deleted -> {
+                val result = snackbar.showSnackbar(
+                    message = resources.getString(R.string.checklist_deleted),
+                    actionLabel = resources.getString(R.string.action_undo),
+                    withDismissAction = true,
+                    duration = SnackbarDuration.Long,
+                )
+                if (result == SnackbarResult.ActionPerformed) viewModel.undoDeleteChecklist(current.checklist)
+            }
+            is ChecklistMessage.Failed -> snackbar.showSnackbar(resources.getString(current.text), withDismissAction = true)
+        }
+        viewModel.onChecklistMessageShown(current)
+    }
 }
 
 @Composable
@@ -287,6 +335,7 @@ private fun TourDetails(
     conversion: Conversion?,
     autoDetectedCountries: Set<String>,
     diaryEntries: List<DiaryEntry>,
+    checklists: List<Checklist>,
     weatherMapEnabled: Boolean,
     modifier: Modifier,
     padding: PaddingValues,
@@ -296,6 +345,8 @@ private fun TourDetails(
     onSaveCountries: (Set<String>, Set<String>) -> Unit,
     onAddDiaryEntry: () -> Unit,
     onOpenDiaryEntry: (Long) -> Unit,
+    onStartChecklist: () -> Unit,
+    onOpenChecklist: (Long) -> Unit,
 ) {
     val locale = currentLocale()
     LazyColumn(
@@ -370,6 +421,19 @@ private fun TourDetails(
                     isLast = station.id == stations.last().id,
                     onClick = { onOpenStation(station.id) },
                 )
+            }
+        }
+        item {
+            var expanded by rememberSaveable { mutableStateOf(true) }
+            SectionCard {
+                CollapsibleSection(
+                    title = stringResource(R.string.section_checklists),
+                    expanded = expanded,
+                    onToggle = { expanded = !expanded },
+                    summary = null,
+                ) {
+                    ChecklistsSection(checklists = checklists, onOpenChecklist = onOpenChecklist, onStart = onStartChecklist)
+                }
             }
         }
         item {
@@ -538,6 +602,35 @@ private fun stationSupportingText(station: Station, locale: Locale): String {
     }
     val costs = station.effectiveCosts().map { it.amount }.sumByCurrency().takeIf { it.isNotEmpty() }?.let { formatAmounts(it, locale) }
     return listOfNotNull(dateTime, detail, costs).joinToString(" · ")
+}
+
+@Composable
+private fun ChecklistsSection(checklists: List<Checklist>, onOpenChecklist: (Long) -> Unit, onStart: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        checklists.forEach { checklist -> ChecklistRow(checklist, onClick = { onOpenChecklist(checklist.id) }) }
+        TextButton(onClick = onStart) {
+            Icon(painterResource(R.drawable.ic_add), contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.checklist_start))
+        }
+    }
+}
+
+@Composable
+private fun ChecklistRow(checklist: Checklist, onClick: () -> Unit) {
+    val openLabel = stringResource(R.string.tours_open_details)
+    val progress = "${checklist.checkedCount}/${checklist.items.size}"
+    val description = stringResource(R.string.checklist_progress_cd, checklist.title, checklist.checkedCount, checklist.items.size)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = openLabel, onClick = onClick)
+            .padding(vertical = 8.dp)
+            .semantics(mergeDescendants = true) { contentDescription = description },
+    ) {
+        Text(checklist.title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(progress, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
 
 @Composable

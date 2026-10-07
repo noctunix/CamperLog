@@ -8,6 +8,7 @@ import androidx.savedstate.SavedState
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import app.restvolt.camperlog.domain.ALL_CURRENCIES
+import app.restvolt.camperlog.domain.ChecklistRepository
 import app.restvolt.camperlog.domain.CostInput
 import app.restvolt.camperlog.domain.QUICK_CURRENCIES
 import app.restvolt.camperlog.domain.StationRepository
@@ -67,6 +68,7 @@ internal data class TourDraft(
  * des Prozesses statt der gespeicherten Tour angezeigt.
  *
  * @param stations zieht die Stationen der Tour mit, wenn sie das Fahrzeug wechselt
+ * @param checklists zieht die Checklisten der Tour mit, wenn sie das Fahrzeug wechselt
  * @param locale liefert die aktuelle Sprache für Beträge; wird bei jedem Zugriff neu gelesen,
  *   damit ein Sprachwechsel bei laufendem ViewModel greift
  */
@@ -74,6 +76,7 @@ class EditTourViewModel(
     private val repository: TourRepository,
     private val vehicles: VehicleRepository,
     private val stations: StationRepository,
+    private val checklists: ChecklistRepository,
     tourId: Long,
     private val savedStateHandle: SavedStateHandle,
     private val locale: () -> Locale = { app.restvolt.camperlog.domain.supportedLocale(Locale.getDefault()) },
@@ -180,7 +183,10 @@ class EditTourViewModel(
             try {
                 val id = repository.save(tour)
                 val previousVehicleId = original?.vehicleId
-                if (previousVehicleId != null && previousVehicleId != tour.vehicleId) stations.moveTourToVehicle(id, tour.vehicleId)
+                if (previousVehicleId != null && previousVehicleId != tour.vehicleId) {
+                    stations.moveTourToVehicle(id, tour.vehicleId)
+                    checklists.moveTourToVehicle(id, tour.vehicleId)
+                }
                 savedStateHandle.remove<SavedState>(DRAFT_KEY)
                 _uiState.update { it.copy(isSaving = false, isSaved = true) }
             } catch (_: SQLException) {

@@ -31,6 +31,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
@@ -84,7 +85,7 @@ class TourFlowTest {
                     FakeLogRepository(),
                     FakeStationRepository(stations),
                     FakeExchangeRateRepository(),
-                    FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
@@ -109,7 +110,7 @@ class TourFlowTest {
                     logs,
                     stations,
                     FakeExchangeRateRepository(),
-                    FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
@@ -314,8 +315,13 @@ class TourFlowTest {
 
         compose.onNodeWithText("Gardasee").performClick()
         compose.onNode(hasText("Gardasee") and isHeading()).assertExists()
-        compose.onNodeWithText("Notizen").performScrollTo().assert(isHeading())
-        compose.onNodeWithText("Kartenlink").performScrollTo().assert(isHeading())
+        // Die Notiz-Karte ist das letzte Element der Liste und steht außerhalb des von der LazyColumn
+        // vorgehaltenen Bereichs; performScrollTo() braucht den Knoten dafür schon im Baum, scrollToIndex nicht.
+        val detailList = compose.onNode(hasScrollAction())
+        val lastIndex = checkNotNull(detailList.fetchSemanticsNode().config.getOrNull(SemanticsProperties.CollectionInfo)).rowCount - 1
+        detailList.performScrollToIndex(lastIndex)
+        compose.onNodeWithText("Notizen").assert(isHeading())
+        compose.onNodeWithText("Kartenlink").assert(isHeading())
 
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithContentDescription("Übersicht").performClick()

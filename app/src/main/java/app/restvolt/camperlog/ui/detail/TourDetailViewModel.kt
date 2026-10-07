@@ -9,6 +9,9 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.AttachmentRepository
+import app.restvolt.camperlog.domain.Checklist
+import app.restvolt.camperlog.domain.ChecklistRepository
+import app.restvolt.camperlog.domain.ChecklistTemplate
 import app.restvolt.camperlog.domain.Conversion
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.CountryLookupRepository
@@ -64,6 +67,8 @@ sealed interface DetailUiState {
         val autoDetectedCountries: Set<String> = emptySet(),
         /** Tagebucheinträge der Tour, aufsteigend nach Datum. */
         val diaryEntries: List<DiaryEntry> = emptyList(),
+        /** Checklisten der Tour, neueste zuerst. */
+        val checklists: List<Checklist> = emptyList(),
     ) : DetailUiState
 }
 
@@ -71,6 +76,12 @@ sealed interface DetailUiState {
 sealed interface DiaryMessage {
     data class Deleted(val entry: DiaryEntry) : DiaryMessage
     data class Failed(@StringRes val text: Int) : DiaryMessage
+}
+
+/** Rückmeldung zu einer Checkliste der Tour; die Detailseite zeigt sie als Snackbar. */
+sealed interface ChecklistMessage {
+    data class Deleted(val checklist: Checklist) : ChecklistMessage
+    data class Failed(@StringRes val text: Int) : ChecklistMessage
 }
 
 /** Rückmeldung zu einer Station aus der Zeitleiste oder zum Tour-Export; die Detailseite zeigt sie als Snackbar. */
@@ -90,6 +101,7 @@ class TourDetailViewModel(
     private val vehicles: VehicleRepository,
     private val stations: StationRepository,
     private val diaryEntries: DiaryEntryRepository,
+    private val checklists: ChecklistRepository,
     exchangeRates: ExchangeRateRepository,
     private val countryLookup: CountryLookupRepository,
     private val attachments: AttachmentRepository,
@@ -103,9 +115,12 @@ class TourDetailViewModel(
     val uiState: StateFlow<DetailUiState> = combine(
         repository.observeTour(tourId),
         vehicles.observeVehicles(),
-        combine(stations.observeForTour(tourId), diaryEntries.observeForTour(tourId)) { stationList, diaryList -> stationList to diaryList },
+        combine(stations.observeForTour(tourId), diaryEntries.observeForTour(tourId), checklists.observeForTour(tourId)) {
+                stationList, diaryList, checklistList ->
+            Triple(stationList, diaryList, checklistList)
+        },
         combine(exchangeRates.observeMainCurrency(), exchangeRates.observeRates()) { main, rates -> main to rates },
-    ) { tour, vehicleList, (stationList, diaryList), (main, rates) ->
+    ) { tour, vehicleList, (stationList, diaryList, checklistList), (main, rates) ->
         if (tour == null) {
             DetailUiState.NotFound
         } else {
@@ -120,6 +135,7 @@ class TourDetailViewModel(
                 conversion = if (totalCosts.all { it.currency == main }) null else convert(totalCosts, main, rates),
                 autoDetectedCountries = autoDetectedCountries(stationList, countryLookup),
                 diaryEntries = diaryList,
+                checklists = checklistList,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailUiState.Loading)
@@ -202,6 +218,58 @@ class TourDetailViewModel(
     /** Verwirft [shown], sofern inzwischen keine neuere Meldung vorliegt. */
     fun onDiaryMessageShown(shown: DiaryMessage) {
         _diaryMessage.compareAndSet(shown, null)
+    }
+
+    private val _checklistMessage = MutableStateFlow<ChecklistMessage?>(null)
+
+    /** Einmalige Rückmeldung für die Snackbar zu Checklisten; nach der Anzeige [onChecklistMessageShown] aufrufen. */
+    val checklistMessage: StateFlow<ChecklistMessage?> = _checklistMessage.asStateFlow()
+
+    private val _startedChecklistId = MutableStateFlow<Long?>(null)
+
+    /** id der gerade gestarteten Checkliste, bis [onChecklistStartHandled] aufgerufen wird; löst das Öffnen aus. */
+    val startedChecklistId: StateFlow<Long?> = _startedChecklistId.asStateFlow()
+
+    /** Startet [template] als neue Checkliste dieser Tour und ihres Fahrzeugs. */
+    fun startChecklist(template: ChecklistTemplate) {
+        val tour = (uiState.value as? DetailUiState.Loaded)?.tour ?: return
+        viewModelScope.launch {
+            val checklist = app.restvolt.camperlog.domain.startChecklist(template, tour.vehicleId, tour.id)
+            _startedChecklistId.value = checklists.save(checklist)
+        }
+    }
+
+    /** [startedChecklistId] wurde übernommen und soll nicht erneut ausgelöst werden. */
+    fun onChecklistStartHandled() {
+        _startedChecklistId.value = null
+    }
+
+    /** Löscht [checklist] und bietet über [ChecklistMessage.Deleted] das Rückgängigmachen an. */
+    fun deleteChecklist(checklist: Checklist) {
+        viewModelScope.launch {
+            _checklistMessage.value = try {
+                checklists.delete(checklist.id)
+                ChecklistMessage.Deleted(checklist)
+            } catch (_: SQLException) {
+                ChecklistMessage.Failed(R.string.checklist_delete_failed)
+            }
+        }
+    }
+
+    /** Stellt eine über [deleteChecklist] entfernte Checkliste unverändert wieder her. */
+    fun undoDeleteChecklist(checklist: Checklist) {
+        viewModelScope.launch {
+            try {
+                checklists.restore(checklist)
+            } catch (_: SQLException) {
+                _checklistMessage.value = ChecklistMessage.Failed(R.string.checklist_restore_failed)
+            }
+        }
+    }
+
+    /** Verwirft [shown], sofern inzwischen keine neuere Meldung vorliegt. */
+    fun onChecklistMessageShown(shown: ChecklistMessage) {
+        _checklistMessage.compareAndSet(shown, null)
     }
 
     private val _exporting = MutableStateFlow(false)

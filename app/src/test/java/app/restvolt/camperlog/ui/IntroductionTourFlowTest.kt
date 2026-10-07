@@ -75,7 +75,7 @@ class IntroductionTourFlowTest {
                     logs,
                     FakeStationRepository(),
                     FakeExchangeRateRepository(),
-                    FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     countryLookup = FakeCountryLookupRepository(),
                     onThemeModeChange = onThemeModeChange,

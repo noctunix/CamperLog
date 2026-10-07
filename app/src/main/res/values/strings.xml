@@ -932,4 +932,93 @@
 
     <!-- Logbook history: per-entry photos -->
     <string name="logbook_entry_photos_action">Photos</string>
+
+    <!-- Checklists -->
+    <string name="section_checklists">Checklists</string>
+    <string name="checklist_start">Start checklist</string>
+    <string name="checklist_title_fallback">Checklist</string>
+    <string name="checklist_uncheck_all">Uncheck all</string>
+    <string name="checklist_delete_action">Delete checklist</string>
+    <string name="checklist_not_found">This checklist no longer exists.</string>
+    <string name="checklist_progress">%1$d of %2$d done</string>
+    <string name="checklist_progress_cd">%1$s, %2$d of %3$d done</string>
+    <string name="checklist_done">Done</string>
+    <string name="checklist_deleted">Checklist deleted</string>
+    <string name="checklist_delete_failed">Could not delete checklist.</string>
+    <string name="checklist_restore_failed">Could not restore checklist.</string>
+    <string name="checklist_templates_title">Checklist templates</string>
+    <string name="checklist_templates_empty">No checklist templates yet.</string>
+    <string name="checklist_add_suggested_templates">Add suggested templates</string>
+    <string name="checklist_template_add">Add template</string>
+    <string name="checklist_template_deleted">Template deleted</string>
+    <string name="checklist_template_delete_failed">Could not delete template.</string>
+    <string name="checklist_template_restore_failed">Could not restore template.</string>
+    <string name="checklist_template_edit_action">Edit template</string>
+    <string name="checklist_template_title_new">New template</string>
+    <string name="checklist_template_title_existing">Edit template</string>
+    <string name="checklist_template_save_failed">Could not save template.</string>
+    <string name="checklist_template_not_found">This template no longer exists.</string>
+    <string name="checklist_template_delete_action">Delete template</string>
+    <string name="checklist_template_error_name_required">Name required</string>
+    <string name="checklist_template_items_title">Items</string>
+    <string name="checklist_template_add_item">Add item</string>
+    <string name="checklist_template_item_move_up">Move item up</string>
+    <string name="checklist_template_item_move_down">Move item down</string>
+    <string name="checklist_template_item_remove">Remove item</string>
+    <plurals name="checklist_template_item_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+    <string name="checklist_picker_title">Choose a template</string>
+    <string name="checklist_picker_empty">No templates yet.</string>
+    <string name="checklist_vehicle_empty">No checklists yet.</string>
+    <string name="checklist_templates_action">Templates</string>
+    <string name="vehicle_checklists_open">Open checklists</string>
+    <plurals name="vehicle_checklists_open_count">
+        <item quantity="one">%1$d open checklist</item>
+        <item quantity="other">%1$d open checklists</item>
+    </plurals>
+    <string name="checklist_suggested_departure_name">Departure</string>
+    <string-array name="checklist_suggested_departure_items">
+        <item>Close roof vents and skylights</item>
+        <item>Retract the step</item>
+        <item>Secure loose items</item>
+        <item>Close and lock the fridge door</item>
+        <item>Turn off gas while driving, if required</item>
+        <item>Unplug shore power</item>
+        <item>Check tyre pressure</item>
+        <item>Check mirrors</item>
+    </string-array>
+    <string name="checklist_suggested_arrival_name">Arrival</string>
+    <string-array name="checklist_suggested_arrival_items">
+        <item>Level the vehicle</item>
+        <item>Apply chocks or parking brake</item>
+        <item>Connect shore power</item>
+        <item>Turn on gas</item>
+        <item>Set the fridge to mains or gas mode</item>
+        <item>Connect water</item>
+    </string-array>
+    <string name="checklist_suggested_winterizing_name">Winterizing</string>
+    <string-array name="checklist_suggested_winterizing_items">
+        <item>Drain the fresh water tank</item>
+        <item>Drain the grey water tank</item>
+        <item>Open taps and drain valves</item>
+        <item>Empty the boiler or frost valve</item>
+        <item>Empty the cassette toilet</item>
+        <item>Charge batteries, then disconnect</item>
+        <item>Remove food</item>
+        <item>Ensure ventilation</item>
+        <item>Increase tyre pressure</item>
+    </string-array>
+    <string name="checklist_suggested_spring_check_name">Spring check</string>
+    <string-array name="checklist_suggested_spring_check_items">
+        <item>Check whether the gas leak test is due</item>
+        <item>Check battery condition</item>
+        <item>Sanitise the fresh water system</item>
+        <item>Check seals and roof</item>
+        <item>Check tyres and their age</item>
+        <item>Check lights</item>
+        <item>Check brakes</item>
+        <item>Check documents (insurance, inspection)</item>
+    </string-array>
 </resources>

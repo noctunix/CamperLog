@@ -922,4 +922,93 @@
 
     <!-- Bordbuch-Verlauf: Fotos je Eintrag -->
     <string name="logbook_entry_photos_action">Fotos</string>
+
+    <!-- Checklisten -->
+    <string name="section_checklists">Checklisten</string>
+    <string name="checklist_start">Checkliste starten</string>
+    <string name="checklist_title_fallback">Checkliste</string>
+    <string name="checklist_uncheck_all">Alle Haken entfernen</string>
+    <string name="checklist_delete_action">Checkliste löschen</string>
+    <string name="checklist_not_found">Diese Checkliste gibt es nicht mehr.</string>
+    <string name="checklist_progress">%1$d von %2$d erledigt</string>
+    <string name="checklist_progress_cd">%1$s, %2$d von %3$d erledigt</string>
+    <string name="checklist_done">Erledigt</string>
+    <string name="checklist_deleted">Checkliste gelöscht</string>
+    <string name="checklist_delete_failed">Checkliste konnte nicht gelöscht werden.</string>
+    <string name="checklist_restore_failed">Checkliste konnte nicht wiederhergestellt werden.</string>
+    <string name="checklist_templates_title">Checklisten-Vorlagen</string>
+    <string name="checklist_templates_empty">Noch keine Checklisten-Vorlagen.</string>
+    <string name="checklist_add_suggested_templates">Vorlagen-Vorschläge hinzufügen</string>
+    <string name="checklist_template_add">Vorlage hinzufügen</string>
+    <string name="checklist_template_deleted">Vorlage gelöscht</string>
+    <string name="checklist_template_delete_failed">Vorlage konnte nicht gelöscht werden.</string>
+    <string name="checklist_template_restore_failed">Vorlage konnte nicht wiederhergestellt werden.</string>
+    <string name="checklist_template_edit_action">Vorlage bearbeiten</string>
+    <string name="checklist_template_title_new">Neue Vorlage</string>
+    <string name="checklist_template_title_existing">Vorlage bearbeiten</string>
+    <string name="checklist_template_save_failed">Vorlage konnte nicht gespeichert werden.</string>
+    <string name="checklist_template_not_found">Diese Vorlage gibt es nicht mehr.</string>
+    <string name="checklist_template_delete_action">Vorlage löschen</string>
+    <string name="checklist_template_error_name_required">Name erforderlich</string>
+    <string name="checklist_template_items_title">Punkte</string>
+    <string name="checklist_template_add_item">Punkt hinzufügen</string>
+    <string name="checklist_template_item_move_up">Punkt nach oben verschieben</string>
+    <string name="checklist_template_item_move_down">Punkt nach unten verschieben</string>
+    <string name="checklist_template_item_remove">Punkt entfernen</string>
+    <plurals name="checklist_template_item_count">
+        <item quantity="one">%1$d Punkt</item>
+        <item quantity="other">%1$d Punkte</item>
+    </plurals>
+    <string name="checklist_picker_title">Vorlage wählen</string>
+    <string name="checklist_picker_empty">Noch keine Vorlagen.</string>
+    <string name="checklist_vehicle_empty">Noch keine Checklisten.</string>
+    <string name="checklist_templates_action">Vorlagen</string>
+    <string name="vehicle_checklists_open">Checklisten öffnen</string>
+    <plurals name="vehicle_checklists_open_count">
+        <item quantity="one">%1$d offene Checkliste</item>
+        <item quantity="other">%1$d offene Checklisten</item>
+    </plurals>
+    <string name="checklist_suggested_departure_name">Abfahrt</string>
+    <string-array name="checklist_suggested_departure_items">
+        <item>Dachluken und Fenster schließen</item>
+        <item>Trittstufe einfahren</item>
+        <item>Lose Gegenstände sichern</item>
+        <item>Kühlschranktür schließen und verriegeln</item>
+        <item>Gas während der Fahrt abstellen, falls vorgeschrieben</item>
+        <item>Landstrom abstecken</item>
+        <item>Reifendruck prüfen</item>
+        <item>Spiegel einstellen</item>
+    </string-array>
+    <string name="checklist_suggested_arrival_name">Ankunft</string>
+    <string-array name="checklist_suggested_arrival_items">
+        <item>Fahrzeug ausrichten</item>
+        <item>Unterlegkeile oder Feststellbremse setzen</item>
+        <item>Landstrom anschließen</item>
+        <item>Gas aufdrehen</item>
+        <item>Kühlschrank auf Netz- oder Gasbetrieb umstellen</item>
+        <item>Wasser anschließen</item>
+    </string-array>
+    <string name="checklist_suggested_winterizing_name">Einwintern</string>
+    <string-array name="checklist_suggested_winterizing_items">
+        <item>Frischwassertank leeren</item>
+        <item>Abwassertank leeren</item>
+        <item>Wasserhähne und Ablassventile öffnen</item>
+        <item>Boiler oder Frostschutzventil leeren</item>
+        <item>Campingtoilette (Kassette) leeren</item>
+        <item>Batterien laden und abklemmen</item>
+        <item>Lebensmittel entfernen</item>
+        <item>Für Belüftung sorgen</item>
+        <item>Reifendruck erhöhen</item>
+    </string-array>
+    <string name="checklist_suggested_spring_check_name">Frühjahrscheck</string>
+    <string-array name="checklist_suggested_spring_check_items">
+        <item>Prüfen, ob die Dichtheitsprüfung für die Gasanlage fällig ist</item>
+        <item>Batteriezustand prüfen</item>
+        <item>Frischwassersystem desinfizieren</item>
+        <item>Dichtungen und Dach prüfen</item>
+        <item>Reifen und ihr Alter prüfen</item>
+        <item>Beleuchtung prüfen</item>
+        <item>Bremsen prüfen</item>
+        <item>Unterlagen prüfen (Versicherung, Prüftermin)</item>
+    </string-array>
 </resources>

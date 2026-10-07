@@ -18,6 +18,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -51,6 +52,9 @@ import app.restvolt.camperlog.data.AssetCountryLookupRepository
 import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.data.BackupFolderWriter
 import app.restvolt.camperlog.domain.AttachmentRepository
+import app.restvolt.camperlog.domain.Checklist
+import app.restvolt.camperlog.domain.ChecklistRepository
+import app.restvolt.camperlog.domain.ChecklistTemplateRepository
 import app.restvolt.camperlog.domain.CountryLookupRepository
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
@@ -77,6 +81,15 @@ import app.restvolt.camperlog.ui.about.KeepAndroidOpenDialog
 import app.restvolt.camperlog.ui.about.KeepAndroidOpenSettings
 import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
 import app.restvolt.camperlog.ui.attachments.AttachmentPickers
+import app.restvolt.camperlog.ui.checklists.ChecklistScreen
+import app.restvolt.camperlog.ui.checklists.ChecklistTemplateEditScreen
+import app.restvolt.camperlog.ui.checklists.ChecklistTemplateEditViewModel
+import app.restvolt.camperlog.ui.checklists.ChecklistTemplatesScreen
+import app.restvolt.camperlog.ui.checklists.ChecklistTemplatesViewModel
+import app.restvolt.camperlog.ui.checklists.ChecklistViewModel
+import app.restvolt.camperlog.ui.checklists.VehicleChecklistsScreen
+import app.restvolt.camperlog.ui.checklists.VehicleChecklistsViewModel
+import app.restvolt.camperlog.ui.checklists.suggestedChecklistTemplates
 import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.settings.NotificationSettings
 import app.restvolt.camperlog.ui.settings.WeatherSettings
@@ -190,6 +203,25 @@ internal data class TourMapRoute(val tourId: Long)
 @Serializable
 internal data class DiaryEditRoute(val tourId: Long, val entryId: Long = 0)
 
+/** Checklisten-Vorlagenliste. */
+@Serializable
+internal object ChecklistTemplatesRoute
+
+/** Formular einer Checklisten-Vorlage; [templateId] 0 legt eine neue Vorlage an. */
+@Serializable
+internal data class ChecklistTemplateEditRoute(val templateId: Long = 0)
+
+/** Checklisten eines Fahrzeugs ohne Tourbezug (z. B. Einwintern). */
+@Serializable
+internal data class VehicleChecklistsRoute(val vehicleId: Long)
+
+/**
+ * Eine gestartete Checkliste. [tourId] ist gesetzt, wenn sie zu einer Tour gehört (dann trägt
+ * [DetailRoute] den Löschkanal), sonst [vehicleId] ihr Fahrzeug (dann [VehicleChecklistsRoute]).
+ */
+@Serializable
+internal data class ChecklistRoute(val checklistId: Long, val vehicleId: Long = 0, val tourId: Long? = null)
+
 /** Karte des aktuellen Filters des Stationen-Reiters. */
 @Serializable
 internal object StationsMapRoute
@@ -251,6 +283,8 @@ fun CamperLogNavHost(
     exchangeRates: ExchangeRateRepository,
     documents: VehicleDocumentRepository,
     diaryEntries: DiaryEntryRepository,
+    checklists: ChecklistRepository,
+    checklistTemplates: ChecklistTemplateRepository,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     backupImporter: BackupImporter,
@@ -447,7 +481,7 @@ fun CamperLogNavHost(
             val vehicleContext = LocalContext.current
             val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
             VehicleScreen(
-                viewModel = viewModel { VehicleViewModel(vehicles, documents) },
+                viewModel = viewModel { VehicleViewModel(vehicles, documents, checklists) },
                 whereAmIViewModel = viewModel { WhereAmIViewModel(locationProvider, AndroidLocationPermissionGate(vehicleContext)) },
                 locationEnabled = locationEnabled,
                 reminderSettings = reminderSettings,
@@ -459,6 +493,7 @@ fun CamperLogNavHost(
                 onOpenRepair = { vehicleId, repairId -> navController.navigate(RepairEditRoute(vehicleId, repairId)) },
                 onAddDocument = { vehicleId -> navController.navigate(DocumentEditRoute(vehicleId)) },
                 onOpenDocument = { vehicleId, documentId -> navController.navigate(DocumentDetailRoute(vehicleId, documentId)) },
+                onOpenChecklists = { vehicleId -> navController.navigate(VehicleChecklistsRoute(vehicleId)) },
                 bottomBar = bottomBar,
             )
         }
@@ -480,7 +515,7 @@ fun CamperLogNavHost(
         }
         composable<RepairEditRoute> { entry ->
             val route = entry.toRoute<RepairEditRoute>()
-            val vehicleViewModel = navController.vehicleViewModel(entry, vehicles, documents)
+            val vehicleViewModel = navController.vehicleViewModel(entry, vehicles, documents, checklists)
             RepairEditScreen(
                 viewModel = viewModel {
                     RepairEditViewModel(vehicles, exchangeRates, route.vehicleId, route.repairId, createSavedStateHandle())
@@ -542,7 +577,7 @@ fun CamperLogNavHost(
             val tourId = entry.toRoute<EditRoute>().tourId
             val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations)
             EditTourScreen(
-                viewModel = viewModel { EditTourViewModel(repository, vehicles, stations, tourId, createSavedStateHandle()) },
+                viewModel = viewModel { EditTourViewModel(repository, vehicles, stations, checklists, tourId, createSavedStateHandle()) },
                 onDone = { navController.popFrom(entry) },
                 onSaved = {
                     if (tourId == 0L) toursViewModel.onTourCreated()
@@ -555,6 +590,10 @@ fun CamperLogNavHost(
             val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations)
             val weatherMapEnabled by weatherSettings.values.collectAsStateWithLifecycle()
             val context = LocalContext.current
+            val resources = LocalResources.current
+            val checklistTemplateList by remember(checklistTemplates) { checklistTemplates.observeAll() }
+                .collectAsStateWithLifecycle(initialValue = emptyList())
+            val scope = rememberCoroutineScope()
             TourDetailScreen(
                 viewModel = viewModel {
                     TourDetailViewModel(
@@ -562,6 +601,7 @@ fun CamperLogNavHost(
                         vehicles,
                         stations,
                         diaryEntries,
+                        checklists,
                         exchangeRates,
                         countryLookup,
                         attachments,
@@ -571,6 +611,7 @@ fun CamperLogNavHost(
                     )
                 },
                 weatherMapEnabled = weatherMapEnabled,
+                checklistTemplates = checklistTemplateList,
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(EditRoute(tourId)) },
                 onDelete = { tour ->
@@ -586,12 +627,16 @@ fun CamperLogNavHost(
                 onOpenMap = { navController.navigate(TourMapRoute(tourId)) },
                 onAddDiaryEntry = { targetTourId -> navController.navigate(DiaryEditRoute(tourId = targetTourId)) },
                 onOpenDiaryEntry = { entryId -> navController.navigate(DiaryEditRoute(tourId = tourId, entryId = entryId)) },
+                onAddSuggestedChecklistTemplates = {
+                    scope.launch { suggestedChecklistTemplates(resources).forEach { checklistTemplates.save(it) } }
+                },
+                onOpenChecklist = { checklistId -> navController.navigate(ChecklistRoute(checklistId = checklistId, tourId = tourId)) },
             )
         }
         composable<DiaryEditRoute> { entry ->
             val route = entry.toRoute<DiaryEditRoute>()
             val tourDetailViewModel =
-                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, exchangeRates, countryLookup, attachments, attachmentFileStore)
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore)
             DiaryEditScreen(
                 viewModel = viewModel {
                     DiaryEditViewModel(diaryEntries, repository, route.tourId, route.entryId, createSavedStateHandle())
@@ -606,10 +651,62 @@ fun CamperLogNavHost(
                 },
             )
         }
+        composable<ChecklistTemplatesRoute> { entry ->
+            ChecklistTemplatesScreen(
+                viewModel = viewModel { ChecklistTemplatesViewModel(checklistTemplates) },
+                onBack = { navController.popFrom(entry) },
+                onAdd = { navController.navigate(ChecklistTemplateEditRoute()) },
+                onEdit = { templateId -> navController.navigate(ChecklistTemplateEditRoute(templateId)) },
+            )
+        }
+        composable<ChecklistTemplateEditRoute> { entry ->
+            val route = entry.toRoute<ChecklistTemplateEditRoute>()
+            val templatesViewModel = navController.checklistTemplatesViewModel(entry, checklistTemplates)
+            ChecklistTemplateEditScreen(
+                viewModel = viewModel {
+                    ChecklistTemplateEditViewModel(checklistTemplates, route.templateId, createSavedStateHandle())
+                },
+                onDone = { navController.popFrom(entry) },
+                onSaved = { navController.popFrom(entry) },
+                onDelete = { template ->
+                    if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                        templatesViewModel.deleteTemplate(template)
+                        navController.popBackStack()
+                    }
+                },
+            )
+        }
+        composable<VehicleChecklistsRoute> { entry ->
+            val route = entry.toRoute<VehicleChecklistsRoute>()
+            VehicleChecklistsScreen(
+                viewModel = viewModel { VehicleChecklistsViewModel(checklists, checklistTemplates, route.vehicleId) },
+                onBack = { navController.popFrom(entry) },
+                onOpenTemplates = { navController.navigate(ChecklistTemplatesRoute) },
+                onOpenChecklist = { checklistId -> navController.navigate(ChecklistRoute(checklistId = checklistId, vehicleId = route.vehicleId)) },
+            )
+        }
+        composable<ChecklistRoute> { entry ->
+            val route = entry.toRoute<ChecklistRoute>()
+            val deleteChecklist: (Checklist) -> Unit = if (route.tourId != null) {
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore)::deleteChecklist
+            } else {
+                navController.vehicleChecklistsViewModel(entry, checklists, checklistTemplates, route.vehicleId)::deleteChecklist
+            }
+            ChecklistScreen(
+                viewModel = viewModel { ChecklistViewModel(checklists, route.checklistId) },
+                onBack = { navController.popFrom(entry) },
+                onDelete = { checklist ->
+                    if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                        deleteChecklist(checklist)
+                        navController.popBackStack()
+                    }
+                },
+            )
+        }
         composable<TourMapRoute> { entry ->
             val route = entry.toRoute<TourMapRoute>()
             val tourDetailViewModel =
-                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, exchangeRates, countryLookup, attachments, attachmentFileStore)
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore)
             val detailState by tourDetailViewModel.uiState.collectAsStateWithLifecycle()
             val loaded = detailState as? DetailUiState.Loaded
             MapScreen(
@@ -695,7 +792,7 @@ fun CamperLogNavHost(
                 route.fromStationsTab && navController.hasRoute<StationsRoute>() ->
                     navController.stationsViewModel(entry, stations, repository, vehicles)::deleteStation
                 navController.hasRoute<DetailRoute>() ->
-                    navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, exchangeRates, countryLookup, attachments, attachmentFileStore)::deleteStation
+                    navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore)::deleteStation
                 else -> { station -> fallbackDeleteScope.launch { stations.delete(station.id) } }
             }
             StationDetailScreen(
@@ -914,9 +1011,14 @@ private fun NavController.toursViewModel(
  * auslöst. [RepairEditRoute] liegt immer über [VehicleRoute] im Stapel, da nur von dort erreichbar.
  */
 @Composable
-private fun NavController.vehicleViewModel(entry: NavBackStackEntry, vehicles: VehicleRepository, documents: VehicleDocumentRepository): VehicleViewModel {
+private fun NavController.vehicleViewModel(
+    entry: NavBackStackEntry,
+    vehicles: VehicleRepository,
+    documents: VehicleDocumentRepository,
+    checklists: ChecklistRepository,
+): VehicleViewModel {
     val vehicleEntry = remember(entry) { getBackStackEntry<VehicleRoute>() }
-    return viewModel(viewModelStoreOwner = vehicleEntry) { VehicleViewModel(vehicles, documents) }
+    return viewModel(viewModelStoreOwner = vehicleEntry) { VehicleViewModel(vehicles, documents, checklists) }
 }
 
 /**
@@ -930,6 +1032,7 @@ private fun NavController.tourDetailViewModel(
     vehicles: VehicleRepository,
     stations: StationRepository,
     diaryEntries: DiaryEntryRepository,
+    checklists: ChecklistRepository,
     exchangeRates: ExchangeRateRepository,
     countryLookup: CountryLookupRepository,
     attachments: AttachmentRepository,
@@ -939,8 +1042,40 @@ private fun NavController.tourDetailViewModel(
     val tourId = detailEntry.toRoute<DetailRoute>().tourId
     val context = LocalContext.current
     return viewModel(viewModelStoreOwner = detailEntry) {
-        TourDetailViewModel(tours, vehicles, stations, diaryEntries, exchangeRates, countryLookup, attachments, attachmentFileStore, AndroidTourExportFiles(context), tourId)
+        TourDetailViewModel(
+            tours, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore,
+            AndroidTourExportFiles(context), tourId,
+        )
     }
+}
+
+/**
+ * Das [ChecklistTemplatesViewModel] der Vorlagenliste, damit das Vorlagenformular dort die
+ * Löschmeldung auslöst. [ChecklistTemplateEditRoute] liegt immer über [ChecklistTemplatesRoute] im Stapel.
+ */
+@Composable
+private fun NavController.checklistTemplatesViewModel(
+    entry: NavBackStackEntry,
+    templates: ChecklistTemplateRepository,
+): ChecklistTemplatesViewModel {
+    val templatesEntry = remember(entry) { getBackStackEntry<ChecklistTemplatesRoute>() }
+    return viewModel(viewModelStoreOwner = templatesEntry) { ChecklistTemplatesViewModel(templates) }
+}
+
+/**
+ * Das [VehicleChecklistsViewModel] der fahrzeugbezogenen Checklistenliste, damit eine geöffnete
+ * Checkliste ohne Tourbezug dort die Löschmeldung auslöst. [ChecklistRoute] liegt in diesem Fall
+ * immer über [VehicleChecklistsRoute] im Stapel.
+ */
+@Composable
+private fun NavController.vehicleChecklistsViewModel(
+    entry: NavBackStackEntry,
+    checklists: ChecklistRepository,
+    templates: ChecklistTemplateRepository,
+    vehicleId: Long,
+): VehicleChecklistsViewModel {
+    val listEntry = remember(entry) { getBackStackEntry<VehicleChecklistsRoute>() }
+    return viewModel(viewModelStoreOwner = listEntry) { VehicleChecklistsViewModel(checklists, templates, vehicleId) }
 }
 
 /**

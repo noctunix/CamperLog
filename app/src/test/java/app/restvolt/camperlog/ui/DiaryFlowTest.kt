@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.Money
@@ -42,7 +43,7 @@ class DiaryFlowTest {
                     FakeLogRepository(),
                     FakeStationRepository(),
                     FakeExchangeRateRepository(),
-                    FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
@@ -87,7 +88,7 @@ class DiaryFlowTest {
     fun addDiaryEntry_appearsInTheSection() {
         start(tour())
         compose.onNodeWithText("Lofoten").performClick()
-        compose.onNodeWithText("Tagebucheintrag hinzufügen").performClick()
+        compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
 
         textField().performTextInput("Langer Tag am Fjord.")
         clickSave()
@@ -99,7 +100,7 @@ class DiaryFlowTest {
     fun textRequired_forNewDiaryEntry() {
         start(tour())
         compose.onNodeWithText("Lofoten").performClick()
-        compose.onNodeWithText("Tagebucheintrag hinzufügen").performClick()
+        compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
 
         clickSave()
 
@@ -110,11 +111,11 @@ class DiaryFlowTest {
     fun deleteDiaryEntry_undo_restoresIt() {
         start(tour())
         compose.onNodeWithText("Lofoten").performClick()
-        compose.onNodeWithText("Tagebucheintrag hinzufügen").performClick()
+        compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
         textField().performTextInput("Langer Tag am Fjord.")
         clickSave()
 
-        compose.onNodeWithText("Langer Tag am Fjord.").performClick()
+        compose.onNodeWithText("Langer Tag am Fjord.").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Weitere Optionen").performClick()
         compose.onNodeWithText("Tagebucheintrag löschen").performClick()
 
