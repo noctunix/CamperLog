@@ -1,0 +1,3 @@
+• Photos on stops, repairs and logbook entries – stored with their location; for gallery photos you can apply the stop's location
+• Document wallet per vehicle (registration, insurance, warranties …) with expiry reminders
+• Backups are now a ZIP with all photos and documents in readable folders; older backups still import
