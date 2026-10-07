@@ -27,8 +27,17 @@ sealed interface StationDetailUiState {
 /** Rückmeldung zum Bearbeiten der Station; die Detailseite zeigt sie als Snackbar. */
 data class StationDetailMessage(val loggedServices: Set<StationService>)
 
-/** Beobachtet eine einzelne Station mit ihrer Tour, damit Änderungen aus dem Formular sofort sichtbar sind. */
-class StationDetailViewModel(stations: StationRepository, tours: TourRepository, stationId: Long) : ViewModel() {
+/**
+ * Beobachtet eine einzelne Station mit ihrer Tour, damit Änderungen aus dem Formular sofort sichtbar
+ * sind. [initialLoggedServices] seedet die Speicher-Snackbar, wenn diese Seite direkt nach dem ersten
+ * Anlegen der Station erreicht wird; `null` sonst, insbesondere beim normalen Öffnen einer Station.
+ */
+class StationDetailViewModel(
+    stations: StationRepository,
+    tours: TourRepository,
+    stationId: Long,
+    initialLoggedServices: Set<StationService>? = null,
+) : ViewModel() {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<StationDetailUiState> = stations.observeStation(stationId).flatMapLatest { station ->
@@ -39,7 +48,7 @@ class StationDetailViewModel(stations: StationRepository, tours: TourRepository,
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StationDetailUiState.Loading)
 
-    private val _message = MutableStateFlow<StationDetailMessage?>(null)
+    private val _message = MutableStateFlow(initialLoggedServices?.let { StationDetailMessage(it) })
 
     /** Einmalige Rückmeldung für die Snackbar der Detailseite; nach der Anzeige [onMessageShown] aufrufen. */
     val message: StateFlow<StationDetailMessage?> = _message.asStateFlow()

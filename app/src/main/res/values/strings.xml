@@ -431,6 +431,7 @@
     <string name="repair_edit_title_new">New repair</string>
     <string name="repair_edit_title_existing">Edit repair</string>
     <string name="repair_edit_save_failed">Could not save repair.</string>
+    <string name="repair_edit_saved_first_time">Saved · you can add photos now</string>
     <string name="repair_not_found">This repair no longer exists.</string>
 
     <!-- Reminders -->
@@ -851,7 +852,7 @@
 
     <!-- Attachments: photo row and viewer -->
     <string name="attachments_section_title">Photos</string>
-    <string name="attachments_save_first_hint">Save first to add photos.</string>
+    <string name="attachments_save_first_hint">Saving enables adding photos.</string>
     <string name="attachments_add_action">Add photo</string>
     <string name="attachments_add_camera">Take photo</string>
     <string name="attachments_add_gallery">Choose from gallery</string>

@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -124,6 +125,7 @@ import app.restvolt.camperlog.ui.vehicle.VehicleViewModel
 import app.restvolt.camperlog.ui.vehicle.WhereAmIViewModel
 import app.restvolt.camperlog.ui.vehicles.VehiclesScreen
 import app.restvolt.camperlog.ui.vehicles.VehiclesViewModel
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.time.Instant
 import java.time.LocalDate
@@ -198,10 +200,16 @@ internal data class StationEditRoute(
 
 /**
  * [fromStationsTab] unterscheidet, ob die Station vom Stationen-Reiter aus geöffnet wurde (dann hat
- * [StationsRoute] den Löschkanal) oder von der Tourdetailseite aus (dann [DetailRoute]).
+ * [StationsRoute] den Löschkanal) oder von der Tourdetailseite aus (dann [DetailRoute]). [justSavedLoggedServices]
+ * ist gesetzt, wenn diese Seite direkt nach dem ersten Anlegen der Station erreicht wird (Namen von
+ * [StationService]), damit die Speicher-Snackbar hier statt auf der Herkunftsseite erscheint.
  */
 @Serializable
-internal data class StationDetailRoute(val stationId: Long, val fromStationsTab: Boolean = false)
+internal data class StationDetailRoute(
+    val stationId: Long,
+    val fromStationsTab: Boolean = false,
+    val justSavedLoggedServices: List<String>? = null,
+)
 
 /** [vehicleId] `null` zeigt die Kennzahlen aller Fahrzeuge, sonst nur die von [vehicleId]. */
 @Serializable
@@ -578,37 +586,32 @@ fun CamperLogNavHost(
         composable<StationEditRoute> { entry ->
             val route = entry.toRoute<StationEditRoute>()
             val stationEditContext = LocalContext.current
-            // Wohin die Speichermeldung geht, hängt davon ab, von wo das Formular geöffnet wurde:
-            // eine bestehende Station kam vom Stationsdetail, eine neue von der Tourdetailseite (dann
-            // trägt die Route eine tourId) oder vom Stationen-Reiter. Ein `geo:`-Link öffnet
-            // eine neue Station ohne einen dieser Vorgänger im Stapel; dann bleibt die Meldung stumm.
+            // Wohin die Speichermeldung beim Bearbeiten einer bestehenden Station geht: die kam immer
+            // vom Stationsdetail, das Speichern führt dort auch wieder hin.
             val onStationSaved: (Set<StationService>) -> Unit = when {
                 route.stationId != 0L && navController.hasRoute<StationDetailRoute>() ->
                     navController.stationDetailViewModel(entry, stations, repository, route.stationId)::onStationSaved
-                route.tourId != null && navController.hasRoute<DetailRoute>() ->
-                    navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates)::onStationSaved
-                navController.hasRoute<StationsRoute>() ->
-                    navController.stationsViewModel(entry, stations, repository, vehicles)::onStationSaved
                 else -> { _ -> }
             }
+            val stationEditViewModel = viewModel {
+                EditStationViewModel(
+                    repository = stations,
+                    tours = repository,
+                    vehicles = vehicles,
+                    stationId = route.stationId,
+                    initialTourId = route.tourId,
+                    initialType = route.initialType?.let(StationType::valueOf),
+                    prefillLatitude = route.prefillLatitude,
+                    prefillLongitude = route.prefillLongitude,
+                    prefillPlace = route.prefillPlace,
+                    locationProvider = locationProvider,
+                    locationPermissionGate = AndroidLocationPermissionGate(stationEditContext),
+                    weatherProvider = weatherProvider,
+                    savedStateHandle = createSavedStateHandle(),
+                )
+            }
             EditStationScreen(
-                viewModel = viewModel {
-                    EditStationViewModel(
-                        repository = stations,
-                        tours = repository,
-                        vehicles = vehicles,
-                        stationId = route.stationId,
-                        initialTourId = route.tourId,
-                        initialType = route.initialType?.let(StationType::valueOf),
-                        prefillLatitude = route.prefillLatitude,
-                        prefillLongitude = route.prefillLongitude,
-                        prefillPlace = route.prefillPlace,
-                        locationProvider = locationProvider,
-                        locationPermissionGate = AndroidLocationPermissionGate(stationEditContext),
-                        weatherProvider = weatherProvider,
-                        savedStateHandle = createSavedStateHandle(),
-                    )
-                },
+                viewModel = stationEditViewModel,
                 locationSettings = locationSettings,
                 weatherSettings = weatherSettings,
                 attachments = attachments,
@@ -616,23 +619,41 @@ fun CamperLogNavHost(
                 attachmentPickers = attachmentPickers,
                 onDone = { navController.popFrom(entry) },
                 onSaved = { loggedServices ->
-                    onStationSaved(loggedServices)
-                    navController.popFrom(entry)
+                    if (route.stationId == 0L) {
+                        // Eine neue Station landet auf ihrer Detailseite, damit sofort Fotos angehängt
+                        // werden können; Zurück führt dann zur Herkunft des Formulars (Tourdetail,
+                        // Stationen-Reiter oder, bei einem `geo:`-Link ohne einen der beiden im Stapel,
+                        // zu dessen eigener Herkunft).
+                        val savedId = stationEditViewModel.uiState.value.savedStationId
+                        val fromStationsTab = !(route.tourId != null && navController.hasRoute<DetailRoute>())
+                        navController.popBackStack()
+                        navController.navigate(
+                            StationDetailRoute(savedId, fromStationsTab = fromStationsTab, justSavedLoggedServices = loggedServices.map { it.name }),
+                        )
+                    } else {
+                        onStationSaved(loggedServices)
+                        navController.popFrom(entry)
+                    }
                 },
             )
         }
         composable<StationDetailRoute> { entry ->
             val route = entry.toRoute<StationDetailRoute>()
-            // Je nach Herkunft trägt entweder der Stationen-Reiter oder die Tourdetailseite den Löschkanal.
-            val deleteStation: (Station) -> Unit = if (route.fromStationsTab) {
-                val stationsViewModel = navController.stationsViewModel(entry, stations, repository, vehicles)
-                stationsViewModel::deleteStation
-            } else {
-                val tourDetailViewModel = navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates)
-                tourDetailViewModel::deleteStation
+            // Je nach Herkunft trägt entweder der Stationen-Reiter oder die Tourdetailseite den Löschkanal;
+            // eine frisch angelegte Station kann ohne einen der beiden hier landen (z. B. über einen
+            // `geo:`-Link ohne Herkunft im Stapel), dann löscht sie direkt ohne "Rückgängig".
+            val fallbackDeleteScope = rememberCoroutineScope()
+            val deleteStation: (Station) -> Unit = when {
+                route.fromStationsTab && navController.hasRoute<StationsRoute>() ->
+                    navController.stationsViewModel(entry, stations, repository, vehicles)::deleteStation
+                navController.hasRoute<DetailRoute>() ->
+                    navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates)::deleteStation
+                else -> { station -> fallbackDeleteScope.launch { stations.delete(station.id) } }
             }
             StationDetailScreen(
-                viewModel = viewModel { StationDetailViewModel(stations, repository, route.stationId) },
+                viewModel = viewModel {
+                    StationDetailViewModel(stations, repository, route.stationId, route.justSavedLoggedServices?.map(StationService::valueOf)?.toSet())
+                },
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
                 attachmentPickers = attachmentPickers,

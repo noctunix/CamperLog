@@ -47,6 +47,12 @@ data class RepairEditUiState(
      * erst nach dem ersten Speichern); `0` bis dahin, siehe [app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection].
      */
     val savedRepairId: Long = 0,
+    /**
+     * Die erste Speicherung einer neuen Reparatur ist gerade erfolgt: Das Formular bleibt offen (statt
+     * wie sonst nach dem Speichern zu schließen), damit sofort Fotos angehängt werden können. Einmalige
+     * Meldung für die Snackbar, danach [RepairEditViewModel.onFirstSaveShown] aufrufen.
+     */
+    val justCreated: Boolean = false,
 )
 
 /** Ungespeicherte Formulareingaben, die ein Beenden des Prozesses im Hintergrund überstehen. */
@@ -115,7 +121,11 @@ class RepairEditViewModel(
         saveDraft()
     }
 
-    /** Validiert und speichert; bei Erfolg wird [RepairEditUiState.isSaved] gesetzt. */
+    /**
+     * Validiert und speichert. Bei der ersten Speicherung einer neuen Reparatur bleibt das Formular
+     * offen und wechselt in den Bearbeitungsmodus ([RepairEditUiState.justCreated]), damit sofort Fotos
+     * angehängt werden können; jede weitere Speicherung setzt wie gewohnt [RepairEditUiState.isSaved].
+     */
     fun save() {
         val state = _uiState.value
         if (state.isSaving || state.isLoading || state.notFound) return
@@ -127,13 +137,21 @@ class RepairEditViewModel(
             _uiState.update { it.copy(errors = errors, rejectedSaves = it.rejectedSaves + 1) }
             return
         }
+        val wasNew = state.isNew
         val repair = state.input.toRepair(state.original, vehicleId, locale)
         _uiState.update { it.copy(isSaving = true, errors = emptyMap(), saveFailed = false) }
         viewModelScope.launch {
             try {
                 val id = repository.saveRepair(repair)
                 savedStateHandle.remove<SavedState>(DRAFT_KEY)
-                _uiState.update { it.copy(isSaving = false, isSaved = true, savedRepairId = id) }
+                val saved = repair.copy(id = id)
+                _uiState.update {
+                    if (wasNew) {
+                        it.copy(isSaving = false, isNew = false, isDirty = false, original = saved, savedRepairId = id, justCreated = true)
+                    } else {
+                        it.copy(isSaving = false, isSaved = true, original = saved, savedRepairId = id)
+                    }
+                }
             } catch (_: SQLException) {
                 // Eingaben bleiben erhalten, damit der Nutzer es erneut versuchen kann.
                 _uiState.update { it.copy(isSaving = false, saveFailed = true) }
@@ -144,6 +162,11 @@ class RepairEditViewModel(
     /** Die Fehlermeldung zu [RepairEditUiState.saveFailed] wurde angezeigt. */
     fun onSaveFailureShown() {
         _uiState.update { it.copy(saveFailed = false) }
+    }
+
+    /** Die Meldung zu [RepairEditUiState.justCreated] wurde angezeigt. */
+    fun onFirstSaveShown() {
+        _uiState.update { it.copy(justCreated = false) }
     }
 
     private fun RepairEditUiState.withErrors(): RepairEditUiState {

@@ -94,6 +94,12 @@ fun RepairEditScreen(
     LaunchedEffect(state.isSaved) {
         if (state.isSaved) onSaved()
     }
+    LaunchedEffect(state.justCreated) {
+        if (state.justCreated) {
+            snackbar.showSnackbar(resources.getString(R.string.repair_edit_saved_first_time), withDismissAction = true)
+            viewModel.onFirstSaveShown()
+        }
+    }
     LaunchedEffect(state.saveFailed) {
         if (state.saveFailed) {
             snackbar.showSnackbar(resources.getString(R.string.repair_edit_save_failed), withDismissAction = true)

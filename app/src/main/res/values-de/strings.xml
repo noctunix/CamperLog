@@ -431,6 +431,7 @@
     <string name="repair_edit_title_new">Neue Reparatur</string>
     <string name="repair_edit_title_existing">Reparatur bearbeiten</string>
     <string name="repair_edit_save_failed">Reparatur konnte nicht gespeichert werden.</string>
+    <string name="repair_edit_saved_first_time">Gespeichert · du kannst jetzt Fotos anhängen</string>
     <string name="repair_not_found">Diese Reparatur existiert nicht mehr.</string>
 
     <!-- Erinnerungen -->
@@ -842,7 +843,7 @@
 
     <!-- Anhänge: Fotostreifen und Betrachter -->
     <string name="attachments_section_title">Fotos</string>
-    <string name="attachments_save_first_hint">Erst speichern, um Fotos anzuhängen.</string>
+    <string name="attachments_save_first_hint">Speichern schaltet Fotos frei.</string>
     <string name="attachments_add_action">Foto hinzufügen</string>
     <string name="attachments_add_camera">Foto aufnehmen</string>
     <string name="attachments_add_gallery">Aus der Galerie wählen</string>
