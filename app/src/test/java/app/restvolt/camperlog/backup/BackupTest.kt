@@ -597,6 +597,24 @@ class BackupTest {
     }
 
     @Test
+    fun decode_importsUnknownLegacyElectricityFlatRateAsNullBilling() {
+        val legacyElectricityStation = station().copy(
+            electricityBilling = null,
+            electricityCurrency = null,
+            electricityBaseFee = null,
+            electricityPricePerKwh = null,
+            electricityMeterStart = null,
+            electricityMeterEnd = null,
+        )
+        val text = stationsEncodedWith(
+            stationBackup.copy(stations = listOf(legacyElectricityStation)),
+            listOf("\"electricityFlatRate\": null" to "\"electricityFlatRate\": \"unbekannt\""),
+        )
+
+        assertEquals(null, success(text).stations.single().electricityBilling)
+    }
+
+    @Test
     fun decode_rejectsElectricityPricePerKwhAboveTheBound() {
         val result = failure(stationEncodedWith("\"electricityPricePerKwh\": \"0.35\"", "\"electricityPricePerKwh\": \"100.01\""))
 
@@ -788,14 +806,19 @@ class BackupTest {
     }
 
     @Test
-    fun decode_rejectsPartialLegacyPitchFields() {
-        val result = failure(encodedWith("\"pitchAssigned\": null", "\"pitchAssigned\": true"))
+    fun decode_importsPartialLegacyPitchFieldsWithMissingOnesAsNull() {
+        val decoded = success(encodedWith("\"pitchAssigned\": null", "\"pitchAssigned\": true"))
 
-        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = 1), result)
+        val station = decoded.stations.single()
+        assertEquals(true, station.pitchAssigned)
+        assertEquals(null, station.electricityBilling)
+        assertEquals(null, station.lteQuality)
+        assertEquals(null, station.pitchSlope)
+        assertEquals(null, station.levelingBlocksUsed)
     }
 
     @Test
-    fun decode_rejectsInvalidLegacyPitchEnumValue() {
+    fun decode_importsLegacyPitchFieldsWithUnknownEnumValueAsNull() {
         val text = applyAll(
             encodeBackup(backup),
             listOf(
@@ -807,7 +830,12 @@ class BackupTest {
             ),
         )
 
-        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = 1), failure(text))
+        val station = success(text).stations.single()
+        assertEquals(true, station.pitchAssigned)
+        assertEquals(ElectricityBilling.NONE, station.electricityBilling)
+        assertEquals(null, station.lteQuality)
+        assertEquals(PitchSlope.LEVEL, station.pitchSlope)
+        assertEquals(false, station.levelingBlocksUsed)
     }
 
     @Test

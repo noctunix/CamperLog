@@ -741,6 +741,50 @@ class RoomBackupImporterTest {
     }
 
     @Test
+    fun legacyPitchWithOnlySomeFieldsSet_isImportedWithTheRestNull() = runTest {
+        // Ein beschädigtes oder handgebautes altes Format kann einzelne der fünf Felder auslassen;
+        // der Import darf deswegen nicht an der ganzen Tour scheitern.
+        val text = """
+            {
+              "format": "camperlog-backup",
+              "schemaVersion": 1,
+              "exportedAt": "2026-10-04T12:00:00Z",
+              "mainCurrency": "SEK",
+              "exchangeRates": [],
+              "tours": [
+                {
+                  "uuid": "${uuid(10)}",
+                  "startDate": "2026-07-09",
+                  "endDate": "2026-07-22",
+                  "destination": "Lofoten",
+                  "tourType": "VACATION",
+                  "travelDays": 14,
+                  "overnightStays": 13,
+                  "distanceKm": 3420,
+                  "costs": [],
+                  "pitchAssigned": true,
+                  "notes": "",
+                  "mapLink": null,
+                  "createdAt": "2026-07-23T08:00:00Z",
+                  "updatedAt": "2026-07-23T08:00:00Z"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val result = importer.import(decodedBackup(text), ImportMode.MERGE)
+
+        assertEquals(1, result.addedTours)
+        assertEquals(1, result.addedStations)
+        val storedStation = storedStations().single()
+        assertEquals(true, storedStation.pitchAssigned)
+        assertEquals(null, storedStation.electricityBilling)
+        assertEquals(null, storedStation.lteQuality)
+        assertEquals(null, storedStation.pitchSlope)
+        assertEquals(null, storedStation.levelingBlocksUsed)
+    }
+
+    @Test
     fun merge_importsStationCostsAndReplacesThemOnUpdate() = runTest {
         val costs = listOf(StationCost(CostCategory.SUPPLY, Money(500, EUR)))
         importer.import(
@@ -767,5 +811,261 @@ class RoomBackupImporterTest {
 
         assertEquals(1, result.updatedStations)
         assertEquals(newerCosts, storedStations().single().costs)
+    }
+
+    /** Minimale, von Hand gebaute Sicherungen jeder historischen Formatversion mit nur ihren eigenen Feldern. */
+    private fun decodedBackup(text: String) = (decodeBackup(text) as BackupReadResult.Success).backup
+
+    @Test
+    fun importsMinimalVersion1Backup() = runTest {
+        val text = """
+            {
+              "format": "camperlog-backup",
+              "schemaVersion": 1,
+              "exportedAt": "2026-10-04T12:00:00Z",
+              "mainCurrency": "SEK",
+              "exchangeRates": [],
+              "tours": [
+                {
+                  "uuid": "${uuid(201)}",
+                  "startDate": "2026-07-01",
+                  "endDate": "2026-07-02",
+                  "destination": "Minimal v1",
+                  "tourType": "VACATION",
+                  "travelDays": 1,
+                  "overnightStays": 0,
+                  "distanceKm": 10,
+                  "createdAt": "2026-07-01T10:00:00Z",
+                  "updatedAt": "2026-07-01T10:00:00Z"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val result = importer.import(decodedBackup(text), ImportMode.MERGE)
+
+        assertEquals(1, result.addedTours)
+        assertEquals(0, result.addedStations)
+        assertEquals("Minimal v1", storedTours().single().destination)
+    }
+
+    @Test
+    fun importsMinimalVersion2Backup() = runTest {
+        val text = """
+            {
+              "format": "camperlog-backup",
+              "schemaVersion": 2,
+              "exportedAt": "2026-10-04T12:00:00Z",
+              "mainCurrency": "SEK",
+              "exchangeRates": [],
+              "tours": [
+                {
+                  "uuid": "${uuid(202)}",
+                  "startDate": "2026-07-01",
+                  "endDate": "2026-07-02",
+                  "destination": "Minimal v2",
+                  "tourType": "VACATION",
+                  "travelDays": 1,
+                  "overnightStays": 0,
+                  "distanceKm": 10,
+                  "createdAt": "2026-07-01T10:00:00Z",
+                  "updatedAt": "2026-07-01T10:00:00Z",
+                  "vehicleUuid": "${vehicleUuid(202)}"
+                }
+              ],
+              "vehicles": [
+                {
+                  "uuid": "${vehicleUuid(202)}",
+                  "createdAt": "2026-01-01T00:00:00Z",
+                  "updatedAt": "2026-01-01T00:00:00Z"
+                }
+              ],
+              "currentVehicle": "${vehicleUuid(202)}"
+            }
+        """.trimIndent()
+
+        val result = importer.import(decodedBackup(text), ImportMode.MERGE)
+
+        assertEquals(1, result.addedTours)
+        assertEquals(1, result.addedVehicles)
+        val storedVehicleId = vehicles.allVehicles().single { it.uuid == vehicleUuid(202) }.id
+        assertEquals(storedVehicleId, tours.allTours().single().vehicleId)
+    }
+
+    @Test
+    fun importsMinimalVersion3Backup() = runTest {
+        val text = """
+            {
+              "format": "camperlog-backup",
+              "schemaVersion": 3,
+              "exportedAt": "2026-10-04T12:00:00Z",
+              "mainCurrency": "SEK",
+              "exchangeRates": [],
+              "tours": [],
+              "vehicles": [
+                {
+                  "uuid": "${vehicleUuid(203)}",
+                  "createdAt": "2026-01-01T00:00:00Z",
+                  "updatedAt": "2026-01-01T00:00:00Z"
+                }
+              ],
+              "currentVehicle": "${vehicleUuid(203)}",
+              "stations": [
+                {
+                  "uuid": "${stationUuid(203)}",
+                  "type": "SIGHT",
+                  "date": "2026-07-01",
+                  "createdAt": "2026-07-01T10:00:00Z",
+                  "updatedAt": "2026-07-01T10:00:00Z",
+                  "vehicleUuid": "${vehicleUuid(203)}"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val result = importer.import(decodedBackup(text), ImportMode.MERGE)
+
+        assertEquals(1, result.addedVehicles)
+        assertEquals(1, result.addedStations)
+        assertEquals(StationType.SIGHT, storedStations().single().type)
+    }
+
+    @Test
+    fun importsMinimalVersion4Backup() = runTest {
+        val text = """
+            {
+              "format": "camperlog-backup",
+              "schemaVersion": 4,
+              "exportedAt": "2026-10-04T12:00:00Z",
+              "mainCurrency": "SEK",
+              "exchangeRates": [],
+              "tours": [],
+              "vehicles": [
+                {
+                  "uuid": "${vehicleUuid(204)}",
+                  "createdAt": "2026-01-01T00:00:00Z",
+                  "updatedAt": "2026-01-01T00:00:00Z",
+                  "logEntries": [
+                    {
+                      "uuid": "${logEntryUuid(204)}",
+                      "type": "CASSETTE_EMPTIED",
+                      "date": "2026-06-01",
+                      "createdAt": "2026-06-01T00:00:00Z",
+                      "stationUuid": "${stationUuid(204)}"
+                    }
+                  ]
+                }
+              ],
+              "currentVehicle": "${vehicleUuid(204)}",
+              "stations": [
+                {
+                  "uuid": "${stationUuid(204)}",
+                  "type": "SIGHT",
+                  "date": "2026-07-01",
+                  "createdAt": "2026-07-01T10:00:00Z",
+                  "updatedAt": "2026-07-01T10:00:00Z",
+                  "vehicleUuid": "${vehicleUuid(204)}"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val result = importer.import(decodedBackup(text), ImportMode.MERGE)
+
+        assertEquals(1, result.addedStations)
+        assertEquals(1, result.addedLogEntries)
+        val storedStation = RoomStationRepository(db, logs).allStations().single()
+        val storedEntry = logs.allEntries().single()
+        assertEquals(storedStation.id, storedEntry.stationId)
+    }
+
+    @Test
+    fun importsMinimalVersion5Backup() = runTest {
+        val text = """
+            {
+              "format": "camperlog-backup",
+              "schemaVersion": 5,
+              "exportedAt": "2026-10-04T12:00:00Z",
+              "mainCurrency": "SEK",
+              "exchangeRates": [],
+              "tours": [],
+              "vehicles": [
+                {
+                  "uuid": "${vehicleUuid(205)}",
+                  "createdAt": "2026-01-01T00:00:00Z",
+                  "updatedAt": "2026-01-01T00:00:00Z"
+                }
+              ],
+              "currentVehicle": "${vehicleUuid(205)}",
+              "stations": [
+                {
+                  "uuid": "${stationUuid(205)}",
+                  "type": "OVERNIGHT",
+                  "date": "2026-07-01",
+                  "nights": 2,
+                  "createdAt": "2026-07-01T10:00:00Z",
+                  "updatedAt": "2026-07-01T10:00:00Z",
+                  "vehicleUuid": "${vehicleUuid(205)}",
+                  "electricityBilling": "INCLUDED",
+                  "electricityCurrency": "EUR"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val result = importer.import(decodedBackup(text), ImportMode.MERGE)
+
+        assertEquals(1, result.addedStations)
+        assertEquals(ElectricityBilling.INCLUDED, storedStations().single().electricityBilling)
+    }
+
+    @Test
+    fun importsMinimalVersion6Backup() = runTest {
+        val text = """
+            {
+              "format": "camperlog-backup",
+              "schemaVersion": 6,
+              "exportedAt": "2026-10-04T12:00:00Z",
+              "mainCurrency": "SEK",
+              "exchangeRates": [],
+              "tours": [],
+              "vehicles": [
+                {
+                  "uuid": "${vehicleUuid(206)}",
+                  "createdAt": "2026-01-01T00:00:00Z",
+                  "updatedAt": "2026-01-01T00:00:00Z"
+                }
+              ],
+              "currentVehicle": "${vehicleUuid(206)}",
+              "vehicleDocuments": [
+                {
+                  "uuid": "${uuid(206)}",
+                  "vehicleUuid": "${vehicleUuid(206)}",
+                  "kind": "REGISTRATION",
+                  "createdAt": "2026-07-01T10:00:00Z",
+                  "updatedAt": "2026-07-01T10:00:00Z"
+                }
+              ],
+              "attachments": [
+                {
+                  "uuid": "${repairUuid(206)}",
+                  "ownerType": "VEHICLE_DOCUMENT",
+                  "ownerUuid": "${uuid(206)}",
+                  "fileName": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.jpg",
+                  "mimeType": "image/jpeg",
+                  "sizeBytes": 1024,
+                  "width": 800,
+                  "height": 600,
+                  "createdAt": "2026-07-01T10:00:00Z",
+                  "zipPath": "Documents/Minimal/Fahrzeugschein.jpg"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val result = importer.import(decodedBackup(text), ImportMode.MERGE)
+
+        assertEquals(1, result.addedDocuments)
+        assertEquals(1, result.addedAttachments)
     }
 }
