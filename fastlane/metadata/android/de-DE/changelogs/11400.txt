@@ -1,0 +1,2 @@
+• Ortssuche für Stationen über OpenStreetMap Nominatim – nur bei eingeschaltetem „Wetter & Karte“ und nur auf Tipp auf „Ort suchen“
+• Eine Tour warnt, wenn eine Vignette vor dem Tourende abläuft

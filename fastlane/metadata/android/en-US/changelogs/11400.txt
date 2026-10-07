@@ -1,0 +1,2 @@
+• Place search for stops via OpenStreetMap Nominatim – only with "Weather & map" on, only when you tap "Search place"
+• A tour warns when a vignette ends before the tour does
