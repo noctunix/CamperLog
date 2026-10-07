@@ -31,8 +31,9 @@ import java.util.UUID
         StationCostEntity::class,
         AttachmentEntity::class,
         VehicleDocumentEntity::class,
+        TourCountryEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -63,7 +64,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
             Room.databaseBuilder(context.applicationContext, CamperLogDatabase::class.java, "camperlog.db")
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
-                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
+                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
                 )
                 .build()
     }
@@ -558,6 +559,26 @@ internal val MIGRATION_10_11 = object : Migration(10, 11) {
 
         db.query("PRAGMA foreign_key_check").use { cursor ->
             check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 10→11" }
+        }
+    }
+}
+
+/**
+ * Version 12: manuell nachgetragene oder ausgeblendete Länder einer Tour (siehe
+ * [app.restvolt.camperlog.domain.tourCountries]) kommen in der neuen Tabelle `tour_countries` hinzu
+ * (Fremdschlüssel `tour_id` CASCADE). Die Tabelle ist neu, daher reicht `CREATE TABLE` ohne
+ * Datenübernahme; die automatisch erkannten Länder selbst werden nicht gespeichert.
+ */
+internal val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `tour_countries` (`tour_id` INTEGER NOT NULL, `code` TEXT NOT NULL, " +
+                "`added` INTEGER NOT NULL, PRIMARY KEY(`tour_id`, `code`), " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+
+        db.query("PRAGMA foreign_key_check").use { cursor ->
+            check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 11→12" }
         }
     }
 }

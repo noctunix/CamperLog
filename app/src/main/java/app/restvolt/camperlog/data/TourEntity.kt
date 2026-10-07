@@ -68,10 +68,36 @@ data class TourCostEntity(
     val position: Int,
 )
 
-/** Tour mit ihren Kostenbeträgen; die Reihenfolge ergibt sich aus [TourCostEntity.position]. */
+/**
+ * Von Hand nachgetragenes oder ausgeblendetes Land einer Tour, zusätzlich zu den automatisch
+ * erkannten (siehe [app.restvolt.camperlog.domain.tourCountries]). [code] ist je Tour höchstens
+ * einmal vorhanden, unabhängig von [added].
+ */
+@Entity(
+    tableName = "tour_countries",
+    primaryKeys = ["tour_id", "code"],
+    foreignKeys = [
+        ForeignKey(
+            entity = TourEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["tour_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class TourCountryEntity(
+    @ColumnInfo(name = "tour_id") val tourId: Long,
+    /** ISO-3166-1-alpha-2-Code. */
+    val code: String,
+    /** `true` für eine manuelle Ergänzung, `false` für eine manuell ausgeblendete automatische Erkennung. */
+    val added: Boolean,
+)
+
+/** Tour mit ihren Kostenbeträgen und manuellen Länderanpassungen. */
 data class TourWithCosts(
     @Embedded val tour: TourEntity,
     @Relation(parentColumn = "id", entityColumn = "tour_id") val costs: List<TourCostEntity>,
+    @Relation(parentColumn = "id", entityColumn = "tour_id") val countries: List<TourCountryEntity> = emptyList(),
 )
 
 /** Summe der Kosten in einer Währung. */

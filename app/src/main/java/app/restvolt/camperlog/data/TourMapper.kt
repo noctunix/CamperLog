@@ -12,9 +12,11 @@ import java.util.Currency
 
 internal fun TourWithCosts.toDomain(): Tour = tour.toDomain(
     costs.sortedBy(TourCostEntity::position).map { Money(it.amountMinor, Currency.getInstance(it.currency)) },
+    manualCountriesAdded = countries.filter(TourCountryEntity::added).mapTo(mutableSetOf()) { it.code },
+    manualCountriesRemoved = countries.filterNot(TourCountryEntity::added).mapTo(mutableSetOf()) { it.code },
 )
 
-private fun TourEntity.toDomain(costs: List<Money>): Tour = Tour(
+private fun TourEntity.toDomain(costs: List<Money>, manualCountriesAdded: Set<String>, manualCountriesRemoved: Set<String>): Tour = Tour(
     id = id,
     uuid = uuid,
     vehicleId = vehicleId,
@@ -30,6 +32,8 @@ private fun TourEntity.toDomain(costs: List<Money>): Tour = Tour(
     mapLink = mapLink,
     createdAt = Instant.ofEpochMilli(createdAtMillis),
     updatedAt = Instant.ofEpochMilli(updatedAtMillis),
+    manualCountriesAdded = manualCountriesAdded,
+    manualCountriesRemoved = manualCountriesRemoved,
 )
 
 internal fun Tour.toEntity(): TourEntity = TourEntity(
@@ -51,6 +55,10 @@ internal fun Tour.toEntity(): TourEntity = TourEntity(
 
 internal fun Tour.toCostEntities(): List<TourCostEntity> =
     costs.mapIndexed { index, cost -> TourCostEntity(id, cost.currency.currencyCode, cost.minor, index) }
+
+internal fun Tour.toCountryEntities(): List<TourCountryEntity> =
+    manualCountriesAdded.map { TourCountryEntity(id, it, added = true) } +
+        manualCountriesRemoved.map { TourCountryEntity(id, it, added = false) }
 
 internal fun CostSumRow.toDomain(): Money = Money(amountMinor, Currency.getInstance(currency))
 

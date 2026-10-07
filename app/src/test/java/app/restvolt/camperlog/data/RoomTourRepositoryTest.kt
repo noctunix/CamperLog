@@ -145,6 +145,27 @@ class RoomTourRepositoryTest {
     }
 
     @Test
+    fun manualCountriesKeepBothSetsAndAreReplacedOnUpdate() = runTest {
+        val id = repository.save(tour(start = "2026-05-01").copy(manualCountriesAdded = setOf("CH"), manualCountriesRemoved = setOf("DE", "AT")))
+        val stored = checkNotNull(repository.observeTour(id).first())
+        assertEquals(setOf("CH"), stored.manualCountriesAdded)
+        assertEquals(setOf("DE", "AT"), stored.manualCountriesRemoved)
+        assertEquals(setOf("CH"), repository.allTours().single().manualCountriesAdded)
+
+        repository.save(stored.copy(manualCountriesAdded = emptySet(), manualCountriesRemoved = setOf("DE")))
+        val updated = checkNotNull(repository.observeTour(id).first())
+        assertEquals(emptySet<String>(), updated.manualCountriesAdded)
+        assertEquals(setOf("DE"), updated.manualCountriesRemoved)
+    }
+
+    @Test
+    fun deletingTourRemovesItsManualCountries() = runTest {
+        val id = repository.save(tour(start = "2026-05-01").copy(manualCountriesAdded = setOf("CH")))
+        repository.delete(id)
+        assertEquals(0, db.query("SELECT COUNT(*) FROM tour_countries", null).use { it.moveToFirst(); it.getInt(0) })
+    }
+
+    @Test
     fun deletingTourRemovesItsCosts() = runTest {
         val id = repository.save(tour(start = "2026-05-01", costs = listOf(eur(100), Money(200, NOK))))
         repository.save(tour(start = "2026-06-01", costs = listOf(eur(300))))

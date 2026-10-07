@@ -55,12 +55,11 @@ class RoomTourRepository(
         return if (tour.id == 0L) {
             val uuid = tour.uuid.ifEmpty { newUuid() }
             val vehicleId = if (tour.vehicleId == 0L) vehicleDao.resolveCurrentVehicleId(now, newUuid) else tour.vehicleId
-            dao.insertWithCosts(
-                tour.copy(uuid = uuid, vehicleId = vehicleId, createdAt = now, updatedAt = now).toEntity(),
-                tour.toCostEntities(),
-            )
+            val resolved = tour.copy(uuid = uuid, vehicleId = vehicleId, createdAt = now, updatedAt = now)
+            dao.insertWithCosts(resolved.toEntity(), resolved.toCostEntities(), resolved.toCountryEntities())
         } else {
-            dao.updateWithCosts(tour.copy(updatedAt = now).toEntity(), tour.toCostEntities())
+            val resolved = tour.copy(updatedAt = now)
+            dao.updateWithCosts(resolved.toEntity(), resolved.toCostEntities(), resolved.toCountryEntities())
             tour.id
         }
     }
@@ -71,7 +70,7 @@ class RoomTourRepository(
     }
 
     override suspend fun restore(tour: Tour) {
-        dao.insertWithCosts(tour.toEntity(), tour.toCostEntities())
+        dao.insertWithCosts(tour.toEntity(), tour.toCostEntities(), tour.toCountryEntities())
     }
 
     override suspend fun lastUsedCurrency(): Currency? = dao.lastUsedCurrency()?.let(Currency::getInstance)

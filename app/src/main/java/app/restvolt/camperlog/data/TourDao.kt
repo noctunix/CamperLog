@@ -48,20 +48,29 @@ interface TourDao {
     @Query("DELETE FROM tour_costs WHERE tour_id = :tourId")
     suspend fun deleteCosts(tourId: Long)
 
-    /** Legt [tour] samt [costs] an; die Kosten erhalten die neue id. */
+    @Insert
+    suspend fun insertCountries(countries: List<TourCountryEntity>)
+
+    @Query("DELETE FROM tour_countries WHERE tour_id = :tourId")
+    suspend fun deleteCountries(tourId: Long)
+
+    /** Legt [tour] samt [costs] und manuellen Länderanpassungen ([countries]) an; beide erhalten die neue id. */
     @Transaction
-    suspend fun insertWithCosts(tour: TourEntity, costs: List<TourCostEntity>): Long {
+    suspend fun insertWithCosts(tour: TourEntity, costs: List<TourCostEntity>, countries: List<TourCountryEntity> = emptyList()): Long {
         val id = insert(tour)
         insertCosts(costs.map { it.copy(tourId = id) })
+        insertCountries(countries.map { it.copy(tourId = id) })
         return id
     }
 
-    /** Aktualisiert [tour] und ersetzt ihre Kosten vollständig durch [costs]. */
+    /** Aktualisiert [tour] und ersetzt ihre Kosten und manuellen Länderanpassungen vollständig durch [costs]/[countries]. */
     @Transaction
-    suspend fun updateWithCosts(tour: TourEntity, costs: List<TourCostEntity>) {
+    suspend fun updateWithCosts(tour: TourEntity, costs: List<TourCostEntity>, countries: List<TourCountryEntity> = emptyList()) {
         update(tour)
         deleteCosts(tour.id)
         insertCosts(costs)
+        deleteCountries(tour.id)
+        insertCountries(countries)
     }
 
     @Query("DELETE FROM tours WHERE id = :id")

@@ -7,6 +7,10 @@ import java.time.LocalDate
  * Eine Wohnmobil-Tour. [costs] enthält höchstens einen Betrag je Währung.
  * Eine Tour mit [id] 0 ist noch nicht gespeichert. [uuid] identifiziert die Tour geräteübergreifend
  * (z. B. beim Import); leer bedeutet „noch nicht vergeben“, das Repository vergibt sie beim Anlegen.
+ *
+ * [manualCountriesAdded] und [manualCountriesRemoved] sind von Hand nachgetragene bzw. ausgeblendete
+ * Länder zusätzlich zu den automatisch erkannten (siehe [tourCountries]); dieselbe
+ * ISO-3166-1-alpha-2-Code steht nie in beiden Mengen zugleich.
  */
 data class Tour(
     val id: Long = 0,
@@ -25,6 +29,8 @@ data class Tour(
     val mapLink: String?,
     val createdAt: Instant,
     val updatedAt: Instant,
+    val manualCountriesAdded: Set<String> = emptySet(),
+    val manualCountriesRemoved: Set<String> = emptySet(),
 ) {
     /** Jahr der Tour, bestimmt durch das Startdatum. */
     val year: Int get() = startDate.year
