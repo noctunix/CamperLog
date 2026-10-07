@@ -107,6 +107,8 @@ import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.WeatherFetchRow
 import app.restvolt.camperlog.ui.WeatherRefreshRow
 import app.restvolt.camperlog.ui.WeatherSummary
+import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
+import app.restvolt.camperlog.ui.attachments.AttachmentPickers
 import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
@@ -132,6 +134,7 @@ fun EditStationScreen(
     weatherSettings: WeatherSettings,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
+    attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     onDone: () -> Unit,
     onSaved: (Set<StationService>) -> Unit,
 ) {
@@ -181,6 +184,7 @@ fun EditStationScreen(
                 weatherEnabled = weatherEnabled,
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
+                attachmentPickers = attachmentPickers,
                 snackbarHostState = snackbar,
                 modifier = Modifier
                     .padding(padding)
@@ -210,6 +214,7 @@ private fun StationForm(
     weatherEnabled: Boolean,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
+    attachmentPickers: AttachmentPickers,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier,
 ) {
@@ -368,6 +373,7 @@ private fun StationForm(
             fileStore = attachmentFileStore,
             snackbarHostState = snackbarHostState,
             stopLocation = if (input.latitude != null && input.longitude != null) input.latitude to input.longitude else null,
+            pickers = attachmentPickers,
         )
         SectionCard {
             FormTextField(

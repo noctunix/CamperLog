@@ -45,6 +45,8 @@ import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
+import app.restvolt.camperlog.ui.attachments.AttachmentPickers
 import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.labelRes
 
@@ -58,6 +60,7 @@ fun VehicleDocumentEditScreen(
     viewModel: VehicleDocumentEditViewModel,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
+    attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     onDone: () -> Unit,
     onSaved: () -> Unit,
 ) {
@@ -131,6 +134,7 @@ fun VehicleDocumentEditScreen(
                     fileStore = attachmentFileStore,
                     snackbarHostState = snackbar,
                     allowDocuments = true,
+                    pickers = attachmentPickers,
                 )
                 Button(
                     onClick = viewModel::save,

@@ -59,6 +59,8 @@ import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.WeatherSummary
+import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
+import app.restvolt.camperlog.ui.attachments.AttachmentPickers
 import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
@@ -77,6 +79,7 @@ fun StationDetailScreen(
     viewModel: StationDetailViewModel,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
+    attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: (Station) -> Unit,
@@ -131,6 +134,7 @@ fun StationDetailScreen(
                 tourDestination = current.tour?.destination,
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
+                attachmentPickers = attachmentPickers,
                 snackbarHostState = snackbar,
                 modifier = Modifier
                     .padding(padding)
@@ -152,6 +156,7 @@ private fun StationDetails(
     tourDestination: String?,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
+    attachmentPickers: AttachmentPickers,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier,
     onOpenTour: () -> Unit,
@@ -285,6 +290,7 @@ private fun StationDetails(
             fileStore = attachmentFileStore,
             snackbarHostState = snackbarHostState,
             stopLocation = if (station.latitude != null && station.longitude != null) station.latitude to station.longitude else null,
+            pickers = attachmentPickers,
         )
     }
 }

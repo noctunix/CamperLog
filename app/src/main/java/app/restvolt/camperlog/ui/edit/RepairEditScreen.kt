@@ -62,6 +62,8 @@ import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
+import app.restvolt.camperlog.ui.attachments.AttachmentPickers
 import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
@@ -78,6 +80,7 @@ fun RepairEditScreen(
     viewModel: RepairEditViewModel,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
+    attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     onDone: () -> Unit,
     onSaved: () -> Unit,
     onDelete: (Repair) -> Unit,
@@ -131,6 +134,7 @@ fun RepairEditScreen(
                 viewModel = viewModel,
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
+                attachmentPickers = attachmentPickers,
                 snackbarHostState = snackbar,
                 modifier = Modifier
                     .padding(padding)
@@ -157,6 +161,7 @@ private fun RepairForm(
     viewModel: RepairEditViewModel,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
+    attachmentPickers: AttachmentPickers,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier,
 ) {
@@ -223,6 +228,7 @@ private fun RepairForm(
             repository = attachments,
             fileStore = attachmentFileStore,
             snackbarHostState = snackbarHostState,
+            pickers = attachmentPickers,
         )
         Button(
             onClick = viewModel::save,

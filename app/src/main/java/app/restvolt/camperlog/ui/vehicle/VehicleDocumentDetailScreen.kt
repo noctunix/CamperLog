@@ -36,6 +36,8 @@ import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
+import app.restvolt.camperlog.ui.attachments.AttachmentPickers
 import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
@@ -48,6 +50,7 @@ fun VehicleDocumentDetailScreen(
     viewModel: VehicleDocumentDetailViewModel,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
+    attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     onBack: () -> Unit,
     onEdit: (VehicleDocument) -> Unit,
     onDelete: (VehicleDocument) -> Unit,
@@ -109,6 +112,7 @@ fun VehicleDocumentDetailScreen(
                     snackbarHostState = snackbar,
                     modifier = Modifier.fillMaxWidth(),
                     allowDocuments = true,
+                    pickers = attachmentPickers,
                 )
             }
         }

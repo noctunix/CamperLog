@@ -45,6 +45,8 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
+import app.restvolt.camperlog.ui.attachments.AttachmentPickers
 import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
@@ -57,6 +59,7 @@ fun LogHistoryScreen(
     viewModel: LogHistoryViewModel,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
+    attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     onBack: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -121,6 +124,7 @@ fun LogHistoryScreen(
             entryId = entryId,
             attachments = attachments,
             attachmentFileStore = attachmentFileStore,
+            attachmentPickers = attachmentPickers,
             onDismiss = { photosEntry = null },
         )
     }
@@ -161,6 +165,7 @@ private fun LogEntryPhotosSheet(
     entryId: Long,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
+    attachmentPickers: AttachmentPickers,
     onDismiss: () -> Unit,
 ) {
     val snackbar = remember { SnackbarHostState() }
@@ -172,6 +177,7 @@ private fun LogEntryPhotosSheet(
                 repository = attachments,
                 fileStore = attachmentFileStore,
                 snackbarHostState = snackbar,
+                pickers = attachmentPickers,
             )
         }
         SnackbarHost(snackbar)

@@ -71,6 +71,8 @@ import app.restvolt.camperlog.domain.shouldShowKeepAndroidOpen
 import app.restvolt.camperlog.ui.about.AboutScreen
 import app.restvolt.camperlog.ui.about.KeepAndroidOpenDialog
 import app.restvolt.camperlog.ui.about.KeepAndroidOpenSettings
+import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
+import app.restvolt.camperlog.ui.attachments.AttachmentPickers
 import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.settings.NotificationSettings
 import app.restvolt.camperlog.ui.settings.WeatherSettings
@@ -257,6 +259,8 @@ fun CamperLogNavHost(
     weatherProvider: WeatherProvider = AndroidWeatherProvider(userAgent = camperLogUserAgent(BuildConfig.VERSION_NAME)),
     /** Kachellader der Karte; in Tests ein Fake. */
     tileLoader: TileLoader = AndroidTileLoader(userAgent = camperLogUserAgent(BuildConfig.VERSION_NAME)),
+    /** Kamera-/Galerie-/Dokument-Auswahl der Foto-Streifen; in Tests ein Fake ohne echten System-Dialog. */
+    attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -414,6 +418,7 @@ fun CamperLogNavHost(
                 viewModel = viewModel { LogHistoryViewModel(logbook, stations, route.vehicleId, route.type) },
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
+                attachmentPickers = attachmentPickers,
                 onBack = { navController.popFrom(entry) },
             )
         }
@@ -461,6 +466,7 @@ fun CamperLogNavHost(
                 },
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
+                attachmentPickers = attachmentPickers,
                 onDone = { navController.popFrom(entry) },
                 onSaved = { navController.popFrom(entry) },
                 onDelete = { repair ->
@@ -480,6 +486,7 @@ fun CamperLogNavHost(
                 viewModel = documentEditViewModel,
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
+                attachmentPickers = attachmentPickers,
                 onDone = { navController.popFrom(entry) },
                 onSaved = {
                     if (route.documentId == 0L) {
@@ -499,6 +506,7 @@ fun CamperLogNavHost(
                 viewModel = detailViewModel,
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
+                attachmentPickers = attachmentPickers,
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(DocumentEditRoute(route.vehicleId, route.documentId)) },
                 onDelete = { document ->
@@ -605,6 +613,7 @@ fun CamperLogNavHost(
                 weatherSettings = weatherSettings,
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
+                attachmentPickers = attachmentPickers,
                 onDone = { navController.popFrom(entry) },
                 onSaved = { loggedServices ->
                     onStationSaved(loggedServices)
@@ -626,6 +635,7 @@ fun CamperLogNavHost(
                 viewModel = viewModel { StationDetailViewModel(stations, repository, route.stationId) },
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
+                attachmentPickers = attachmentPickers,
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(StationEditRoute(stationId = route.stationId)) },
                 onOpenTour = if (route.fromStationsTab) {
