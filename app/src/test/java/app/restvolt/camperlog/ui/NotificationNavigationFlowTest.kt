@@ -45,6 +45,7 @@ class NotificationNavigationFlowTest {
                     FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
+                    countryLookup = FakeCountryLookupRepository(),
                     pendingVehicleId = 2,
                 ) {}
             }
@@ -69,6 +70,7 @@ class NotificationNavigationFlowTest {
                     FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
+                    countryLookup = FakeCountryLookupRepository(),
                     pendingOpenData = true,
                 ) {}
             }
@@ -102,6 +104,7 @@ class NotificationNavigationFlowTest {
                     FakeVehicleDocumentRepository(listOf(document)), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
+                    countryLookup = FakeCountryLookupRepository(),
                     pendingDocumentId = 7,
                 ) {}
             }

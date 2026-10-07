@@ -45,6 +45,7 @@ class NavLabelsFontScaleTest {
                         FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                         ThemeMode.SYSTEM,
                         canShowStartDialogs = false,
+                        countryLookup = FakeCountryLookupRepository(),
                     ) { }
                 }
             }

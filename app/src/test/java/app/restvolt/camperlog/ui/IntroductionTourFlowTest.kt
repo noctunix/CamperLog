@@ -77,6 +77,7 @@ class IntroductionTourFlowTest {
                     FakeExchangeRateRepository(),
                     FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
+                    countryLookup = FakeCountryLookupRepository(),
                     onThemeModeChange = onThemeModeChange,
                 )
             }

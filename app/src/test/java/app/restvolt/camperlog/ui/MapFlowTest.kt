@@ -88,6 +88,7 @@ class MapFlowTest {
                     FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
+                    countryLookup = FakeCountryLookupRepository(),
                     tileLoader = tileLoader,
                 ) { }
             }

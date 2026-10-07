@@ -63,7 +63,7 @@ class RatesFlowTest {
         compose.setContent {
             var mode by remember { mutableStateOf(ThemeMode.SYSTEM) }
             CamperLogTheme(darkTheme = mode.isDark(isSystemInDarkTheme())) {
-                CamperLogNavHost(tours, FakeVehicleRepository(), FakeLogRepository(), FakeStationRepository(), rates, FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), mode, canShowStartDialogs = false) { mode = it }
+                CamperLogNavHost(tours, FakeVehicleRepository(), FakeLogRepository(), FakeStationRepository(), rates, FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), mode, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository()) { mode = it }
             }
         }
         compose.onNodeWithContentDescription("Übersicht").performClick()

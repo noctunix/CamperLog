@@ -53,6 +53,7 @@ class StationsFlowTest {
                     FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
+                    countryLookup = FakeCountryLookupRepository(),
                 ) { }
             }
         }

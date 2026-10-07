@@ -88,6 +88,7 @@ class StationFlowTest {
                     FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
+                    countryLookup = FakeCountryLookupRepository(),
                     pendingGeoIntent = pendingGeoIntent,
                     locationProvider = locationProvider,
                     weatherProvider = weatherProvider,

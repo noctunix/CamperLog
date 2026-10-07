@@ -87,6 +87,7 @@ class TourFlowTest {
                     FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
+                    countryLookup = FakeCountryLookupRepository(),
                 ) { }
             }
         }
@@ -111,6 +112,7 @@ class TourFlowTest {
                     FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
+                    countryLookup = FakeCountryLookupRepository(),
                 ) { }
             }
         }

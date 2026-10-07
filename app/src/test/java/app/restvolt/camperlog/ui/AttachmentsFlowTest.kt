@@ -55,6 +55,7 @@ class AttachmentsFlowTest {
                     FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
+                    countryLookup = FakeCountryLookupRepository(),
                     attachmentPickers = FakeAttachmentPickers(),
                 ) { }
             }
