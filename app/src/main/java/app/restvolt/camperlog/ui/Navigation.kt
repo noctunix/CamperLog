@@ -785,7 +785,7 @@ fun CamperLogNavHost(
             val detailState by tourDetailViewModel.uiState.collectAsStateWithLifecycle()
             val loaded = detailState as? DetailUiState.Loaded
             val track by remember(route.tourId) { tracks.observeForTour(route.tourId) }
-                .collectAsStateWithLifecycle(initialValue = null)
+                .collectAsStateWithLifecycle(initialValue = emptyList())
             MapScreen(
                 stations = loaded?.stations ?: emptyList(),
                 track = track,

@@ -114,7 +114,8 @@ private const val TRACK_MIN_STEP_PX = 2f
  * Ziehen/Kneifzoom/Doppeltipp, Zoomtasten, Einpassen, Markern und gestrichelten Verbindungen in
  * chronologischer Reihenfolge, sowie die Stationsliste im Bottom Sheet als vollwertige
  * barrierefreie Alternative. Ein aufgezeichneter [track] erscheint je Segment als durchgezogene
- * Linie; `null` heißt „lädt noch“, das erste Einpassen wartet dann darauf.
+ * Linie. Solange der Nutzer die Karte nicht bewegt hat, passt sie sich neu ein, wenn Stationen
+ * oder Trackpunkte (auch verspätet geladen) hinzukommen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -124,23 +125,27 @@ fun MapScreen(
     viewModel: MapViewModel,
     onBack: () -> Unit,
     onOpenStation: (Long) -> Unit,
-    track: List<TrackPoint>? = emptyList(),
+    track: List<TrackPoint> = emptyList(),
 ) {
     val located = remember(stations) { stationsForMap(stations) }
-    val trackSegments = remember(track) { trackSegmentsForMap(track.orEmpty()) }
+    val trackSegments = remember(track) { trackSegmentsForMap(track) }
     val fitPoints = remember(located, trackSegments) { located.mapNotNull { it.toLatLon() } + trackSegments.flatten() }
     val unlocated = remember(stations) { stations.filter { it.latitude == null || it.longitude == null } }
     val tiles by viewModel.tiles.collectAsStateWithLifecycle()
     val showFailureBanner by viewModel.showFailureBanner.collectAsStateWithLifecycle()
     var selectedStationId by remember { mutableStateOf<Long?>(null) }
     var camera by remember { mutableStateOf<MapCamera?>(null) }
+    var autoFit by remember { mutableStateOf(true) }
     val density = LocalDensity.current
     val sheetState = rememberBottomSheetScaffoldState()
     val locale = currentLocale()
 
     val recenter: (Station) -> Unit = { station ->
         selectedStationId = station.id
-        station.toLatLon()?.let { point -> camera = camera?.copy(center = point) }
+        station.toLatLon()?.let { point ->
+            autoFit = false
+            camera = camera?.copy(center = point)
+        }
     }
 
     BottomSheetScaffold(
@@ -162,8 +167,8 @@ fun MapScreen(
             val viewportHeightPx = with(density) { maxHeight.roundToPx() }
             val paddingPx = with(density) { FIT_BOUNDS_PADDING.roundToPx() }
 
-            LaunchedEffect(viewportWidthPx, viewportHeightPx, fitPoints, track == null) {
-                if (camera == null && track != null && viewportWidthPx > 0 && viewportHeightPx > 0) {
+            LaunchedEffect(viewportWidthPx, viewportHeightPx, fitPoints) {
+                if ((camera == null || autoFit) && viewportWidthPx > 0 && viewportHeightPx > 0) {
                     camera = if (fitPoints.isEmpty()) {
                         MapCamera(LatLon(0.0, 0.0), MAP_MIN_ZOOM.toDouble())
                     } else {
@@ -180,7 +185,10 @@ fun MapScreen(
 
                 MapCanvas(
                     camera = currentCamera,
-                    onCameraChange = { camera = it },
+                    onCameraChange = {
+                        autoFit = false
+                        camera = it
+                    },
                     tiles = tiles,
                     located = located,
                     trackSegments = trackSegments,
@@ -196,14 +204,21 @@ fun MapScreen(
                     modifier = Modifier.align(Alignment.CenterEnd).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    FilledTonalIconButton(onClick = { camera = zoomCamera(currentCamera, 1.0) }) {
+                    FilledTonalIconButton(onClick = {
+                        autoFit = false
+                        camera = zoomCamera(currentCamera, 1.0)
+                    }) {
                         Icon(painterResource(R.drawable.ic_add), contentDescription = stringResource(R.string.map_zoom_in))
                     }
-                    FilledTonalIconButton(onClick = { camera = zoomCamera(currentCamera, -1.0) }) {
+                    FilledTonalIconButton(onClick = {
+                        autoFit = false
+                        camera = zoomCamera(currentCamera, -1.0)
+                    }) {
                         Icon(painterResource(R.drawable.ic_remove), contentDescription = stringResource(R.string.map_zoom_out))
                     }
                     FilledTonalIconButton(
                         onClick = {
+                            autoFit = true
                             if (fitPoints.isNotEmpty()) camera = fitBounds(fitPoints, viewportWidthPx, viewportHeightPx, paddingPx)
                         },
                     ) {
