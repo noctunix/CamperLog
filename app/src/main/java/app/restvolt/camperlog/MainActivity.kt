@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
                     logbook = app.logbook,
                     exchangeRates = app.exchangeRates,
                     documents = app.vehicleDocuments,
+                    diaryEntries = app.diaryEntries,
                     attachments = app.attachments,
                     attachmentFileStore = app.attachmentFileStore,
                     backupImporter = app.backupImporter,

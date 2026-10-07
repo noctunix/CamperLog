@@ -7,6 +7,7 @@ import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityBilling
@@ -81,7 +82,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 7
+const val BACKUP_SCHEMA_VERSION = 8
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -101,6 +102,8 @@ internal const val MAX_MANUAL_COUNTRIES = 300
 internal const val MAX_VEHICLE_DOCUMENTS = 10_000
 internal const val MAX_ATTACHMENTS = 200_000
 internal const val MAX_CAPTION_LENGTH = 2_000
+internal const val MAX_DIARY_ENTRIES = 200_000
+internal const val MAX_DIARY_TEXT_LENGTH = 20_000
 
 /** Wie `AttachmentFileStore.MAX_DOCUMENT_BYTES`; hier verdoppelt statt importiert, damit `backup/` ohne Android-Abhängigkeiten bleibt. */
 private const val MAX_ATTACHMENT_SIZE_BYTES = 20L * 1024 * 1024
@@ -149,7 +152,8 @@ private val MAX_INSTANT = Instant.parse("2199-12-31T00:00:00Z")
  * Fahrzeugdokumente, [attachments] alle Anhänge (Fotos und Dokumentdateien) zu Stationen,
  * Reparaturen, Bordbuch-Einträgen und Fahrzeugdokumenten (Formatversion 6); beides fehlt in älteren
  * Sicherungen. Eine Sicherung ohne Dateien (JSON-only-Export) enthält [attachments] trotzdem als
- * Metadaten, nur ohne die zugehörigen Dateien im ZIP.
+ * Metadaten, nur ohne die zugehörigen Dateien im ZIP. [diaryEntries] enthält alle Tagebucheinträge
+ * (Formatversion 8); fehlt in älteren Sicherungen.
  */
 data class Backup(
     val exportedAt: Instant,
@@ -165,6 +169,7 @@ data class Backup(
     val logEntryStationUuid: Map<String, String> = emptyMap(),
     val documents: List<BackupVehicleDocument> = emptyList(),
     val attachments: List<BackupAttachment> = emptyList(),
+    val diaryEntries: List<BackupDiaryEntry> = emptyList(),
 )
 
 /** Ein Fahrzeug einer Sicherung mit seinen Reparaturen und Bordbuch-Einträgen. */
@@ -176,6 +181,9 @@ data class BackupVehicle(
 
 /** Ein Fahrzeugdokument einer Sicherung mit [vehicleUuid], der UUID seines Fahrzeugs. */
 data class BackupVehicleDocument(val document: VehicleDocument, val vehicleUuid: String)
+
+/** Ein Tagebucheintrag einer Sicherung mit [tourUuid], der UUID seiner Tour. */
+data class BackupDiaryEntry(val entry: DiaryEntry, val tourUuid: String)
 
 /**
  * Ein Anhang einer Sicherung mit [ownerUuid], der UUID des Eintrags, zu dem er gehört (je
@@ -224,6 +232,7 @@ sealed interface BackupReadResult {
         val stationNumber: Int? = null,
         val documentNumber: Int? = null,
         val attachmentNumber: Int? = null,
+        val diaryEntryNumber: Int? = null,
     ) : BackupReadResult
 }
 
@@ -257,6 +266,7 @@ fun encodeBackup(backup: Backup): String = json.encodeToString(
         },
         vehicleDocuments = backup.documents.map { json.encodeToJsonElement(VehicleDocumentDto.serializer(), it.toDto()) },
         attachments = backup.attachments.map { json.encodeToJsonElement(AttachmentDto.serializer(), it.toDto()) },
+        diaryEntries = backup.diaryEntries.map { json.encodeToJsonElement(DiaryEntryDto.serializer(), it.toDto()) },
     ),
 )
 
@@ -481,6 +491,23 @@ private fun BackupDto.toBackup(): BackupReadResult {
         BackupVehicleDocument(document, vehicleUuid)
     }
 
+    if (diaryEntries.size > MAX_DIARY_ENTRIES) return invalid
+    val seenDiaryEntryUuids = HashSet<String>()
+    val seenDiaryEntryTourDates = HashSet<Pair<String, LocalDate>>()
+    val backupDiaryEntries = diaryEntries.mapIndexed { index, element ->
+        val diaryEntryNumber = index + 1
+        val dto = decodeJson(DiaryEntryDto.serializer(), element)
+            ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, diaryEntryNumber = diaryEntryNumber)
+        val entry = dto.toDiaryEntry() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, diaryEntryNumber = diaryEntryNumber)
+        if (!seenDiaryEntryUuids.add(entry.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, diaryEntryNumber = diaryEntryNumber)
+        val tourUuid = parseUuid(dto.tourUuid) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, diaryEntryNumber = diaryEntryNumber)
+        if (tourUuid !in seenTourUuids) return BackupReadResult.Failure(BackupError.INVALID_DATA, diaryEntryNumber = diaryEntryNumber)
+        if (!seenDiaryEntryTourDates.add(tourUuid to entry.date)) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, diaryEntryNumber = diaryEntryNumber)
+        }
+        BackupDiaryEntry(entry, tourUuid)
+    }
+
     val seenAttachmentUuids = HashSet<String>()
     val seenZipPaths = HashSet<String>()
     val seenZipPathsLowercase = HashSet<String>()
@@ -525,6 +552,7 @@ private fun BackupDto.toBackup(): BackupReadResult {
             logEntryStationUuid = logEntryStationUuid,
             documents = documents,
             attachments = backupAttachments,
+            diaryEntries = backupDiaryEntries,
         ),
     )
 }
@@ -1042,6 +1070,29 @@ private fun BackupVehicleDocument.toDto() = VehicleDocumentDto(
     expiryDate = document.expiryDate?.toString(),
     createdAt = document.createdAt.toString(),
     updatedAt = document.updatedAt.toString(),
+)
+
+private fun DiaryEntryDto.toDiaryEntry(): DiaryEntry? {
+    val uuid = parseUuid(uuid) ?: return null
+    val entryDate = parseDate(date) ?: return null
+    val entryText = text.takeIf { it.isNotBlank() && it.length <= MAX_DIARY_TEXT_LENGTH } ?: return null
+    return DiaryEntry(
+        uuid = uuid,
+        tourId = 0,
+        date = entryDate,
+        text = entryText,
+        createdAt = parseInstant(createdAt) ?: return null,
+        updatedAt = parseInstant(updatedAt) ?: return null,
+    )
+}
+
+private fun BackupDiaryEntry.toDto() = DiaryEntryDto(
+    uuid = entry.uuid,
+    tourUuid = tourUuid,
+    date = entry.date.toString(),
+    text = entry.text,
+    createdAt = entry.createdAt.toString(),
+    updatedAt = entry.updatedAt.toString(),
 )
 
 /** Prüft Dateiname, MIME-Typ, Abmessungen und Koordinaten eines Anhangs; `null` bei jeder Unstimmigkeit, nicht nur offensichtlich falschen Werten. */

@@ -52,6 +52,7 @@ import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.data.BackupFolderWriter
 import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.CountryLookupRepository
+import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.LocationProvider
@@ -243,6 +244,7 @@ fun CamperLogNavHost(
     stations: StationRepository,
     exchangeRates: ExchangeRateRepository,
     documents: VehicleDocumentRepository,
+    diaryEntries: DiaryEntryRepository,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     backupImporter: BackupImporter,
@@ -717,6 +719,7 @@ fun CamperLogNavHost(
                         logbook,
                         stations,
                         documents,
+                        diaryEntries,
                         attachments,
                         attachmentFileStore,
                         backupImporter,

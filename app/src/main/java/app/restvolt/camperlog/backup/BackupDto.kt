@@ -29,6 +29,8 @@ internal data class BackupDto(
     val vehicleDocuments: List<JsonElement> = emptyList(),
     /** Einzeln als [AttachmentDto] gelesen; fehlt in Sicherungen vor Formatversion 6 oder in einer Sicherung ohne Dateien. */
     val attachments: List<JsonElement> = emptyList(),
+    /** Einzeln als [DiaryEntryDto] gelesen; fehlt in Sicherungen vor Formatversion 8. */
+    val diaryEntries: List<JsonElement> = emptyList(),
 )
 
 @Serializable
@@ -250,6 +252,17 @@ internal data class AttachmentDto(
     val createdAt: String,
     /** Menschenlesbarer Pfad der Anhangsdatei in der ZIP-Sicherung, siehe `buildAttachmentZipPaths`. */
     val zipPath: String = "",
+)
+
+@Serializable
+internal data class DiaryEntryDto(
+    val uuid: String,
+    /** uuid der Tour dieses Eintrags. */
+    val tourUuid: String,
+    val date: String,
+    val text: String = "",
+    val createdAt: String,
+    val updatedAt: String,
 )
 
 @Serializable

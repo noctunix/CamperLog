@@ -10,6 +10,7 @@ import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleDocument
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
+import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
@@ -44,6 +45,7 @@ class RoomBackupImporter(
         val stationDao = database.stationDao()
         val rateDao = database.exchangeRateDao()
         val documentDao = database.vehicleDocumentDao()
+        val diaryEntryDao = database.diaryEntryDao()
         val attachmentDao = database.attachmentDao()
 
         val importedVehicles = backup.vehicles.map { it.notAfter(now, today) }
@@ -51,6 +53,7 @@ class RoomBackupImporter(
         if (mode == ImportMode.REPLACE) {
             attachmentDao.deleteAll()
             documentDao.deleteAll()
+            diaryEntryDao.deleteAll()
             stationDao.deleteAll()
             tourDao.deleteAll()
             vehicleDao.deleteAllRepairs()
@@ -284,6 +287,36 @@ class RoomBackupImporter(
             }
         }
 
+        // --- Tagebucheinträge: wie Fahrzeugdokumente über ihre UUID abgeglichen ---
+        val importedDiaryEntries = backup.diaryEntries.mapNotNull { backupEntry ->
+            tourLocalIdByUuid[backupEntry.tourUuid]?.let { localTourId ->
+                backupEntry.entry.copy(tourId = localTourId).notAfter(now, today)
+            }
+        }
+        var addedDiaryEntries = 0
+        var updatedDiaryEntries = 0
+        if (mode == ImportMode.REPLACE) {
+            importedDiaryEntries.forEach { entry ->
+                diaryEntryDao.insert(entry.copy(id = 0).toEntity())
+                addedDiaryEntries++
+            }
+        } else {
+            val storedDiaryEntries = diaryEntryDao.getVersions().associateBy(DiaryEntryVersionRow::uuid)
+            for (entry in importedDiaryEntries) {
+                val existing = storedDiaryEntries[entry.uuid]
+                when {
+                    existing == null -> {
+                        diaryEntryDao.insert(entry.copy(id = 0).toEntity())
+                        addedDiaryEntries++
+                    }
+                    entry.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
+                        diaryEntryDao.update(entry.copy(id = existing.id).toEntity())
+                        updatedDiaryEntries++
+                    }
+                }
+            }
+        }
+
         // --- Anhänge: unveränderlich wie Bordbuch-Einträge, daher nur anlegen, wenn die uuid noch unbekannt ist ---
         val importedAttachments = backup.attachments.mapNotNull { backupAttachment ->
             val ownerId = backupAttachment.attachment.ownerId(
@@ -326,6 +359,8 @@ class RoomBackupImporter(
             updatedStations = updatedStations,
             addedDocuments = addedDocuments,
             updatedDocuments = updatedDocuments,
+            addedDiaryEntries = addedDiaryEntries,
+            updatedDiaryEntries = updatedDiaryEntries,
             addedAttachments = addedAttachments,
         )
     }
@@ -352,6 +387,12 @@ private fun Station.notAfter(now: Instant, today: LocalDate): Station = copy(
 
 /** Begrenzt Anlage- und Änderungszeit wie [Tour.notAfter]; [VehicleDocument.expiryDate] bleibt unverändert, siehe Klassen-KDoc. */
 private fun VehicleDocument.notAfter(now: Instant): VehicleDocument = copy(
+    createdAt = minOf(createdAt, now),
+    updatedAt = minOf(updatedAt, now),
+)
+
+private fun DiaryEntry.notAfter(now: Instant, today: LocalDate): DiaryEntry = copy(
+    date = minOf(date, today),
     createdAt = minOf(createdAt, now),
     updatedAt = minOf(updatedAt, now),
 )

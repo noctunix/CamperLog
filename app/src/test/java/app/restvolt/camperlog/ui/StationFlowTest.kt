@@ -85,7 +85,7 @@ class StationFlowTest {
                     logs,
                     stationRepository,
                     FakeExchangeRateRepository(),
-                    FakeVehicleDocumentRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
+                    FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),

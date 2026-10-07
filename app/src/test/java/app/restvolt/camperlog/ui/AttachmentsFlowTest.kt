@@ -50,6 +50,7 @@ class AttachmentsFlowTest {
                     stationRepository,
                     FakeExchangeRateRepository(),
                     FakeVehicleDocumentRepository(),
+                    FakeDiaryEntryRepository(),
                     attachments,
                     FakeAttachmentFileStore(),
                     FakeBackupImporter(),

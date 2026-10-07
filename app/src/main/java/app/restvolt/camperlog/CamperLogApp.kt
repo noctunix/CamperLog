@@ -7,6 +7,7 @@ import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.data.CamperLogDatabase
 import app.restvolt.camperlog.data.RoomAttachmentRepository
 import app.restvolt.camperlog.data.RoomBackupImporter
+import app.restvolt.camperlog.data.RoomDiaryEntryRepository
 import app.restvolt.camperlog.data.RoomExchangeRateRepository
 import app.restvolt.camperlog.data.RoomLogRepository
 import app.restvolt.camperlog.data.RoomStationRepository
@@ -15,6 +16,7 @@ import app.restvolt.camperlog.data.RoomVehicleDocumentRepository
 import app.restvolt.camperlog.data.RoomVehicleRepository
 import app.restvolt.camperlog.data.TileHttpCache
 import app.restvolt.camperlog.domain.AttachmentRepository
+import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
@@ -48,6 +50,9 @@ class CamperLogApp : Application() {
 
     /** Fahrzeugdokumente (Fahrzeugschein, Versicherung, Garantie, …). */
     val vehicleDocuments: VehicleDocumentRepository by lazy { RoomVehicleDocumentRepository(database) }
+
+    /** Tagebucheinträge der Touren. */
+    val diaryEntries: DiaryEntryRepository by lazy { RoomDiaryEntryRepository(database) }
 
     /** Dateizugriff für [attachments]: Import von einer Content-Uri, Löschen, Aufräumen verwaister Dateien. */
     val attachmentFileStore: AttachmentFileStore by lazy { AndroidAttachmentFileStore(this) }

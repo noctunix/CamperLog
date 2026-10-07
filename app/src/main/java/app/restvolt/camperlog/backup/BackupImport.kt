@@ -38,6 +38,8 @@ data class ImportResult(
     val updatedStations: Int = 0,
     val addedDocuments: Int = 0,
     val updatedDocuments: Int = 0,
+    val addedDiaryEntries: Int = 0,
+    val updatedDiaryEntries: Int = 0,
     val addedAttachments: Int = 0,
 )
 

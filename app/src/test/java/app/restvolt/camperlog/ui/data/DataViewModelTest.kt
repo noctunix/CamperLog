@@ -22,6 +22,7 @@ import app.restvolt.camperlog.share.CsvVocabulary
 import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import app.restvolt.camperlog.ui.FakeAttachmentRepository
 import app.restvolt.camperlog.ui.FakeBackupImporter
+import app.restvolt.camperlog.ui.FakeDiaryEntryRepository
 import app.restvolt.camperlog.ui.FakeExchangeRateRepository
 import app.restvolt.camperlog.ui.FakeLogRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
@@ -98,6 +99,7 @@ class DataViewModelTest {
             FakeLogRepository(),
             FakeStationRepository(),
             FakeVehicleDocumentRepository(),
+            FakeDiaryEntryRepository(),
             FakeAttachmentRepository(),
             FakeAttachmentFileStore(),
             FakeBackupImporter(),
@@ -133,6 +135,7 @@ class DataViewModelTest {
             FakeLogRepository(),
             FakeStationRepository(),
             FakeVehicleDocumentRepository(),
+            FakeDiaryEntryRepository(),
             FakeAttachmentRepository(),
             FakeAttachmentFileStore(),
             importer,
@@ -237,6 +240,7 @@ class DataViewModelTest {
             FakeLogRepository(),
             FakeStationRepository(listOf(station)),
             FakeVehicleDocumentRepository(),
+            FakeDiaryEntryRepository(),
             FakeAttachmentRepository(),
             FakeAttachmentFileStore(),
             FakeBackupImporter(),
@@ -312,6 +316,7 @@ class DataViewModelTest {
             FakeLogRepository(),
             FakeStationRepository(),
             FakeVehicleDocumentRepository(initial = listOf(document)),
+            FakeDiaryEntryRepository(),
             FakeAttachmentRepository(initial = listOf(attachment)),
             fileStore,
             FakeBackupImporter(),

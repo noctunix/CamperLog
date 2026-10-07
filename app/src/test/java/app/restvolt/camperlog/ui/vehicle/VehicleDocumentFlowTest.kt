@@ -17,6 +17,7 @@ import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import app.restvolt.camperlog.ui.FakeAttachmentRepository
 import app.restvolt.camperlog.ui.FakeBackupImporter
 import app.restvolt.camperlog.ui.FakeCountryLookupRepository
+import app.restvolt.camperlog.ui.FakeDiaryEntryRepository
 import app.restvolt.camperlog.ui.FakeExchangeRateRepository
 import app.restvolt.camperlog.ui.FakeLogRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
@@ -54,6 +55,7 @@ class VehicleDocumentFlowTest {
                     FakeStationRepository(),
                     FakeExchangeRateRepository(),
                     documents,
+                    FakeDiaryEntryRepository(),
                     FakeAttachmentRepository(),
                     FakeAttachmentFileStore(),
                     FakeBackupImporter(),

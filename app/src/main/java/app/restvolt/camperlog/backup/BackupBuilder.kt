@@ -2,6 +2,7 @@ package app.restvolt.camperlog.backup
 
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.AttachmentRepository
+import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
@@ -23,6 +24,7 @@ suspend fun buildBackup(
     logs: LogRepository,
     stations: StationRepository,
     documents: VehicleDocumentRepository,
+    diaryEntries: DiaryEntryRepository,
     attachments: AttachmentRepository,
     exportedAt: Instant,
 ): Backup {
@@ -32,6 +34,7 @@ suspend fun buildBackup(
     val repairsByVehicle = vehicles.allRepairs().groupBy { it.vehicleId }
     val logEntriesByVehicle = logs.allEntries().groupBy { it.vehicleId }
     val allDocuments = documents.allDocuments()
+    val allDiaryEntries = diaryEntries.allEntries()
     val vehicleUuidById = allVehicles.associate { it.id to it.uuid }
     val tourUuidById = tours.associate { it.id to it.uuid }
     val stationUuidById = allStations.associate { it.id to it.uuid }
@@ -62,6 +65,9 @@ suspend fun buildBackup(
         }.toMap(),
         documents = allDocuments.mapNotNull { document ->
             vehicleUuidById[document.vehicleId]?.let { BackupVehicleDocument(document, it) }
+        },
+        diaryEntries = allDiaryEntries.mapNotNull { entry ->
+            tourUuidById[entry.tourId]?.let { BackupDiaryEntry(entry, it) }
         },
         attachments = attachments.allAttachments().mapNotNull { attachment ->
             val ownerUuid = when (attachment.ownerType) {

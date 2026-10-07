@@ -21,6 +21,7 @@ import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.data.BackupFolderWriter
 import app.restvolt.camperlog.data.commitStagedAttachmentFiles
 import app.restvolt.camperlog.domain.AttachmentRepository
+import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
@@ -88,7 +89,8 @@ sealed interface ShareRequest {
 
 /**
  * Datenverwaltung: Export und Import der gespeicherten Touren, Fahrzeuge, Reparaturen, des
- * Bordbuchs, der Kurse, der Hauptwährung, der Fahrzeugdokumente und ihrer Anhänge. Alle Vorgänge
+ * Bordbuchs, der Kurse, der Hauptwährung, der Fahrzeugdokumente, der Tagebucheinträge und ihrer
+ * Anhänge. Alle Vorgänge
  * laufen im [viewModelScope] und überstehen so Konfigurationswechsel; Ergebnisse erscheinen in
  * [message] bzw. [share], bis der Screen sie quittiert.
  */
@@ -99,6 +101,7 @@ class DataViewModel(
     private val logs: LogRepository,
     private val stations: StationRepository,
     private val documents: VehicleDocumentRepository,
+    private val diaryEntries: DiaryEntryRepository,
     private val attachments: AttachmentRepository,
     private val attachmentFileStore: AttachmentFileStore,
     private val importer: BackupImporter,
@@ -267,7 +270,8 @@ class DataViewModel(
         }
     }
 
-    private suspend fun currentBackup(): Backup = buildBackup(repository, exchangeRates, vehicles, logs, stations, documents, attachments, clock())
+    private suspend fun currentBackup(): Backup =
+        buildBackup(repository, exchangeRates, vehicles, logs, stations, documents, diaryEntries, attachments, clock())
 
     /** Schreibt [json] und die Dateien der [backup]-Anhänge direkt in den gelieferten Ausgabestrom. */
     private fun zipWriter(json: String, backup: Backup): (OutputStream) -> Unit = { output ->
