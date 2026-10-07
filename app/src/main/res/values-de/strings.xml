@@ -940,8 +940,8 @@
     <string name="checklist_uncheck_all">Alle Haken entfernen</string>
     <string name="checklist_delete_action">Checkliste löschen</string>
     <string name="checklist_not_found">Diese Checkliste gibt es nicht mehr.</string>
-    <string name="checklist_progress">%1$d von %2$d erledigt</string>
-    <string name="checklist_progress_cd">%1$s, %2$d von %3$d erledigt</string>
+    <string name="checklist_progress">Erledigt: %1$d/%2$d</string>
+    <string name="checklist_progress_cd">%1$s, erledigt: %2$d/%3$d</string>
     <string name="checklist_done">Erledigt</string>
     <string name="checklist_deleted">Checkliste gelöscht</string>
     <string name="checklist_delete_failed">Checkliste konnte nicht gelöscht werden.</string>
