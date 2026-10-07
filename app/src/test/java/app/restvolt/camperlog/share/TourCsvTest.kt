@@ -255,7 +255,7 @@ class TourCsvTest {
         val row = toursToCsv(listOf(tour), listOf(station), mapOf(1L to "Bulli"), DEFAULT_NAME, CsvVocabulary.ENGLISH).split("\r\n")[1]
 
         assertEquals(
-            "3,2026-07-10,2026-07-12,Lake Garda,day trip,3,2,412,89.50,yes,not used,good,level,no," +
+            "3,2026-07-10,2026-07-12,Lake Garda,day_trip,3,2,412,89.50,yes,not_used,good,level,no," +
                 ",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z,89.50 EUR,Bulli,89.50 EUR",
             row,
         )

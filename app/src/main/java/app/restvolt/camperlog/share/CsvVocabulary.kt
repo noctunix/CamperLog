@@ -33,7 +33,7 @@ fun TourType.csvValue(vocabulary: CsvVocabulary): String = if (vocabulary == Csv
     csvValue
 } else {
     when (this) {
-        TourType.DAY_TRIP -> "day trip"
+        TourType.DAY_TRIP -> "day_trip"
         TourType.WEEKEND -> "weekend"
         TourType.VACATION -> "vacation"
     }
@@ -46,7 +46,7 @@ fun ElectricityFlatRate.csvValue(vocabulary: CsvVocabulary): String = if (vocabu
     when (this) {
         ElectricityFlatRate.YES -> "yes"
         ElectricityFlatRate.NO -> "no"
-        ElectricityFlatRate.NOT_USED -> "not used"
+        ElectricityFlatRate.NOT_USED -> "not_used"
     }
 }
 
