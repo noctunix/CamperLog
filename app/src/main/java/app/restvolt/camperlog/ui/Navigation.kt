@@ -86,6 +86,7 @@ import app.restvolt.camperlog.ui.data.DataViewModel
 import app.restvolt.camperlog.ui.detail.DetailUiState
 import app.restvolt.camperlog.ui.detail.StationDetailScreen
 import app.restvolt.camperlog.ui.detail.StationDetailViewModel
+import app.restvolt.camperlog.ui.detail.AndroidTourExportFiles
 import app.restvolt.camperlog.ui.detail.TourDetailScreen
 import app.restvolt.camperlog.ui.detail.TourDetailViewModel
 import app.restvolt.camperlog.ui.edit.EditStationScreen
@@ -545,8 +546,21 @@ fun CamperLogNavHost(
             val tourId = entry.toRoute<DetailRoute>().tourId
             val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations)
             val weatherMapEnabled by weatherSettings.values.collectAsStateWithLifecycle()
+            val context = LocalContext.current
             TourDetailScreen(
-                viewModel = viewModel { TourDetailViewModel(repository, vehicles, stations, exchangeRates, countryLookup, tourId) },
+                viewModel = viewModel {
+                    TourDetailViewModel(
+                        repository,
+                        vehicles,
+                        stations,
+                        exchangeRates,
+                        countryLookup,
+                        attachments,
+                        attachmentFileStore,
+                        AndroidTourExportFiles(context),
+                        tourId,
+                    )
+                },
                 weatherMapEnabled = weatherMapEnabled,
                 onBack = { navController.popFrom(entry) },
                 onEdit = { navController.navigate(EditRoute(tourId)) },
@@ -565,7 +579,8 @@ fun CamperLogNavHost(
         }
         composable<TourMapRoute> { entry ->
             val route = entry.toRoute<TourMapRoute>()
-            val tourDetailViewModel = navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates, countryLookup)
+            val tourDetailViewModel =
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates, countryLookup, attachments, attachmentFileStore)
             val detailState by tourDetailViewModel.uiState.collectAsStateWithLifecycle()
             val loaded = detailState as? DetailUiState.Loaded
             MapScreen(
@@ -651,7 +666,7 @@ fun CamperLogNavHost(
                 route.fromStationsTab && navController.hasRoute<StationsRoute>() ->
                     navController.stationsViewModel(entry, stations, repository, vehicles)::deleteStation
                 navController.hasRoute<DetailRoute>() ->
-                    navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates, countryLookup)::deleteStation
+                    navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates, countryLookup, attachments, attachmentFileStore)::deleteStation
                 else -> { station -> fallbackDeleteScope.launch { stations.delete(station.id) } }
             }
             StationDetailScreen(
@@ -886,10 +901,15 @@ private fun NavController.tourDetailViewModel(
     stations: StationRepository,
     exchangeRates: ExchangeRateRepository,
     countryLookup: CountryLookupRepository,
+    attachments: AttachmentRepository,
+    attachmentFileStore: AttachmentFileStore,
 ): TourDetailViewModel {
     val detailEntry = remember(entry) { getBackStackEntry<DetailRoute>() }
     val tourId = detailEntry.toRoute<DetailRoute>().tourId
-    return viewModel(viewModelStoreOwner = detailEntry) { TourDetailViewModel(tours, vehicles, stations, exchangeRates, countryLookup, tourId) }
+    val context = LocalContext.current
+    return viewModel(viewModelStoreOwner = detailEntry) {
+        TourDetailViewModel(tours, vehicles, stations, exchangeRates, countryLookup, attachments, attachmentFileStore, AndroidTourExportFiles(context), tourId)
+    }
 }
 
 /**

@@ -21,6 +21,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -45,10 +46,14 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Conversion
@@ -69,6 +74,7 @@ import app.restvolt.camperlog.domain.sumByCurrency
 import app.restvolt.camperlog.domain.tourCountries
 import app.restvolt.camperlog.share.openInMaps
 import app.restvolt.camperlog.share.shareTour
+import app.restvolt.camperlog.share.shareTourExportZip
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.EmptyHint
@@ -100,6 +106,8 @@ fun TourDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
+    val exporting by viewModel.exporting.collectAsStateWithLifecycle()
+    val exportRequest by viewModel.exportRequest.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val resources = LocalResources.current
     val scope = rememberCoroutineScope()
@@ -110,43 +118,65 @@ fun TourDetailScreen(
 
     Scaffold(
         topBar = {
-            BackTopBar(title = tour?.destination ?: stringResource(R.string.detail_fallback_title), onBack = onBack) {
-                if (tour != null) {
-                    val loaded = state as DetailUiState.Loaded
-                    IconButton(onClick = onEdit) {
-                        Icon(painterResource(R.drawable.ic_edit), contentDescription = stringResource(R.string.detail_edit))
+            Column {
+                BackTopBar(title = tour?.destination ?: stringResource(R.string.detail_fallback_title), onBack = onBack) {
+                    if (tour != null) {
+                        val loaded = state as DetailUiState.Loaded
+                        IconButton(onClick = onEdit) {
+                            Icon(painterResource(R.drawable.ic_edit), contentDescription = stringResource(R.string.detail_edit))
+                        }
+                        IconButton(onClick = { overflowExpanded = true }) {
+                            Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.more_options))
+                        }
+                        DropdownMenu(expanded = overflowExpanded, onDismissRequest = { overflowExpanded = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.detail_share)) },
+                                onClick = {
+                                    overflowExpanded = false
+                                    val countries = tourCountries(loaded.autoDetectedCountries, tour.manualCountriesAdded, tour.manualCountriesRemoved)
+                                    if (!context.shareTour(tour, loaded.stations, countries)) {
+                                        scope.launch { snackbar.showSnackbar(resources.getString(R.string.no_share_app)) }
+                                    }
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.detail_export_tour)) },
+                                enabled = !exporting,
+                                onClick = {
+                                    overflowExpanded = false
+                                    val countries = tourCountries(loaded.autoDetectedCountries, tour.manualCountriesAdded, tour.manualCountriesRemoved)
+                                    viewModel.exportTour(resources, tour, loaded.stations, countries)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.detail_open_maps)) },
+                                onClick = {
+                                    overflowExpanded = false
+                                    if (!context.openInMaps(tour)) {
+                                        scope.launch { snackbar.showSnackbar(resources.getString(R.string.detail_no_maps_app)) }
+                                    }
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.detail_delete)) },
+                                onClick = {
+                                    overflowExpanded = false
+                                    onDelete(tour)
+                                },
+                            )
+                        }
                     }
-                    IconButton(onClick = { overflowExpanded = true }) {
-                        Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.more_options))
-                    }
-                    DropdownMenu(expanded = overflowExpanded, onDismissRequest = { overflowExpanded = false }) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.detail_share)) },
-                            onClick = {
-                                overflowExpanded = false
-                                val countries = tourCountries(loaded.autoDetectedCountries, tour.manualCountriesAdded, tour.manualCountriesRemoved)
-                                if (!context.shareTour(tour, loaded.stations, countries)) {
-                                    scope.launch { snackbar.showSnackbar(resources.getString(R.string.no_share_app)) }
-                                }
+                }
+                if (exporting) {
+                    val working = stringResource(R.string.data_working)
+                    LinearProgressIndicator(
+                        Modifier
+                            .fillMaxWidth()
+                            .semantics {
+                                contentDescription = working
+                                liveRegion = LiveRegionMode.Polite
                             },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.detail_open_maps)) },
-                            onClick = {
-                                overflowExpanded = false
-                                if (!context.openInMaps(tour)) {
-                                    scope.launch { snackbar.showSnackbar(resources.getString(R.string.detail_no_maps_app)) }
-                                }
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.detail_delete)) },
-                            onClick = {
-                                overflowExpanded = false
-                                onDelete(tour)
-                            },
-                        )
-                    }
+                    )
                 }
             }
         },
@@ -193,6 +223,12 @@ fun TourDetailScreen(
             },
             onDismiss = { showTypePicker = false },
         )
+    }
+
+    LaunchedEffect(exportRequest) {
+        val request = exportRequest ?: return@LaunchedEffect
+        val started = context.shareTourExportZip(request.uri.toUri(), request.destination)
+        viewModel.exportRequestHandled(started)
     }
 
     // Die Meldung gilt erst nach vollständiger Anzeige als erledigt, siehe ToursScreen.

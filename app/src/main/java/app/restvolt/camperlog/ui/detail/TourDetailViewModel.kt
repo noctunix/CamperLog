@@ -1,10 +1,14 @@
 package app.restvolt.camperlog.ui.detail
 
+import android.content.res.Resources
 import android.database.SQLException
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.data.AttachmentFileStore
+import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.Conversion
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.CountryLookupRepository
@@ -22,6 +26,9 @@ import app.restvolt.camperlog.domain.convert
 import app.restvolt.camperlog.domain.costsByCategory
 import app.restvolt.camperlog.domain.stationCostTotals
 import app.restvolt.camperlog.domain.totalCosts
+import app.restvolt.camperlog.share.CsvVocabulary
+import app.restvolt.camperlog.share.tourExportBaseName
+import app.restvolt.camperlog.share.writeTourExportZip
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +36,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.IOException
+import java.util.Locale
 
 /**
  * Zustand der Detailansicht. [Loaded.vehicle] ist nur gesetzt, wenn es mehr als ein Fahrzeug gibt.
@@ -54,7 +63,7 @@ sealed interface DetailUiState {
     ) : DetailUiState
 }
 
-/** Rückmeldung zu einer Station aus der Zeitleiste; die Detailseite zeigt sie als Snackbar. */
+/** Rückmeldung zu einer Station aus der Zeitleiste oder zum Tour-Export; die Detailseite zeigt sie als Snackbar. */
 sealed interface StationMessage {
     /** [linkedEntryIds] sind die Bordbuch-Einträge, die vor dem Löschen mit der Station verknüpft waren. */
     data class Deleted(val station: Station, val linkedEntryIds: List<Long> = emptyList()) : StationMessage
@@ -62,14 +71,22 @@ sealed interface StationMessage {
     data class Failed(@StringRes val text: Int) : StationMessage
 }
 
+/** Zu teilende ZIP-Datei eines Tour-Exports; [destination] füllt den Betreff des Sharesheets. */
+data class TourExportRequest(val uri: String, val destination: String)
+
 /** Beobachtet eine Tour mit ihrer Stationen-Zeitleiste, damit Änderungen aus Formular und Löschen sofort sichtbar sind. */
 class TourDetailViewModel(
     private val repository: TourRepository,
-    vehicles: VehicleRepository,
+    private val vehicles: VehicleRepository,
     private val stations: StationRepository,
     exchangeRates: ExchangeRateRepository,
     private val countryLookup: CountryLookupRepository,
+    private val attachments: AttachmentRepository,
+    private val attachmentFileStore: AttachmentFileStore,
+    private val exportFiles: TourExportFiles,
     tourId: Long,
+    /** Vokabular von `Stops.csv` im Tour-Export, nach der App-Sprache des Geräts. */
+    private val csvVocabulary: () -> CsvVocabulary = { CsvVocabulary.fromLocale(Locale.getDefault()) },
 ) : ViewModel() {
 
     val uiState: StateFlow<DetailUiState> = combine(
@@ -140,5 +157,65 @@ class TourDetailViewModel(
     /** Verwirft [shown], sofern inzwischen keine neuere Meldung vorliegt. */
     fun onMessageShown(shown: StationMessage) {
         _message.compareAndSet(shown, null)
+    }
+
+    private val _exporting = MutableStateFlow(false)
+
+    /** Läuft gerade ein Tour-Export? Für eine Fortschrittsanzeige und zum Sperren der Export-Aktion. */
+    val exporting: StateFlow<Boolean> = _exporting.asStateFlow()
+
+    private val _exportRequest = MutableStateFlow<TourExportRequest?>(null)
+
+    /** Zu teilende Export-ZIP, bis [exportRequestHandled] aufgerufen wird. */
+    val exportRequest: StateFlow<TourExportRequest?> = _exportRequest.asStateFlow()
+
+    /**
+     * Exportiert [tour] mit [stations] und ihren bereinigten [countries] als ZIP (`Tour.html`,
+     * `Tour.md`, `Tour.gpx`, `Stops.csv`, Fotos) und fordert danach über [exportRequest] das Teilen
+     * an; [res] liefert die Textbausteine in der App-Sprache. Läuft bereits ein Export, ruft ein
+     * weiterer Aufruf nichts auf.
+     */
+    fun exportTour(res: Resources, tour: Tour, stations: List<Station>, countries: Set<String>) {
+        if (_exporting.value) return
+        _exporting.value = true
+        viewModelScope.launch {
+            try {
+                val stationIds = stations.mapTo(HashSet()) { it.id }
+                val photosByStation = attachments.allAttachments()
+                    .filter { it.ownerType == AttachmentOwnerType.STATION && it.ownerId in stationIds }
+                    .groupBy { it.ownerId }
+                val vehicleNames = vehicles.allVehicles().associate { it.id to it.name }
+                val defaultVehicleName = res.getString(R.string.vehicle_default_name)
+                val baseName = tourExportBaseName(tour.destination, tour.startDate)
+                val uri = exportFiles.writeTourExportZip(baseName) { output ->
+                    writeTourExportZip(
+                        output = output,
+                        res = res,
+                        tour = tour,
+                        stations = stations,
+                        countries = countries,
+                        photosByStation = photosByStation,
+                        tourNames = mapOf(tour.id to tour.destination),
+                        vehicleNames = vehicleNames,
+                        defaultVehicleName = defaultVehicleName,
+                        vocabulary = csvVocabulary(),
+                        photoContent = { fileName -> attachmentFileStore.file(fileName).takeIf { it.exists() }?.inputStream() },
+                    )
+                }
+                _exportRequest.value = TourExportRequest(uri, tour.destination)
+            } catch (_: IOException) {
+                _message.value = StationMessage.Failed(R.string.export_tour_failed)
+            } catch (_: SQLException) {
+                _message.value = StationMessage.Failed(R.string.export_tour_failed)
+            } finally {
+                _exporting.value = false
+            }
+        }
+    }
+
+    /** Quittiert [exportRequest]; ohne passende App ([started] = false) folgt ein Hinweis. */
+    fun exportRequestHandled(started: Boolean) {
+        _exportRequest.value = null
+        if (!started) _message.value = StationMessage.Failed(R.string.no_share_app)
     }
 }
