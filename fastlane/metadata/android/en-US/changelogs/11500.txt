@@ -1,0 +1,2 @@
+• Optional GPS track recording for a tour – off by default, runs only while you record, with a visible notification
+• The tour map draws the recorded track, the tour shows its length, and the GPX export includes it

@@ -1,0 +1,2 @@
+• Optionale GPS-Track-Aufzeichnung für eine Tour – standardmäßig aus, läuft nur während der Aufzeichnung mit sichtbarer Benachrichtigung
+• Die Tourkarte zeigt den aufgezeichneten Track, die Tour seine Länge, und der GPX-Export enthält ihn
