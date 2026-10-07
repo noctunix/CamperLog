@@ -647,6 +647,10 @@
     <string name="site_kind_motorhome_area">Motorhome area</string>
     <string name="site_kind_wild">Wild camping</string>
 
+    <!-- Tour detail: vignette expiry warning -->
+    <string name="vignette_warning_country">Vignette %1$s ends on %2$s, before the tour ends</string>
+    <string name="vignette_warning">Vignette ends on %1$s, before the tour ends</string>
+
     <!-- Tour detail: stops timeline -->
     <string name="stations_section_title">Stops (%1$d)</string>
     <string name="stations_timeline_empty">No stops yet.</string>

@@ -69,6 +69,7 @@ import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.effectiveCosts
+import app.restvolt.camperlog.domain.expiringVignettes
 import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.FUEL_SERVICES
@@ -349,6 +350,7 @@ private fun TourDetails(
     onOpenChecklist: (Long) -> Unit,
 ) {
     val locale = currentLocale()
+    val vignetteWarnings = expiringVignettes(tour, stations)
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(
@@ -373,6 +375,9 @@ private fun TourDetails(
                 LabeledValue(stringResource(R.string.field_overnight_stays), tour.overnightStays.toString())
                 LabeledValue(stringResource(R.string.label_distance), stringResource(R.string.distance_km, tour.distanceKm))
             }
+        }
+        if (vignetteWarnings.isNotEmpty()) {
+            item { VignetteWarningsCard(warnings = vignetteWarnings, locale = locale, onOpenStation = onOpenStation) }
         }
         item { CostsCard(tour.costs, stopCosts, totalCosts, categoryCosts, conversion, locale) }
         item {

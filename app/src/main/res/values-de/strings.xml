@@ -637,6 +637,10 @@
     <string name="site_kind_motorhome_area">Stellplatz</string>
     <string name="site_kind_wild">Frei stehen</string>
 
+    <!-- Tourdetail: Warnung zu ablaufenden Vignetten -->
+    <string name="vignette_warning_country">Vignette %1$s endet am %2$s, vor dem Tourende</string>
+    <string name="vignette_warning">Vignette endet am %1$s, vor dem Tourende</string>
+
     <!-- Tourdetail: Stationen-Zeitleiste -->
     <string name="stations_section_title">Stationen (%1$d)</string>
     <string name="stations_timeline_empty">Noch keine Stationen.</string>
