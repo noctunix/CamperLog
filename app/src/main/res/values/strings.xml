@@ -781,7 +781,7 @@
     <string name="location_remove_coordinates">Remove coordinates</string>
     <string name="location_approximate_hint_body">For exact positions, allow \"Precise location\" in the app settings.</string>
 
-    <!-- Where am I? (breakdown card, 6.12, 13.5 idea #1) -->
+    <!-- Where am I? (breakdown card) -->
     <string name="vehicle_where_am_i">Where am I?</string>
     <string name="where_am_i_title">Current position</string>
     <string name="where_am_i_copy">Copy coordinates</string>
