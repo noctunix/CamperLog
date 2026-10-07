@@ -82,6 +82,7 @@ fun ImportDialog(pending: PendingImport, onImport: (ImportMode) -> Unit, onCance
                         pluralStringResource(R.plurals.import_log_entries, logEntryCount, logEntryCount),
                         pluralStringResource(R.plurals.import_rates, backup.rates.size, backup.rates.size),
                         pluralStringResource(R.plurals.import_documents, backup.documents.size, backup.documents.size),
+                        pluralStringResource(R.plurals.import_diary_entries, backup.diaryEntries.size, backup.diaryEntries.size),
                         backup.mainCurrency.currencyCode,
                     ),
                 )

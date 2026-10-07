@@ -398,6 +398,8 @@ private fun Resources.dataMessageText(message: DataMessage): String = when (mess
             result.updatedRepairs,
             result.addedDocuments,
             result.updatedDocuments,
+            result.addedDiaryEntries,
+            result.updatedDiaryEntries,
             logEntries,
             rates,
             attachments,
@@ -416,6 +418,7 @@ private fun Resources.backupErrorMessage(failure: BackupReadResult.Failure): Str
         failure.vehicleNumber != null -> getString(R.string.import_error_invalid_vehicle, failure.vehicleNumber)
         failure.stationNumber != null -> getString(R.string.import_error_invalid_station, failure.stationNumber)
         failure.documentNumber != null -> getString(R.string.import_error_invalid_document, failure.documentNumber)
+        failure.diaryEntryNumber != null -> getString(R.string.import_error_invalid_diary_entry, failure.diaryEntryNumber)
         failure.attachmentNumber != null -> getString(R.string.import_error_invalid_attachment, failure.attachmentNumber)
         else -> getString(R.string.import_error_invalid)
     }

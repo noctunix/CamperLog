@@ -5,12 +5,14 @@ import android.database.SQLException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.backup.Backup
+import app.restvolt.camperlog.backup.BackupDiaryEntry
 import app.restvolt.camperlog.backup.BackupReadResult
 import app.restvolt.camperlog.backup.BackupVehicle
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.backup.decodeBackup
 import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ExchangeRate
@@ -80,6 +82,7 @@ class RoomBackupImporterTest {
     private fun repairUuid(n: Int) = "20000000-0000-4000-8000-%012d".format(n)
     private fun logEntryUuid(n: Int) = "30000000-0000-4000-8000-%012d".format(n)
     private fun stationUuid(n: Int) = "40000000-0000-4000-8000-%012d".format(n)
+    private fun diaryEntryUuid(n: Int) = "50000000-0000-4000-8000-%012d".format(n)
 
     private fun tour(n: Int, destination: String = "Ziel $n", updatedAt: String = "2026-07-10T10:00:00Z") = Tour(
         uuid = uuid(n),
@@ -136,6 +139,15 @@ class RoomBackupImporterTest {
         updatedAt = Instant.parse(updatedAt),
     )
 
+    private fun diaryEntry(n: Int, text: String = "Eintrag $n", updatedAt: String = "2026-07-01T10:00:00Z") = DiaryEntry(
+        uuid = diaryEntryUuid(n),
+        tourId = 0,
+        date = LocalDate.of(2026, 7, n.coerceIn(1, 28)),
+        text = text,
+        createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+        updatedAt = Instant.parse(updatedAt),
+    )
+
     private fun backup(
         tours: List<Tour>,
         rates: List<ExchangeRate> = emptyList(),
@@ -147,9 +159,20 @@ class RoomBackupImporterTest {
         stationVehicleUuid: Map<String, String> = emptyMap(),
         stationTourUuid: Map<String, String> = emptyMap(),
         logEntryStationUuid: Map<String, String> = emptyMap(),
+        diaryEntries: List<BackupDiaryEntry> = emptyList(),
     ) = Backup(
-        Instant.parse("2026-10-04T12:00:00Z"), main, rates, tours, tourVehicleUuid, vehicles, currentVehicleUuid,
-        stations, stationVehicleUuid, stationTourUuid, logEntryStationUuid,
+        exportedAt = Instant.parse("2026-10-04T12:00:00Z"),
+        mainCurrency = main,
+        rates = rates,
+        tours = tours,
+        tourVehicleUuid = tourVehicleUuid,
+        vehicles = vehicles,
+        currentVehicleUuid = currentVehicleUuid,
+        stations = stations,
+        stationVehicleUuid = stationVehicleUuid,
+        stationTourUuid = stationTourUuid,
+        logEntryStationUuid = logEntryStationUuid,
+        diaryEntries = diaryEntries,
     )
 
     /** Gespeicherte Touren ohne Datenbank-id, damit sie mit Sicherungs-Touren vergleichbar sind. */
@@ -609,6 +632,34 @@ class RoomBackupImporterTest {
     }
 
     @Test
+    fun merge_diaryEntries_addsNewUpdatesNewerKeepsOlderOrEqualUnchanged() = runTest {
+        val localTourId = db.tourDao().insert(tour(1).toEntity())
+        db.diaryEntryDao().insert(diaryEntry(1, text = "Lokal alt", updatedAt = "2026-07-10T10:00:00Z").copy(tourId = localTourId).toEntity())
+        db.diaryEntryDao().insert(
+            diaryEntry(2, text = "Lokal neu", updatedAt = "2026-07-20T10:00:00Z").copy(tourId = localTourId, date = LocalDate.of(2026, 7, 2)).toEntity(),
+        )
+
+        val result = importer.import(
+            backup(
+                tours = listOf(tour(1)),
+                diaryEntries = listOf(
+                    BackupDiaryEntry(diaryEntry(1, text = "Import neu", updatedAt = "2026-07-15T10:00:00Z"), uuid(1)),
+                    BackupDiaryEntry(diaryEntry(2, text = "Import alt", updatedAt = "2026-07-15T10:00:00Z").copy(date = LocalDate.of(2026, 7, 2)), uuid(1)),
+                    BackupDiaryEntry(diaryEntry(3, text = "Import zusätzlich").copy(date = LocalDate.of(2026, 7, 3)), uuid(1)),
+                ),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(1, result.addedDiaryEntries)
+        assertEquals(1, result.updatedDiaryEntries)
+        assertEquals(
+            setOf("Import neu", "Lokal neu", "Import zusätzlich"),
+            db.diaryEntryDao().getAll().map { it.text }.toSet(),
+        )
+    }
+
+    @Test
     fun merge_resolvesStationVehicleAndTourFromTheirUuids() = runTest {
         val result = importer.import(
             backup(
@@ -715,6 +766,23 @@ class RoomBackupImporterTest {
 
         assertEquals(1, result.addedStations)
         assertEquals(listOf("Import"), storedStations().map { it.name })
+    }
+
+    @Test
+    fun replace_diaryEntries_removesEverythingNotInBackup() = runTest {
+        val localTourId = db.tourDao().insert(tour(1).toEntity())
+        db.diaryEntryDao().insert(diaryEntry(1, text = "Lokal").copy(tourId = localTourId).toEntity())
+
+        val result = importer.import(
+            backup(
+                tours = listOf(tour(2)),
+                diaryEntries = listOf(BackupDiaryEntry(diaryEntry(2, text = "Import"), uuid(2))),
+            ),
+            ImportMode.REPLACE,
+        )
+
+        assertEquals(1, result.addedDiaryEntries)
+        assertEquals(listOf("Import"), db.diaryEntryDao().getAll().map { it.text })
     }
 
     @Test

@@ -262,7 +262,7 @@
     <string name="data_import_description">Liest eine CamperLog-Sicherung ein. Bevor etwas geändert wird, siehst du, was sie enthält.</string>
     <string name="data_import_choose">Sicherungsdatei wählen</string>
     <string name="import_preview_title">Sicherung einspielen?</string>
-    <string name="import_preview_summary">Sicherung vom %1$s mit %2$s, %3$s, %4$s, %5$s, %6$s, %7$s und %8$s. Hauptwährung: %9$s.</string>
+    <string name="import_preview_summary">Sicherung vom %1$s mit %2$s, %3$s, %4$s, %5$s, %6$s, %7$s, %8$s und %9$s. Hauptwährung: %10$s.</string>
     <plurals name="import_tours">
         <item quantity="one">%1$d Tour</item>
         <item quantity="other">%1$d Touren</item>
@@ -291,6 +291,10 @@
         <item quantity="one">%1$d Fahrzeugdokument</item>
         <item quantity="other">%1$d Fahrzeugdokumente</item>
     </plurals>
+    <plurals name="import_diary_entries">
+        <item quantity="one">%1$d Tagebucheintrag</item>
+        <item quantity="other">%1$d Tagebucheinträge</item>
+    </plurals>
     <string name="import_mode_merge">Zusammenführen</string>
     <string name="import_mode_merge_hint">Ergänzt neue Touren, Fahrzeuge, Reparaturen und Bordbuch-Einträge und übernimmt neuere Fassungen vorhandener. Deine Hauptwährung und das aktuelle Fahrzeug bleiben.</string>
     <string name="import_mode_replace">Alles ersetzen</string>
@@ -303,7 +307,7 @@
     </plurals>
     <string name="import_replace_text_no_tours">Alle gespeicherten Fahrzeuge, Reparaturen, Bordbuch-Einträge, Wechselkurse und die Hauptwährung werden gelöscht und durch die Sicherung ersetzt. Das lässt sich nicht rückgängig machen.</string>
     <string name="import_replace_confirm">Alles ersetzen</string>
-    <string name="import_done">Sicherung eingespielt. Touren neu: %1$d, aktualisiert: %2$d, unverändert: %3$d. Fahrzeuge neu: %4$d, aktualisiert: %5$d. Stationen neu: %6$d, aktualisiert: %7$d. Reparaturen neu: %8$d, aktualisiert: %9$d. Dokumente neu: %10$d, aktualisiert: %11$d. %12$s %13$s %14$s</string>
+    <string name="import_done">Sicherung eingespielt. Touren neu: %1$d, aktualisiert: %2$d, unverändert: %3$d. Fahrzeuge neu: %4$d, aktualisiert: %5$d. Stationen neu: %6$d, aktualisiert: %7$d. Reparaturen neu: %8$d, aktualisiert: %9$d. Dokumente neu: %10$d, aktualisiert: %11$d. Tagebucheinträge neu: %12$d, aktualisiert: %13$d. %14$s %15$s %16$s</string>
     <plurals name="import_done_log_entries">
         <item quantity="one">%1$d Bordbuch-Eintrag übernommen</item>
         <item quantity="other">%1$d Bordbuch-Einträge übernommen</item>
@@ -330,6 +334,7 @@
     <string name="import_error_invalid_vehicle_log_entry">Fahrzeug %1$d, Bordbuch-Eintrag %2$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
     <string name="import_error_invalid_station">Station %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
     <string name="import_error_invalid_document">Fahrzeugdokument %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
+    <string name="import_error_invalid_diary_entry">Tagebucheintrag %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
     <string name="import_error_invalid_attachment">Datei %1$d der Sicherung enthält ungültige Daten. Es wurde nichts geändert.</string>
 
     <!-- Fahrzeugfelder -->
