@@ -15,6 +15,8 @@ import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.TrackPoint
+import app.restvolt.camperlog.domain.TrackSummary
 import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -552,6 +554,87 @@ class MigrationTest {
             db.close()
         }
     }
+
+    @Test
+    fun migration14To15CreatesEmptyTrackTableAndCascadesWithTour() = runTest {
+        createVersion14(
+            defaultVehicleInsert,
+            "INSERT INTO tours VALUES (1, 'tour-1', 1, '2026-07-04', '2026-07-05', 'Lofoten', 'WEEKEND', 2, 1, " +
+                "100, '', NULL, 1000, 2000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val tour = RoomTourRepository(db).allTours().single()
+            assertEquals("Lofoten", tour.destination)
+            val tracks = RoomTrackRepository(db)
+            assertEquals(TrackSummary.EMPTY, tracks.observeSummary(tour.id).first())
+            assertEquals(1, tracks.nextSegment(tour.id))
+
+            val point = TrackPoint(tourId = tour.id, segment = 1, recordedAt = Instant.ofEpochMilli(5000), latitude = 68.2, longitude = 14.5)
+            tracks.addAll(listOf(point, point.copy(latitude = 68.3)))
+            tracks.addAll(listOf(point.copy(recordedAt = Instant.ofEpochMilli(6000), segment = 2, accuracyM = 8, altitudeM = 12)))
+            // Gleicher Zeitpunkt wird übersprungen, nicht doppelt gespeichert.
+            assertEquals(TrackSummary(points = 2, segments = 2), tracks.observeSummary(tour.id).first())
+            assertEquals(3, tracks.nextSegment(tour.id))
+            assertEquals(68.2, tracks.observeForTour(tour.id).first().first().latitude, 0.0)
+
+            // Das Löschen der Tour löscht ihren Track mit (CASCADE).
+            db.openHelper.writableDatabase.execSQL("DELETE FROM tours WHERE id = 1")
+            assertEquals(emptyList<TrackPoint>(), tracks.allPoints())
+        } finally {
+            db.close()
+        }
+    }
+
+    /** Legt `camperlog.db` im Stand von Version 14 nach `schemas/…/14.json` an und füllt sie mit [inserts]. */
+    private fun createVersion14(vararg inserts: String) = createDatabase(
+        version = 14,
+        identityHash = "e66896a3e7ff829c6c299ff1974b48c2",
+        schema = listOf(
+            "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL DEFAULT '', `vehicle_id` INTEGER NOT NULL, `start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, `tour_type` TEXT NOT NULL, `travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, `notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+            "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_tours_uuid` ON `tours` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_tours_vehicle_id` ON `tours` (`vehicle_id`)",
+            "CREATE TABLE IF NOT EXISTS `tour_costs` (`tour_id` INTEGER NOT NULL, `currency` TEXT NOT NULL, `amount_minor` INTEGER NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`tour_id`, `currency`), FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE TABLE IF NOT EXISTS `exchange_rates` (`currency` TEXT NOT NULL, `per_euro` TEXT NOT NULL, `rate_date` TEXT NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`currency`))",
+            "CREATE TABLE IF NOT EXISTS `settings` (`id` INTEGER NOT NULL, `main_currency` TEXT NOT NULL, `current_vehicle_id` INTEGER, PRIMARY KEY(`id`))",
+            "CREATE TABLE IF NOT EXISTS `vehicles` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `license_plate` TEXT NOT NULL, `manufacturer` TEXT NOT NULL, `model` TEXT NOT NULL, `vin` TEXT NOT NULL, `first_registration` TEXT, `notes` TEXT NOT NULL, `purchase_date` TEXT, `purchase_price_currency` TEXT, `purchase_price_minor` INTEGER, `purchase_odometer_km` INTEGER, `sale_date` TEXT, `sale_price_currency` TEXT, `sale_price_minor` INTEGER, `insurer` TEXT NOT NULL, `insurance_policy_number` TEXT NOT NULL, `insurance_premium_per_year_currency` TEXT, `insurance_premium_per_year_minor` INTEGER, `vehicle_tax_per_year_currency` TEXT, `vehicle_tax_per_year_minor` INTEGER, `length_cm` INTEGER, `width_cm` INTEGER, `height_cm` INTEGER, `gross_weight_kg` INTEGER, `measured_empty_weight_kg` INTEGER, `breakdown_provider` TEXT NOT NULL, `breakdown_membership_number` TEXT NOT NULL, `breakdown_phone` TEXT NOT NULL, `travel_protection_provider` TEXT NOT NULL, `travel_protection_contract_number` TEXT NOT NULL, `travel_protection_phone` TEXT NOT NULL, `insurer_claims_phone` TEXT NOT NULL, `power_kw` INTEGER, `tire_size` TEXT NOT NULL, `tire_pressure_front_mbar` INTEGER, `tire_pressure_rear_mbar` INTEGER, `fuel_tank_dl` INTEGER, `ad_blue_tank_dl` INTEGER, `fresh_water_tank_dl` INTEGER, `grey_water_tank_dl` INTEGER, `boiler_dl` INTEGER, `cassette_dl` INTEGER, `battery_capacity_ah` INTEGER, `solar_power_wp` INTEGER, `next_inspection_date` TEXT, `next_gas_check_date` TEXT, `next_leak_test_date` TEXT, `last_oil_change_date` TEXT, `last_oil_change_odometer_km` INTEGER, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_vehicles_uuid` ON `vehicles` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `repairs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `date` TEXT NOT NULL, `description` TEXT NOT NULL, `odometer_km` INTEGER, `cost_currency` TEXT, `cost_minor` INTEGER, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE INDEX IF NOT EXISTS `index_repairs_vehicle_id` ON `repairs` (`vehicle_id`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_repairs_uuid` ON `repairs` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `log_entries` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `type` TEXT NOT NULL, `date` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `station_id` INTEGER, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`station_id`) REFERENCES `stations`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+            "CREATE INDEX IF NOT EXISTS `index_log_entries_vehicle_id_type_date` ON `log_entries` (`vehicle_id`, `type`, `date`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_log_entries_uuid` ON `log_entries` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_log_entries_station_id` ON `log_entries` (`station_id`)",
+            "CREATE TABLE IF NOT EXISTS `stations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `tour_id` INTEGER, `type` TEXT NOT NULL, `date` TEXT NOT NULL, `time` TEXT, `name` TEXT NOT NULL, `place` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, `coordinate_source` TEXT, `accuracy_m` INTEGER, `map_link` TEXT, `notes` TEXT NOT NULL, `nights` INTEGER, `site_kind` TEXT, `pitch_assigned` INTEGER, `lte_quality` TEXT, `pitch_slope` TEXT, `leveling_blocks_used` INTEGER, `electricity_billing` TEXT, `electricity_currency` TEXT, `electricity_flat_amount_minor` INTEGER, `electricity_base_fee_minor` INTEGER, `electricity_price_per_kwh` TEXT, `electricity_coin_price_minor` INTEGER, `electricity_coins_used` INTEGER, `electricity_kwh_per_coin` TEXT, `electricity_meter_start` TEXT, `electricity_meter_end` TEXT, `electricity_kwh_used` TEXT, `toll_kind` TEXT, `toll_payment_method` TEXT NOT NULL, `toll_country` TEXT, `toll_valid_from` TEXT, `toll_valid_until` TEXT, `ferry_booking_reference` TEXT NOT NULL, `services` TEXT NOT NULL, `weather_temperature_deci_c` INTEGER, `weather_code` INTEGER, `weather_wind_kmh` INTEGER, `weather_gust_kmh` INTEGER, `weather_wind_direction_deg` INTEGER, `weather_observed_at` INTEGER, `favorite` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_stations_uuid` ON `stations` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_stations_vehicle_id` ON `stations` (`vehicle_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_stations_tour_id` ON `stations` (`tour_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_stations_date` ON `stations` (`date`)",
+            "CREATE TABLE IF NOT EXISTS `station_costs` (`station_id` INTEGER NOT NULL, `category` TEXT NOT NULL, `currency` TEXT NOT NULL, `amount_minor` INTEGER NOT NULL, `note` TEXT NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`station_id`, `category`, `currency`), FOREIGN KEY(`station_id`) REFERENCES `stations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE TABLE IF NOT EXISTS `attachments` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `owner_type` TEXT NOT NULL, `owner_id` INTEGER NOT NULL, `file_name` TEXT NOT NULL, `mime_type` TEXT NOT NULL, `size_bytes` INTEGER NOT NULL, `width` INTEGER, `height` INTEGER, `latitude` REAL, `longitude` REAL, `taken_at` TEXT, `caption` TEXT NOT NULL, `created_at` INTEGER NOT NULL)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_attachments_uuid` ON `attachments` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_attachments_owner_type_owner_id` ON `attachments` (`owner_type`, `owner_id`)",
+            "CREATE TABLE IF NOT EXISTS `vehicle_documents` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `kind` TEXT NOT NULL, `title` TEXT NOT NULL, `expiry_date` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_vehicle_documents_uuid` ON `vehicle_documents` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_vehicle_documents_vehicle_id` ON `vehicle_documents` (`vehicle_id`)",
+            "CREATE TABLE IF NOT EXISTS `tour_countries` (`tour_id` INTEGER NOT NULL, `code` TEXT NOT NULL, `added` INTEGER NOT NULL, PRIMARY KEY(`tour_id`, `code`), FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE TABLE IF NOT EXISTS `diary_entries` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `tour_id` INTEGER NOT NULL, `date` TEXT NOT NULL, `text` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE INDEX IF NOT EXISTS `index_diary_entries_tour_id` ON `diary_entries` (`tour_id`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_diary_entries_tour_id_date` ON `diary_entries` (`tour_id`, `date`)",
+            "CREATE TABLE IF NOT EXISTS `checklist_templates` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_checklist_templates_uuid` ON `checklist_templates` (`uuid`)",
+            "CREATE TABLE IF NOT EXISTS `checklist_template_items` (`template_id` INTEGER NOT NULL, `position` INTEGER NOT NULL, `text` TEXT NOT NULL, PRIMARY KEY(`template_id`, `position`), FOREIGN KEY(`template_id`) REFERENCES `checklist_templates`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE TABLE IF NOT EXISTS `checklists` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `tour_id` INTEGER, `title` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_checklists_uuid` ON `checklists` (`uuid`)",
+            "CREATE INDEX IF NOT EXISTS `index_checklists_vehicle_id` ON `checklists` (`vehicle_id`)",
+            "CREATE INDEX IF NOT EXISTS `index_checklists_tour_id` ON `checklists` (`tour_id`)",
+            "CREATE TABLE IF NOT EXISTS `checklist_items` (`checklist_id` INTEGER NOT NULL, `position` INTEGER NOT NULL, `text` TEXT NOT NULL, `checked` INTEGER NOT NULL, PRIMARY KEY(`checklist_id`, `position`), FOREIGN KEY(`checklist_id`) REFERENCES `checklists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        ),
+        inserts = inserts.toList(),
+    )
 
     /** Legt `camperlog.db` im Stand von Version 13 nach `schemas/…/13.json` an und füllt sie mit [inserts]. */
     private fun createVersion13(vararg inserts: String) = createDatabase(

@@ -37,8 +37,9 @@ import java.util.UUID
         ChecklistTemplateItemEntity::class,
         ChecklistEntity::class,
         ChecklistItemEntity::class,
+        TrackPointEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -63,6 +64,8 @@ abstract class CamperLogDatabase : RoomDatabase() {
 
     abstract fun checklistDao(): ChecklistDao
 
+    abstract fun trackPointDao(): TrackPointDao
+
     companion object {
         /**
          * Öffnet die Datenbankdatei der App. Nur einmal pro Prozess aufrufen.
@@ -76,6 +79,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
+                    MIGRATION_14_15,
                 )
                 .build()
     }
@@ -656,5 +660,24 @@ internal val MIGRATION_13_14 = object : Migration(13, 14) {
         db.query("PRAGMA foreign_key_check").use { cursor ->
             check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 13→14" }
         }
+    }
+}
+
+/**
+ * Version 15: aufgezeichnete Trackpunkte ([app.restvolt.camperlog.domain.TrackPoint]) kommen in der neuen
+ * Tabelle `track_points` hinzu (Fremdschlüssel `tour_id` CASCADE, ein Punkt je Tour und Zeitpunkt).
+ * Die Tabelle ist neu, daher reicht `CREATE TABLE` ohne Datenübernahme.
+ */
+internal val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `track_points` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`tour_id` INTEGER NOT NULL, `segment` INTEGER NOT NULL, `recorded_at` INTEGER NOT NULL, " +
+                "`latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `accuracy_m` INTEGER, `altitude_m` INTEGER, " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_track_points_tour_id_recorded_at` ON `track_points` (`tour_id`, `recorded_at`)",
+        )
     }
 }
