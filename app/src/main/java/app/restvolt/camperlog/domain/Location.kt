@@ -31,7 +31,7 @@ fun isApproximateFix(accuracyM: Int?): Boolean = accuracyM != null && accuracyM 
 /**
  * Wählt aus [candidates] den besten zuletzt bekannten Standort für einen expliziten Tastendruck:
  * nur Kandidaten bis [maxAgeMillis] zählen, unter ihnen gewinnt die kleinste Genauigkeitsangabe
- * (am genauesten). Reine Richtlinie nach dem Vorbild von EXIFix' `ExifixPolicy`.
+ * (am genauesten).
  *
  * @return der Index in [candidates], oder -1, wenn keiner jung genug ist
  */
