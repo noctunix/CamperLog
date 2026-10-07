@@ -32,13 +32,16 @@ import java.util.UUID
         AttachmentEntity::class,
         VehicleDocumentEntity::class,
         TourCountryEntity::class,
+        DiaryEntryEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
 
     abstract fun tourDao(): TourDao
+
+    abstract fun diaryEntryDao(): DiaryEntryDao
 
     abstract fun exchangeRateDao(): ExchangeRateDao
 
@@ -64,7 +67,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
             Room.databaseBuilder(context.applicationContext, CamperLogDatabase::class.java, "camperlog.db")
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
-                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
+                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
                 )
                 .build()
     }
@@ -579,6 +582,28 @@ internal val MIGRATION_11_12 = object : Migration(11, 12) {
 
         db.query("PRAGMA foreign_key_check").use { cursor ->
             check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 11→12" }
+        }
+    }
+}
+
+/**
+ * Version 13: das Tagebuch ([app.restvolt.camperlog.domain.DiaryEntry]) kommt in der neuen Tabelle
+ * `diary_entries` hinzu (Fremdschlüssel `tour_id` CASCADE, höchstens ein Eintrag je Tour und Tag).
+ * Die Tabelle ist neu, daher reicht `CREATE TABLE` ohne Datenübernahme.
+ */
+internal val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `diary_entries` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `tour_id` INTEGER NOT NULL, `date` TEXT NOT NULL, `text` TEXT NOT NULL, " +
+                "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_diary_entries_tour_id` ON `diary_entries` (`tour_id`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_diary_entries_tour_id_date` ON `diary_entries` (`tour_id`, `date`)")
+
+        db.query("PRAGMA foreign_key_check").use { cursor ->
+            check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 12→13" }
         }
     }
 }
