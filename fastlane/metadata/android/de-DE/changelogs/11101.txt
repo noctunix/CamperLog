@@ -1,0 +1,4 @@
+• Fotos an Stationen, Reparaturen und im Bordbuch – mit Standort gespeichert; bei Galerie-Fotos lässt sich der Standort der Station übernehmen
+• Dokumentenmappe pro Fahrzeug (Fahrzeugschein, Versicherung, Garantien …) mit Ablauf-Erinnerung
+• Sicherungen sind jetzt ein ZIP mit allen Fotos und Dokumenten in lesbaren Ordnern; ältere Sicherungen lassen sich weiter einspielen
+• Ältere Sicherungen lassen sich auch einspielen, wenn alte Felder fehlen

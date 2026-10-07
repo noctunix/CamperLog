@@ -2,7 +2,7 @@
 
 Shipped features, newest first.
 
-- 1.11.0 – Photos (with location) on stops, repairs and logbook; document wallet with expiry reminders; ZIP backups with readable folders
+- 1.11.1 – Photos (with location) on stops, repairs and logbook; document wallet with expiry reminders; ZIP backups with readable folders; older backups import with missing fields
 - 1.10.0 – Costs on stops by category, electricity billing variants, toll/vignette stops, ferry booking reference, cost breakdowns
 - 1.9.0 – Optional notifications (daily check, one per due item), backup reminder, backup folder with auto-backup; unused WorkManager permissions removed
 - 1.8.0 – Own OSM map per tour/stops (disk cache, attribution, accessible list)
