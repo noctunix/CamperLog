@@ -211,6 +211,31 @@ class RoomBackupImporterTest {
     }
 
     @Test
+    fun merge_addsTourWithManualCountryAdjustments() = runTest {
+        val withCountries = tour(1).copy(manualCountriesAdded = setOf("CH"), manualCountriesRemoved = setOf("DE"))
+
+        importer.import(backup(listOf(withCountries)), ImportMode.MERGE)
+
+        val stored = tours.allTours().single()
+        assertEquals(setOf("CH"), stored.manualCountriesAdded)
+        assertEquals(setOf("DE"), stored.manualCountriesRemoved)
+    }
+
+    @Test
+    fun merge_updateReplacesManualCountryAdjustments() = runTest {
+        seed(tour(1).copy(manualCountriesAdded = setOf("CH")))
+        val id = tours.allTours().single().id
+        val newer = tour(1, updatedAt = "2026-08-01T00:00:00Z").copy(manualCountriesAdded = setOf("AT"), manualCountriesRemoved = setOf("CH"))
+
+        importer.import(backup(listOf(newer)), ImportMode.MERGE)
+
+        val stored = tours.allTours().single()
+        assertEquals(id, stored.id)
+        assertEquals(setOf("AT"), stored.manualCountriesAdded)
+        assertEquals(setOf("CH"), stored.manualCountriesRemoved)
+    }
+
+    @Test
     fun merge_takesOnlyNewerRates_andKeepsMainCurrency() = runTest {
         rates.setMainCurrency(nok)
         rates.saveRate(rate(nok, "11.5", "2026-09-01"))

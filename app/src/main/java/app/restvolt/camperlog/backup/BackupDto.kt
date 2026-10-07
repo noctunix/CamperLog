@@ -73,6 +73,10 @@ internal data class TourDto(
     val lteQuality: String? = null,
     val pitchSlope: String? = null,
     val levelingBlocksUsed: Boolean? = null,
+    /** ISO-3166-1-alpha-2-Codes; fehlt in Sicherungen vor Formatversion 7 (siehe [app.restvolt.camperlog.domain.Tour]). */
+    val manualCountriesAdded: List<String> = emptyList(),
+    /** ISO-3166-1-alpha-2-Codes; fehlt in Sicherungen vor Formatversion 7. */
+    val manualCountriesRemoved: List<String> = emptyList(),
 )
 
 @Serializable

@@ -165,13 +165,14 @@ class RoomBackupImporter(
             val existing = storedTours[tour.uuid]
             val localId = when {
                 existing == null -> {
-                    val id = tourDao.insertWithCosts(tour.copy(id = 0).toEntity(), tour.toCostEntities())
+                    val withId = tour.copy(id = 0)
+                    val id = tourDao.insertWithCosts(withId.toEntity(), withId.toCostEntities(), withId.toCountryEntities())
                     added++
                     id
                 }
                 tour.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
                     val replacement = tour.copy(id = existing.id)
-                    tourDao.updateWithCosts(replacement.toEntity(), replacement.toCostEntities())
+                    tourDao.updateWithCosts(replacement.toEntity(), replacement.toCostEntities(), replacement.toCountryEntities())
                     updated++
                     existing.id
                 }

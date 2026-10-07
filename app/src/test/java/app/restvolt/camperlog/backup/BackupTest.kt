@@ -219,6 +219,50 @@ class BackupTest {
     }
 
     @Test
+    fun roundTrip_keepsManualCountryAdjustments() {
+        val withCountries = Backup(
+            exportedAt = backup.exportedAt,
+            mainCurrency = backup.mainCurrency,
+            rates = backup.rates,
+            tours = listOf(tour().copy(manualCountriesAdded = setOf("CH", "AT"), manualCountriesRemoved = setOf("DE"))),
+        )
+
+        val decoded = success(encodeBackup(withCountries))
+
+        assertEquals(setOf("CH", "AT"), decoded.tours.single().manualCountriesAdded)
+        assertEquals(setOf("DE"), decoded.tours.single().manualCountriesRemoved)
+    }
+
+    @Test
+    fun read_importsOlderBackupsMissingTheManualCountryFields() {
+        val text = encodedWith("\"manualCountriesAdded\": [],", "")
+
+        val decoded = success(text)
+
+        assertEquals(emptySet<String>(), decoded.tours.first().manualCountriesAdded)
+    }
+
+    @Test
+    fun decode_rejectsTourWithUnknownManualCountryCode() {
+        val text = encodedWith("\"manualCountriesAdded\": []", "\"manualCountriesAdded\": [\"ZZ\"]")
+
+        assertEquals(BackupError.INVALID_DATA, failure(text)?.error)
+    }
+
+    @Test
+    fun decode_rejectsTourWithTheSameCountryAddedAndRemoved() {
+        val text = applyAll(
+            encodeBackup(backup),
+            listOf(
+                "\"manualCountriesAdded\": []" to "\"manualCountriesAdded\": [\"CH\"]",
+                "\"manualCountriesRemoved\": []" to "\"manualCountriesRemoved\": [\"CH\"]",
+            ),
+        )
+
+        assertEquals(BackupError.INVALID_DATA, failure(text)?.error)
+    }
+
+    @Test
     fun roundTrip_keepsFullVehicleWithRepairsLogEntriesAndCurrentVehicle() {
         val decoded = success(encodeBackup(vehicleBackup))
 
@@ -247,7 +291,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 6" in text)
+        assert("\"schemaVersion\": 7" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -282,13 +326,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 6", "\"schemaVersion\": 7"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 7", "\"schemaVersion\": 8"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 6", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 7", it))?.error)
         }
     }
 

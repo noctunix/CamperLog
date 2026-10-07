@@ -81,7 +81,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 6
+const val BACKUP_SCHEMA_VERSION = 7
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -97,6 +97,7 @@ internal const val MAX_DESTINATION_LENGTH = 500
 internal const val MAX_NOTES_LENGTH = 20_000
 internal const val MAX_LINK_LENGTH = 4_000
 internal const val MAX_SOURCE_LENGTH = 500
+internal const val MAX_MANUAL_COUNTRIES = 300
 internal const val MAX_VEHICLE_DOCUMENTS = 10_000
 internal const val MAX_ATTACHMENTS = 200_000
 internal const val MAX_CAPTION_LENGTH = 2_000
@@ -568,6 +569,9 @@ private fun TourDto.toTour(): Tour? {
     if (link != null && (link.length > MAX_LINK_LENGTH || !isWebUrl(link))) return null
     val money = costs.map { it.toMoney() ?: return null }
     if (money.map { it.currency }.distinct().size != money.size) return null
+    val added = manualCountriesAdded.toCountryCodeSet() ?: return null
+    val removed = manualCountriesRemoved.toCountryCodeSet() ?: return null
+    if (added.intersect(removed).isNotEmpty()) return null
     return Tour(
         uuid = uuid,
         startDate = start,
@@ -582,7 +586,16 @@ private fun TourDto.toTour(): Tour? {
         mapLink = link,
         createdAt = parseInstant(createdAt) ?: return null,
         updatedAt = parseInstant(updatedAt) ?: return null,
+        manualCountriesAdded = added,
+        manualCountriesRemoved = removed,
     )
+}
+
+/** [codes] als Menge, sofern sie höchstens [MAX_MANUAL_COUNTRIES] gültige, einander verschiedene ISO-3166-1-alpha-2-Codes sind. */
+private fun List<String>.toCountryCodeSet(): Set<String>? {
+    if (size > MAX_MANUAL_COUNTRIES || any { it !in ALL_COUNTRY_CODES }) return null
+    val set = toSet()
+    return set.takeIf { it.size == size }
 }
 
 private fun VehicleDto.toVehicle(): Vehicle? {
@@ -729,6 +742,8 @@ private fun Tour.toDto(vehicleUuid: String?) = TourDto(
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
     vehicleUuid = vehicleUuid,
+    manualCountriesAdded = manualCountriesAdded.sorted(),
+    manualCountriesRemoved = manualCountriesRemoved.sorted(),
 )
 
 private fun BackupVehicle.toDto(logEntryStationUuid: Map<String, String>) = vehicle.let { v ->
