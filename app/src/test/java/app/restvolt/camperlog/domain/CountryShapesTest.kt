@@ -41,6 +41,18 @@ class CountryShapesTest {
     }
 
     @Test
+    fun pointJustOutsideSquareResolvesToNearestCountryWithinTolerance() {
+        // Rund 2,2 km westlich der Kante von "AA" bei lon=0, innerhalb der 5-km-Toleranz.
+        assertEquals("AA", countryAt(5.0, -0.02, shapes))
+    }
+
+    @Test
+    fun pointFarOutsideSquareIsNullBeyondTolerance() {
+        // Rund 11 km westlich der Kante von "AA", außerhalb der 5-km-Toleranz.
+        assertNull(countryAt(5.0, -0.1, shapes))
+    }
+
+    @Test
     fun decodeRejectsWrongMagic() {
         val bytes = ByteArrayOutputStream().apply {
             DataOutputStream(this).writeBytes("XXXX")

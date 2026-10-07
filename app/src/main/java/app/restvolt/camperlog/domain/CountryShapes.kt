@@ -2,12 +2,20 @@ package app.restvolt.camperlog.domain
 
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
+import kotlin.math.cos
+import kotlin.math.hypot
 
 /** Mikrograd je Grad (1e-5°, rund 1,1 m am Äquator), die Quantisierung von `countries.bin`. */
 private const val COORD_SCALE = 100_000.0
 
 /** Erwartete Kennung am Dateianfang von `countries.bin`. */
 private const val MAGIC = "CLC1"
+
+/** Kilometer je Breitengrad, wie in `build-country-shapes.py`'s lokaler äquirechteckiger Projektion. */
+private const val KM_PER_DEGREE = 111.32
+
+/** Toleranz für die Grenznähe-Zuordnung in [countryAt], wenn kein Polygon den Punkt einschließt. */
+private const val NEARBY_BORDER_TOLERANCE_KM = 5.0
 
 /**
  * Ein geschlossener Ring aus Punkten (Breite, Länge in Grad) mit vorab berechneter Bounding-Box
@@ -65,12 +73,14 @@ fun decodeCountryShapes(bytes: ByteArray): List<CountryShape> =
     }
 
 /**
- * ISO-3166-1-alpha-2-Code des Landes, in dem ([latitude], [longitude]) liegt, oder `null` über
- * See oder außerhalb aller [shapes]. Prüft je Land zuerst die Bounding-Box seiner Ringe, dann per
- * Ray-Casting die Ringe selbst; eine ungerade Anzahl umschließender Ringe gilt als "innerhalb" (die
- * Even-Odd-Regel deckt damit Multi-Polygone und Löcher ab, ohne die Ringrichtung zu prüfen). Wegen
- * der vereinfachten Geometrien (siehe `build-country-shapes.py`) ist das Ergebnis nahe an
- * Landesgrenzen nicht immer eindeutig.
+ * ISO-3166-1-alpha-2-Code des Landes, in dem ([latitude], [longitude]) liegt, oder dessen das
+ * nächstgelegene, wenn kein Polygon den Punkt einschließt, aber eine Landgrenze innerhalb von
+ * [NEARBY_BORDER_TOLERANCE_KM] liegt (siehe [nearestCountryWithin]); sonst `null`. Prüft je Land
+ * zuerst die Bounding-Box seiner Ringe, dann per Ray-Casting die Ringe selbst; eine ungerade Anzahl
+ * umschließender Ringe gilt als "innerhalb" (die Even-Odd-Regel deckt damit Multi-Polygone und
+ * Löcher ab, ohne die Ringrichtung zu prüfen). Der Toleranzbereich federt Punkte ab, die wegen der
+ * vereinfachten Geometrien (siehe `build-country-shapes.py`) knapp außerhalb aller Polygone liegen,
+ * etwa Küstenorte direkt am Wasser oder Lücken zwischen benachbarten Landesgrenzen.
  */
 fun countryAt(latitude: Double, longitude: Double, shapes: List<CountryShape>): String? {
     for (shape in shapes) {
@@ -81,7 +91,38 @@ fun countryAt(latitude: Double, longitude: Double, shapes: List<CountryShape>): 
         }
         if (inside % 2 == 1) return shape.code
     }
-    return null
+    return nearestCountryWithin(latitude, longitude, shapes, NEARBY_BORDER_TOLERANCE_KM)
+}
+
+/**
+ * Ländercode des Landes, dessen nächster Ring-Abschnitt am wenigsten als [toleranceKm] von
+ * ([latitude], [longitude]) entfernt ist, oder `null`, wenn kein Ring innerhalb der Toleranz liegt.
+ * Rechnet in einer lokal um [latitude] äquirechteckig skalierten Ebene (siehe [KM_PER_DEGREE]), wie
+ * `build-country-shapes.py`'s Simplifizierung; für die hier relevanten Distanzen von wenigen
+ * Kilometern ist das genau genug. Prüft je Ring zuerst dessen auf [toleranceKm] erweiterte
+ * Bounding-Box, um die teurere Abstandsberechnung auf nahegelegene Ringe zu beschränken.
+ */
+private fun nearestCountryWithin(latitude: Double, longitude: Double, shapes: List<CountryShape>, toleranceKm: Double): String? {
+    val lonScale = (KM_PER_DEGREE * cos(Math.toRadians(latitude))).coerceAtLeast(KM_PER_DEGREE * 0.01)
+    val latToleranceDeg = toleranceKm / KM_PER_DEGREE
+    val lonToleranceDeg = toleranceKm / lonScale
+    var bestCode: String? = null
+    var bestDistanceKm = Double.MAX_VALUE
+    for (shape in shapes) {
+        for (ring in shape.rings) {
+            if (latitude < ring.minLat - latToleranceDeg || latitude > ring.maxLat + latToleranceDeg ||
+                longitude < ring.minLon - lonToleranceDeg || longitude > ring.maxLon + lonToleranceDeg
+            ) {
+                continue
+            }
+            val distanceKm = ring.distanceKmTo(latitude, longitude, lonScale)
+            if (distanceKm < bestDistanceKm) {
+                bestDistanceKm = distanceKm
+                bestCode = shape.code
+            }
+        }
+    }
+    return bestCode.takeIf { bestDistanceKm <= toleranceKm }
 }
 
 private fun CountryRing.containsRayCast(lat: Double, lon: Double): Boolean {
@@ -97,4 +138,33 @@ private fun CountryRing.containsRayCast(lat: Double, lon: Double): Boolean {
         j = i
     }
     return inside
+}
+
+/** Kürzeste Entfernung in Kilometern von ([lat], [lon]) zu einem Segment dieses Rings, siehe [nearestCountryWithin]. */
+private fun CountryRing.distanceKmTo(lat: Double, lon: Double, lonScale: Double): Double {
+    val py = lat * KM_PER_DEGREE
+    val px = lon * lonScale
+    var best = Double.MAX_VALUE
+    var j = points.size - 1
+    for (i in points.indices) {
+        val a = points[i]
+        val b = points[j]
+        val distance = distancePointToSegmentKm(
+            px, py,
+            a.longitude * lonScale, a.latitude * KM_PER_DEGREE,
+            b.longitude * lonScale, b.latitude * KM_PER_DEGREE,
+        )
+        if (distance < best) best = distance
+        j = i
+    }
+    return best
+}
+
+/** Abstand des Punkts ([px], [py]) zum Segment von ([ax], [ay]) nach ([bx], [by]), alle in derselben Längeneinheit. */
+private fun distancePointToSegmentKm(px: Double, py: Double, ax: Double, ay: Double, bx: Double, by: Double): Double {
+    val dx = bx - ax
+    val dy = by - ay
+    val lengthSquared = dx * dx + dy * dy
+    val t = if (lengthSquared == 0.0) 0.0 else (((px - ax) * dx + (py - ay) * dy) / lengthSquared).coerceIn(0.0, 1.0)
+    return hypot(px - (ax + t * dx), py - (ay + t * dy))
 }
