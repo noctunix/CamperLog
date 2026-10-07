@@ -9,6 +9,8 @@ import androidx.compose.ui.res.stringResource
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.CompassDirection
 import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.DiaryEntryError
+import app.restvolt.camperlog.domain.DiaryEntryField
 import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.LogRecency
@@ -261,6 +263,24 @@ fun RepairError.messageRes(field: RepairField): String = when (this) {
         val max = java.text.NumberFormat.getIntegerInstance(currentLocale()).format(MAX_ODOMETER_KM)
         stringResource(R.string.error_value_too_large, "$max km")
     }
+}
+
+/** Bezeichnung eines Formularfelds des Tagebuchformulars, z. B. für die Fehlerzusammenfassung. */
+@get:StringRes
+val DiaryEntryField.labelRes: Int
+    get() = when (this) {
+        DiaryEntryField.DATE -> R.string.field_date
+        DiaryEntryField.TEXT -> R.string.diary_field_text
+    }
+
+/** Fehlertext zu [this] am Feld [field] des Tagebuchformulars. */
+@Composable
+fun DiaryEntryError.messageRes(field: DiaryEntryField): String = when (this) {
+    DiaryEntryError.REQUIRED -> when (field) {
+        DiaryEntryField.DATE -> stringResource(R.string.error_date_required)
+        DiaryEntryField.TEXT -> stringResource(R.string.diary_error_text_required)
+    }
+    DiaryEntryError.DUPLICATE_DATE -> stringResource(R.string.diary_error_duplicate_date)
 }
 
 /** Anzeigename der Erinnerungsart. */

@@ -2,16 +2,28 @@ package app.restvolt.camperlog.share
 
 import android.content.res.Resources
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.formatDate
+import app.restvolt.camperlog.domain.supportedLocale
 
 /**
  * Baut die Markdown-Datei des Tour-Exports (`Tour.md`), inhaltsgleich mit [tourHtml]; Fotos stehen
- * als relative Bildlinks in die Export-ZIP. [photosByStation] wie bei [tourHtml].
+ * als relative Bildlinks in die Export-ZIP. [photosByStation] wie bei [tourHtml]; [diaryEntries]
+ * stehen nach den Stationen, aufsteigend nach Datum.
  */
-fun tourMarkdown(res: Resources, tour: Tour, stations: List<Station>, countries: Set<String>, photosByStation: Map<Long, List<TourExportPhoto>>): String {
+fun tourMarkdown(
+    res: Resources,
+    tour: Tour,
+    stations: List<Station>,
+    countries: Set<String>,
+    photosByStation: Map<Long, List<TourExportPhoto>>,
+    diaryEntries: List<DiaryEntry> = emptyList(),
+): String {
     val summary = tourSummary(res, tour, stations, countries)
     val stops = tourStopExports(res, stations, photosByStation)
+    val locale = supportedLocale(res.configuration.locales[0])
     return buildString {
         appendLine("# ${md(res.getString(R.string.share_subject, summary.destination))}")
         appendLine()
@@ -34,6 +46,16 @@ fun tourMarkdown(res: Resources, tour: Tour, stations: List<Station>, countries:
             appendLine(res.getString(R.string.stations_timeline_empty))
         } else {
             stops.forEach { append(stopMarkdown(it)) }
+        }
+        if (diaryEntries.isNotEmpty()) {
+            appendLine()
+            appendLine("## ${res.getString(R.string.diary_section_title)}")
+            diaryEntries.sortedBy { it.date }.forEach { entry ->
+                appendLine()
+                appendLine("### ${md(formatDate(entry.date, locale))}")
+                appendLine()
+                appendLine(md(entry.text))
+            }
         }
         if (tour.notes.isNotBlank()) {
             appendLine()

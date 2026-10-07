@@ -58,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Conversion
 import app.restvolt.camperlog.domain.CostCategory
+import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationService
@@ -103,9 +104,12 @@ fun TourDetailScreen(
     onAddStation: (Long, StationType) -> Unit,
     onOpenStation: (Long) -> Unit,
     onOpenMap: () -> Unit,
+    onAddDiaryEntry: (Long) -> Unit,
+    onOpenDiaryEntry: (Long) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
+    val diaryMessage by viewModel.diaryMessage.collectAsStateWithLifecycle()
     val exporting by viewModel.exporting.collectAsStateWithLifecycle()
     val exportRequest by viewModel.exportRequest.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -145,7 +149,7 @@ fun TourDetailScreen(
                                 onClick = {
                                     overflowExpanded = false
                                     val countries = tourCountries(loaded.autoDetectedCountries, tour.manualCountriesAdded, tour.manualCountriesRemoved)
-                                    viewModel.exportTour(resources, tour, loaded.stations, countries)
+                                    viewModel.exportTour(resources, tour, loaded.stations, countries, loaded.diaryEntries)
                                 },
                             )
                             DropdownMenuItem(
@@ -204,6 +208,7 @@ fun TourDetailScreen(
                 categoryCosts = current.categoryCosts,
                 conversion = current.conversion,
                 autoDetectedCountries = current.autoDetectedCountries,
+                diaryEntries = current.diaryEntries,
                 weatherMapEnabled = weatherMapEnabled,
                 modifier = Modifier.fillMaxSize(),
                 padding = padding,
@@ -211,6 +216,8 @@ fun TourDetailScreen(
                 onAddStop = { showTypePicker = true },
                 onOpenMap = onOpenMap,
                 onSaveCountries = { added, removed -> viewModel.saveCountries(current.tour, added, removed) },
+                onAddDiaryEntry = { onAddDiaryEntry(current.tour.id) },
+                onOpenDiaryEntry = onOpenDiaryEntry,
             )
         }
     }
@@ -250,6 +257,23 @@ fun TourDetailScreen(
         }
         viewModel.onMessageShown(current)
     }
+
+    LaunchedEffect(diaryMessage) {
+        val current = diaryMessage ?: return@LaunchedEffect
+        when (current) {
+            is DiaryMessage.Deleted -> {
+                val result = snackbar.showSnackbar(
+                    message = resources.getString(R.string.diary_entry_deleted),
+                    actionLabel = resources.getString(R.string.action_undo),
+                    withDismissAction = true,
+                    duration = SnackbarDuration.Long,
+                )
+                if (result == SnackbarResult.ActionPerformed) viewModel.undoDeleteDiaryEntry(current.entry)
+            }
+            is DiaryMessage.Failed -> snackbar.showSnackbar(resources.getString(current.text), withDismissAction = true)
+        }
+        viewModel.onDiaryMessageShown(current)
+    }
 }
 
 @Composable
@@ -262,6 +286,7 @@ private fun TourDetails(
     categoryCosts: Map<CostCategory, List<Money>>,
     conversion: Conversion?,
     autoDetectedCountries: Set<String>,
+    diaryEntries: List<DiaryEntry>,
     weatherMapEnabled: Boolean,
     modifier: Modifier,
     padding: PaddingValues,
@@ -269,6 +294,8 @@ private fun TourDetails(
     onAddStop: () -> Unit,
     onOpenMap: () -> Unit,
     onSaveCountries: (Set<String>, Set<String>) -> Unit,
+    onAddDiaryEntry: () -> Unit,
+    onOpenDiaryEntry: (Long) -> Unit,
 ) {
     val locale = currentLocale()
     LazyColumn(
@@ -343,6 +370,19 @@ private fun TourDetails(
                     isLast = station.id == stations.last().id,
                     onClick = { onOpenStation(station.id) },
                 )
+            }
+        }
+        item {
+            var expanded by rememberSaveable { mutableStateOf(true) }
+            SectionCard {
+                CollapsibleSection(
+                    title = stringResource(R.string.diary_section_title),
+                    expanded = expanded,
+                    onToggle = { expanded = !expanded },
+                    summary = null,
+                ) {
+                    DiarySection(entries = diaryEntries, locale = locale, onOpenEntry = onOpenDiaryEntry, onAdd = onAddDiaryEntry)
+                }
             }
         }
         if (tour.notes.isNotBlank() || tour.mapLink != null) {
@@ -498,6 +538,38 @@ private fun stationSupportingText(station: Station, locale: Locale): String {
     }
     val costs = station.effectiveCosts().map { it.amount }.sumByCurrency().takeIf { it.isNotEmpty() }?.let { formatAmounts(it, locale) }
     return listOfNotNull(dateTime, detail, costs).joinToString(" · ")
+}
+
+@Composable
+private fun DiarySection(entries: List<DiaryEntry>, locale: Locale, onOpenEntry: (Long) -> Unit, onAdd: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        entries.forEach { entry -> DiaryEntryRow(entry, locale, onClick = { onOpenEntry(entry.id) }) }
+        TextButton(onClick = onAdd) {
+            Icon(painterResource(R.drawable.ic_add), contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.diary_add_entry))
+        }
+    }
+}
+
+@Composable
+private fun DiaryEntryRow(entry: DiaryEntry, locale: Locale, onClick: () -> Unit) {
+    val openLabel = stringResource(R.string.tours_open_details)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = openLabel, onClick = onClick)
+            .padding(vertical = 8.dp),
+    ) {
+        Text(formatDate(entry.date, locale), style = MaterialTheme.typography.titleSmall)
+        Text(
+            entry.text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @Composable

@@ -2,6 +2,7 @@ package app.restvolt.camperlog.share
 
 import android.content.res.Resources
 import app.restvolt.camperlog.domain.Attachment
+import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
 import java.io.InputStream
@@ -16,7 +17,8 @@ import java.util.zip.ZipOutputStream
  * die Fotos der [stations] unter `Photos/` (siehe [buildTourPhotoPaths]). [photosByStation] sind
  * die Fotoanhänge je Station, [photoContent] liefert ihren Dateiinhalt über den internen Dateinamen
  * ([Attachment.fileName]) oder `null`, wenn die Datei fehlt - das lässt den Export nicht scheitern,
- * ihr Eintrag fehlt dann einfach in der ZIP-Datei.
+ * ihr Eintrag fehlt dann einfach in der ZIP-Datei. [diaryEntries] stehen in `Tour.html`/`Tour.md`
+ * nach den Stationen.
  */
 fun writeTourExportZip(
     output: OutputStream,
@@ -24,6 +26,7 @@ fun writeTourExportZip(
     tour: Tour,
     stations: List<Station>,
     countries: Set<String>,
+    diaryEntries: List<DiaryEntry>,
     photosByStation: Map<Long, List<Attachment>>,
     tourNames: Map<Long, String>,
     vehicleNames: Map<Long, String>,
@@ -33,8 +36,8 @@ fun writeTourExportZip(
 ) {
     val photoPaths = buildTourPhotoPaths(stations, photosByStation)
     ZipOutputStream(output).use { zip ->
-        zip.writeTextEntry("Tour.html") { tourHtml(res, tour, stations, countries, photoPaths) }
-        zip.writeTextEntry("Tour.md") { tourMarkdown(res, tour, stations, countries, photoPaths) }
+        zip.writeTextEntry("Tour.html") { tourHtml(res, tour, stations, countries, photoPaths, diaryEntries) }
+        zip.writeTextEntry("Tour.md") { tourMarkdown(res, tour, stations, countries, photoPaths, diaryEntries) }
         tourGpx(res, stations)?.let { gpx -> zip.writeTextEntry("Tour.gpx") { gpx } }
         zip.writeTextEntry("Stops.csv") { UTF8_BOM + stationsToCsv(stations, tourNames, vehicleNames, defaultVehicleName, vocabulary) }
         for (photos in photoPaths.values) {

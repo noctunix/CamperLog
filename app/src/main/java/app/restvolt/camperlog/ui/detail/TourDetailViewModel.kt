@@ -12,6 +12,8 @@ import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.Conversion
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.CountryLookupRepository
+import app.restvolt.camperlog.domain.DiaryEntry
+import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
@@ -60,7 +62,15 @@ sealed interface DetailUiState {
         val conversion: Conversion? = null,
         /** Aus Stationskoordinaten und Vignetten erkannte Länder, ohne [Tour.manualCountriesAdded]/[Tour.manualCountriesRemoved]. */
         val autoDetectedCountries: Set<String> = emptySet(),
+        /** Tagebucheinträge der Tour, aufsteigend nach Datum. */
+        val diaryEntries: List<DiaryEntry> = emptyList(),
     ) : DetailUiState
+}
+
+/** Rückmeldung zu einem Tagebucheintrag; die Detailseite zeigt sie als Snackbar. */
+sealed interface DiaryMessage {
+    data class Deleted(val entry: DiaryEntry) : DiaryMessage
+    data class Failed(@StringRes val text: Int) : DiaryMessage
 }
 
 /** Rückmeldung zu einer Station aus der Zeitleiste oder zum Tour-Export; die Detailseite zeigt sie als Snackbar. */
@@ -79,6 +89,7 @@ class TourDetailViewModel(
     private val repository: TourRepository,
     private val vehicles: VehicleRepository,
     private val stations: StationRepository,
+    private val diaryEntries: DiaryEntryRepository,
     exchangeRates: ExchangeRateRepository,
     private val countryLookup: CountryLookupRepository,
     private val attachments: AttachmentRepository,
@@ -92,9 +103,9 @@ class TourDetailViewModel(
     val uiState: StateFlow<DetailUiState> = combine(
         repository.observeTour(tourId),
         vehicles.observeVehicles(),
-        stations.observeForTour(tourId),
+        combine(stations.observeForTour(tourId), diaryEntries.observeForTour(tourId)) { stationList, diaryList -> stationList to diaryList },
         combine(exchangeRates.observeMainCurrency(), exchangeRates.observeRates()) { main, rates -> main to rates },
-    ) { tour, vehicleList, stationList, (main, rates) ->
+    ) { tour, vehicleList, (stationList, diaryList), (main, rates) ->
         if (tour == null) {
             DetailUiState.NotFound
         } else {
@@ -108,6 +119,7 @@ class TourDetailViewModel(
                 categoryCosts = stationList.costsByCategory(),
                 conversion = if (totalCosts.all { it.currency == main }) null else convert(totalCosts, main, rates),
                 autoDetectedCountries = autoDetectedCountries(stationList, countryLookup),
+                diaryEntries = diaryList,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailUiState.Loading)
@@ -159,6 +171,39 @@ class TourDetailViewModel(
         _message.compareAndSet(shown, null)
     }
 
+    private val _diaryMessage = MutableStateFlow<DiaryMessage?>(null)
+
+    /** Einmalige Rückmeldung für die Snackbar zum Tagebuch; nach der Anzeige [onDiaryMessageShown] aufrufen. */
+    val diaryMessage: StateFlow<DiaryMessage?> = _diaryMessage.asStateFlow()
+
+    /** Löscht [entry] und bietet über [DiaryMessage.Deleted] das Rückgängigmachen an. */
+    fun deleteDiaryEntry(entry: DiaryEntry) {
+        viewModelScope.launch {
+            _diaryMessage.value = try {
+                diaryEntries.delete(entry.id)
+                DiaryMessage.Deleted(entry)
+            } catch (_: SQLException) {
+                DiaryMessage.Failed(R.string.diary_delete_failed)
+            }
+        }
+    }
+
+    /** Stellt einen über [deleteDiaryEntry] entfernten Eintrag unverändert wieder her. */
+    fun undoDeleteDiaryEntry(entry: DiaryEntry) {
+        viewModelScope.launch {
+            try {
+                diaryEntries.restore(entry)
+            } catch (_: SQLException) {
+                _diaryMessage.value = DiaryMessage.Failed(R.string.diary_restore_failed)
+            }
+        }
+    }
+
+    /** Verwirft [shown], sofern inzwischen keine neuere Meldung vorliegt. */
+    fun onDiaryMessageShown(shown: DiaryMessage) {
+        _diaryMessage.compareAndSet(shown, null)
+    }
+
     private val _exporting = MutableStateFlow(false)
 
     /** Läuft gerade ein Tour-Export? Für eine Fortschrittsanzeige und zum Sperren der Export-Aktion. */
@@ -170,12 +215,12 @@ class TourDetailViewModel(
     val exportRequest: StateFlow<TourExportRequest?> = _exportRequest.asStateFlow()
 
     /**
-     * Exportiert [tour] mit [stations] und ihren bereinigten [countries] als ZIP (`Tour.html`,
-     * `Tour.md`, `Tour.gpx`, `Stops.csv`, Fotos) und fordert danach über [exportRequest] das Teilen
-     * an; [res] liefert die Textbausteine in der App-Sprache. Läuft bereits ein Export, ruft ein
-     * weiterer Aufruf nichts auf.
+     * Exportiert [tour] mit [stations] und ihren bereinigten [countries] sowie [diary] als ZIP
+     * (`Tour.html`, `Tour.md`, `Tour.gpx`, `Stops.csv`, Fotos) und fordert danach über [exportRequest]
+     * das Teilen an; [res] liefert die Textbausteine in der App-Sprache. Läuft bereits ein Export, ruft
+     * ein weiterer Aufruf nichts auf.
      */
-    fun exportTour(res: Resources, tour: Tour, stations: List<Station>, countries: Set<String>) {
+    fun exportTour(res: Resources, tour: Tour, stations: List<Station>, countries: Set<String>, diary: List<DiaryEntry>) {
         if (_exporting.value) return
         _exporting.value = true
         viewModelScope.launch {
@@ -194,6 +239,7 @@ class TourDetailViewModel(
                         tour = tour,
                         stations = stations,
                         countries = countries,
+                        diaryEntries = diary,
                         photosByStation = photosByStation,
                         tourNames = mapOf(tour.id to tour.destination),
                         vehicleNames = vehicleNames,

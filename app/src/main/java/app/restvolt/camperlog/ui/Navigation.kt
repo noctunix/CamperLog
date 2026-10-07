@@ -85,6 +85,8 @@ import app.restvolt.camperlog.ui.data.BackupSettings
 import app.restvolt.camperlog.ui.data.DataScreen
 import app.restvolt.camperlog.ui.data.DataViewModel
 import app.restvolt.camperlog.ui.detail.DetailUiState
+import app.restvolt.camperlog.ui.detail.DiaryEditScreen
+import app.restvolt.camperlog.ui.detail.DiaryEditViewModel
 import app.restvolt.camperlog.ui.detail.StationDetailScreen
 import app.restvolt.camperlog.ui.detail.StationDetailViewModel
 import app.restvolt.camperlog.ui.detail.AndroidTourExportFiles
@@ -183,6 +185,10 @@ internal data class DetailRoute(val tourId: Long)
 /** Karte der Stationen einer Tour; nur erreichbar, wenn [isMapAvailable] zutrifft. */
 @Serializable
 internal data class TourMapRoute(val tourId: Long)
+
+/** Tagebuchformular; [entryId] 0 legt einen neuen Eintrag an. */
+@Serializable
+internal data class DiaryEditRoute(val tourId: Long, val entryId: Long = 0)
 
 /** Karte des aktuellen Filters des Stationen-Reiters. */
 @Serializable
@@ -555,6 +561,7 @@ fun CamperLogNavHost(
                         repository,
                         vehicles,
                         stations,
+                        diaryEntries,
                         exchangeRates,
                         countryLookup,
                         attachments,
@@ -577,12 +584,32 @@ fun CamperLogNavHost(
                 },
                 onOpenStation = { stationId -> navController.navigate(StationDetailRoute(stationId)) },
                 onOpenMap = { navController.navigate(TourMapRoute(tourId)) },
+                onAddDiaryEntry = { targetTourId -> navController.navigate(DiaryEditRoute(tourId = targetTourId)) },
+                onOpenDiaryEntry = { entryId -> navController.navigate(DiaryEditRoute(tourId = tourId, entryId = entryId)) },
+            )
+        }
+        composable<DiaryEditRoute> { entry ->
+            val route = entry.toRoute<DiaryEditRoute>()
+            val tourDetailViewModel =
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, exchangeRates, countryLookup, attachments, attachmentFileStore)
+            DiaryEditScreen(
+                viewModel = viewModel {
+                    DiaryEditViewModel(diaryEntries, repository, route.tourId, route.entryId, createSavedStateHandle())
+                },
+                onDone = { navController.popFrom(entry) },
+                onSaved = { navController.popFrom(entry) },
+                onDelete = { diaryEntry ->
+                    if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                        tourDetailViewModel.deleteDiaryEntry(diaryEntry)
+                        navController.popBackStack()
+                    }
+                },
             )
         }
         composable<TourMapRoute> { entry ->
             val route = entry.toRoute<TourMapRoute>()
             val tourDetailViewModel =
-                navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates, countryLookup, attachments, attachmentFileStore)
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, exchangeRates, countryLookup, attachments, attachmentFileStore)
             val detailState by tourDetailViewModel.uiState.collectAsStateWithLifecycle()
             val loaded = detailState as? DetailUiState.Loaded
             MapScreen(
@@ -668,7 +695,7 @@ fun CamperLogNavHost(
                 route.fromStationsTab && navController.hasRoute<StationsRoute>() ->
                     navController.stationsViewModel(entry, stations, repository, vehicles)::deleteStation
                 navController.hasRoute<DetailRoute>() ->
-                    navController.tourDetailViewModel(entry, repository, vehicles, stations, exchangeRates, countryLookup, attachments, attachmentFileStore)::deleteStation
+                    navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, exchangeRates, countryLookup, attachments, attachmentFileStore)::deleteStation
                 else -> { station -> fallbackDeleteScope.launch { stations.delete(station.id) } }
             }
             StationDetailScreen(
@@ -902,6 +929,7 @@ private fun NavController.tourDetailViewModel(
     tours: TourRepository,
     vehicles: VehicleRepository,
     stations: StationRepository,
+    diaryEntries: DiaryEntryRepository,
     exchangeRates: ExchangeRateRepository,
     countryLookup: CountryLookupRepository,
     attachments: AttachmentRepository,
@@ -911,7 +939,7 @@ private fun NavController.tourDetailViewModel(
     val tourId = detailEntry.toRoute<DetailRoute>().tourId
     val context = LocalContext.current
     return viewModel(viewModelStoreOwner = detailEntry) {
-        TourDetailViewModel(tours, vehicles, stations, exchangeRates, countryLookup, attachments, attachmentFileStore, AndroidTourExportFiles(context), tourId)
+        TourDetailViewModel(tours, vehicles, stations, diaryEntries, exchangeRates, countryLookup, attachments, attachmentFileStore, AndroidTourExportFiles(context), tourId)
     }
 }
 

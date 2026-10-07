@@ -633,6 +633,21 @@
         <item quantity="other">%1$d Nächte</item>
     </plurals>
 
+    <!-- Tagebuch -->
+    <string name="diary_section_title">Tagebuch</string>
+    <string name="diary_add_entry">Tagebucheintrag hinzufügen</string>
+    <string name="diary_entry_deleted">Tagebucheintrag gelöscht</string>
+    <string name="diary_delete_failed">Tagebucheintrag konnte nicht gelöscht werden.</string>
+    <string name="diary_restore_failed">Tagebucheintrag konnte nicht wiederhergestellt werden.</string>
+    <string name="diary_entry_delete_action">Tagebucheintrag löschen</string>
+    <string name="diary_edit_title_new">Neuer Tagebucheintrag</string>
+    <string name="diary_edit_title_existing">Tagebucheintrag bearbeiten</string>
+    <string name="diary_edit_save_failed">Tagebucheintrag konnte nicht gespeichert werden.</string>
+    <string name="diary_not_found">Diesen Tagebucheintrag gibt es nicht mehr.</string>
+    <string name="diary_field_text">Text</string>
+    <string name="diary_error_duplicate_date">Für diesen Tag gibt es schon einen Eintrag</string>
+    <string name="diary_error_text_required">Text erforderlich</string>
+
     <!-- Station hinzufügen: Typauswahl -->
     <string name="station_type_picker_title">Was für eine Station?</string>
 

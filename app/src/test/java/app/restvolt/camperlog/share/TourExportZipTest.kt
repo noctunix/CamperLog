@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
@@ -69,6 +70,7 @@ class TourExportZipTest {
     private fun writeZip(
         stations: List<Station>,
         photosByStation: Map<Long, List<Attachment>> = emptyMap(),
+        diaryEntries: List<DiaryEntry> = emptyList(),
         photoContent: (String) -> ByteArray? = { null },
     ): Map<String, ByteArray> {
         val output = ByteArrayOutputStream()
@@ -78,6 +80,7 @@ class TourExportZipTest {
             tour = tour,
             stations = stations,
             countries = emptySet(),
+            diaryEntries = diaryEntries,
             photosByStation = photosByStation,
             tourNames = mapOf(tour.id to tour.destination),
             vehicleNames = emptyMap(),

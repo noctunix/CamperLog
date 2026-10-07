@@ -643,6 +643,21 @@
         <item quantity="other">%1$d nights</item>
     </plurals>
 
+    <!-- Diary -->
+    <string name="diary_section_title">Diary</string>
+    <string name="diary_add_entry">Add diary entry</string>
+    <string name="diary_entry_deleted">Diary entry deleted</string>
+    <string name="diary_delete_failed">Could not delete diary entry.</string>
+    <string name="diary_restore_failed">Could not restore diary entry.</string>
+    <string name="diary_entry_delete_action">Delete diary entry</string>
+    <string name="diary_edit_title_new">New diary entry</string>
+    <string name="diary_edit_title_existing">Edit diary entry</string>
+    <string name="diary_edit_save_failed">Could not save diary entry.</string>
+    <string name="diary_not_found">This diary entry no longer exists.</string>
+    <string name="diary_field_text">Text</string>
+    <string name="diary_error_duplicate_date">There is already an entry for this day</string>
+    <string name="diary_error_text_required">Text required</string>
+
     <!-- Add stop: type picker -->
     <string name="station_type_picker_title">What kind of stop?</string>
 

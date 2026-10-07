@@ -2,8 +2,10 @@ package app.restvolt.camperlog.share
 
 import android.content.res.Resources
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.supportedLocale
 
 /**
@@ -11,13 +13,21 @@ import app.restvolt.camperlog.domain.supportedLocale
  * JavaScript, keine externen Adressen außer einfachen Links. Jede Station bricht beim Drucken
  * nicht über eine Seite, ihre Fotos bleiben innerhalb der Seitenbreite. [photosByStation] liefert
  * die ZIP-Pfade der Fotos je Station (siehe [buildTourPhotoPaths]); alle Nutzertexte werden
- * HTML-escaped.
+ * HTML-escaped. [diaryEntries] stehen nach den Stationen, aufsteigend nach Datum.
  */
-fun tourHtml(res: Resources, tour: Tour, stations: List<Station>, countries: Set<String>, photosByStation: Map<Long, List<TourExportPhoto>>): String {
+fun tourHtml(
+    res: Resources,
+    tour: Tour,
+    stations: List<Station>,
+    countries: Set<String>,
+    photosByStation: Map<Long, List<TourExportPhoto>>,
+    diaryEntries: List<DiaryEntry> = emptyList(),
+): String {
     val summary = tourSummary(res, tour, stations, countries)
     val stops = tourStopExports(res, stations, photosByStation)
     val title = res.getString(R.string.share_subject, summary.destination)
-    val language = supportedLocale(res.configuration.locales[0]).language
+    val locale = supportedLocale(res.configuration.locales[0])
+    val language = locale.language
     return buildString {
         appendLine("<!DOCTYPE html>")
         appendLine("""<html lang="$language">""")
@@ -36,6 +46,15 @@ fun tourHtml(res: Resources, tour: Tour, stations: List<Station>, countries: Set
             appendLine("""<ol class="stops">""")
             stops.forEach { append(stopHtml(it)) }
             appendLine("</ol>")
+        }
+        if (diaryEntries.isNotEmpty()) {
+            appendLine("<h2>${htmlEscape(res.getString(R.string.diary_section_title))}</h2>")
+            diaryEntries.sortedBy { it.date }.forEach { entry ->
+                appendLine("""<section class="diary-entry">""")
+                appendLine("<h3>${htmlEscape(formatDate(entry.date, locale))}</h3>")
+                appendLine("<p>${htmlEscape(entry.text)}</p>")
+                appendLine("</section>")
+            }
         }
         if (tour.notes.isNotBlank()) {
             appendLine("<h2>${htmlEscape(res.getString(R.string.field_notes))}</h2>")
