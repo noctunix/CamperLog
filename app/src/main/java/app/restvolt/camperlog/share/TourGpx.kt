@@ -5,13 +5,12 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.ui.labelRes
 import java.time.format.DateTimeFormatter
 
-private val GPX_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
+private val GPX_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
 /**
  * Baut die GPX-1.1-Wegpunkte aller [stations] mit Koordinaten; `null`, wenn keine Station welche
- * hat (die ZIP-Datei lässt `Tour.gpx` dann weg). [Station.time] ist eine Wanduhrzeit ohne
- * verlässliche Zeitzone (siehe [app.restvolt.camperlog.domain.Station]) und wird trotzdem mit
- * `Z`-Suffix geschrieben, da GPX sonst keinen gültigen Zeitstempel akzeptiert.
+ * hat. [Station.time] ist Ortszeit ohne bekannte Zeitzone und wird deshalb ohne Zonenangabe
+ * geschrieben (gültiges `xsd:dateTime`); ein `Z` würde die Wegpunkte um Stunden verschieben.
  */
 fun tourGpx(res: Resources, stations: List<Station>): String? {
     val withCoordinates = stations.filter { it.latitude != null && it.longitude != null }

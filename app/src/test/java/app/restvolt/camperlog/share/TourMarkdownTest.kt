@@ -8,6 +8,7 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,6 +59,21 @@ class TourMarkdownTest {
     )
 
     @Test
+    fun userTextIsEscapedSoItRendersLiterally() {
+        val markdown = tourMarkdown(resources, tour.copy(notes = "1. Tag\n- *fett* [x] #1"), listOf(station(name = "Camp_<Nord>")), emptySet(), emptyMap())
+
+        assertTrue(markdown.contains("### Camp\\_\\<Nord\\>"))
+        assertTrue(markdown.contains("1\\. Tag\n\\- \\*fett\\* \\[x\\] \\#1"))
+    }
+
+    @Test
+    fun photoPathsWithUmlautsArePercentEncoded() {
+        val photo = TourExportPhoto(attachment("c.jpg"), "Photos/2026-07-10 Müritz 1.jpg")
+
+        assertEquals("Photos/2026-07-10%20M%C3%BCritz%201.jpg", photo.relativeUrl)
+    }
+
+    @Test
     fun photosBecomeRelativeMarkdownImageLinks() {
         val station = station(name = "Platz")
         val photosByStation = mapOf(
@@ -69,8 +85,8 @@ class TourMarkdownTest {
 
         val markdown = tourMarkdown(resources, tour, listOf(station), emptySet(), photosByStation)
 
-        assertTrue(markdown.contains("![](Photos/2026-07-10 Platz 1.jpg)"))
-        assertTrue(markdown.contains("![](Photos/2026-07-10 Platz 2.jpg)"))
+        assertTrue(markdown.contains("![](Photos/2026-07-10%20Platz%201.jpg)"))
+        assertTrue(markdown.contains("![](Photos/2026-07-10%20Platz%202.jpg)"))
     }
 
     @Test

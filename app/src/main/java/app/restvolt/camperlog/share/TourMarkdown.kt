@@ -13,19 +13,19 @@ fun tourMarkdown(res: Resources, tour: Tour, stations: List<Station>, countries:
     val summary = tourSummary(res, tour, stations, countries)
     val stops = tourStopExports(res, stations, photosByStation)
     return buildString {
-        appendLine("# ${res.getString(R.string.share_subject, summary.destination)}")
+        appendLine("# ${md(res.getString(R.string.share_subject, summary.destination))}")
         appendLine()
-        appendLine("- ${res.getString(R.string.share_period, summary.period, summary.tourType)}")
-        appendLine("- ${summary.tripStats}")
-        appendLine("- ${res.getString(R.string.share_cost, summary.totalCosts)}")
-        summary.categoryCosts.forEach { (label, amounts) -> appendLine("- ${res.getString(R.string.station_summary_field, label, amounts)}") }
+        appendLine("- ${md(res.getString(R.string.share_period, summary.period, summary.tourType))}")
+        appendLine("- ${md(summary.tripStats)}")
+        appendLine("- ${md(res.getString(R.string.share_cost, summary.totalCosts))}")
+        summary.categoryCosts.forEach { (label, amounts) -> appendLine("- ${md(res.getString(R.string.station_summary_field, label, amounts))}") }
         if (summary.countryNames.isNotEmpty()) {
             val names = summary.countryNames.joinToString(", ")
-            appendLine("- ${res.getString(R.string.station_summary_field, res.getString(R.string.tour_section_countries), names)}")
+            appendLine("- ${md(res.getString(R.string.station_summary_field, res.getString(R.string.tour_section_countries), names))}")
         }
         if (summary.wouldReturnNames.isNotEmpty()) {
             val names = summary.wouldReturnNames.joinToString(", ")
-            appendLine("- ${res.getString(R.string.station_summary_field, res.getString(R.string.station_would_return), names)}")
+            appendLine("- ${md(res.getString(R.string.station_summary_field, res.getString(R.string.station_would_return), names))}")
         }
         appendLine()
         appendLine("## ${res.getString(R.string.stations_section_title, summary.stopCount)}")
@@ -39,27 +39,37 @@ fun tourMarkdown(res: Resources, tour: Tour, stations: List<Station>, countries:
             appendLine()
             appendLine("## ${res.getString(R.string.field_notes)}")
             appendLine()
-            appendLine(tour.notes)
+            appendLine(md(tour.notes))
         }
     }.trimEnd() + "\n"
 }
 
 private fun stopMarkdown(stop: TourStopExport): String = buildString {
     appendLine()
-    appendLine("### ${stop.heading}")
+    appendLine("### ${md(stop.heading)}")
     appendLine()
-    appendLine(stop.typeAndTime)
-    stop.address?.let { appendLine(); appendLine(it) }
+    appendLine(md(stop.typeAndTime))
+    stop.address?.let { appendLine(); appendLine(md(it)) }
     if (stop.osmLink != null && stop.coordinatesText != null) {
         appendLine()
-        appendLine("[${stop.coordinatesText}](${stop.osmLink})")
+        appendLine("[${md(stop.coordinatesText)}](${stop.osmLink})")
     }
-    stop.costsLine?.let { appendLine(); appendLine(it) }
-    stop.notesLine?.let { appendLine(); appendLine(it) }
-    stop.weatherLine?.let { appendLine(); appendLine(it) }
-    stop.pitchDetailsLine?.let { appendLine(); appendLine(it) }
+    stop.costsLine?.let { appendLine(); appendLine(md(it)) }
+    stop.notesLine?.let { appendLine(); appendLine(md(it)) }
+    stop.weatherLine?.let { appendLine(); appendLine(md(it)) }
+    stop.pitchDetailsLine?.let { appendLine(); appendLine(md(it)) }
     stop.photos.forEach { photo ->
         appendLine()
-        appendLine("![](${photo.zipPath})")
+        appendLine("![](${photo.relativeUrl})")
     }
 }
+
+private val MARKDOWN_SPECIAL = Regex("""[\\`*_\[\]<>#|!]""")
+private val ORDERED_LIST_START = Regex("""(?m)^(\s*\d+)\.""")
+private val BULLET_START = Regex("""(?m)^(\s*)([-+])""")
+
+/** Maskiert Markdown-Steuerzeichen in Benutzertext, damit er wörtlich erscheint. */
+internal fun md(text: String): String = text
+    .replace(MARKDOWN_SPECIAL) { "\\${it.value}" }
+    .replace(ORDERED_LIST_START) { "${it.groupValues[1]}\\." }
+    .replace(BULLET_START) { "${it.groupValues[1]}\\${it.groupValues[2]}" }

@@ -83,12 +83,12 @@ class TourGpxTest {
     }
 
     @Test
-    fun timeIsFormattedAsIso8601WithZSuffix() {
+    fun timeIsWrittenAsLocalTimeWithoutZone() {
         val stations = listOf(station(name = "Hafen", latitude = 54.3, longitude = 10.1, time = LocalTime.of(18, 30, 0)))
 
         val gpx = tourGpx(resources, stations)!!
 
-        assertEquals(true, gpx.contains("<time>2026-07-10T18:30:00Z</time>"))
+        assertEquals(true, gpx.contains("<time>2026-07-10T18:30:00</time>"))
     }
 
     private fun parse(xml: String): org.w3c.dom.Document =

@@ -81,7 +81,7 @@ class TourHtmlTest {
 
         val html = tourHtml(resources, tour, listOf(station), emptySet(), photosByStation)
 
-        assertTrue(html.contains("""<img src="Photos/2026-07-10 Platz 1.jpg" alt="">"""))
+        assertTrue(html.contains("""<img src="Photos/2026-07-10%20Platz%201.jpg" alt="">"""))
     }
 
     @Test

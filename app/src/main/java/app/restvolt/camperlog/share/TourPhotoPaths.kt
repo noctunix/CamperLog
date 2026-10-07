@@ -5,9 +5,14 @@ import app.restvolt.camperlog.backup.ZIP_PHOTOS_SEGMENT
 import app.restvolt.camperlog.backup.sanitizeZipName
 import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.Station
+import java.net.URLEncoder
 
 /** Ein Fotoanhang einer Station mit seinem Pfad in der Export-ZIP (siehe [buildTourPhotoPaths]). */
-data class TourExportPhoto(val attachment: Attachment, val zipPath: String)
+data class TourExportPhoto(val attachment: Attachment, val zipPath: String) {
+    /** [zipPath] mit prozentkodierten Segmenten; Leerzeichen brechen sonst Markdown-Bildlinks. */
+    val relativeUrl: String
+        get() = zipPath.split('/').joinToString("/") { URLEncoder.encode(it, "UTF-8").replace("+", "%20") }
+}
 
 /**
  * Berechnet für jede Station ihre Fotos mit eindeutigem Pfad unter `Photos/`, in der Reihenfolge von
