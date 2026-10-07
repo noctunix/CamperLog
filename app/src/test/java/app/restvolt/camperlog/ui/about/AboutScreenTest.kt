@@ -74,16 +74,29 @@ class AboutScreenTest {
     }
 
     @Test
-    fun dataSourcesSectionShowsBothAttributionsAndLinksToOpenMeteo() {
+    fun dataSourcesSectionShowsAllAttributionsAndLinksToOpenMeteo() {
         start()
 
         compose.onNodeWithText("Datenquellen").performScrollTo().performClick()
         compose.onNodeWithText("Kartendaten © OpenStreetMap-Mitwirkende (ODbL)").assertExists()
+        compose.onNodeWithText("Landesgrenzen von Natural Earth (public domain)").assertExists()
         compose.onNodeWithText("Wetterdaten von Open-Meteo.com (CC BY 4.0)").performClick()
 
         val started = shadowOf(compose.activity).nextStartedActivity
         assertEquals(Intent.ACTION_VIEW, started.action)
         assertEquals("https://open-meteo.com/", started.data?.toString())
+    }
+
+    @Test
+    fun naturalEarthLinkFiresViewIntent() {
+        start()
+
+        compose.onNodeWithText("Datenquellen").performScrollTo().performClick()
+        compose.onNodeWithText("Landesgrenzen von Natural Earth (public domain)").performClick()
+
+        val started = shadowOf(compose.activity).nextStartedActivity
+        assertEquals(Intent.ACTION_VIEW, started.action)
+        assertEquals("https://www.naturalearthdata.com/", started.data?.toString())
     }
 
     @Test
