@@ -1,13 +1,14 @@
-<p>CamperLog ist eine App zum Erfassen deiner Camping-Touren, ihrer Kosten und der Währungen, in denen du bezahlt hast, zusammen mit dem Datenblatt, der Wartung und dem Bordbuch deines Fahrzeugs.</p>
+<p>CamperLog erfasst deine Camping-Touren mit ihren Kosten in jeder Währung, dazu Datenblatt, Wartung und Bordbuch deines Fahrzeugs.</p>
 <p><b>Funktionen:</b></p>
 <ul>
-<li>Tourenlog: Ziel, Datum, Tourart (Tagestour, Wochenende, Urlaub), Kilometer, Übernachtungen, Kosten und die aus den Stationen erkannten Länder; durchsuchbar und nach Jahr filterbar, mit den Stationen der Tour als Zeitleiste.</li>
+<li>Tourenlog: Ziel, Datum, Tourart (Tagestour, Wochenende, Urlaub), Kilometer, Übernachtungen, Kosten und die aus den Stationen erkannten Länder; durchsuchbar und nach Jahr filterbar, mit den Stationen der Tour als Zeitleiste und einem Tagebuch pro Reisetag.</li>
 <li>Stationen: Schlafplätze, Ver- und Entsorgung, Tanken und Laden, Maut, Sehenswertes, Essen, Fähren und mehr, jeweils mit Kosten nach Kategorie; Strom pauschal, nach Verbrauch oder per Münze, automatisch berechnet. Schlafplätze behalten die Stellplatz-Angaben und einen „Gerne wieder“-Merker. Orte beschreibst du als Text oder fügst Koordinaten und Kartenlinks ein (offline ausgewertet); geo:-Links aus Karten-Apps öffnen eine neue Station. Optional: Koordinaten per Standort, Wetter von Open-Meteo und eine Karte der Stationen auf OpenStreetMap.</li>
-<li>Mehrere Fahrzeuge: ein Datenblatt pro Fahrzeug (allgemeine Daten, Kauf &amp; Verkauf, Versicherung &amp; Steuer, Maße &amp; Gewicht, Motor, Reifen, Tanks, Energie, Notizen), eine Karte „Panne &amp; Unfall“ mit Nummern zum Antippen, „Wo bin ich?“ (bei eingeschaltetem Standort) und die verbleibende Zuladung aus dem gewogenen Leergewicht; Touren und Übersicht je Fahrzeug oder für alle.</li>
+<li>Mehrere Fahrzeuge: ein Datenblatt pro Fahrzeug (von Kauf und Versicherung bis Reifen und Tanks), eine Karte „Panne &amp; Unfall“ mit Nummern zum Antippen, „Wo bin ich?“ (bei eingeschaltetem Standort) und die verbleibende Zuladung aus dem gewogenen Leergewicht; Touren und Übersicht je Fahrzeug oder für alle.</li>
 <li>Bordbuch: Ein Tipp auf „Heute“ trägt Kassette, Grauwasser, Gasflaschenwechsel oder Diesel- bzw. Gasheizung ein, mit Verlauf und Rückgängig; an einer Station angehakt, landet es automatisch hier.</li>
 <li>Fotos an Stationen, Reparaturen und im Bordbuch sowie eine Dokumentenmappe pro Fahrzeug mit Ablauf-Erinnerung.</li>
 <li>Wartung und Reparaturen: nächste Hauptuntersuchung, Gasprüfung und Dichtheitsprüfung, letzter Ölwechsel mit Kilometerstand, sowie ein Reparaturverzeichnis mit Kosten.</li>
-<li>Erinnerungen: Karten im Fahrzeug-Tab weisen auf anstehende Wartung hin; Vorlaufzeit und Ölwechsel-Intervall lassen sich in den Einstellungen anpassen. Benachrichtigungen (optional, aus) ergänzen das um einen täglichen Hintergrund-Check.</li>
+<li>Erinnerungen: Karten im Fahrzeug-Tab weisen auf anstehende Wartung hin, Vorlauf und Ölwechsel-Intervall einstellbar; optional zusätzlich als Benachrichtigung aus einem täglichen Check.</li>
+<li>Checklisten (Abfahrt, Ankunft, Einwintern …) aus eigenen Vorlagen, pro Tour oder Fahrzeug abzuhaken; Volltextsuche über alle Daten.</li>
 <li>Mehrere Währungen: Kosten behalten Währung und Genauigkeit; Beträge im Zahlenformat deines Geräts.</li>
 <li>Übersicht: Touren, Kilometer, Reisetage, Übernachtungen, Länder und Kosten je Währung, gesamt und pro Jahr, je Fahrzeug oder für alle; optional umgerechnet in eine Hauptwährung mit eigenen Wechselkursen.</li>
 <li>Export: Touren und Stationen als CSV; eine Tour als ZIP mit druckbarer HTML-Seite, Markdown, GPX-Wegpunkten, CSV und Fotos.</li>
