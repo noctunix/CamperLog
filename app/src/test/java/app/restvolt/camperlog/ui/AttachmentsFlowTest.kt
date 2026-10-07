@@ -152,7 +152,7 @@ class AttachmentsFlowTest {
         compose.onAllNodesWithText("Station hinzufügen").onFirst().performClick()
         compose.onNode(hasText("Schlafplatz") and hasClickAction() and hasAnyAncestor(isDialog())).performClick()
 
-        compose.onNodeWithText("Erst speichern, um Fotos anzuhängen.").assertExists()
+        compose.onNodeWithText("Speichern schaltet Fotos frei.").assertExists()
         compose.onNodeWithContentDescription("Foto hinzufügen").assertDoesNotExist()
         assertEquals(0, attachments.attachments.size)
     }

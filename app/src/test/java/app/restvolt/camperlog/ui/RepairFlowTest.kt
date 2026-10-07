@@ -62,6 +62,7 @@ class RepairFlowTest {
         descriptionField().performTextInput("Reifen gewechselt")
         compose.onNode(hasSetTextAction() and hasText("km-Stand")).performTextInput("42000")
         clickSave()
+        compose.onNodeWithContentDescription("Zurück").performClick()
 
         compose.onNodeWithText("Reifen gewechselt").assertExists()
         compose.onNodeWithText("42.000 km").assertExists()
@@ -87,7 +88,8 @@ class RepairFlowTest {
         descriptionField().performTextInput("Reifen gewechselt")
         clickSave()
 
-        compose.onNodeWithText("Reifen gewechselt").performClick()
+        // Die erste Speicherung einer neuen Reparatur bleibt auf dem (nun zur Bearbeitung
+        // umgeschalteten) Formular, statt zur Übersicht zurückzukehren.
         descriptionField().performTextReplacement("Bremsen gewechselt")
         clickSave()
 
@@ -103,7 +105,6 @@ class RepairFlowTest {
         descriptionField().performTextInput("Ölwechsel")
         clickSave()
 
-        compose.onNodeWithText("Ölwechsel").performClick()
         compose.onNodeWithContentDescription("Reparatur löschen").performClick()
 
         compose.onNodeWithText("Ölwechsel").assertDoesNotExist()
@@ -118,7 +119,6 @@ class RepairFlowTest {
         descriptionField().performTextInput("Ölwechsel")
         clickSave()
 
-        compose.onNodeWithText("Ölwechsel").performClick()
         compose.onNodeWithContentDescription("Reparatur löschen").performClick()
         compose.onNodeWithText("Rückgängig").performClick()
 
@@ -133,9 +133,26 @@ class RepairFlowTest {
         descriptionField().performTextInput("Ölwechsel")
         clickSave()
 
-        compose.onNodeWithText("Ölwechsel").performClick()
         compose.onNodeWithContentDescription("Reparatur löschen").performClick()
 
         compose.onNodeWithText("Änderungen verwerfen?").assertDoesNotExist()
+    }
+
+    @Test
+    fun savingNewRepair_staysOnFormWithPhotosEnabled() {
+        start()
+        compose.onNodeWithText("Fahrzeug").performClick()
+        compose.onNodeWithText("Reparatur hinzufügen").performClick()
+        descriptionField().performTextInput("Ölwechsel")
+        clickSave()
+
+        compose.onNodeWithText("Reparatur bearbeiten").assertExists()
+        compose.onNodeWithText("Gespeichert · du kannst jetzt Fotos anhängen").assertExists()
+        compose.onNodeWithContentDescription("Foto hinzufügen").assertExists()
+
+        // Zurück ohne weitere Änderungen verlässt direkt, ohne nach Verwerfen zu fragen.
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Änderungen verwerfen?").assertDoesNotExist()
+        compose.onNodeWithText("Ölwechsel").assertExists()
     }
 }

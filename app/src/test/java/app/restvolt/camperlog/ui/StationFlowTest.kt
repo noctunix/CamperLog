@@ -299,10 +299,31 @@ class StationFlowTest {
         compose.onNodeWithText("Station gespeichert · Kassette ins Bordbuch eingetragen").assertExists()
         assertEquals(LogType.CASSETTE_EMPTIED, logs.entries.single().type)
 
-        // Die Tourdetailseite hat keine untere Navigation; erst zurück zu den Touren, dann ins Bordbuch.
+        // Die neue Station landet erst auf ihrer Detailseite, dann die Tourdetailseite, die keine
+        // untere Navigation hat; erst zurück zu den Touren, dann ins Bordbuch.
+        compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Bordbuch").performClick()
         compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(4)
+    }
+
+    @Test
+    fun savingNewStop_landsOnItsDetailWithPhotosEnabled() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+        val locale = Locale.GERMANY
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        clickSave()
+
+        assertEquals(1, stationRepository.stations.size)
+        compose.onNodeWithContentDescription("Foto hinzufügen").assertExists()
+        compose.onNodeWithText("Speichern schaltet Fotos frei.").assertDoesNotExist()
+
+        // Zurück führt zur Herkunft des Formulars, hier die Tourdetailseite.
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onAllNodesWithText(formatAmount(48_650, EUR, locale)).onFirst().assertExists()
     }
 
     @Test
@@ -491,7 +512,7 @@ class StationFlowTest {
         assertEquals(Money(1_000, EUR), electricityCost(saved))
         assertEquals(BigDecimal("20"), electricityKwh(saved))
 
-        compose.onNodeWithText("Schlafplatz").performClick()
+        // Die neue Station landet direkt auf ihrer Detailseite.
         compose.onNodeWithText("Strom: nach Verbrauch").assertExists()
         compose.onNodeWithText(expectedResult).assertExists()
 
@@ -527,7 +548,7 @@ class StationFlowTest {
         assertEquals(15, saved.tollValidUntil?.dayOfMonth)
         assertEquals("App", saved.tollPaymentMethod)
 
-        compose.onNodeWithText("Maut").performClick()
+        // Die neue Station landet direkt auf ihrer Detailseite.
         compose.onNodeWithText("Zahlungsart: App").assertExists()
     }
 
@@ -557,7 +578,7 @@ class StationFlowTest {
         assertEquals(CostCategory.FOOD, saved.costs.single().category)
         assertEquals(Money(1_250, EUR), saved.costs.single().amount)
 
-        compose.onNodeWithText("Essen").performClick()
+        // Die neue Station landet direkt auf ihrer Detailseite.
         compose.onNodeWithText("Essen: ${formatAmount(1_250, EUR, locale)}").assertExists()
 
         compose.onNodeWithContentDescription("Zurück").performClick()
