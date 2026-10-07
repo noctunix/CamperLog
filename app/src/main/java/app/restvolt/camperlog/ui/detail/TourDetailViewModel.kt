@@ -22,6 +22,7 @@ import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.StationService
+import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.Vehicle
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -107,6 +109,7 @@ class TourDetailViewModel(
     private val attachments: AttachmentRepository,
     private val attachmentFileStore: AttachmentFileStore,
     private val exportFiles: TourExportFiles,
+    private val tracks: TrackRepository,
     tourId: Long,
     /** Vokabular von `Stops.csv` im Tour-Export, nach der App-Sprache des Geräts. */
     private val csvVocabulary: () -> CsvVocabulary = { CsvVocabulary.fromLocale(Locale.getDefault()) },
@@ -299,6 +302,7 @@ class TourDetailViewModel(
                     .groupBy { it.ownerId }
                 val vehicleNames = vehicles.allVehicles().associate { it.id to it.name }
                 val defaultVehicleName = res.getString(R.string.vehicle_default_name)
+                val track = tracks.observeForTour(tour.id).first()
                 val baseName = tourExportBaseName(tour.destination, tour.startDate)
                 val uri = exportFiles.writeTourExportZip(baseName) { output ->
                     writeTourExportZip(
@@ -314,6 +318,7 @@ class TourDetailViewModel(
                         defaultVehicleName = defaultVehicleName,
                         vocabulary = csvVocabulary(),
                         photoContent = { fileName -> attachmentFileStore.file(fileName).takeIf { it.exists() }?.inputStream() },
+                        track = track,
                     )
                 }
                 _exportRequest.value = TourExportRequest(uri, tour.destination)

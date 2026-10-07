@@ -676,6 +676,7 @@ fun CamperLogNavHost(
                         attachments,
                         attachmentFileStore,
                         AndroidTourExportFiles(context),
+                        tracks,
                         tourId,
                     )
                 },
@@ -710,7 +711,7 @@ fun CamperLogNavHost(
         composable<DiaryEditRoute> { entry ->
             val route = entry.toRoute<DiaryEditRoute>()
             val tourDetailViewModel =
-                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore)
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)
             DiaryEditScreen(
                 viewModel = viewModel {
                     DiaryEditViewModel(diaryEntries, repository, route.tourId, route.entryId, createSavedStateHandle())
@@ -762,7 +763,7 @@ fun CamperLogNavHost(
         composable<ChecklistRoute> { entry ->
             val route = entry.toRoute<ChecklistRoute>()
             val deleteChecklist: (Checklist) -> Unit = if (route.tourId != null) {
-                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore)::deleteChecklist
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)::deleteChecklist
             } else {
                 navController.vehicleChecklistsViewModel(entry, checklists, checklistTemplates, route.vehicleId)::deleteChecklist
             }
@@ -780,7 +781,7 @@ fun CamperLogNavHost(
         composable<TourMapRoute> { entry ->
             val route = entry.toRoute<TourMapRoute>()
             val tourDetailViewModel =
-                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore)
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)
             val detailState by tourDetailViewModel.uiState.collectAsStateWithLifecycle()
             val loaded = detailState as? DetailUiState.Loaded
             MapScreen(
@@ -867,7 +868,7 @@ fun CamperLogNavHost(
                 route.fromStationsTab && navController.hasRoute<StationsRoute>() ->
                     navController.stationsViewModel(entry, stations, repository, vehicles)::deleteStation
                 navController.hasRoute<DetailRoute>() ->
-                    navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore)::deleteStation
+                    navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)::deleteStation
                 else -> { station -> fallbackDeleteScope.launch { stations.delete(station.id) } }
             }
             StationDetailScreen(
@@ -1116,6 +1117,7 @@ private fun NavController.tourDetailViewModel(
     countryLookup: CountryLookupRepository,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
+    tracks: TrackRepository,
 ): TourDetailViewModel {
     val detailEntry = remember(entry) { getBackStackEntry<DetailRoute>() }
     val tourId = detailEntry.toRoute<DetailRoute>().tourId
@@ -1123,7 +1125,7 @@ private fun NavController.tourDetailViewModel(
     return viewModel(viewModelStoreOwner = detailEntry) {
         TourDetailViewModel(
             tours, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore,
-            AndroidTourExportFiles(context), tourId,
+            AndroidTourExportFiles(context), tracks, tourId,
         )
     }
 }

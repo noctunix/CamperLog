@@ -4,6 +4,7 @@ import android.content.res.Resources
 import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.TrackPoint
 import app.restvolt.camperlog.domain.Tour
 import java.io.InputStream
 import java.io.OutputStream
@@ -33,12 +34,13 @@ fun writeTourExportZip(
     defaultVehicleName: String,
     vocabulary: CsvVocabulary,
     photoContent: (fileName: String) -> InputStream?,
+    track: List<TrackPoint> = emptyList(),
 ) {
     val photoPaths = buildTourPhotoPaths(stations, photosByStation)
     ZipOutputStream(output).use { zip ->
         zip.writeTextEntry("Tour.html") { tourHtml(res, tour, stations, countries, photoPaths, diaryEntries) }
         zip.writeTextEntry("Tour.md") { tourMarkdown(res, tour, stations, countries, photoPaths, diaryEntries) }
-        tourGpx(res, stations)?.let { gpx -> zip.writeTextEntry("Tour.gpx") { gpx } }
+        tourGpx(res, stations, track, tour.destination)?.let { gpx -> zip.writeTextEntry("Tour.gpx") { gpx } }
         zip.writeTextEntry("Stops.csv") { UTF8_BOM + stationsToCsv(stations, tourNames, vehicleNames, defaultVehicleName, vocabulary) }
         for (photos in photoPaths.values) {
             for (photo in photos) {

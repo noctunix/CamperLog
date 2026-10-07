@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.TrackPoint
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -89,6 +90,39 @@ class TourGpxTest {
         val gpx = tourGpx(resources, stations)!!
 
         assertEquals(true, gpx.contains("<time>2026-07-10T18:30:00</time>"))
+    }
+
+    @Test
+    fun trackOnly_writesOneTrksegPerSegmentInOrder() {
+        val track = listOf(
+            TrackPoint(tourId = 1, segment = 2, recordedAt = Instant.parse("2026-07-11T08:00:00Z"), latitude = 48.0, longitude = 11.0),
+            TrackPoint(tourId = 1, segment = 1, recordedAt = Instant.parse("2026-07-10T09:05:00Z"), latitude = 47.1, longitude = 9.1, altitudeM = 420),
+            TrackPoint(tourId = 1, segment = 1, recordedAt = Instant.parse("2026-07-10T09:00:00Z"), latitude = 47.0, longitude = 9.0),
+        )
+
+        val gpx = tourGpx(resources, listOf(station(name = "Ohne Koordinaten")), track, trackName = "Bodensee & mehr")!!
+        val document = parse(gpx)
+
+        assertEquals(0, document.getElementsByTagName("wpt").length)
+        assertEquals(1, document.getElementsByTagName("trk").length)
+        assertEquals("Bodensee & mehr", document.getElementsByTagName("name").item(0).textContent)
+        val segments = document.getElementsByTagName("trkseg")
+        assertEquals(2, segments.length)
+        val first = (segments.item(0) as org.w3c.dom.Element).getElementsByTagName("trkpt")
+        assertEquals(2, first.length)
+        assertEquals("47.0", first.item(0).attributes.getNamedItem("lat").textContent)
+        assertEquals("2026-07-10T09:05:00Z", (first.item(1) as org.w3c.dom.Element).getElementsByTagName("time").item(0).textContent)
+        assertEquals("420", (first.item(1) as org.w3c.dom.Element).getElementsByTagName("ele").item(0).textContent)
+        assertEquals(0, (first.item(0) as org.w3c.dom.Element).getElementsByTagName("ele").length)
+    }
+
+    @Test
+    fun waypointsComeBeforeTrack() {
+        val track = listOf(TrackPoint(tourId = 1, segment = 1, recordedAt = Instant.EPOCH, latitude = 47.0, longitude = 9.0))
+
+        val gpx = tourGpx(resources, listOf(station(name = "Hafen", latitude = 54.3, longitude = 10.1)), track)!!
+
+        assertEquals(true, gpx.indexOf("<wpt") < gpx.indexOf("<trk>"))
     }
 
     private fun parse(xml: String): org.w3c.dom.Document =
