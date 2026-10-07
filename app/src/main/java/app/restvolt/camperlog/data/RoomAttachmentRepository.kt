@@ -43,6 +43,8 @@ class RoomAttachmentRepository(
         fileStore.writeLocation(fileName, latitude, longitude)
     }
 
+    override suspend fun updateCaption(id: Long, caption: String) = dao.updateCaption(id, caption)
+
     override suspend fun delete(id: Long) = dao.deleteById(id)
 
     override suspend fun restore(attachment: Attachment) {

@@ -70,6 +70,9 @@ interface AttachmentRepository {
      */
     suspend fun setLocation(id: Long, latitude: Double, longitude: Double)
 
+    /** Setzt die Beschriftung des Anhangs [id] (Bildunterschrift-Bearbeitung im Betrachter). */
+    suspend fun updateCaption(id: Long, caption: String)
+
     /** Löscht die Datenbankzeile mit [id]; die Datei bleibt bis zum nächsten Aufräumlauf liegen. */
     suspend fun delete(id: Long)
 

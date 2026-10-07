@@ -28,6 +28,9 @@ interface AttachmentDao {
     @Query("UPDATE attachments SET latitude = :latitude, longitude = :longitude WHERE id = :id")
     suspend fun updateLocation(id: Long, latitude: Double, longitude: Double)
 
+    @Query("UPDATE attachments SET caption = :caption WHERE id = :id")
+    suspend fun updateCaption(id: Long, caption: String)
+
     @Query("DELETE FROM attachments WHERE id = :id")
     suspend fun deleteById(id: Long)
 
