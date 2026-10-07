@@ -8,11 +8,11 @@ import app.restvolt.camperlog.domain.Tour
 import java.time.format.DateTimeFormatter
 
 /*
- * Baut menschenlesbare ZIP-Pfade für die Anhangsdateien einer Sicherung (siehe docs/ATTACHMENTS.md,
- * Abschnitt "Backup"): feste Ordnernamen immer Englisch, nutzereigene Namen (Tour, Station, Fahrzeug,
- * Dokumenttitel) wie eingegeben, nur sanitisiert. Lesende Seite (Import) traut diesen Pfaden nicht -
- * sie validiert sie nur strukturell (siehe [isValidZipPath]) und bildet sie sonst 1:1 über
- * `backup.json` auf Anhänge ab, siehe `readBackupZip`.
+ * Baut menschenlesbare ZIP-Pfade für die Anhangsdateien einer Sicherung: feste Ordnernamen immer
+ * Englisch, nutzereigene Namen (Tour, Station, Fahrzeug, Dokumenttitel) wie eingegeben, nur
+ * sanitisiert. Lesende Seite (Import) traut diesen Pfaden nicht - sie validiert sie nur strukturell
+ * (siehe [isValidZipPath]) und bildet sie sonst 1:1 über `backup.json` auf Anhänge ab, siehe
+ * `readBackupZip`.
  */
 
 internal const val ZIP_PHOTOS_SEGMENT = "Photos"

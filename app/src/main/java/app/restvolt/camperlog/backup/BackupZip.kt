@@ -13,12 +13,10 @@ import java.util.zip.ZipOutputStream
 const val BACKUP_ZIP_JSON_ENTRY = "backup.json"
 
 /**
- * Zu schreibende Sicherung: [json] ist immer gesetzt, [writeZip] nur, wenn Fotos und Dokumente mit
- * eingeschlossen werden sollen - dann ersetzt die ZIP-Datei die reine JSON-Datei, statt neben ihr zu
- * stehen (siehe [app.restvolt.camperlog.reminders.ReminderCheckRunner]). [writeZip] schreibt die
- * ZIP-Sicherung direkt in den übergebenen Strom (siehe [writeBackupZip]), statt sie vorher vollständig
- * im Speicher aufzubauen - bei bis zu 200 MB an Anhängen würde das auf knappen Geräten ein
- * `OutOfMemoryError` riskieren.
+ * Zu schreibende Sicherung: [json] ist immer gesetzt, [writeZip] nur mit eingeschlossenen Fotos und
+ * Dokumenten (ersetzt dann die reine JSON-Datei). [writeZip] schreibt direkt in den übergebenen Strom
+ * (siehe [writeBackupZip]) statt vorher vollständig im Speicher - bei bis zu 200 MB an Anhängen würde
+ * das auf knappen Geräten ein `OutOfMemoryError` riskieren.
  */
 class BackupPayload(val json: String, val writeZip: ((OutputStream) -> Unit)?)
 
@@ -35,9 +33,9 @@ fun backupZipSizeEstimate(json: String, attachments: List<BackupAttachment>): Lo
 /**
  * Schreibt [json] und, sofern [includeFiles], die Dateien der eindeutigen [attachments] als ZIP nach
  * [output], jede unter ihrem menschenlesbaren [BackupAttachment.zipPath]. [fileContent] liefert den
- * Inhalt einer Datei (angesprochen über den internen [app.restvolt.camperlog.domain.Attachment.fileName],
- * nicht den ZIP-Pfad) oder `null`, wenn sie nicht (mehr) existiert; ein fehlender Anhang lässt den
- * Export nicht scheitern, sein Eintrag fehlt dann einfach in der ZIP-Datei.
+ * Dateiinhalt über den internen [app.restvolt.camperlog.domain.Attachment.fileName] (nicht den
+ * ZIP-Pfad) oder `null`, wenn die Datei fehlt - das lässt den Export nicht scheitern, ihr Eintrag
+ * fehlt dann einfach in der ZIP-Datei.
  */
 fun writeBackupZip(
     output: OutputStream,
@@ -78,21 +76,17 @@ sealed interface BackupZipReadResult {
 }
 
 /**
- * Liest eine ZIP-Sicherung aus [input] in [stagingDir] (muss existieren oder anlegbar sein). Nur der
- * Eintrag [BACKUP_ZIP_JSON_ENTRY] und strukturell sichere, relative Pfade ([isValidZipPath]) werden
- * überhaupt zwischengelagert (temporär unter einem synthetischen Namen, nicht unter ihrem Eintragsnamen -
- * der ist bis zur Prüfung gegen `backup.json` nicht vertrauenswürdig); jeder andere Eintragsname lässt
- * den Import ohne jede Seitenwirkung scheitern. Jede Datei wird einzeln bis zur für ihren MIME-Typ
- * gültigen Obergrenze und insgesamt bis [MAX_BACKUP_ZIP_TOTAL_BYTES] gelesen - gezählt an den
- * tatsächlich gelesenen Bytes, nicht an der von der ZIP-Datei behaupteten Größe, da sich sonst eine
- * Zip-Bombe durchschmuggeln ließe. Nach dem Entpacken wird `backup.json` decodiert (das validiert auch
- * die darin enthaltenen [BackupAttachment.zipPath] - eindeutig, sicher, kein `backup.json`); jeder
- * zwischengelagerte Eintragsname muss dann zu genau einem dieser Pfade passen (sonst: unbekannter
- * Eintrag), und jede so gefundene Datei muss in Größe und per Inhalt erkanntem MIME-Typ zu ihren
- * Metadaten passen. Erst danach wandert sie unter ihrem internen
- * [app.restvolt.camperlog.domain.Attachment.fileName] ins Ergebnis. Scheitert irgendeine Prüfung,
- * werden alle bereits geschriebenen Dateien in [stagingDir] wieder gelöscht; das endgültige
- * Verschieben an den Ziel-Ort ist Sache des Aufrufers, nach erfolgreichem Datenbank-Import.
+ * Liest eine ZIP-Sicherung aus [input] in [stagingDir] (muss existieren oder anlegbar sein). Nur
+ * [BACKUP_ZIP_JSON_ENTRY] und strukturell sichere, relative Pfade ([isValidZipPath]) werden unter
+ * einem synthetischen Namen zwischengelagert - der Eintragsname selbst ist bis zum Abgleich mit
+ * `backup.json` nicht vertrauenswürdig, jeder andere Eintrag lässt den Import ohne Seitenwirkung
+ * scheitern. Jede Datei ist einzeln und insgesamt (bis [MAX_BACKUP_ZIP_TOTAL_BYTES]) nach tatsächlich
+ * gelesenen statt behaupteten Bytes begrenzt, gegen eine Zip-Bombe. Nach dem Entpacken validiert
+ * `backup.json` auch die [BackupAttachment.zipPath]; jede zwischengelagerte Datei muss zu genau einem
+ * davon passen und in Größe und per Inhalt erkanntem MIME-Typ zu ihren Metadaten, erst dann wandert
+ * sie unter ihrem internen [app.restvolt.camperlog.domain.Attachment.fileName] ins Ergebnis. Scheitert
+ * eine Prüfung, werden alle Dateien in [stagingDir] gelöscht; das endgültige Verschieben an den
+ * Ziel-Ort ist Sache des Aufrufers, nach erfolgreichem Datenbank-Import.
  */
 fun readBackupZip(input: InputStream, stagingDir: File): BackupZipReadResult {
     stagingDir.mkdirs()
