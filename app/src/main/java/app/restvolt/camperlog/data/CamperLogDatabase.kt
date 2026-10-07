@@ -33,8 +33,12 @@ import java.util.UUID
         VehicleDocumentEntity::class,
         TourCountryEntity::class,
         DiaryEntryEntity::class,
+        ChecklistTemplateEntity::class,
+        ChecklistTemplateItemEntity::class,
+        ChecklistEntity::class,
+        ChecklistItemEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -55,6 +59,10 @@ abstract class CamperLogDatabase : RoomDatabase() {
 
     abstract fun vehicleDocumentDao(): VehicleDocumentDao
 
+    abstract fun checklistTemplateDao(): ChecklistTemplateDao
+
+    abstract fun checklistDao(): ChecklistDao
+
     companion object {
         /**
          * Öffnet die Datenbankdatei der App. Nur einmal pro Prozess aufrufen.
@@ -67,7 +75,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
             Room.databaseBuilder(context.applicationContext, CamperLogDatabase::class.java, "camperlog.db")
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
-                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
+                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
                 )
                 .build()
     }
@@ -604,6 +612,49 @@ internal val MIGRATION_12_13 = object : Migration(12, 13) {
 
         db.query("PRAGMA foreign_key_check").use { cursor ->
             check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 12→13" }
+        }
+    }
+}
+
+/**
+ * Version 14: Checklisten ([app.restvolt.camperlog.domain.ChecklistTemplate], [app.restvolt.camperlog.domain.Checklist])
+ * kommen in den neuen Tabellen `checklist_templates`, `checklist_template_items`, `checklists` und
+ * `checklist_items` hinzu. Keine Vorlage wird automatisch angelegt. Alle vier Tabellen sind neu,
+ * daher reicht `CREATE TABLE` ohne Datenübernahme.
+ */
+internal val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `checklist_templates` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_checklist_templates_uuid` ON `checklist_templates` (`uuid`)")
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `checklist_template_items` (`template_id` INTEGER NOT NULL, " +
+                "`position` INTEGER NOT NULL, `text` TEXT NOT NULL, PRIMARY KEY(`template_id`, `position`), " +
+                "FOREIGN KEY(`template_id`) REFERENCES `checklist_templates`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `checklists` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `tour_id` INTEGER, `title` TEXT NOT NULL, " +
+                "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , " +
+                "FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_checklists_uuid` ON `checklists` (`uuid`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_checklists_vehicle_id` ON `checklists` (`vehicle_id`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_checklists_tour_id` ON `checklists` (`tour_id`)")
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `checklist_items` (`checklist_id` INTEGER NOT NULL, `position` INTEGER NOT NULL, " +
+                "`text` TEXT NOT NULL, `checked` INTEGER NOT NULL, PRIMARY KEY(`checklist_id`, `position`), " +
+                "FOREIGN KEY(`checklist_id`) REFERENCES `checklists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+
+        db.query("PRAGMA foreign_key_check").use { cursor ->
+            check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 13→14" }
         }
     }
 }
