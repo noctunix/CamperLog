@@ -33,8 +33,10 @@ import java.util.Currency
 import java.util.UUID
 
 /**
- * Prüft die Migration auf Version 2 mit einer Datenbank, die exakt nach `schemas/…/1.json` angelegt
- * wird. Room validiert beim Öffnen zusätzlich, dass das Ergebnis dem Schema von Version 2 entspricht.
+ * Prüft jede Migration von Version 1 bis 15 einzeln: Die Ausgangsdatenbank wird exakt nach dem
+ * jeweiligen `schemas/…/<n>.json` angelegt (`createVersion<n>`), migriert und auf erhaltene bzw.
+ * umgewandelte Daten geprüft. Room validiert beim Öffnen zusätzlich, dass das Ergebnis dem Schema der
+ * Zielversion entspricht.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
