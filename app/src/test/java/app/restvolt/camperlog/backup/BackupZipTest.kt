@@ -148,6 +148,21 @@ class BackupZipTest {
     }
 
     @Test
+    fun roundTrip_withMaximumLengthNames_staysImportable() {
+        val longName = "X".repeat(500)
+        val source = backup(listOf(photoAttachment()), vehicleName = longName, title = longName)
+        val json = encodeBackup(source)
+        val zipBytes = ByteArrayOutputStream().apply {
+            writeBackupZip(this, json, source.attachments, includeFiles = true) { ByteArrayInputStream(photoBytes) }
+        }.toByteArray()
+
+        val result = readBackupZip(ByteArrayInputStream(zipBytes), stagingDir()) as BackupZipReadResult.Success
+
+        assertEquals(longName, result.backup.documents.single().document.title)
+        assertEquals(photoBytes.toList(), result.stagedFiles.getValue(photoFileName).readBytes().toList())
+    }
+
+    @Test
     fun twoAttachmentsOfTheSameDocument_getUniqueZipPathsWithinTheirFolder() {
         val first = photoAttachment(fileName = photoFileName)
         val second = photoAttachment(fileName = docFileName).copy(uuid = "e5e5e5e5-e5e5-4e5e-8e5e-e5e5e5e5e5e5")

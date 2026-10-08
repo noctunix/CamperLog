@@ -47,9 +47,11 @@ internal fun sanitizeZipName(raw: String, fallback: String): String {
     return cleaned.ifEmpty { fallback }
 }
 
-/** Kappt [text] auf höchstens [MAX_ZIP_PATH_SEGMENT_LENGTH] Zeichen. */
-private fun capZipSegment(text: String): String =
-    if (text.length <= MAX_ZIP_PATH_SEGMENT_LENGTH) text else text.take(MAX_ZIP_PATH_SEGMENT_LENGTH).trimEnd()
+/** Kappt [text] so, dass es zusammen mit [tail] höchstens [MAX_ZIP_PATH_SEGMENT_LENGTH] Zeichen lang ist. */
+private fun capZipSegment(text: String, tail: String = ""): String {
+    val budget = MAX_ZIP_PATH_SEGMENT_LENGTH - tail.length
+    return (if (text.length <= budget) text else text.take(budget).trimEnd()) + tail
+}
 
 /**
  * Ob [path] ein sicherer, relativer ZIP-Pfad ist: kein führendes `/`, keine `.`/`..`-Teilstücke, keine
@@ -151,11 +153,11 @@ internal fun buildAttachmentZipPaths(backup: Backup): Map<String, String> {
         val folder = candidate.folder.map(::capZipSegment)
         val folderKey = folder.joinToString("/") { it.lowercase() }
         val used = usedNamesByFolder.getOrPut(folderKey) { mutableSetOf() }
-        val stem = capZipSegment(candidate.stem)
         var suffix = 1
         var fileName: String
         while (true) {
-            fileName = if (suffix == 1) "$stem.${candidate.extension}" else "$stem $suffix.${candidate.extension}"
+            val tail = if (suffix == 1) ".${candidate.extension}" else " $suffix.${candidate.extension}"
+            fileName = capZipSegment(candidate.stem, tail)
             if (used.add(fileName.lowercase())) break
             suffix++
         }

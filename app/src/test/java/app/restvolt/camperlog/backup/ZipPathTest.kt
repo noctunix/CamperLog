@@ -261,19 +261,49 @@ class ZipPathTest {
     }
 
     @Test
-    fun longUserEnteredNameIsCappedPerSegment() {
-        val documentUuid = "33333333-3333-4333-8333-333333333333"
-        val attachment = documentAttachment("44444444-4444-4444-8444-444444444444", mimeType = "image/jpeg")
-        val longTitle = "A".repeat(200)
+    fun longUserEnteredNameIsCappedPerSegmentIncludingExtensionAndSuffix() {
+        val firstDocumentUuid = "33333333-3333-4333-8333-333333333333"
+        val secondDocumentUuid = "66666666-6666-4666-8666-666666666666"
+        val firstAttachment = documentAttachment("44444444-4444-4444-8444-444444444444", mimeType = "image/jpeg")
+        val secondAttachment = documentAttachment("55555555-5555-4555-8555-555555555555", mimeType = "application/pdf")
+        val longTitle = "A".repeat(500)
         val backup = backup(
-            documents = listOf(BackupVehicleDocument(document(documentUuid, title = longTitle), vehicleUuid)),
-            attachments = listOf(attachment to documentUuid),
+            documents = listOf(
+                BackupVehicleDocument(document(firstDocumentUuid, title = longTitle), vehicleUuid),
+                BackupVehicleDocument(document(secondDocumentUuid, title = longTitle), vehicleUuid),
+            ),
+            attachments = listOf(firstAttachment to firstDocumentUuid, secondAttachment to secondDocumentUuid),
         )
 
-        val path = buildAttachmentZipPaths(backup).getValue(attachment.uuid)
-        val fileNameWithoutExtension = path.substringAfterLast('/').removeSuffix(".jpg")
+        val paths = buildAttachmentZipPaths(backup)
+        val first = paths.getValue(firstAttachment.uuid).substringAfterLast('/')
+        val second = paths.getValue(secondAttachment.uuid).substringAfterLast('/')
 
-        assertEquals(MAX_ZIP_PATH_SEGMENT_LENGTH, fileNameWithoutExtension.length)
+        assertEquals("A".repeat(MAX_ZIP_PATH_SEGMENT_LENGTH - 4) + ".jpg", first)
+        assertEquals("A".repeat(MAX_ZIP_PATH_SEGMENT_LENGTH - 4) + ".pdf", second)
+        paths.values.forEach { assertTrue(it, isValidZipPath(it)) }
+    }
+
+    @Test
+    fun cappedNamesThatCollideKeepTheirSuffixWithinTheSegmentLimit() {
+        val longTitle = "B".repeat(500)
+        val uuids = listOf("33333333-3333-4333-8333-333333333333", "66666666-6666-4666-8666-666666666666")
+        val attachments = listOf(
+            documentAttachment("44444444-4444-4444-8444-444444444444", mimeType = "image/jpeg"),
+            documentAttachment("55555555-5555-4555-8555-555555555555", mimeType = "image/jpeg"),
+        )
+        val backup = backup(
+            documents = uuids.map { BackupVehicleDocument(document(it, title = longTitle), vehicleUuid) },
+            attachments = attachments.zip(uuids),
+        )
+
+        val paths = buildAttachmentZipPaths(backup)
+
+        assertEquals(
+            "B".repeat(MAX_ZIP_PATH_SEGMENT_LENGTH - 6) + " 2.jpg",
+            paths.getValue(attachments[1].uuid).substringAfterLast('/'),
+        )
+        paths.values.forEach { assertTrue(it, isValidZipPath(it)) }
     }
 
     @Test
