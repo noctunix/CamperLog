@@ -14,6 +14,7 @@ import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
 import java.time.Clock
@@ -173,6 +174,9 @@ class RoomBackupImporter(
         var updated = 0
         for (tour in importedTours) {
             val existing = storedTours[tour.uuid]
+            if (tour.endDate == null && tourDao.hasRunningTour(tour.vehicleId, existing?.id ?: 0)) {
+                throw RunningTourAlreadyExistsException(tour.vehicleId)
+            }
             val localId = when {
                 existing == null -> {
                     val withId = tour.copy(id = 0)

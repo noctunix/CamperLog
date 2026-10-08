@@ -36,6 +36,12 @@ interface TourDao {
     @Query("SELECT EXISTS(SELECT 1 FROM tours)")
     suspend fun hasAny(): Boolean
 
+    @Query("SELECT EXISTS(SELECT 1 FROM tours WHERE vehicle_id = :vehicleId AND end_date IS NULL AND id != :excludedTourId)")
+    suspend fun hasRunningTour(vehicleId: Long, excludedTourId: Long): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM tours WHERE vehicle_id = :vehicleId AND end_date IS NULL)")
+    suspend fun hasRunningTour(vehicleId: Long): Boolean
+
     @Insert
     suspend fun insert(tour: TourEntity): Long
 

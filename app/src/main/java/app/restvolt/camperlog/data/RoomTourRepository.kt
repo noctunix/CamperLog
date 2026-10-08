@@ -5,6 +5,7 @@ import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
+import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.TourTotals
 import app.restvolt.camperlog.domain.YearTotals
 import app.restvolt.camperlog.domain.costsByCategory
@@ -52,15 +53,20 @@ class RoomTourRepository(
 
     override suspend fun save(tour: Tour): Long {
         val now = clock()
-        return if (tour.id == 0L) {
+        return database.withTransaction {
             val uuid = tour.uuid.ifEmpty { newUuid() }
             val vehicleId = if (tour.vehicleId == 0L) vehicleDao.resolveCurrentVehicleId(now, newUuid) else tour.vehicleId
-            val resolved = tour.copy(uuid = uuid, vehicleId = vehicleId, createdAt = now, updatedAt = now)
-            dao.insertWithCosts(resolved.toEntity(), resolved.toCostEntities(), resolved.toCountryEntities())
-        } else {
-            val resolved = tour.copy(updatedAt = now)
-            dao.updateWithCosts(resolved.toEntity(), resolved.toCostEntities(), resolved.toCountryEntities())
-            tour.id
+            if (tour.endDate == null && dao.hasRunningTour(vehicleId, tour.id)) {
+                throw RunningTourAlreadyExistsException(vehicleId)
+            }
+            if (tour.id == 0L) {
+                val resolved = tour.copy(uuid = uuid, vehicleId = vehicleId, createdAt = now, updatedAt = now)
+                dao.insertWithCosts(resolved.toEntity(), resolved.toCostEntities(), resolved.toCountryEntities())
+            } else {
+                val resolved = tour.copy(vehicleId = vehicleId, updatedAt = now)
+                dao.updateWithCosts(resolved.toEntity(), resolved.toCostEntities(), resolved.toCountryEntities())
+                tour.id
+            }
         }
     }
 
@@ -69,8 +75,12 @@ class RoomTourRepository(
         dao.deleteById(id)
     }
 
-    override suspend fun restore(tour: Tour) {
+    override suspend fun restore(tour: Tour) = database.withTransaction {
+        if (tour.endDate == null && dao.hasRunningTour(tour.vehicleId)) {
+            throw RunningTourAlreadyExistsException(tour.vehicleId)
+        }
         dao.insertWithCosts(tour.toEntity(), tour.toCostEntities(), tour.toCountryEntities())
+        Unit
     }
 
     override suspend fun lastUsedCurrency(): Currency? = dao.lastUsedCurrency()?.let(Currency::getInstance)

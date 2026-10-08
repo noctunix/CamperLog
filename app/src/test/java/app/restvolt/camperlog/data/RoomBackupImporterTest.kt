@@ -25,6 +25,7 @@ import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Repair
+import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationType
@@ -218,6 +219,19 @@ class RoomBackupImporterTest {
     private suspend fun storedStations() = RoomStationRepository(db, RoomLogRepository(db)).allStations().map { it.copy(id = 0) }
 
     private suspend fun seed(vararg seeded: Tour) = seeded.forEach { tours.restore(it) }
+
+    @Test
+    fun mergeRejectsRunningTourWhenTheVehicleAlreadyHasOne() = runTest {
+        seed(tour(1).copy(endDate = null))
+
+        try {
+            importer.import(backup(listOf(tour(2).copy(endDate = null))), ImportMode.MERGE)
+            throw AssertionError("Expected duplicate running tour to be rejected")
+        } catch (expected: RunningTourAlreadyExistsException) {
+            assertEquals(vehicleId, expected.vehicleId)
+        }
+        assertEquals(listOf(uuid(1)), storedTours().map(Tour::uuid))
+    }
 
     @Test
     fun merge_addsNewTours_updatesNewer_keepsNewerOrEqualLocal() = runTest {

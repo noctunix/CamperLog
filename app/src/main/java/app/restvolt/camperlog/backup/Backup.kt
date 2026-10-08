@@ -472,6 +472,11 @@ private fun BackupDto.toBackup(): BackupReadResult {
         }
         tour
     }
+    val runningVehicles = HashSet<String?>()
+    for (tour in tours.filter { it.endDate == null }) {
+        val vehicleUuid = tourVehicleUuid[tour.uuid] ?: currentVehicleUuid
+        if (!runningVehicles.add(vehicleUuid)) return invalid
+    }
 
     val stationVehicleUuid = HashMap<String, String>()
     val stationTourUuid = HashMap<String, String>(legacyStationTourUuid)

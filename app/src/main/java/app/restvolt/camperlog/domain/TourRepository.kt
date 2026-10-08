@@ -3,6 +3,11 @@ package app.restvolt.camperlog.domain
 import kotlinx.coroutines.flow.Flow
 import java.util.Currency
 
+/** Wird ausgelöst, wenn ein Fahrzeug bereits eine laufende Tour hat. */
+class RunningTourAlreadyExistsException(val vehicleId: Long) : IllegalStateException(
+    "Vehicle $vehicleId already has a running tour",
+)
+
 /** Zugriff auf alle gespeicherten Touren. */
 interface TourRepository {
 

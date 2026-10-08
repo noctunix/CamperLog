@@ -15,6 +15,7 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.TourTotals
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.YearTotals
@@ -104,6 +105,68 @@ class RoomTourRepositoryTest {
     fun newTourWithoutVehicleIdUsesCurrentVehicle() = runTest {
         val id = repository.save(tour(start = "2026-05-01").copy(vehicleId = 0))
         assertEquals(vehicleId, repository.observeTour(id).first()?.vehicleId)
+    }
+
+    @Test
+    fun onlyOneRunningTourPerVehicleAndCompletedTourReleasesSlot() = runTest {
+        val running = tour(start = "2026-05-01").copy(endDate = null)
+        val id = repository.save(running)
+
+        try {
+            repository.save(tour(start = "2026-06-01").copy(endDate = null))
+            throw AssertionError("Expected duplicate running tour to be rejected")
+        } catch (expected: RunningTourAlreadyExistsException) {
+            assertEquals(vehicleId, expected.vehicleId)
+        }
+
+        val stored = checkNotNull(repository.observeTour(id).first())
+        repository.save(stored.copy(destination = "Weiter unterwegs"))
+        repository.save(stored.copy(endDate = LocalDate.parse("2026-05-10")))
+        val nextId = repository.save(tour(start = "2026-06-01").copy(endDate = null))
+        assertNull(repository.observeTour(nextId).first()?.endDate)
+    }
+
+    @Test
+    fun movingRunningTourToVehicleWithRunningTourIsRejected() = runTest {
+        val otherVehicleId = db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-2", createdAtMillis = 0, updatedAtMillis = 0))
+        val movingId = repository.save(tour(start = "2026-05-01").copy(endDate = null))
+        repository.save(tour(start = "2026-06-01").copy(vehicleId = otherVehicleId, endDate = null))
+
+        try {
+            repository.save(checkNotNull(repository.observeTour(movingId).first()).copy(vehicleId = otherVehicleId))
+            throw AssertionError("Expected moving running tour to be rejected")
+        } catch (expected: RunningTourAlreadyExistsException) {
+            assertEquals(otherVehicleId, expected.vehicleId)
+        }
+        assertEquals(vehicleId, repository.observeTour(movingId).first()?.vehicleId)
+    }
+
+    @Test
+    fun restoreRejectsSecondRunningTour() = runTest {
+        repository.save(tour(start = "2026-05-01").copy(endDate = null))
+        val deletedId = repository.save(tour(start = "2026-06-01").copy(endDate = LocalDate.parse("2026-06-02")))
+        val deleted = checkNotNull(repository.observeTour(deletedId).first())
+        repository.delete(deletedId)
+
+        try {
+            repository.restore(deleted.copy(endDate = null))
+            throw AssertionError("Expected restoring duplicate running tour to be rejected")
+        } catch (expected: RunningTourAlreadyExistsException) {
+            assertEquals(vehicleId, expected.vehicleId)
+        }
+        assertNull(repository.observeTour(deletedId).first())
+    }
+
+    @Test
+    fun zeroVehicleIdIsResolvedBeforeRunningTourConflictCheck() = runTest {
+        repository.save(tour(start = "2026-05-01").copy(endDate = null))
+
+        try {
+            repository.save(tour(start = "2026-06-01").copy(vehicleId = 0, endDate = null))
+            throw AssertionError("Expected current vehicle's running tour to conflict")
+        } catch (expected: RunningTourAlreadyExistsException) {
+            assertEquals(vehicleId, expected.vehicleId)
+        }
     }
 
     @Test

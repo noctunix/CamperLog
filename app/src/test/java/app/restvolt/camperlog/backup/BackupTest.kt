@@ -244,6 +244,18 @@ class BackupTest {
     }
 
     @Test
+    fun decode_rejectsTwoRunningToursForTheSameVehicle() {
+        val duplicate = backup.copy(
+            tours = listOf(
+                tour().copy(endDate = null),
+                tour(uuid = "1b6f5e2a-6c1d-4e8a-9f3b-2d7c1a4e5f60").copy(endDate = null),
+            ),
+        )
+
+        assertEquals(BackupError.INVALID_DATA, failure(encodeBackup(duplicate))?.error)
+    }
+
+    @Test
     fun roundTrip_keepsManualCountryAdjustments() {
         val withCountries = Backup(
             exportedAt = backup.exportedAt,

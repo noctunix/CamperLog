@@ -26,6 +26,7 @@ import app.restvolt.camperlog.domain.ChecklistTemplateRepository
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
+import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TrackRepository
@@ -360,6 +361,8 @@ class DataViewModel(
                 pending.stagingDir?.deleteRecursively()
                 _pendingImport.value = null
                 _message.value = DataMessage.Imported(result, missingFiles)
+            } catch (_: RunningTourAlreadyExistsException) {
+                _pendingImport.value = pending.copy(running = false, failed = true)
             } catch (_: SQLException) {
                 _pendingImport.value = pending.copy(running = false, failed = true)
             } catch (_: IOException) {
