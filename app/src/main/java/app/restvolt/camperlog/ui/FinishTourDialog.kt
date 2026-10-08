@@ -1,4 +1,4 @@
-package app.restvolt.camperlog.ui.detail
+package app.restvolt.camperlog.ui
 
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults

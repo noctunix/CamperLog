@@ -87,6 +87,8 @@
     <string name="tours_search">Search destinations</string>
     <string name="tours_all_years">All years</string>
     <string name="tours_open_details">Open details</string>
+    <string name="tours_running_since">On the road since %1$s</string>
+    <string name="tours_track_recording">GPS track recording</string>
     <string name="tours_row_meta">Year %1$d · %2$s</string>
     <string name="tours_row_meta_vehicle">Year %1$d · %2$s · %3$s</string>
     <plurals name="tours_row_station_count">

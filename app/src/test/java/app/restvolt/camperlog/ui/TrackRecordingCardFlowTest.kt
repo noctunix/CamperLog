@@ -56,10 +56,15 @@ class TrackRecordingCardFlowTest {
         TrackRecordingSettings.resetShared()
     }
 
-    private fun openTour(tracks: FakeTrackRepository = FakeTrackRepository(), scrollTo: String? = "Aufzeichnung starten") {
+    private fun openTour(
+        tracks: FakeTrackRepository = FakeTrackRepository(),
+        scrollTo: String? = "Aufzeichnung starten",
+        running: Boolean = false,
+    ) {
+        val firstTour = lofoten(1).let { if (running) it.copy(endDate = null) else it }
         compose.setContent {
             CamperLogTheme {
-                CamperLogNavHost(FakeTourRepository(listOf(lofoten(1), lofoten(2).copy(destination = "Dolomiten"))), FakeVehicleRepository(), FakeLogRepository(), FakeStationRepository(), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = tracks) { }
+                CamperLogNavHost(FakeTourRepository(listOf(firstTour, lofoten(2).copy(destination = "Dolomiten"))), FakeVehicleRepository(), FakeLogRepository(), FakeStationRepository(), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = tracks) { }
             }
         }
         compose.onNodeWithText("Lofoten").performClick()
@@ -80,6 +85,19 @@ class TrackRecordingCardFlowTest {
 
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Stationen", substring = true))
         compose.onNodeWithText("Aufzeichnung starten").assertDoesNotExist()
+    }
+
+    @Test
+    fun runningTourOffersTrackAndExplicitStartEnablesRecording() {
+        settings.batteryHintShown = true
+        grantLocation()
+        openTour(running = true)
+
+        compose.onNodeWithText("Aufzeichnung starten").performClick()
+
+        assertTrue(settings.enabled)
+        val started = shadowOf(compose.activity.application).nextStartedService
+        assertEquals(TrackRecordingService::class.java.name, started.component?.className)
     }
 
     @Test

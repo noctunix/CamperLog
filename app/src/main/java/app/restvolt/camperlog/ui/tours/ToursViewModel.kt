@@ -8,10 +8,12 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
+import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.domain.completeTour
 import app.restvolt.camperlog.ui.VehicleScopeSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /** Zustand der Tourenliste. [tours] ist bereits nach Fahrzeug, Suche und Jahr gefiltert. */
 data class ToursUiState(
@@ -60,6 +63,7 @@ sealed interface ToursMessage {
         val linkedEntryIdsByStation: Map<Long, List<Long>> = emptyMap(),
     ) : ToursMessage
     data object Saved : ToursMessage
+    data object Finished : ToursMessage
     data class Failed(@StringRes val text: Int) : ToursMessage
 }
 
@@ -68,7 +72,10 @@ class ToursViewModel(
     private val repository: TourRepository,
     private val vehicles: VehicleRepository,
     private val stations: StationRepository,
+    private val tracks: TrackRepository,
     private val filterSettings: VehicleScopeSettings,
+    private val today: () -> LocalDate = LocalDate::now,
+    private val onTourFinished: (Long) -> Unit = {},
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
@@ -135,6 +142,29 @@ class ToursViewModel(
 
     /** Einmalige Rückmeldung für die Snackbar der Liste; nach der Anzeige [onMessageShown] aufrufen. */
     val message: StateFlow<ToursMessage?> = _message.asStateFlow()
+
+    private val _finishingTourId = MutableStateFlow<Long?>(null)
+    val finishingTourId: StateFlow<Long?> = _finishingTourId.asStateFlow()
+
+    /** Beendet eine laufende Tour mit denselben Regeln wie die Detailseite. */
+    fun finish(tour: Tour, endDate: LocalDate) {
+        if (tour.endDate != null || _finishingTourId.value != null) return
+        _finishingTourId.value = tour.id
+        viewModelScope.launch {
+            try {
+                if (completeTour(tour.id, endDate, today(), repository, stations, tracks)) {
+                    onTourFinished(tour.id)
+                    _message.value = ToursMessage.Finished
+                } else {
+                    _message.value = ToursMessage.Failed(R.string.tour_finish_failed)
+                }
+            } catch (_: SQLException) {
+                _message.value = ToursMessage.Failed(R.string.tour_finish_failed)
+            } finally {
+                _finishingTourId.value = null
+            }
+        }
+    }
 
     /**
      * Löscht [tour] und explizit ihre Stationen (ihre verknüpften Bordbuch-Einträge bleiben, SET NULL).

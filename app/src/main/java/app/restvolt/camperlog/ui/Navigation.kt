@@ -3,6 +3,7 @@ package app.restvolt.camperlog.ui
 import app.restvolt.camperlog.CamperLogApp
 import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
+import app.restvolt.camperlog.tracking.TrackRecordingService
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -530,10 +531,23 @@ internal fun NavController.toursViewModel(
     repository: TourRepository,
     vehicles: VehicleRepository,
     stations: StationRepository,
+    tracks: TrackRepository,
 ): ToursViewModel {
     val toursEntry = remember(entry) { getBackStackEntry<ToursRoute>() }
     val context = LocalContext.current
-    return viewModel(viewModelStoreOwner = toursEntry) { ToursViewModel(repository, vehicles, stations, VehicleScopeSettings(context)) }
+    val trackSettings = remember { TrackRecordingSettings.get(context) }
+    return viewModel(viewModelStoreOwner = toursEntry) {
+        ToursViewModel(
+            repository,
+            vehicles,
+            stations,
+            tracks,
+            VehicleScopeSettings(context),
+            onTourFinished = { tourId ->
+                if (trackSettings.activeRecording?.tourId == tourId) TrackRecordingService.stop(context)
+            },
+        )
+    }
 }
 
 /**

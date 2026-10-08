@@ -72,6 +72,8 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
     val recordingElsewhere = active != null && !recordingHere
 
     fun startRecording() {
+        // Ein bewusster Start aus einer laufenden Tour schaltet die Aufzeichnung zugleich global ein.
+        settings.enabled = true
         if (!settings.batteryHintShown && !isIgnoringBatteryOptimizations(context)) {
             settings.batteryHintShown = true
             showBatteryHint = true

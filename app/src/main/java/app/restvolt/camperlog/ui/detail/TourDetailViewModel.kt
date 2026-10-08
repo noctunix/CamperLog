@@ -30,6 +30,7 @@ import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.autoDetectedCountries
+import app.restvolt.camperlog.domain.completeTour
 import app.restvolt.camperlog.domain.convert
 import app.restvolt.camperlog.domain.costsByCategory
 import app.restvolt.camperlog.domain.stationCostTotals
@@ -77,8 +78,6 @@ sealed interface DetailUiState {
         val checklists: List<Checklist> = emptyList(),
         /** Kennzahlen für laufende Touren live abgeleitet, für abgeschlossene aus den gespeicherten Werten. */
         val metrics: TourMetrics = TourMetrics(tour.travelDays, tour.overnightStays, tour.distanceKm),
-        /** Aktuelle Trackpunkte, benötigt zum Festschreiben der Kennzahlen beim Beenden. */
-        val trackPoints: List<TrackPoint> = emptyList(),
     ) : DetailUiState
 }
 
@@ -172,7 +171,6 @@ class TourDetailViewModel(
                 diaryEntries = content.diaryEntries,
                 checklists = content.checklists,
                 metrics = metrics,
-                trackPoints = content.trackPoints,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailUiState.Loading)
@@ -191,17 +189,13 @@ class TourDetailViewModel(
         _finishing.value = true
         viewModelScope.launch {
             try {
-                val completed = tour.copy(endDate = endDate)
-                val metrics = completed.derivedMetrics(loaded.stations, loaded.trackPoints, endDate)
-                repository.save(
-                    completed.copy(
-                        travelDays = metrics.travelDays,
-                        overnightStays = metrics.overnightStays,
-                        distanceKm = metrics.distanceKm,
-                    ),
-                )
-                onTourFinished()
-                _finishMessage.value = FinishMessage.Finished
+                val finished = completeTour(tour.id, endDate, today(), repository, stations, tracks)
+                if (finished) {
+                    onTourFinished()
+                    _finishMessage.value = FinishMessage.Finished
+                } else {
+                    _finishMessage.value = FinishMessage.Failed
+                }
             } catch (_: SQLException) {
                 _finishMessage.value = FinishMessage.Failed
             } finally {

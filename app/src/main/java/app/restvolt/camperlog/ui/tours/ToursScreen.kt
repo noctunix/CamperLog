@@ -28,12 +28,16 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -47,8 +51,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.period
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.FinishTourDialog
 import app.restvolt.camperlog.ui.TabTopBar
 import app.restvolt.camperlog.ui.VehicleSwitcherTitle
 import app.restvolt.camperlog.ui.currentLocale
@@ -67,13 +73,16 @@ fun ToursScreen(
     onOpenSettings: () -> Unit,
     onOpenTour: (Long) -> Unit,
     onOpenVehicles: () -> Unit,
+    activeRecordingTourId: Long? = null,
     bottomBar: @Composable () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val resources = LocalResources.current
     val snackbar = remember { SnackbarHostState() }
     val message by viewModel.message.collectAsStateWithLifecycle()
+    val finishingTourId by viewModel.finishingTourId.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    var finishTourId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -137,7 +146,10 @@ fun ToursScreen(
                         tour = tour,
                         vehicleName = vehicleName,
                         stationCount = state.stationCounts[tour.id] ?: 0,
+                        recording = activeRecordingTourId == tour.id,
+                        finishing = finishingTourId == tour.id,
                         onClick = { onOpenTour(tour.id) },
+                        onFinish = { finishTourId = tour.id },
                     )
                 }
             }
@@ -159,9 +171,23 @@ fun ToursScreen(
                 if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete(current)
             }
             ToursMessage.Saved -> snackbar.showSnackbar(resources.getString(R.string.tours_saved))
+            ToursMessage.Finished -> snackbar.showSnackbar(resources.getString(R.string.tour_finished))
             is ToursMessage.Failed -> snackbar.showSnackbar(resources.getString(current.text), withDismissAction = true)
         }
         viewModel.onMessageShown(current)
+    }
+
+    val finishTour = state.tours.firstOrNull { it.id == finishTourId && it.endDate == null }
+    if (finishTour != null) {
+        FinishTourDialog(
+            tourStart = finishTour.startDate,
+            today = java.time.LocalDate.now(),
+            onConfirm = {
+                finishTourId = null
+                viewModel.finish(finishTour, it)
+            },
+            onDismiss = { finishTourId = null },
+        )
     }
 }
 
@@ -232,7 +258,15 @@ private fun YearFilter(years: List<Int>, selected: Int?, onSelect: (Int?) -> Uni
 }
 
 @Composable
-private fun TourCard(tour: Tour, vehicleName: String?, stationCount: Int, onClick: () -> Unit) {
+private fun TourCard(
+    tour: Tour,
+    vehicleName: String?,
+    stationCount: Int,
+    recording: Boolean,
+    finishing: Boolean,
+    onClick: () -> Unit,
+    onFinish: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -249,10 +283,21 @@ private fun TourCard(tour: Tour, vehicleName: String?, stationCount: Int, onClic
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(tour.destination, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    tour.period(currentLocale()),
+                    if (tour.endDate == null) {
+                        stringResource(R.string.tours_running_since, formatDate(tour.startDate, currentLocale()))
+                    } else {
+                        tour.period(currentLocale())
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (recording) {
+                    Text(
+                        stringResource(R.string.tours_track_recording),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
                 val meta = if (vehicleName != null) {
                     stringResource(R.string.tours_row_meta_vehicle, tour.year, stringResource(tour.tourType.labelRes), vehicleName)
                 } else {
@@ -265,6 +310,11 @@ private fun TourCard(tour: Tour, vehicleName: String?, stationCount: Int, onClic
                     meta
                 }
                 Text(metaWithStations, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (tour.endDate == null) {
+                TextButton(onClick = onFinish, enabled = !finishing) {
+                    Text(stringResource(R.string.tour_finish))
+                }
             }
         }
     }

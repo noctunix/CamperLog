@@ -86,6 +86,7 @@ import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.checklists.ChecklistTemplatePickerSheet
 import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.FinishTourDialog
 import app.restvolt.camperlog.ui.LabeledValue
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.StationTypePickerSheet

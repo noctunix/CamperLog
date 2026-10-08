@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui
 
+import android.content.Context
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsActions
@@ -37,6 +38,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
+import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LogEntry
@@ -49,9 +51,12 @@ import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.tracking.ActiveRecording
+import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -220,6 +225,26 @@ class TourFlowTest {
         assertEquals(3, finished.travelDays)
         assertEquals(2, finished.overnightStays)
         assertEquals(0, finished.distanceKm)
+    }
+
+    @Test
+    fun runningTourCardShowsStatusAndCanFinishActiveRecording() {
+        TrackRecordingSettings.resetShared()
+        val settings = TrackRecordingSettings.get(ApplicationProvider.getApplicationContext<Context>())
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        val today = LocalDate.now()
+        val running = tour(id = 1, destination = "Lofoten").copy(startDate = today.minusDays(2), endDate = null)
+        val repository = start(running)
+
+        compose.onNodeWithText("Unterwegs seit", substring = true).assertExists()
+        compose.onNodeWithText("GPS-Track läuft").assertExists()
+        compose.onNodeWithText("Tour beenden").performClick()
+        compose.onNode(hasText("Tour beenden") and hasAnyAncestor(isDialog())).performClick()
+
+        compose.onNodeWithText("Tour beendet").assertExists()
+        assertEquals(today, repository.tours.single().endDate)
+        assertNull(settings.activeRecording)
+        TrackRecordingSettings.resetShared()
     }
 
     @Test

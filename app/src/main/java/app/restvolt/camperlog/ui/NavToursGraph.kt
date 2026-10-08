@@ -43,8 +43,22 @@ internal fun NavGraphBuilder.toursGraph(
 ) = with(deps) {
     composable<ToursRoute> {
         val context = LocalContext.current
+        val activeRecording by trackSettings.active.collectAsStateWithLifecycle()
         ToursScreen(
-            viewModel = viewModel { ToursViewModel(repository, vehicles, stations, VehicleScopeSettings(context)) },
+            viewModel = viewModel {
+                ToursViewModel(
+                    repository,
+                    vehicles,
+                    stations,
+                    tracks,
+                    VehicleScopeSettings(context),
+                    onTourFinished = { tourId ->
+                        if (trackSettings.activeRecording?.tourId == tourId) {
+                            app.restvolt.camperlog.tracking.TrackRecordingService.stop(context)
+                        }
+                    },
+                )
+            },
             onAddTour = { navController.navigate(EditRoute()) },
             onOpenOverview = { vehicleId -> navController.navigate(OverviewRoute(vehicleId)) },
             onOpenSearch = { navController.navigate(SearchRoute) },
@@ -52,12 +66,13 @@ internal fun NavGraphBuilder.toursGraph(
             onOpenSettings = { navController.navigate(SettingsRoute) },
             onOpenTour = { navController.navigate(DetailRoute(it)) },
             onOpenVehicles = { navController.navigate(VehiclesRoute) },
+            activeRecordingTourId = activeRecording?.tourId,
             bottomBar = bottomBar,
         )
     }
     composable<EditRoute> { entry ->
         val tourId = entry.toRoute<EditRoute>().tourId
-        val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations)
+        val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations, tracks)
         EditTourScreen(
             viewModel = viewModel {
                 EditTourViewModel(
@@ -79,7 +94,7 @@ internal fun NavGraphBuilder.toursGraph(
     }
     composable<DetailRoute> { entry ->
         val tourId = entry.toRoute<DetailRoute>().tourId
-        val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations)
+        val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations, tracks)
         val weatherMapEnabled by weatherSettings.values.collectAsStateWithLifecycle()
         val context = LocalContext.current
         val resources = LocalResources.current
@@ -87,6 +102,8 @@ internal fun NavGraphBuilder.toursGraph(
             .collectAsStateWithLifecycle(initialValue = emptyList())
         val scope = rememberCoroutineScope()
         val trackPreferences by trackSettings.values.collectAsStateWithLifecycle()
+        val detailTour by remember(repository, tourId) { repository.observeTour(tourId) }
+            .collectAsStateWithLifecycle(initialValue = null)
         TourDetailScreen(
             viewModel = viewModel {
                 TourDetailViewModel(
@@ -111,7 +128,7 @@ internal fun NavGraphBuilder.toursGraph(
             },
             weatherMapEnabled = weatherMapEnabled,
             checklistTemplates = checklistTemplateList,
-            trackCard = if (trackPreferences.enabled) {
+            trackCard = if (trackPreferences.enabled || detailTour?.let { it.endDate == null } == true) {
                 { TrackRecordingCard(tourId, tracks, trackSettings) }
             } else {
                 null
