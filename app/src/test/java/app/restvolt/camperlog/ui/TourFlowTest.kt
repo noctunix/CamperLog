@@ -330,7 +330,8 @@ class TourFlowTest {
         compose.onNode(hasText("Startdatum") and hasClickAction()).assert(hasText("Pflichtfeld"))
         compose.onNode(hasText("Enddatum") and hasClickAction()).assert(!hasText("Pflichtfeld"))
         destinationField().assert(hasText("Pflichtfeld"))
-        compose.onNode(hasSetTextAction() and hasText("Kilometer")).assert(!hasText("Pflichtfeld"))
+        compose.onNodeWithText("Werden beim Beenden automatisch aus Zeitraum, Stationen und GPS-Track berechnet.").assertExists()
+        compose.onNodeWithText("Kartenlink").assertDoesNotExist()
         compose.onNode(hasSetTextAction() and hasText("Notizen")).assert(!hasText("Pflichtfeld"))
 
         clickSave()
@@ -437,15 +438,40 @@ class TourFlowTest {
 
     @Test
     fun saveRejected_scrollsDownToInvalidField() {
-        start()
-        compose.onNodeWithText("Neue Tour").performClick()
-        pickDay("Startdatum", 10)
-        pickDay("Enddatum", 12)
-        destinationField().performTextInput("Ostsee")
-        compose.onNode(hasSetTextAction() and hasText("Kartenlink")).performTextInput("kein link")
+        start(tour(id = 1, destination = "Ostsee").copy(mapLink = "https://example.org/karte"))
+        compose.onNodeWithText("Ostsee").performClick()
+        compose.onNodeWithContentDescription("Bearbeiten").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Kartenlink")).performTextReplacement("kein link")
         compose.onNode(hasText("Speichern") and hasClickAction() and !hasAnyAncestor(hasScrollAction())).performClick()
 
         compose.onNode(hasSetTextAction() and hasText("Kartenlink")).assertIsFocused().assertIsDisplayed()
+    }
+
+    @Test
+    fun completedTourMetricsAreCollapsedAndEndDateCanBeCleared() {
+        val repository = start(tour(id = 1, destination = "Ostsee"))
+        compose.onNodeWithText("Ostsee").performClick()
+        compose.onNodeWithContentDescription("Bearbeiten").performClick()
+
+        compose.onNodeWithText("Automatisch berechnet. Die gespeicherten Werte können angepasst werden.").assertExists()
+        compose.onNode(hasSetTextAction() and hasText("Reisetage")).assertDoesNotExist()
+        compose.onNodeWithText("Kennzahlen").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Reisetage")).assertExists()
+
+        compose.onNodeWithContentDescription("Enddatum löschen").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Reisetage")).assertDoesNotExist()
+        clickSave()
+
+        assertEquals(null, repository.tours.single().endDate)
+    }
+
+    @Test
+    fun mapLinkFieldIsOnlyShownForLegacyTourWithLink() {
+        start(tour(id = 1, destination = "Ostsee").copy(mapLink = "https://example.org/karte"))
+        compose.onNodeWithText("Ostsee").performClick()
+        compose.onNodeWithContentDescription("Bearbeiten").performClick()
+
+        compose.onNode(hasSetTextAction() and hasText("Kartenlink")).assertExists()
     }
 
     @Test
@@ -475,6 +501,21 @@ class TourFlowTest {
 
         assertEquals(listOf("Ostsee"), repository.tours.map { it.destination })
         compose.onNodeWithText("Tour gespeichert").assertExists()
+    }
+
+    @Test
+    fun secondRunningTourIsRejectedWithoutLeavingForm() {
+        val repository = start()
+        repository.failWithRunningTourConflict = true
+
+        compose.onNodeWithText("Neue Tour").performClick()
+        pickDay("Startdatum", 10)
+        destinationField().performTextInput("Ostsee")
+        clickSave()
+
+        compose.onNodeWithText("Für dieses Fahrzeug läuft bereits eine Tour.").assertExists()
+        compose.onNodeWithText("Neue Tour").assertExists()
+        assertEquals(0, repository.tours.size)
     }
 
     @Test

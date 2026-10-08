@@ -3,6 +3,7 @@ package app.restvolt.camperlog.ui
 import android.database.sqlite.SQLiteException
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.Money
+import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.Tour
@@ -52,6 +53,9 @@ class FakeTourRepository(
     /** Simuliert eine volle oder defekte Datenbank: Schreibzugriffe werfen dann eine [SQLiteException]. */
     var failWrites = false
 
+    /** Simuliert die fachliche Eindeutigkeitsregel für Formular-Fehlerpfade. */
+    var failWithRunningTourConflict = false
+
     /** Lässt [allTours] (den CSV-Export) mit einer [SQLiteException] scheitern. */
     var failExportRead = false
 
@@ -61,6 +65,7 @@ class FakeTourRepository(
 
     override suspend fun save(tour: Tour): Long {
         checkWritable()
+        if (failWithRunningTourConflict) throw RunningTourAlreadyExistsException(tour.vehicleId)
         val now = Instant.EPOCH
         return if (tour.id == 0L) {
             val id = nextId++

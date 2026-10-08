@@ -171,6 +171,7 @@
     <string name="edit_discard_keep">Weiter bearbeiten</string>
     <string name="edit_check_fields">Bitte diese Felder prüfen: %1$s</string>
     <string name="edit_required">Pflichtfeld</string>
+    <string name="edit_clear_date">%1$s löschen</string>
     <string name="edit_cost_placeholder">z. B. %1$s</string>
     <string name="edit_cost_amount">Kosten (%1$s)</string>
     <string name="edit_cost_currency">Währung: %1$s</string>
@@ -178,6 +179,10 @@
     <string name="edit_cost_add">Weitere Währung</string>
     <string name="edit_cost_remove">Betrag in %1$s entfernen</string>
     <string name="edit_map_link_placeholder">https://…</string>
+    <string name="edit_running_tour_conflict">Für dieses Fahrzeug läuft bereits eine Tour.</string>
+    <string name="tour_metrics_title">Kennzahlen</string>
+    <string name="tour_metrics_automatic_hint">Werden beim Beenden automatisch aus Zeitraum, Stationen und GPS-Track berechnet.</string>
+    <string name="tour_metrics_editable_hint">Automatisch berechnet. Die gespeicherten Werte können angepasst werden.</string>
     <string name="edit_pick_date">%1$s wählen</string>
     <string name="edit_choice_option">%1$s: %2$s</string>
 

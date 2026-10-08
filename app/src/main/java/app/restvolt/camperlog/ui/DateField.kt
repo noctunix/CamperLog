@@ -2,6 +2,7 @@ package app.restvolt.camperlog.ui
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
@@ -41,7 +42,8 @@ import java.time.LocalDate
 /**
  * Schreibgeschütztes Datumsfeld, das per Tippen, Tastatur oder Screenreader einen Kalender öffnet.
  * [initialDate] ist der vorausgewählte Tag, solange [date] leer ist; [minDate] sperrt frühere Tage.
- * [hint] steht unter dem Feld, solange kein [error] angezeigt wird.
+ * [hint] steht unter dem Feld, solange kein [error] angezeigt wird. Wenn [onClear] gesetzt ist,
+ * kann ein vorhandenes Datum über eine eigene, barrierefreie Aktion entfernt werden.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +56,7 @@ internal fun DateField(
     initialDate: LocalDate? = null,
     minDate: LocalDate? = null,
     hint: String? = null,
+    onClear: (() -> Unit)? = null,
 ) {
     var showPicker by rememberSaveable { mutableStateOf(false) }
     val pickLabel = stringResource(R.string.edit_pick_date, label)
@@ -85,8 +88,18 @@ internal fun DateField(
         isError = error != null,
         supportingText = (error ?: hint)?.let { { Text(it) } },
         trailingIcon = {
-            IconButton(onClick = { showPicker = true }) {
-                Icon(painterResource(R.drawable.ic_calendar), contentDescription = pickLabel)
+            Row {
+                if (date != null && onClear != null) {
+                    IconButton(onClick = onClear) {
+                        Icon(
+                            painterResource(R.drawable.ic_close),
+                            contentDescription = stringResource(R.string.edit_clear_date, label),
+                        )
+                    }
+                }
+                IconButton(onClick = { showPicker = true }) {
+                    Icon(painterResource(R.drawable.ic_calendar), contentDescription = pickLabel)
+                }
             }
         },
         singleLine = true,

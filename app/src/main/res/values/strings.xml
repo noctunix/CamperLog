@@ -171,6 +171,7 @@
     <string name="edit_discard_keep">Keep editing</string>
     <string name="edit_check_fields">Check these fields: %1$s</string>
     <string name="edit_required">Required</string>
+    <string name="edit_clear_date">Clear %1$s</string>
     <string name="edit_cost_placeholder">e.g. %1$s</string>
     <string name="edit_cost_amount">Cost (%1$s)</string>
     <string name="edit_cost_currency">Currency: %1$s</string>
@@ -178,6 +179,10 @@
     <string name="edit_cost_add">Add another currency</string>
     <string name="edit_cost_remove">Remove amount in %1$s</string>
     <string name="edit_map_link_placeholder">https://…</string>
+    <string name="edit_running_tour_conflict">This vehicle already has an ongoing tour.</string>
+    <string name="tour_metrics_title">Trip metrics</string>
+    <string name="tour_metrics_automatic_hint">Calculated automatically from dates, stops, and the GPS track when the tour ends.</string>
+    <string name="tour_metrics_editable_hint">Calculated automatically. You can adjust the saved values.</string>
     <string name="edit_pick_date">Choose %1$s</string>
     <string name="edit_choice_option">%1$s: %2$s</string>
 

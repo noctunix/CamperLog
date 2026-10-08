@@ -59,7 +59,17 @@ internal fun NavGraphBuilder.toursGraph(
         val tourId = entry.toRoute<EditRoute>().tourId
         val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations)
         EditTourScreen(
-            viewModel = viewModel { EditTourViewModel(repository, vehicles, stations, checklists, tourId, createSavedStateHandle()) },
+            viewModel = viewModel {
+                EditTourViewModel(
+                    repository,
+                    vehicles,
+                    stations,
+                    checklists,
+                    tourId,
+                    createSavedStateHandle(),
+                    tracks = tracks,
+                )
+            },
             onDone = { navController.popFrom(entry) },
             onSaved = {
                 if (tourId == 0L) toursViewModel.onTourCreated()

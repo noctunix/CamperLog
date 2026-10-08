@@ -11,7 +11,9 @@ import app.restvolt.camperlog.domain.ALL_CURRENCIES
 import app.restvolt.camperlog.domain.ChecklistRepository
 import app.restvolt.camperlog.domain.CostInput
 import app.restvolt.camperlog.domain.QUICK_CURRENCIES
+import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.StationRepository
+import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
@@ -19,10 +21,12 @@ import app.restvolt.camperlog.domain.TourInput
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.domain.derivedMetrics
 import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toTour
 import app.restvolt.camperlog.domain.travelDaysBetween
 import app.restvolt.camperlog.domain.validation
+import java.time.Instant
 import java.time.LocalDate
 import java.util.Currency
 import java.util.Locale
@@ -50,6 +54,10 @@ data class EditUiState(
     val isSaved: Boolean = false,
     /** Der letzte Speicherversuch ist an der Datenbank gescheitert; Meldung steht noch aus. */
     val saveFailed: Boolean = false,
+    /** Speichern würde eine zweite laufende Tour für dasselbe Fahrzeug erzeugen. */
+    val runningTourConflict: Boolean = false,
+    /** Nur bestehende Altdaten mit bereits gespeichertem Link dürfen diesen noch bearbeiten. */
+    val showLegacyMapLink: Boolean = false,
     /** Zählt an der Validierung gescheiterte Speicherversuche; jede Erhöhung fokussiert das erste fehlerhafte Feld. */
     val rejectedSaves: Int = 0,
 )
@@ -80,6 +88,7 @@ class EditTourViewModel(
     tourId: Long,
     private val savedStateHandle: SavedStateHandle,
     private val locale: () -> Locale = { app.restvolt.camperlog.domain.supportedLocale(Locale.getDefault()) },
+    private val tracks: TrackRepository? = null,
 ) : ViewModel() {
 
     private val draft: TourDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)?.let { decodeFromSavedState(it) }
@@ -122,7 +131,12 @@ class EditTourViewModel(
                 _uiState.update {
                     // Ein wiederhergestellter Entwurf hat Vorrang vor dem gespeicherten Stand.
                     val input = if (it.isDirty) it.input else tour?.toInput(locale()) ?: it.input
-                    it.copy(isLoading = false, notFound = tour == null, input = input)
+                    it.copy(
+                        isLoading = false,
+                        notFound = tour == null,
+                        input = input,
+                        showLegacyMapLink = tour?.mapLink != null,
+                    )
                 }
             }
         }
@@ -159,9 +173,15 @@ class EditTourViewModel(
 
     fun onVehicleChange(vehicleId: Long) = onInputChange { it.copy(vehicleId = vehicleId) }
 
-    fun onStartDateChange(date: LocalDate) = onInputChange { prefillTravelDays(it.copy(startDate = date)) }
+    fun onStartDateChange(date: LocalDate) {
+        onInputChange { prefillTravelDays(it.copy(startDate = date)) }
+        refreshDerivedMetrics()
+    }
 
-    fun onEndDateChange(date: LocalDate) = onInputChange { prefillTravelDays(it.copy(endDate = date)) }
+    fun onEndDateChange(date: LocalDate?) {
+        onInputChange { prefillTravelDays(it.copy(endDate = date)) }
+        if (date != null) refreshDerivedMetrics()
+    }
 
     /** Validiert und speichert; bei Erfolg wird [EditUiState.isSaved] gesetzt. */
     fun save() {
@@ -178,7 +198,15 @@ class EditTourViewModel(
             return
         }
         val tour = state.input.toTour(original, locale)
-        _uiState.update { it.copy(isSaving = true, errors = emptyMap(), costErrors = emptyMap(), saveFailed = false) }
+        _uiState.update {
+            it.copy(
+                isSaving = true,
+                errors = emptyMap(),
+                costErrors = emptyMap(),
+                saveFailed = false,
+                runningTourConflict = false,
+            )
+        }
         viewModelScope.launch {
             try {
                 val id = repository.save(tour)
@@ -189,6 +217,8 @@ class EditTourViewModel(
                 }
                 savedStateHandle.remove<SavedState>(DRAFT_KEY)
                 _uiState.update { it.copy(isSaving = false, isSaved = true) }
+            } catch (_: RunningTourAlreadyExistsException) {
+                _uiState.update { it.copy(isSaving = false, runningTourConflict = true) }
             } catch (_: SQLException) {
                 // Eingaben bleiben erhalten, damit der Nutzer es erneut versuchen kann.
                 _uiState.update { it.copy(isSaving = false, saveFailed = true) }
@@ -201,6 +231,10 @@ class EditTourViewModel(
         _uiState.update { it.copy(saveFailed = false) }
     }
 
+    fun onRunningTourConflictShown() {
+        _uiState.update { it.copy(runningTourConflict = false) }
+    }
+
     private fun EditUiState.withErrors(): EditUiState {
         if (!showErrors) return copy(errors = emptyMap(), costErrors = emptyMap())
         val validation = input.validation(locale())
@@ -210,6 +244,43 @@ class EditTourViewModel(
     private fun saveDraft() {
         val input = _uiState.value.input
         savedStateHandle[DRAFT_KEY] = encodeToSavedState(TourDraft(input, showErrors, autoTravelDays))
+    }
+
+    /** Aktualisiert nach einer Datumswahl alle automatisch ableitbaren Kennzahlen. */
+    private fun refreshDerivedMetrics() {
+        viewModelScope.launch {
+            val snapshot = _uiState.value.input
+            val start = snapshot.startDate ?: return@launch
+            val end = snapshot.endDate ?: return@launch
+            if (end < start) return@launch
+            val stationList = stations.observeForTour(original?.id ?: 0L).first()
+            val trackPoints = tracks?.observeForTour(original?.id ?: 0L)?.first().orEmpty()
+            val basis = original?.copy(startDate = start, endDate = end) ?: Tour(
+                vehicleId = snapshot.vehicleId,
+                startDate = start,
+                endDate = end,
+                destination = snapshot.destination,
+                tourType = snapshot.tourType,
+                travelDays = 0,
+                overnightStays = 0,
+                distanceKm = 0,
+                costs = emptyList(),
+                notes = "",
+                mapLink = null,
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            )
+            val metrics = basis.derivedMetrics(stationList, trackPoints, end)
+            if (_uiState.value.input.startDate != start || _uiState.value.input.endDate != end) return@launch
+            autoTravelDays = metrics.travelDays.toString()
+            onInputChange {
+                it.copy(
+                    travelDays = metrics.travelDays.toString(),
+                    overnightStays = metrics.overnightStays.toString(),
+                    distanceKm = metrics.distanceKm.toString(),
+                )
+            }
+        }
     }
 
     /**

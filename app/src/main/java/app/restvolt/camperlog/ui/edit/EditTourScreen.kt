@@ -59,6 +59,7 @@ import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.ui.BackTopBar
+import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
@@ -84,6 +85,12 @@ fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: ()
         if (state.saveFailed) {
             snackbar.showSnackbar(resources.getString(R.string.edit_save_failed), withDismissAction = true)
             viewModel.onSaveFailureShown()
+        }
+    }
+    LaunchedEffect(state.runningTourConflict) {
+        if (state.runningTourConflict) {
+            snackbar.showSnackbar(resources.getString(R.string.edit_running_tour_conflict), withDismissAction = true)
+            viewModel.onRunningTourConflictShown()
         }
     }
 
@@ -136,6 +143,7 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
     val errors = state.errors.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
     val change = viewModel::onInputChange
     val required = stringResource(R.string.edit_required)
+    var metricsExpanded by rememberSaveable { mutableStateOf(false) }
     val focus = remember { TourField.entries.associateWith { FocusRequester() } }
     fun focusOf(field: TourField) = Modifier.focusRequester(focus.getValue(field))
 
@@ -172,6 +180,7 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 initialDate = input.startDate,
                 minDate = input.startDate,
                 modifier = focusOf(TourField.END_DATE),
+                onClear = { viewModel.onEndDateChange(null) },
             )
             FormTextField(
                 label = stringResource(R.string.field_destination),
@@ -190,24 +199,43 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
             }
         }
         SectionCard {
-            NumberField(
-                stringResource(R.string.field_travel_days),
-                input.travelDays,
-                errors[TourField.TRAVEL_DAYS],
-                focusOf(TourField.TRAVEL_DAYS),
-            ) { value -> change { it.copy(travelDays = value) } }
-            NumberField(
-                stringResource(R.string.field_overnight_stays),
-                input.overnightStays,
-                errors[TourField.OVERNIGHT_STAYS],
-                focusOf(TourField.OVERNIGHT_STAYS),
-            ) { value -> change { it.copy(overnightStays = value) } }
-            NumberField(
-                stringResource(R.string.field_distance),
-                input.distanceKm,
-                errors[TourField.DISTANCE_KM],
-                focusOf(TourField.DISTANCE_KM),
-            ) { value -> change { it.copy(distanceKm = value) } }
+            val metricsHint = stringResource(
+                if (input.endDate == null) R.string.tour_metrics_automatic_hint else R.string.tour_metrics_editable_hint,
+            )
+            CollapsibleSection(
+                title = stringResource(R.string.tour_metrics_title),
+                expanded = metricsExpanded,
+                onToggle = { metricsExpanded = !metricsExpanded },
+                summary = metricsHint,
+            ) {
+                Text(
+                    metricsHint,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (input.endDate != null) {
+                    NumberField(
+                        stringResource(R.string.field_travel_days),
+                        input.travelDays,
+                        errors[TourField.TRAVEL_DAYS],
+                        focusOf(TourField.TRAVEL_DAYS),
+                    ) { value -> change { it.copy(travelDays = value) } }
+                    NumberField(
+                        stringResource(R.string.field_overnight_stays),
+                        input.overnightStays,
+                        errors[TourField.OVERNIGHT_STAYS],
+                        focusOf(TourField.OVERNIGHT_STAYS),
+                    ) { value -> change { it.copy(overnightStays = value) } }
+                    NumberField(
+                        stringResource(R.string.field_distance),
+                        input.distanceKm,
+                        errors[TourField.DISTANCE_KM],
+                        focusOf(TourField.DISTANCE_KM),
+                    ) { value -> change { it.copy(distanceKm = value) } }
+                }
+            }
+        }
+        SectionCard {
             Text(
                 stringResource(R.string.tour_section_other_costs),
                 modifier = Modifier.semantics { heading() },
@@ -232,15 +260,17 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 singleLine = false,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             )
-            FormTextField(
-                label = stringResource(R.string.field_map_link),
-                value = input.mapLink,
-                error = errors[TourField.MAP_LINK],
-                onValueChange = { value -> change { it.copy(mapLink = value) } },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
-                placeholder = stringResource(R.string.edit_map_link_placeholder),
-                modifier = focusOf(TourField.MAP_LINK),
-            )
+            if (state.showLegacyMapLink) {
+                FormTextField(
+                    label = stringResource(R.string.field_map_link),
+                    value = input.mapLink,
+                    error = errors[TourField.MAP_LINK],
+                    onValueChange = { value -> change { it.copy(mapLink = value) } },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
+                    placeholder = stringResource(R.string.edit_map_link_placeholder),
+                    modifier = focusOf(TourField.MAP_LINK),
+                )
+            }
         }
         Button(
             onClick = viewModel::save,
