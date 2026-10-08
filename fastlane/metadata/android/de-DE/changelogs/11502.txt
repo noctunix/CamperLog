@@ -1,0 +1,4 @@
+• Backups mit langen Anhang-Dateinamen lassen sich wieder importieren
+• Die Übertragung auf ein neues Gerät enthält jetzt Fotos und Dokumente
+• Der Import meldet Anhangsdateien, die nicht wiederhergestellt werden konnten
+• Robusterer Umgang mit Netzwerkdaten und beim Start der Track-Aufzeichnung

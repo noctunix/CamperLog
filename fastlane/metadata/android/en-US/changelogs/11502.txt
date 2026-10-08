@@ -1,0 +1,4 @@
+• Backups with long attachment file names can be imported again
+• Transferring to a new device now includes photos and documents
+• Import reports attachment files that could not be restored
+• More robust network handling and track recording start

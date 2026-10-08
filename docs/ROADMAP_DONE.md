@@ -2,6 +2,7 @@
 
 Shipped features, newest first.
 
+- 1.15.2 – Fixes from a security/quality review: backups with long attachment names import again, device transfer includes attachment files, capped network responses, lost attachments reported on import, verified Gradle dependencies and SHA-pinned CI actions
 - 1.14.0 – Place search via Nominatim (behind the Weather & map switch), vignette expiry warning on tours
 - 1.15.1 – Opt-in GPS track recording (foreground service, no background permission), track on the tour map, track length, GPX track export, Gradle 9.8.1 (tag v1.15.0 was never released: its CI failed on the lint check for the newer Gradle)
 - 1.13.0 – Daily diary per tour day, checklists with templates (per tour or vehicle), full-text search from every tab
