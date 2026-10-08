@@ -611,7 +611,7 @@
 
     <!-- Introduction tour -->
     <string name="title_intro_welcome">Welcome to CamperLog</string>
-    <string name="body_intro_welcome">Record your tours with their stops and costs – in any currency. CamperLog keeps track of where you were and what it cost.</string>
+    <string name="body_intro_welcome">A tour is your whole journey, from starting it until you end it. Stops are the individual visits and overnight stays within that tour. CamperLog uses them to calculate travel days, nights, and distance.\n\nWhile a tour is ongoing, you can optionally start its GPS track. It records your route only after you start it, stays on this device, and can be stopped or deleted anytime.</string>
     <string name="title_intro_logbook">Logbook</string>
     <string name="body_intro_logbook">One tap on \"Today\" records the cassette, grey water or heater – right when you empty or run it.</string>
     <string name="title_intro_vehicle">Vehicle</string>

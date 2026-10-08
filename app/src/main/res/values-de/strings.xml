@@ -600,7 +600,7 @@
 
     <!-- Introduction tour -->
     <string name="title_intro_welcome">Willkommen bei CamperLog</string>
-    <string name="body_intro_welcome">Erfasse deine Touren mit ihren Stationen und Kosten – in jeder Währung. CamperLog behält im Blick, wo du warst und was es gekostet hat.</string>
+    <string name="body_intro_welcome">Eine Tour ist deine gesamte Reise – vom Start bis zum Beenden. Stationen sind die einzelnen Stopps und Übernachtungen innerhalb dieser Tour. Daraus berechnet CamperLog Reisetage, Nächte und Strecke.\n\nWährend eine Tour läuft, kannst du optional ihren GPS-Track starten. Er zeichnet deine Strecke erst nach deinem Start auf, bleibt auf diesem Gerät und lässt sich jederzeit stoppen oder löschen.</string>
     <string name="title_intro_logbook">Bordbuch</string>
     <string name="body_intro_logbook">Ein Tipp auf „Heute“ trägt Kassette, Grauwasser oder Heizung ein – genau dann, wenn du sie leerst oder laufen lässt.</string>
     <string name="title_intro_vehicle">Fahrzeug</string>

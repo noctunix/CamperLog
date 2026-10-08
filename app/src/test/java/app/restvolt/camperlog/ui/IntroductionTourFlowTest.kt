@@ -108,6 +108,20 @@ class IntroductionTourFlowTest {
     }
 
     @Test
+    fun welcomeExplainsToursStopsAndOptionalGpsTracking() {
+        clearPreferences()
+        try {
+            start()
+
+            compose.onNodeWithText("Eine Tour ist deine gesamte Reise", substring = true).assertExists()
+            compose.onNodeWithText("Stationen sind die einzelnen Stopps", substring = true).assertExists()
+            compose.onNodeWithText("GPS-Track", substring = true).assertExists()
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
     fun skipMarksSeenAndEntersMainScreen() {
         clearPreferences()
         try {
