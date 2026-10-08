@@ -5,28 +5,19 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.LOCATION_PERMISSIONS
 import app.restvolt.camperlog.domain.TrackInterval
-import app.restvolt.camperlog.share.openAppDetailsSettings
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.tracking.trackIntervalLabel
 
@@ -64,18 +55,7 @@ internal fun TrackRecordingSettingsSection(settings: TrackRecordingSettings, onS
             }
         },
     )
-    if (permissionDenied) {
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                stringResource(R.string.settings_track_denied_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            TextButton(onClick = { context.openAppDetailsSettings() }) {
-                Text(stringResource(R.string.settings_track_open_app_settings))
-            }
-        }
-    }
+    if (permissionDenied) PermissionDeniedHint(stringResource(R.string.settings_track_denied_hint))
     if (preferences.enabled) {
         ReminderChoiceRow(
             label = stringResource(R.string.settings_track_interval),
@@ -110,5 +90,5 @@ internal fun trackPermissions(): Array<String> =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) LOCATION_PERMISSIONS + Manifest.permission.POST_NOTIFICATIONS
     else LOCATION_PERMISSIONS
 
-private fun isGranted(context: android.content.Context, permission: String): Boolean =
+internal fun isGranted(context: android.content.Context, permission: String): Boolean =
     ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED

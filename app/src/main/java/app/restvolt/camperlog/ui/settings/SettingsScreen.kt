@@ -67,7 +67,6 @@ fun SettingsScreen(
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
     val notificationsEnabled by notificationSettings.values.collectAsStateWithLifecycle()
     var notificationPermissionDenied by rememberSaveable { mutableStateOf(false) }
-    val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
     val weatherEnabled by weatherSettings.values.collectAsStateWithLifecycle()
     var pickOilInterval by rememberSaveable { mutableStateOf(false) }
 
@@ -163,17 +162,9 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
-                    SwitchSettingRow(
-                        title = stringResource(R.string.location_switch_title),
-                        supportingText = stringResource(R.string.settings_location_switch_support),
-                        checked = locationEnabled,
-                        onCheckedChange = { enabled ->
-                            locationSettings.enabled = enabled
-                            if (!enabled) {
-                                scope.launch { snackbar.showSnackbar(resources.getString(R.string.settings_location_revoked_hint)) }
-                            }
-                        },
-                    )
+                    LocationSwitchSection(locationSettings) {
+                        scope.launch { snackbar.showSnackbar(resources.getString(R.string.settings_location_revoked_hint)) }
+                    }
                     SwitchSettingRow(
                         title = stringResource(R.string.weather_switch_title),
                         supportingText = stringResource(R.string.settings_weather_switch_support),

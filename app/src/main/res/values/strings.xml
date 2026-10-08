@@ -137,6 +137,7 @@
     <string name="settings_reminder_backup_weeks_support">Notifies in the background while notifications are on; otherwise shown as a card here when overdue.</string>
     <string name="settings_location_section">Location &amp; internet</string>
     <string name="settings_location_switch_support">Shows "Use current location" on stops. The position is only determined once, on tap. Recording a route has its own switch below.</string>
+    <string name="settings_location_denied_hint">“Use current location” needs the location permission. You can allow it in the system settings.</string>
     <string name="settings_location_revoked_hint">Access is fully removed after the app restarts.</string>
     <string name="settings_weather_switch_support">Weather from Open-Meteo, a map from OpenStreetMap, and place search via Nominatim, all only on button press or when opening the map.</string>
     <string name="settings_weather_off_hint">Saved positions and weather stay with your stops.</string>

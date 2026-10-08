@@ -137,6 +137,7 @@
     <string name="settings_reminder_backup_weeks_support">Benachrichtigt im Hintergrund, solange Benachrichtigungen an sind; sonst erscheint hier eine Karte, wenn es fällig ist.</string>
     <string name="settings_location_section">Standort &amp; Internet</string>
     <string name="settings_location_switch_support">Zeigt bei Stationen „Aktuellen Standort verwenden“. Die Position wird nur auf Knopfdruck einmal bestimmt. Für eine Streckenaufzeichnung gibt es unten einen eigenen Schalter.</string>
+    <string name="settings_location_denied_hint">„Aktuellen Standort nutzen“ braucht die Standortberechtigung. Du kannst sie in den Systemeinstellungen erlauben.</string>
     <string name="settings_location_revoked_hint">Der Zugriff wird nach dem nächsten Neustart der App vollständig entfernt.</string>
     <string name="settings_weather_switch_support">Wetter von Open-Meteo, eine Karte von OpenStreetMap und die Ortssuche über Nominatim, alles nur auf Knopfdruck bzw. beim Öffnen der Karte.</string>
     <string name="settings_weather_off_hint">Gespeicherte Positionen und Wetterdaten bleiben bei deinen Stationen.</string>
