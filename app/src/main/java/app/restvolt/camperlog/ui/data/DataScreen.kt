@@ -47,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.backup.BackupError
 import app.restvolt.camperlog.backup.BackupReadResult
+import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.data.BackupFolderWriter
 import app.restvolt.camperlog.domain.shouldIncludeFilesInAutoBackup
 import app.restvolt.camperlog.domain.shouldShowBackupReminderCard
@@ -381,36 +382,42 @@ private fun Resources.dataMessageText(message: DataMessage): String = when (mess
     is DataMessage.Text -> getString(message.text)
     is DataMessage.LoadFailed -> backupErrorMessage(message.failure)
     is DataMessage.BackedUpToFolder -> getString(R.string.data_backup_folder_saved, message.folderName)
-    is DataMessage.Imported -> message.result.let { result ->
-        val logEntries = getQuantityString(R.plurals.import_done_log_entries, result.addedLogEntries, result.addedLogEntries)
-        val rates = getQuantityString(R.plurals.import_done_rates, result.importedRates, result.importedRates)
-        val attachments = getQuantityString(R.plurals.import_done_attachments, result.addedAttachments, result.addedAttachments)
-        val trackPoints = getQuantityString(R.plurals.import_done_track_points, result.addedTrackPoints, result.addedTrackPoints)
-        getString(
-            R.string.import_done,
-            result.addedTours,
-            result.updatedTours,
-            result.unchangedTours,
-            result.addedVehicles,
-            result.updatedVehicles,
-            result.addedStations,
-            result.updatedStations,
-            result.addedRepairs,
-            result.updatedRepairs,
-            result.addedDocuments,
-            result.updatedDocuments,
-            result.addedDiaryEntries,
-            result.updatedDiaryEntries,
-            result.addedChecklistTemplates,
-            result.updatedChecklistTemplates,
-            result.addedChecklists,
-            result.updatedChecklists,
-            logEntries,
-            rates,
-            attachments,
-            trackPoints,
-        )
+    is DataMessage.Imported -> importedText(message.result) + if (message.missingAttachmentFiles > 0) {
+        "\n" + getQuantityString(R.plurals.import_missing_attachment_files, message.missingAttachmentFiles, message.missingAttachmentFiles)
+    } else {
+        ""
     }
+}
+
+private fun Resources.importedText(result: ImportResult): String {
+    val logEntries = getQuantityString(R.plurals.import_done_log_entries, result.addedLogEntries, result.addedLogEntries)
+    val rates = getQuantityString(R.plurals.import_done_rates, result.importedRates, result.importedRates)
+    val attachments = getQuantityString(R.plurals.import_done_attachments, result.addedAttachments, result.addedAttachments)
+    val trackPoints = getQuantityString(R.plurals.import_done_track_points, result.addedTrackPoints, result.addedTrackPoints)
+    return getString(
+        R.string.import_done,
+        result.addedTours,
+        result.updatedTours,
+        result.unchangedTours,
+        result.addedVehicles,
+        result.updatedVehicles,
+        result.addedStations,
+        result.updatedStations,
+        result.addedRepairs,
+        result.updatedRepairs,
+        result.addedDocuments,
+        result.updatedDocuments,
+        result.addedDiaryEntries,
+        result.updatedDiaryEntries,
+        result.addedChecklistTemplates,
+        result.updatedChecklistTemplates,
+        result.addedChecklists,
+        result.updatedChecklists,
+        logEntries,
+        rates,
+        attachments,
+        trackPoints,
+    )
 }
 
 private fun Resources.backupErrorMessage(failure: BackupReadResult.Failure): String = when (failure.error) {

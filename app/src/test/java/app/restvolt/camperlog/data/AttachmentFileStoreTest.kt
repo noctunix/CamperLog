@@ -240,6 +240,19 @@ class AttachmentFileStoreTest {
         assertTrue("a recent orphan must survive so an undo within the day still finds its file", recentOrphan.exists())
     }
 
+    @Test
+    fun commitStagedAttachmentFiles_countsUnmovableFilesAndKeepsTheRest() = runTest {
+        val stagingDir = File(tempDir, "staging").apply { mkdirs() }
+        val good = File(stagingDir, "good.jpg").apply { writeBytes(ByteArray(3)) }
+        val missing = File(stagingDir, "missing.jpg").apply { delete() }
+
+        val failed = commitStagedAttachmentFiles(store, mapOf("missing.jpg" to missing, "good.jpg" to good))
+
+        assertEquals(1, failed)
+        assertEquals(3L, store.file("good.jpg").length())
+        assertFalse(store.file("missing.jpg").exists())
+    }
+
     /**
      * Erzeugt eine echte JPEG-Datei mit [width]x[height] Pixeln, optional mit gesetztem
      * EXIF-`Orientation`-Tag, GPS-Koordinaten ([latitude]/[longitude]) und Aufnahmezeit [takenAt]

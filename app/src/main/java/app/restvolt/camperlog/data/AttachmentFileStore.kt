@@ -273,16 +273,26 @@ class AndroidAttachmentFileStore(context: Context) : AttachmentFileStore {
  * Verschiebt nach einem erfolgreichen ZIP-Import die in [stagedFiles] (Dateiname zu temporärer Datei)
  * zwischengelagerten Dateien in [fileStore]. Aufgerufen erst, nachdem der Datenbank-Import ohne Fehler
  * durchgelaufen ist (siehe `DataViewModel.startImport`); bei einem Fehler löscht der Aufrufer die
- * Zwischenablage stattdessen ungenutzt.
+ * Zwischenablage stattdessen ungenutzt. Eine Datei, die sich weder verschieben noch kopieren lässt
+ * (etwa bei vollem Speicher), bricht die übrigen nicht ab; eine halb geschriebene Kopie wird entfernt.
+ *
+ * @return Anzahl der Dateien, die nicht übernommen werden konnten; ihre Anhänge stehen ohne Datei in
+ *   der Datenbank, der Aufrufer meldet das dem Benutzer
  */
-suspend fun commitStagedAttachmentFiles(fileStore: AttachmentFileStore, stagedFiles: Map<String, File>) = withContext(Dispatchers.IO) {
+suspend fun commitStagedAttachmentFiles(fileStore: AttachmentFileStore, stagedFiles: Map<String, File>): Int = withContext(Dispatchers.IO) {
+    var failed = 0
     for ((fileName, staged) in stagedFiles) {
         val target = fileStore.file(fileName)
-        if (!staged.renameTo(target)) {
+        if (staged.renameTo(target)) continue
+        try {
             staged.copyTo(target, overwrite = true)
             staged.delete()
+        } catch (_: IOException) {
+            target.delete()
+            failed++
         }
     }
+    failed
 }
 
 private const val HEADER_SIZE = 16

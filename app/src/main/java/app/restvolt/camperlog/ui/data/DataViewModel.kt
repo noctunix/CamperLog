@@ -66,8 +66,8 @@ sealed interface DataMessage {
     /** Fester Text ohne Platzhalter. */
     data class Text(@StringRes val text: Int) : DataMessage
 
-    /** Import abgeschlossen. */
-    data class Imported(val result: ImportResult) : DataMessage
+    /** Import abgeschlossen; [missingAttachmentFiles] Anhangsdateien ließen sich nicht übernehmen. */
+    data class Imported(val result: ImportResult, val missingAttachmentFiles: Int = 0) : DataMessage
 
     /** Gewählte Datei ist keine gültige Sicherung. */
     data class LoadFailed(val failure: BackupReadResult.Failure) : DataMessage
@@ -352,12 +352,14 @@ class DataViewModel(
         viewModelScope.launch {
             try {
                 val result = importer.import(pending.backup, mode)
-                if (pending.stagedFiles.isNotEmpty()) {
+                val missingFiles = if (pending.stagedFiles.isNotEmpty()) {
                     withContext(background) { commitStagedAttachmentFiles(attachmentFileStore, pending.stagedFiles) }
+                } else {
+                    0
                 }
                 pending.stagingDir?.deleteRecursively()
                 _pendingImport.value = null
-                _message.value = DataMessage.Imported(result)
+                _message.value = DataMessage.Imported(result, missingFiles)
             } catch (_: SQLException) {
                 _pendingImport.value = pending.copy(running = false, failed = true)
             } catch (_: IOException) {

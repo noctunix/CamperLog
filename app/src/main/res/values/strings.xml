@@ -332,6 +332,10 @@
         <item quantity="one">%1$d photo or document imported</item>
         <item quantity="other">%1$d photos and documents imported</item>
     </plurals>
+    <plurals name="import_missing_attachment_files">
+        <item quantity="one">%1$d attachment file could not be saved (storage full?)</item>
+        <item quantity="other">%1$d attachment files could not be saved (storage full?)</item>
+    </plurals>
     <plurals name="import_done_track_points">
         <item quantity="one">%1$d track point imported</item>
         <item quantity="other">%1$d track points imported</item>

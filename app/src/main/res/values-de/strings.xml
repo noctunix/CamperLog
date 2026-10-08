@@ -332,6 +332,10 @@
         <item quantity="one">%1$d Foto oder Dokument übernommen</item>
         <item quantity="other">%1$d Fotos und Dokumente übernommen</item>
     </plurals>
+    <plurals name="import_missing_attachment_files">
+        <item quantity="one">%1$d Anhangsdatei konnte nicht gespeichert werden (Speicher voll?)</item>
+        <item quantity="other">%1$d Anhangsdateien konnten nicht gespeichert werden (Speicher voll?)</item>
+    </plurals>
     <plurals name="import_done_track_points">
         <item quantity="one">%1$d Trackpunkt übernommen</item>
         <item quantity="other">%1$d Trackpunkte übernommen</item>
