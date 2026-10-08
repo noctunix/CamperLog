@@ -89,6 +89,7 @@ class TourFlowTest {
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
+                    tracks = FakeTrackRepository(),
                 ) { }
             }
         }
@@ -114,6 +115,7 @@ class TourFlowTest {
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
+                    tracks = FakeTrackRepository(),
                 ) { }
             }
         }
@@ -189,6 +191,35 @@ class TourFlowTest {
         compose.onNodeWithText("Comer See").assertExists()
         compose.onNodeWithText("Gardasee").assertDoesNotExist()
         assertEquals("Comer See", repository.tours.single().destination)
+    }
+
+    @Test
+    fun finishRunningTourUsesTodayAndDerivedMetrics() {
+        val today = LocalDate.now()
+        val running = tour(id = 1, destination = "Lofoten").copy(
+            startDate = today.minusDays(2),
+            endDate = null,
+            travelDays = 99,
+            overnightStays = 99,
+            distanceKm = 99,
+        )
+        val overnight = station(id = 1, tourId = running.id).copy(
+            type = StationType.OVERNIGHT,
+            date = today.minusDays(1),
+            nights = 2,
+        )
+        val repository = start(FakeVehicleRepository(), listOf(overnight), running)
+
+        compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Tour beenden").performScrollTo().performClick()
+        compose.onNode(hasText("Tour beenden") and hasAnyAncestor(isDialog())).performClick()
+
+        compose.onNodeWithText("Tour beendet").assertExists()
+        val finished = repository.tours.single()
+        assertEquals(today, finished.endDate)
+        assertEquals(3, finished.travelDays)
+        assertEquals(2, finished.overnightStays)
+        assertEquals(0, finished.distanceKm)
     }
 
     @Test

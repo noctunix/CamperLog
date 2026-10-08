@@ -151,6 +151,10 @@
     <string name="detail_fallback_title">Tour</string>
     <string name="detail_delete">Delete tour</string>
     <string name="detail_edit">Edit</string>
+    <string name="tour_finish">End tour</string>
+    <string name="tour_finish_dialog_title">When did the tour end?</string>
+    <string name="tour_finished">Tour ended</string>
+    <string name="tour_finish_failed">The tour could not be ended.</string>
     <string name="detail_share">Share tour</string>
     <string name="detail_export_tour">Export tour</string>
     <string name="export_tour_failed">Tour export failed</string>

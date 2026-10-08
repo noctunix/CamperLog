@@ -92,6 +92,11 @@ internal fun NavGraphBuilder.toursGraph(
                     AndroidTourExportFiles(context),
                     tracks,
                     tourId,
+                    onTourFinished = {
+                        if (trackSettings.activeRecording?.tourId == tourId) {
+                            app.restvolt.camperlog.tracking.TrackRecordingService.stop(context)
+                        }
+                    },
                 )
             },
             weatherMapEnabled = weatherMapEnabled,

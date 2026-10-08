@@ -23,7 +23,9 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.TrackRepository
+import app.restvolt.camperlog.domain.TrackPoint
 import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.TourMetrics
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
@@ -32,6 +34,7 @@ import app.restvolt.camperlog.domain.convert
 import app.restvolt.camperlog.domain.costsByCategory
 import app.restvolt.camperlog.domain.stationCostTotals
 import app.restvolt.camperlog.domain.totalCosts
+import app.restvolt.camperlog.domain.derivedMetrics
 import app.restvolt.camperlog.share.CsvVocabulary
 import app.restvolt.camperlog.share.tourExportBaseName
 import app.restvolt.camperlog.share.writeTourExportZip
@@ -44,6 +47,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.IOException
+import java.time.LocalDate
 import java.util.Locale
 
 /**
@@ -71,7 +75,23 @@ sealed interface DetailUiState {
         val diaryEntries: List<DiaryEntry> = emptyList(),
         /** Checklisten der Tour, neueste zuerst. */
         val checklists: List<Checklist> = emptyList(),
+        /** Kennzahlen für laufende Touren live abgeleitet, für abgeschlossene aus den gespeicherten Werten. */
+        val metrics: TourMetrics = TourMetrics(tour.travelDays, tour.overnightStays, tour.distanceKm),
+        /** Aktuelle Trackpunkte, benötigt zum Festschreiben der Kennzahlen beim Beenden. */
+        val trackPoints: List<TrackPoint> = emptyList(),
     ) : DetailUiState
+}
+
+private data class TourContent(
+    val stations: List<Station>,
+    val diaryEntries: List<DiaryEntry>,
+    val checklists: List<Checklist>,
+    val trackPoints: List<TrackPoint>,
+)
+
+sealed interface FinishMessage {
+    data object Finished : FinishMessage
+    data object Failed : FinishMessage
 }
 
 /** Rückmeldung zu einem Tagebucheintrag; die Detailseite zeigt sie als Snackbar. */
@@ -113,21 +133,33 @@ class TourDetailViewModel(
     tourId: Long,
     /** Vokabular von `Stops.csv` im Tour-Export, nach der App-Sprache des Geräts. */
     private val csvVocabulary: () -> CsvVocabulary = { CsvVocabulary.fromLocale(Locale.getDefault()) },
+    private val today: () -> LocalDate = LocalDate::now,
+    private val onTourFinished: () -> Unit = {},
 ) : ViewModel() {
 
     val uiState: StateFlow<DetailUiState> = combine(
         repository.observeTour(tourId),
         vehicles.observeVehicles(),
-        combine(stations.observeForTour(tourId), diaryEntries.observeForTour(tourId), checklists.observeForTour(tourId)) {
-                stationList, diaryList, checklistList ->
-            Triple(stationList, diaryList, checklistList)
+        combine(
+            stations.observeForTour(tourId),
+            diaryEntries.observeForTour(tourId),
+            checklists.observeForTour(tourId),
+            tracks.observeForTour(tourId),
+        ) { stationList, diaryList, checklistList, trackPoints ->
+            TourContent(stationList, diaryList, checklistList, trackPoints)
         },
         combine(exchangeRates.observeMainCurrency(), exchangeRates.observeRates()) { main, rates -> main to rates },
-    ) { tour, vehicleList, (stationList, diaryList, checklistList), (main, rates) ->
+    ) { tour, vehicleList, content, (main, rates) ->
         if (tour == null) {
             DetailUiState.NotFound
         } else {
+            val stationList = content.stations
             val totalCosts = tour.totalCosts(stationList)
+            val metrics = if (tour.endDate == null) {
+                tour.derivedMetrics(stationList, content.trackPoints, today())
+            } else {
+                TourMetrics(tour.travelDays, tour.overnightStays, tour.distanceKm)
+            }
             DetailUiState.Loaded(
                 tour = tour,
                 vehicle = vehicleList.firstOrNull { it.id == tour.vehicleId }.takeIf { vehicleList.size > 1 },
@@ -137,11 +169,50 @@ class TourDetailViewModel(
                 categoryCosts = stationList.costsByCategory(),
                 conversion = if (totalCosts.all { it.currency == main }) null else convert(totalCosts, main, rates),
                 autoDetectedCountries = autoDetectedCountries(stationList, countryLookup),
-                diaryEntries = diaryList,
-                checklists = checklistList,
+                diaryEntries = content.diaryEntries,
+                checklists = content.checklists,
+                metrics = metrics,
+                trackPoints = content.trackPoints,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailUiState.Loading)
+
+    private val _finishing = MutableStateFlow(false)
+    val finishing: StateFlow<Boolean> = _finishing.asStateFlow()
+
+    private val _finishMessage = MutableStateFlow<FinishMessage?>(null)
+    val finishMessage: StateFlow<FinishMessage?> = _finishMessage.asStateFlow()
+
+    /** Schließt die laufende Tour am gewählten Tag und schreibt ihre aktuell abgeleiteten Kennzahlen fest. */
+    fun finish(endDate: LocalDate) {
+        val loaded = uiState.value as? DetailUiState.Loaded ?: return
+        val tour = loaded.tour
+        if (tour.endDate != null || endDate < tour.startDate || endDate > today() || _finishing.value) return
+        _finishing.value = true
+        viewModelScope.launch {
+            try {
+                val completed = tour.copy(endDate = endDate)
+                val metrics = completed.derivedMetrics(loaded.stations, loaded.trackPoints, endDate)
+                repository.save(
+                    completed.copy(
+                        travelDays = metrics.travelDays,
+                        overnightStays = metrics.overnightStays,
+                        distanceKm = metrics.distanceKm,
+                    ),
+                )
+                onTourFinished()
+                _finishMessage.value = FinishMessage.Finished
+            } catch (_: SQLException) {
+                _finishMessage.value = FinishMessage.Failed
+            } finally {
+                _finishing.value = false
+            }
+        }
+    }
+
+    fun onFinishMessageShown(shown: FinishMessage) {
+        _finishMessage.compareAndSet(shown, null)
+    }
 
     private val _message = MutableStateFlow<StationMessage?>(null)
 

@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -67,6 +68,7 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.TourMetrics
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.effectiveCosts
 import app.restvolt.camperlog.domain.expiringVignettes
@@ -93,6 +95,7 @@ import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.stationSavedText
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.util.Locale
 
 /**
@@ -124,6 +127,8 @@ fun TourDetailScreen(
     val startedChecklistId by viewModel.startedChecklistId.collectAsStateWithLifecycle()
     val exporting by viewModel.exporting.collectAsStateWithLifecycle()
     val exportRequest by viewModel.exportRequest.collectAsStateWithLifecycle()
+    val finishing by viewModel.finishing.collectAsStateWithLifecycle()
+    val finishMessage by viewModel.finishMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val resources = LocalResources.current
     val scope = rememberCoroutineScope()
@@ -132,6 +137,7 @@ fun TourDetailScreen(
     var overflowExpanded by remember { mutableStateOf(false) }
     var showTypePicker by rememberSaveable { mutableStateOf(false) }
     var showChecklistPicker by rememberSaveable { mutableStateOf(false) }
+    var showFinishDialog by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -223,6 +229,7 @@ fun TourDetailScreen(
                 autoDetectedCountries = current.autoDetectedCountries,
                 diaryEntries = current.diaryEntries,
                 checklists = current.checklists,
+                metrics = current.metrics,
                 weatherMapEnabled = weatherMapEnabled,
                 modifier = Modifier.fillMaxSize(),
                 padding = padding,
@@ -235,6 +242,8 @@ fun TourDetailScreen(
                 onOpenDiaryEntry = onOpenDiaryEntry,
                 onStartChecklist = { showChecklistPicker = true },
                 onOpenChecklist = onOpenChecklist,
+                finishing = finishing,
+                onFinish = { showFinishDialog = true },
             )
         }
     }
@@ -258,6 +267,18 @@ fun TourDetailScreen(
             },
             onAddSuggested = onAddSuggestedChecklistTemplates,
             onDismiss = { showChecklistPicker = false },
+        )
+    }
+
+    if (showFinishDialog && tour != null && tour.endDate == null) {
+        FinishTourDialog(
+            tourStart = tour.startDate,
+            today = LocalDate.now(),
+            onConfirm = {
+                showFinishDialog = false
+                viewModel.finish(it)
+            },
+            onDismiss = { showFinishDialog = false },
         )
     }
 
@@ -326,6 +347,20 @@ fun TourDetailScreen(
         }
         viewModel.onChecklistMessageShown(current)
     }
+
+    LaunchedEffect(finishMessage) {
+        val current = finishMessage ?: return@LaunchedEffect
+        snackbar.showSnackbar(
+            resources.getString(
+                when (current) {
+                    FinishMessage.Finished -> R.string.tour_finished
+                    FinishMessage.Failed -> R.string.tour_finish_failed
+                },
+            ),
+            withDismissAction = current == FinishMessage.Failed,
+        )
+        viewModel.onFinishMessageShown(current)
+    }
 }
 
 @Composable
@@ -340,6 +375,7 @@ private fun TourDetails(
     autoDetectedCountries: Set<String>,
     diaryEntries: List<DiaryEntry>,
     checklists: List<Checklist>,
+    metrics: TourMetrics,
     weatherMapEnabled: Boolean,
     modifier: Modifier,
     padding: PaddingValues,
@@ -352,6 +388,8 @@ private fun TourDetails(
     onOpenDiaryEntry: (Long) -> Unit,
     onStartChecklist: () -> Unit,
     onOpenChecklist: (Long) -> Unit,
+    finishing: Boolean,
+    onFinish: () -> Unit,
 ) {
     val locale = currentLocale()
     val vignetteWarnings = remember(tour, stations) { expiringVignettes(tour, stations) }
@@ -375,9 +413,14 @@ private fun TourDetails(
                 tour.endDate?.let { LabeledValue(stringResource(R.string.field_end_date), formatDate(it, locale)) }
                 LabeledValue(stringResource(R.string.field_destination), tour.destination)
                 LabeledValue(stringResource(R.string.field_tour_type), stringResource(tour.tourType.labelRes))
-                LabeledValue(stringResource(R.string.field_travel_days), tour.travelDays.toString())
-                LabeledValue(stringResource(R.string.field_overnight_stays), tour.overnightStays.toString())
-                LabeledValue(stringResource(R.string.label_distance), stringResource(R.string.distance_km, tour.distanceKm))
+                LabeledValue(stringResource(R.string.field_travel_days), metrics.travelDays.toString())
+                LabeledValue(stringResource(R.string.field_overnight_stays), metrics.overnightStays.toString())
+                LabeledValue(stringResource(R.string.label_distance), stringResource(R.string.distance_km, metrics.distanceKm))
+                if (tour.endDate == null) {
+                    Button(onClick = onFinish, enabled = !finishing, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.tour_finish))
+                    }
+                }
             }
         }
         if (vignetteWarnings.isNotEmpty()) {
