@@ -1,7 +1,5 @@
 package app.restvolt.camperlog.ui.about
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.Image
@@ -58,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import app.restvolt.camperlog.BuildConfig
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.share.copyToClipboard
 import app.restvolt.camperlog.share.tryStart
 import app.restvolt.camperlog.ui.BackTopBar
 import java.io.IOException
@@ -302,12 +301,6 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
     if (showLicenseText) {
         LicenseTextDialog(onDismiss = { showLicenseText = false })
     }
-}
-
-/** Kopiert [text] mit der Bezeichnung [label] in die Zwischenablage. */
-private fun Context.copyToClipboard(label: String, text: String) {
-    val clipboard = getSystemService(ClipboardManager::class.java)
-    clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
 }
 
 /** Öffnet [url] extern über [app.restvolt.camperlog.share.tryStart]; zeigt sonst [noAppMessage]. */

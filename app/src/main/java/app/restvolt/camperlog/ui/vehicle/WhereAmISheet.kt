@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.LocationCaptureState
+import app.restvolt.camperlog.share.copyToClipboard
 import app.restvolt.camperlog.share.locationShareText
 import app.restvolt.camperlog.share.shareLocation
 import app.restvolt.camperlog.ui.LocationCaptureSection

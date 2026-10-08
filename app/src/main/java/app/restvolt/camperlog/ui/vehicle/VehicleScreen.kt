@@ -1,7 +1,5 @@
 package app.restvolt.camperlog.ui.vehicle
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.clickable
@@ -71,6 +69,7 @@ import app.restvolt.camperlog.domain.formatLitres
 import app.restvolt.camperlog.domain.formatMetres
 import app.restvolt.camperlog.domain.formatPower
 import app.restvolt.camperlog.domain.formatWp
+import app.restvolt.camperlog.share.copyToClipboard
 import app.restvolt.camperlog.share.tryStart
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LabeledValue
@@ -580,11 +579,6 @@ private fun dialOrOfferCopy(
             if (result == SnackbarResult.ActionPerformed) context.copyToClipboard(phone, phone)
         }
     }
-}
-
-internal fun Context.copyToClipboard(label: String, text: String) {
-    val clipboard = getSystemService(ClipboardManager::class.java)
-    clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
 }
 
 @Composable

@@ -2,6 +2,7 @@ package app.restvolt.camperlog.share
 
 import android.content.ActivityNotFoundException
 import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -397,4 +398,9 @@ internal fun Context.tryStart(intent: Intent): Boolean = try {
     false
 } catch (_: SecurityException) {
     false
+}
+
+/** Kopiert [text] mit der Bezeichnung [label] in die Zwischenablage. */
+internal fun Context.copyToClipboard(label: String, text: String) {
+    getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText(label, text))
 }
