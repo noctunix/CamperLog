@@ -78,6 +78,15 @@ class AndroidWeatherProviderTest {
     }
 
     @Test
+    fun fetchCurrent_oversizedBody_isError() = runTest {
+        // Gültiges JSON, nur mit Leerraum über das Limit aufgebläht: der Abbruch kommt vom Limit.
+        val body = VALID_BODY + " ".repeat(MAX_JSON_RESPONSE_BYTES)
+        val result = provider { url -> FakeHttpUrlConnection(url, fakedBody = body) }.fetchCurrent(68.0912, 13.1023)
+
+        assertEquals(WeatherResult.Error, result)
+    }
+
+    @Test
     fun fetchCurrent_malformedJson_isError() = runTest {
         val result = provider { url -> FakeHttpUrlConnection(url, fakedBody = "not json") }.fetchCurrent(68.0912, 13.1023)
 

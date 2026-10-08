@@ -74,6 +74,15 @@ class AndroidTileLoaderTest {
     }
 
     @Test
+    fun load_oversizedBody_isFailure() = runTest {
+        val loader = AndroidTileLoader(userAgent = "CamperLog/1.7.0") { url ->
+            FakeTileHttpUrlConnection(url, fakedBody = ByteArray(MAX_TILE_RESPONSE_BYTES + 1))
+        }
+
+        assertEquals(TileLoadResult.Failure, loader.load(tile))
+    }
+
+    @Test
     fun load_ioException_isFailure() = runTest {
         val loader = AndroidTileLoader(userAgent = "CamperLog/1.7.0") { url ->
             FakeTileHttpUrlConnection(url, failWith = IOException("broken pipe"))

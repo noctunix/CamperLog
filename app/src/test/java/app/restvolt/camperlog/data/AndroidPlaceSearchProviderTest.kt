@@ -117,6 +117,15 @@ class AndroidPlaceSearchProviderTest {
     }
 
     @Test
+    fun search_oversizedBody_isError() = runTest {
+        // Gültiges JSON, nur mit Leerraum über das Limit aufgebläht: der Abbruch kommt vom Limit.
+        val body = VALID_BODY + " ".repeat(MAX_JSON_RESPONSE_BYTES)
+        val result = provider { url -> FakeNominatimHttpUrlConnection(url, fakedBody = body) }.search("Reine", "de")
+
+        assertEquals(PlaceSearchResult.Error, result)
+    }
+
+    @Test
     fun search_malformedJson_isError() = runTest {
         val result = provider { url -> FakeNominatimHttpUrlConnection(url, fakedBody = "not json") }.search("Reine", "de")
 

@@ -59,7 +59,7 @@ class AndroidPlaceSearchProvider(
                 connection.requestMethod = "GET"
                 try {
                     when (connection.responseCode) {
-                        HttpURLConnection.HTTP_OK -> parse(connection.inputStream.bufferedReader().use { it.readText() })
+                        HttpURLConnection.HTTP_OK -> parse(connection.inputStream.use { it.readTextAtMost(MAX_JSON_RESPONSE_BYTES) })
                         429 -> PlaceSearchResult.RateLimited
                         else -> PlaceSearchResult.Error
                     }

@@ -45,7 +45,7 @@ class AndroidTileLoader(
                 connection.requestMethod = "GET"
                 try {
                     if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                        TileLoadResult.Success(connection.inputStream.use { it.readBytes() })
+                        TileLoadResult.Success(connection.inputStream.use { it.readBytesAtMost(MAX_TILE_RESPONSE_BYTES) })
                     } else {
                         TileLoadResult.Failure
                     }
