@@ -33,6 +33,7 @@ import app.restvolt.camperlog.domain.MAX_POWER_KW
 import app.restvolt.camperlog.domain.MAX_PRICE_PER_KWH
 import app.restvolt.camperlog.domain.MAX_SOLAR_WP
 import app.restvolt.camperlog.domain.MAX_STATION_MAP_LINK_LENGTH
+import app.restvolt.camperlog.domain.MAX_DOCUMENT_BYTES
 import app.restvolt.camperlog.domain.MAX_STATION_NAME_LENGTH
 import app.restvolt.camperlog.domain.MAX_STATION_NOTES_LENGTH
 import app.restvolt.camperlog.domain.MAX_STATION_PLACE_LENGTH
@@ -117,8 +118,6 @@ internal const val MAX_TRACK_SEGMENTS = 10_000
 internal const val MAX_TRACK_POINTS = 2_000_000
 private const val MAX_ABS_ALTITUDE_M = 12_000
 
-/** Wie `AttachmentFileStore.MAX_DOCUMENT_BYTES`; hier verdoppelt statt importiert, damit `backup/` ohne Android-Abhängigkeiten bleibt. */
-private const val MAX_ATTACHMENT_SIZE_BYTES = 20L * 1024 * 1024
 private const val MAX_ATTACHMENT_DIMENSION = 20_000
 
 /** Dateiendung je unterstütztem MIME-Typ eines Anhangs; ebenfalls dupliziert statt aus `AttachmentFileStore` importiert. */
@@ -1275,7 +1274,7 @@ private fun AttachmentDto.toAttachment(ownerType: AttachmentOwnerType): Attachme
     val uuid = parseUuid(uuid) ?: return null
     val extension = ATTACHMENT_EXTENSION_BY_MIME_TYPE[mimeType] ?: return null
     if (!ATTACHMENT_FILE_NAME_PATTERN.matches(fileName) || !fileName.endsWith(".$extension")) return null
-    if (sizeBytes < 0 || sizeBytes > MAX_ATTACHMENT_SIZE_BYTES) return null
+    if (sizeBytes < 0 || sizeBytes > MAX_DOCUMENT_BYTES) return null
     if (caption.length > MAX_CAPTION_LENGTH) return null
     val isPhoto = mimeType.startsWith("image/")
     if (!isPhoto && (width != null || height != null)) return null

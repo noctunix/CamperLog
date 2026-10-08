@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.core.net.toUri
 import androidx.exifinterface.media.ExifInterface
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.MAX_DOCUMENT_BYTES
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

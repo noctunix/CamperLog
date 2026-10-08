@@ -9,6 +9,10 @@ import androidx.core.graphics.scale
 import androidx.exifinterface.media.ExifInterface
 import app.restvolt.camperlog.domain.LATITUDE_RANGE
 import app.restvolt.camperlog.domain.LONGITUDE_RANGE
+import app.restvolt.camperlog.domain.MAX_DOCUMENT_BYTES
+import app.restvolt.camperlog.domain.extensionFor
+import app.restvolt.camperlog.domain.readSniffHeader
+import app.restvolt.camperlog.domain.sniffMimeType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -29,9 +33,6 @@ internal const val MAX_PHOTO_DIMENSION = 2048
 
 /** JPEG-Qualität der Neukodierung importierter Fotos. */
 internal const val PHOTO_JPEG_QUALITY = 85
-
-/** Größte einlesbare Dokumentdatei in Bytes. */
-const val MAX_DOCUMENT_BYTES = 20L * 1024 * 1024
 
 /** Eine erfolgreich importierte Anhangsdatei, bereit für [app.restvolt.camperlog.domain.Attachment]. */
 sealed interface ImportedAttachment {
@@ -201,11 +202,7 @@ class AndroidAttachmentFileStore(context: Context) : AttachmentFileStore {
         Unit
     }
 
-    private fun readHeader(source: Uri): ByteArray? = openStream(source)?.use { stream ->
-        val buffer = ByteArray(HEADER_SIZE)
-        val read = stream.read(buffer)
-        if (read <= 0) null else buffer.copyOf(read)
-    }
+    private fun readHeader(source: Uri): ByteArray? = openStream(source)?.use(::readSniffHeader)?.takeIf { it.isNotEmpty() }
 
     /**
      * Breite/Höhe ohne vollständige Pixel-Decodierung, siehe `BitmapFactory.Options.inJustDecodeBounds`.
@@ -293,39 +290,6 @@ suspend fun commitStagedAttachmentFiles(fileStore: AttachmentFileStore, stagedFi
         }
     }
     failed
-}
-
-private const val HEADER_SIZE = 16
-
-private val JPEG_MAGIC = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte())
-private val PNG_MAGIC = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
-private val WEBP_RIFF_MAGIC = "RIFF".toByteArray(Charsets.US_ASCII)
-private val WEBP_TAG_MAGIC = "WEBP".toByteArray(Charsets.US_ASCII)
-private val PDF_MAGIC = "%PDF".toByteArray(Charsets.US_ASCII)
-
-private fun ByteArray.startsWith(magic: ByteArray, offset: Int = 0): Boolean =
-    size >= offset + magic.size && magic.indices.all { this[offset + it] == magic[it] }
-
-/**
- * Erkennt den MIME-Typ einer Datei an ihren ersten Bytes statt an Dateiendung oder einem mitgelieferten
- * MIME-Typ, die beide leicht irreführend gesetzt werden können. `null`, wenn keines der unterstützten
- * Formate (JPEG, PNG, WebP, PDF) erkannt wird.
- */
-internal fun sniffMimeType(header: ByteArray): String? = when {
-    header.startsWith(JPEG_MAGIC) -> "image/jpeg"
-    header.startsWith(PNG_MAGIC) -> "image/png"
-    header.startsWith(WEBP_RIFF_MAGIC) && header.startsWith(WEBP_TAG_MAGIC, offset = 8) -> "image/webp"
-    header.startsWith(PDF_MAGIC) -> "application/pdf"
-    else -> null
-}
-
-/** Dateiendung für einen von [sniffMimeType] erkannten MIME-Typ. */
-internal fun extensionFor(mimeType: String): String = when (mimeType) {
-    "image/jpeg" -> ".jpg"
-    "image/png" -> ".png"
-    "image/webp" -> ".webp"
-    "application/pdf" -> ".pdf"
-    else -> ""
 }
 
 /** `inSampleSize` für `BitmapFactory.Options`, sodass die lange Kante nach dem Sampling mindestens [maxDimension] erreicht. */

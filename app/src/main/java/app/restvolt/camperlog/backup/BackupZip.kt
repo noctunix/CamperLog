@@ -1,5 +1,8 @@
 package app.restvolt.camperlog.backup
 
+import app.restvolt.camperlog.domain.MAX_DOCUMENT_BYTES
+import app.restvolt.camperlog.domain.readSniffHeader
+import app.restvolt.camperlog.domain.sniffMimeType
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -111,7 +114,7 @@ fun readBackupZip(input: InputStream, stagingDir: File): BackupZipReadResult {
                     isValidZipPath(name) -> {
                         if (name in rawStaged) return cleanupAndFail(stagingDir, rawStaged, BackupError.INVALID_DATA)
                         val target = File(stagingDir, "entry-${nextTempFileIndex++}")
-                        val written = writeBounded(zip, target, MAX_SINGLE_ATTACHMENT_ZIP_BYTES)
+                        val written = writeBounded(zip, target, MAX_DOCUMENT_BYTES)
                         if (written == null) {
                             target.delete()
                             return cleanupAndFail(stagingDir, rawStaged, BackupError.TOO_LARGE)
@@ -149,8 +152,8 @@ fun readBackupZip(input: InputStream, stagingDir: File): BackupZipReadResult {
     for ((name, tempFile) in rawStaged) {
         val expected = expectedByZipPath.getValue(name).attachment
         if (tempFile.length() != expected.sizeBytes) return cleanupAndFail(stagingDir, rawStaged, BackupError.INVALID_DATA)
-        val header = tempFile.inputStream().use { readHeader(it, SNIFF_HEADER_SIZE) }
-        if (sniffAttachmentMimeType(header) != expected.mimeType) return cleanupAndFail(stagingDir, rawStaged, BackupError.INVALID_DATA)
+        val header = tempFile.inputStream().use(::readSniffHeader)
+        if (sniffMimeType(header) != expected.mimeType) return cleanupAndFail(stagingDir, rawStaged, BackupError.INVALID_DATA)
         val finalTarget = File(stagingDir, expected.fileName)
         if (!tempFile.renameTo(finalTarget)) return cleanupAndFail(stagingDir, rawStaged, BackupError.NOT_A_BACKUP)
         stagedFiles[expected.fileName] = finalTarget
@@ -168,11 +171,6 @@ private fun cleanupAndFail(stagingDir: File, rawStaged: Map<String, File>, error
 private fun cleanupStaged(rawStaged: Map<String, File>) {
     rawStaged.values.forEach { it.delete() }
 }
-
-/** Größte einzelne Anhangsdatei in einer ZIP-Sicherung; wie `AttachmentFileStore.MAX_DOCUMENT_BYTES`, siehe dort. */
-private const val MAX_SINGLE_ATTACHMENT_ZIP_BYTES = 20L * 1024 * 1024
-
-private const val SNIFF_HEADER_SIZE = 16
 
 /** Liest höchstens [maxBytes] aus [input]; `null`, wenn mehr Daten folgen. */
 private fun readBounded(input: InputStream, maxBytes: Int): ByteArray? {
@@ -201,36 +199,4 @@ private fun writeBounded(input: InputStream, target: File, maxBytes: Long): Long
         }
         return total
     }
-}
-
-private fun readHeader(input: InputStream, maxLength: Int): ByteArray {
-    val buffer = ByteArray(maxLength)
-    var total = 0
-    while (total < maxLength) {
-        val read = input.read(buffer, total, maxLength - total)
-        if (read < 0) break
-        total += read
-    }
-    return buffer.copyOf(total)
-}
-
-private val JPEG_MAGIC = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte())
-private val PNG_MAGIC = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
-private val WEBP_RIFF_MAGIC = "RIFF".toByteArray(Charsets.US_ASCII)
-private val WEBP_TAG_MAGIC = "WEBP".toByteArray(Charsets.US_ASCII)
-private val PDF_MAGIC = "%PDF".toByteArray(Charsets.US_ASCII)
-
-private fun ByteArray.startsWith(magic: ByteArray, offset: Int = 0): Boolean =
-    size >= offset + magic.size && magic.indices.all { this[offset + it] == magic[it] }
-
-/**
- * Erkennt den MIME-Typ einer Anhangsdatei an ihren ersten Bytes, wie `AttachmentFileStore.sniffMimeType`
- * beim Import - hier dupliziert statt importiert, damit `backup/` ohne Android-Abhängigkeiten bleibt.
- */
-private fun sniffAttachmentMimeType(header: ByteArray): String? = when {
-    header.startsWith(JPEG_MAGIC) -> "image/jpeg"
-    header.startsWith(PNG_MAGIC) -> "image/png"
-    header.startsWith(WEBP_RIFF_MAGIC) && header.startsWith(WEBP_TAG_MAGIC, offset = 8) -> "image/webp"
-    header.startsWith(PDF_MAGIC) -> "application/pdf"
-    else -> null
 }
