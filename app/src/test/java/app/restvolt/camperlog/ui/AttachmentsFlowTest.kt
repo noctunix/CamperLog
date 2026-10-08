@@ -58,6 +58,7 @@ class AttachmentsFlowTest {
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
                     attachmentPickers = FakeAttachmentPickers(),
+                    tracks = FakeTrackRepository(),
                 ) { }
             }
         }

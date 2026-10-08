@@ -98,6 +98,7 @@ class StationFlowTest {
                     locationProvider = locationProvider,
                     weatherProvider = weatherProvider,
                     placeSearchProvider = placeSearchProvider,
+                    tracks = FakeTrackRepository(),
                 ) { }
             }
         }

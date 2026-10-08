@@ -90,6 +90,7 @@ class MapFlowTest {
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
                     tileLoader = tileLoader,
+                    tracks = FakeTrackRepository(),
                 ) { }
             }
         }

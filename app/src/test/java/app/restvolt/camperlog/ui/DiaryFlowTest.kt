@@ -47,6 +47,7 @@ class DiaryFlowTest {
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
+                    tracks = FakeTrackRepository(),
                 ) { }
             }
         }
