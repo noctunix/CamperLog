@@ -74,6 +74,7 @@ class ReadmeScreenshots {
                     FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.LIGHT,
                     canShowStartDialogs = false,
+                    tracks = FakeTrackRepository(),
                 ) { }
             }
         }

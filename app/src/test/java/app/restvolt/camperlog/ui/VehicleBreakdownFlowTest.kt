@@ -55,6 +55,7 @@ class VehicleBreakdownFlowTest {
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
+                    tracks = FakeTrackRepository(),
                     locationProvider = locationProvider,
                 ) { }
             }

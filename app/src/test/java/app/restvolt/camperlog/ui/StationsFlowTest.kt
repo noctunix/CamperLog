@@ -54,6 +54,7 @@ class StationsFlowTest {
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
+                    tracks = FakeTrackRepository(),
                 ) { }
             }
         }

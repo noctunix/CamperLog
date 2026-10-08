@@ -46,6 +46,7 @@ class NavLabelsFontScaleTest {
                         ThemeMode.SYSTEM,
                         canShowStartDialogs = false,
                         countryLookup = FakeCountryLookupRepository(),
+                        tracks = FakeTrackRepository(),
                     ) { }
                 }
             }

@@ -42,6 +42,7 @@ class ChecklistFlowTest {
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
+                    tracks = FakeTrackRepository(),
                 ) { }
             }
         }

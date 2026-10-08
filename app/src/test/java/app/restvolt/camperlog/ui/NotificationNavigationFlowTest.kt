@@ -46,6 +46,7 @@ class NotificationNavigationFlowTest {
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
+                    tracks = FakeTrackRepository(),
                     pendingVehicleId = 2,
                 ) {}
             }
@@ -71,6 +72,7 @@ class NotificationNavigationFlowTest {
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
+                    tracks = FakeTrackRepository(),
                     pendingOpenData = true,
                 ) {}
             }
@@ -105,6 +107,7 @@ class NotificationNavigationFlowTest {
                     ThemeMode.SYSTEM,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
+                    tracks = FakeTrackRepository(),
                     pendingDocumentId = 7,
                 ) {}
             }
