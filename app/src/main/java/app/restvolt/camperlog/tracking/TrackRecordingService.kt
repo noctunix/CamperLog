@@ -97,13 +97,13 @@ class TrackRecordingService : Service() {
         }
         if (!settings.enabled || !hasLocationPermission(this)) {
             settings.activeRecording = null
-            shutDown()
+            abortStart(intent)
             return START_NOT_STICKY
         }
         val requestedTour = intent?.getLongExtra(EXTRA_TOUR_ID, -1L)?.takeIf { it > 0 }
         val tourId = requestedTour ?: settings.activeRecording?.tourId
         if (tourId == null) {
-            shutDown()
+            abortStart(intent)
             return START_NOT_STICKY
         }
         if (recording?.tourId == tourId || startingTourId == tourId) return START_STICKY
@@ -125,6 +125,15 @@ class TrackRecordingService : Service() {
             startUpdates()
         }
         return START_STICKY
+    }
+
+    /**
+     * Bricht einen Start ab. Kam er über [start] (also `startForegroundService`), muss der Dienst trotzdem
+     * kurz in den Vordergrund, sonst beendet Android die App mit "did not then call startForeground".
+     */
+    private fun abortStart(intent: Intent?) {
+        if (intent?.action == ACTION_START && recording == null && startingTourId == null) enterForeground()
+        shutDown()
     }
 
     @SuppressLint("InlinedApi") // ServiceCompat ignoriert den Diensttyp unter API 29.
@@ -340,7 +349,12 @@ class TrackRecordingService : Service() {
 
         fun stop(context: Context) {
             TrackRecordingSettings.get(context).activeRecording = null
-            context.startService(Intent(context, TrackRecordingService::class.java).setAction(ACTION_STOP))
+            try {
+                context.startService(Intent(context, TrackRecordingService::class.java).setAction(ACTION_STOP))
+            } catch (e: IllegalStateException) {
+                // Aus dem Hintergrund verboten; dann läuft auch kein Vordergrunddienst, der zu stoppen wäre.
+                Log.w(TAG, "Stopp der Trackaufzeichnung nicht zugestellt", e)
+            }
         }
 
         private fun ensureChannel(context: Context) {
