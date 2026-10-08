@@ -1,0 +1,4 @@
+• Tours can stay ongoing without an end date
+• Travel days, nights, and distance are calculated automatically
+• End ongoing tours from their card or detail screen
+• Ongoing tours always offer optional GPS track recording

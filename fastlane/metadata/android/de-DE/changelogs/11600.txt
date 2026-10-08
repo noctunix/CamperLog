@@ -1,0 +1,4 @@
+• Touren können ohne Enddatum weiterlaufen
+• Reisetage, Nächte und Strecke werden automatisch berechnet
+• Laufende Touren lassen sich auf der Karte oder Detailseite beenden
+• Laufende Touren bieten immer die optionale GPS-Aufzeichnung an
