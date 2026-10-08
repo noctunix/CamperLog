@@ -216,13 +216,14 @@ interface StationRepository {
 /**
  * Datumsvorschlag für eine neue Station einer Tour: [today], falls das in den Tourzeitraum
  * fällt, sonst der Tag nach [stations]' letzter Station (bei einer Übernachtung inklusive ihrer
- * Nächte), gekappt auf das Tourende. Ohne Stationen ist der Vorschlag der Tourstart.
+ * Nächte), bei abgeschlossenen Touren gekappt auf das Tourende. Ohne Stationen ist der Vorschlag
+ * der Tourstart.
  */
 fun defaultStationDate(tour: Tour, stations: List<Station>, today: LocalDate): LocalDate {
-    if (today in tour.startDate..tour.endDate) return today
+    if (today >= tour.startDate && (tour.endDate == null || today <= tour.endDate)) return today
     if (stations.isEmpty()) return tour.startDate
     val last = stations.maxWith(compareBy({ it.date }, { it.time ?: LocalTime.MAX }, { it.createdAt }))
     val daysToAdd = if (last.type == StationType.OVERNIGHT) (last.nights ?: 1).toLong() else 1L
     val next = last.date.plusDays(daysToAdd)
-    return minOf(next, tour.endDate)
+    return tour.endDate?.let { minOf(next, it) } ?: next
 }

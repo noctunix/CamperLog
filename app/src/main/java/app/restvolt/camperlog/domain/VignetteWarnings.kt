@@ -15,14 +15,15 @@ data class ExpiringVignette(
  * für dieses Land. Vignetten ohne Land werden einzeln bewertet.
  */
 fun expiringVignettes(tour: Tour, stations: List<Station>): List<ExpiringVignette> {
+    val tourEnd = tour.endDate ?: return emptyList()
     val vignettes = stations.filter { it.type == StationType.TOLL && it.tollKind == TollKind.VIGNETTE && it.tollValidUntil != null }
     val (withCountry, withoutCountry) = vignettes.partition { it.tollCountry != null }
 
     val latestPerCountry = withCountry.groupBy { it.tollCountry }.values
         .map { group -> group.maxBy { it.tollValidUntil!! } }
-        .filter { it.tollValidUntil!! < tour.endDate }
+        .filter { it.tollValidUntil!! < tourEnd }
 
-    val expiringWithoutCountry = withoutCountry.filter { it.tollValidUntil!! < tour.endDate }
+    val expiringWithoutCountry = withoutCountry.filter { it.tollValidUntil!! < tourEnd }
 
     return (latestPerCountry + expiringWithoutCountry)
         .map { ExpiringVignette(it.id, it.tollCountry, it.tollValidUntil!!) }

@@ -87,7 +87,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 10
+const val BACKUP_SCHEMA_VERSION = 11
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -439,7 +439,7 @@ private fun BackupDto.toBackup(): BackupReadResult {
     val tours = tours.mapIndexed { index, element ->
         val tourNumber = index + 1
         val dto = decodeJson(TourDto.serializer(), element) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
-        val tour = dto.toTour() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
+        val tour = dto.toTour(schemaVersion) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
         if (!seenTourUuids.add(tour.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
         dto.vehicleUuid?.let { candidate ->
             val normalized = parseUuid(candidate) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = tourNumber)
@@ -679,10 +679,14 @@ private fun RateDto.toRate(): ExchangeRate? {
     return ExchangeRate(currency, perEuro, date, source)
 }
 
-private fun TourDto.toTour(): Tour? {
+private fun TourDto.toTour(schemaVersion: Int): Tour? {
     val uuid = parseUuid(uuid) ?: return null
     val start = parseDate(startDate) ?: return null
-    val end = parseDate(endDate)?.takeIf { it >= start } ?: return null
+    val end = when {
+        endDate == null && schemaVersion >= 11 -> null
+        endDate == null -> return null
+        else -> parseDate(endDate)?.takeIf { it >= start } ?: return null
+    }
     val destination = destination.trim().takeIf { it.isNotEmpty() && it.length <= MAX_DESTINATION_LENGTH } ?: return null
     if (travelDays < 0 || overnightStays < 0 || distanceKm < 0 || overnightStays > travelDays) return null
     if (notes.length > MAX_NOTES_LENGTH) return null
@@ -851,7 +855,7 @@ private fun ExchangeRate.toDto() = RateDto(
 private fun Tour.toDto(vehicleUuid: String?) = TourDto(
     uuid = uuid,
     startDate = startDate.toString(),
-    endDate = endDate.toString(),
+    endDate = endDate?.toString(),
     destination = destination,
     tourType = tourType.name,
     travelDays = travelDays,

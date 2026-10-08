@@ -126,11 +126,12 @@ class StationsViewModel(
     /** Die Tour von [vehicleId], deren Zeitraum [date] enthält, bei mehreren die mit dem spätesten Start. */
     private fun runningTourOf(tours: List<Tour>, vehicleId: Long, date: LocalDate): RunningTour? {
         val tour = tours
-            .filter { it.vehicleId == vehicleId && date in it.startDate..it.endDate }
+            .filter { it.vehicleId == vehicleId && date >= it.startDate && (it.endDate == null || date <= it.endDate) }
             .maxByOrNull { it.startDate }
             ?: return null
         val dayNumber = java.time.temporal.ChronoUnit.DAYS.between(tour.startDate, date).toInt() + 1
-        val totalDays = java.time.temporal.ChronoUnit.DAYS.between(tour.startDate, tour.endDate).toInt() + 1
+        val totalDays = tour.endDate?.let { java.time.temporal.ChronoUnit.DAYS.between(tour.startDate, it).toInt() + 1 }
+            ?: dayNumber
         return RunningTour(tour.id, tour.destination, dayNumber, totalDays)
     }
 

@@ -145,7 +145,7 @@ private fun Tour.csvFields(
     listOf(
         id.toString(),
         startDate.toString(),
-        endDate.toString(),
+        endDate?.toString().orEmpty(),
         neutralizeFormula(destination),
         tourType.csvValue(vocabulary),
         travelDays.toString(),

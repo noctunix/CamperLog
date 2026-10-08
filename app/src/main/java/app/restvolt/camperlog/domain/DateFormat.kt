@@ -21,7 +21,7 @@ fun formatMonthYear(date: LocalDate, locale: Locale = Locale.getDefault()): Stri
 
 /** Display a range or just one date for a day trip. */
 fun Tour.period(locale: Locale = Locale.getDefault()): String =
-    if (startDate == endDate) {
+    if (endDate == null || startDate == endDate) {
         formatDate(startDate, locale)
     } else {
         "${formatDate(startDate, locale)} – ${formatDate(endDate, locale)}"

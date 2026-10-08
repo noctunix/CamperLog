@@ -157,7 +157,7 @@ class TourFlowTest {
         val saved = repository.tours.single()
         assertEquals("Gardasee", saved.destination)
         assertEquals(10, saved.startDate.dayOfMonth)
-        assertEquals(12, saved.endDate.dayOfMonth)
+        assertEquals(12, saved.endDate?.dayOfMonth)
         assertEquals(3, saved.travelDays)
     }
 
@@ -297,7 +297,7 @@ class TourFlowTest {
         compose.onNodeWithText("Neue Tour").performClick()
 
         compose.onNode(hasText("Startdatum") and hasClickAction()).assert(hasText("Pflichtfeld"))
-        compose.onNode(hasText("Enddatum") and hasClickAction()).assert(hasText("Pflichtfeld"))
+        compose.onNode(hasText("Enddatum") and hasClickAction()).assert(!hasText("Pflichtfeld"))
         destinationField().assert(hasText("Pflichtfeld"))
         compose.onNode(hasSetTextAction() and hasText("Kilometer")).assert(!hasText("Pflichtfeld"))
         compose.onNode(hasSetTextAction() and hasText("Notizen")).assert(!hasText("Pflichtfeld"))
@@ -305,7 +305,7 @@ class TourFlowTest {
         clickSave()
 
         destinationField().assert(hasText("Ziel erforderlich")).assert(!hasText("Pflichtfeld"))
-        compose.onNodeWithText("Bitte diese Felder prüfen: Startdatum, Enddatum, Ziel").assertExists()
+        compose.onNodeWithText("Bitte diese Felder prüfen: Startdatum, Ziel").assertExists()
     }
 
     @Test

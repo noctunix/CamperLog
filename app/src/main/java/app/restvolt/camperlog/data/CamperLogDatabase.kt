@@ -39,7 +39,7 @@ import java.util.UUID
         ChecklistItemEntity::class,
         TrackPointEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -79,7 +79,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
-                    MIGRATION_14_15,
+                    MIGRATION_14_15, MIGRATION_15_16,
                 )
                 .build()
     }
@@ -679,5 +679,42 @@ internal val MIGRATION_14_15 = object : Migration(14, 15) {
         db.execSQL(
             "CREATE UNIQUE INDEX IF NOT EXISTS `index_track_points_tour_id_recorded_at` ON `track_points` (`tour_id`, `recorded_at`)",
         )
+    }
+}
+
+/**
+ * Version 16: `tours.end_date` wird nullable; `NULL` kennzeichnet eine laufende Tour. Weil SQLite
+ * die `NOT NULL`-Bedingung nicht direkt entfernen kann, wird nur die Tourtabelle neu aufgebaut.
+ * `legacy_alter_table` verhindert dabei, dass SQLite die Fremdschlüssel der abhängigen Tabellen
+ * beim vorübergehenden Umbenennen auf `tours_old` umschreibt.
+ */
+internal val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("PRAGMA legacy_alter_table = ON")
+        db.execSQL("ALTER TABLE `tours` RENAME TO `tours_old`")
+        db.execSQL(
+            "CREATE TABLE `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL DEFAULT '', `vehicle_id` INTEGER NOT NULL, `start_date` TEXT NOT NULL, " +
+                "`end_date` TEXT, `destination` TEXT NOT NULL, `tour_type` TEXT NOT NULL, " +
+                "`travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, " +
+                "`notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        )
+        db.execSQL(
+            "INSERT INTO `tours` (`id`, `uuid`, `vehicle_id`, `start_date`, `end_date`, `destination`, `tour_type`, " +
+                "`travel_days`, `overnight_stays`, `distance_km`, `notes`, `map_link`, `created_at`, `updated_at`) " +
+                "SELECT `id`, `uuid`, `vehicle_id`, `start_date`, `end_date`, `destination`, `tour_type`, " +
+                "`travel_days`, `overnight_stays`, `distance_km`, `notes`, `map_link`, `created_at`, `updated_at` " +
+                "FROM `tours_old`",
+        )
+        db.execSQL("DROP TABLE `tours_old`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_tours_uuid` ON `tours` (`uuid`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_tours_vehicle_id` ON `tours` (`vehicle_id`)")
+        db.execSQL("PRAGMA legacy_alter_table = OFF")
+
+        db.query("PRAGMA foreign_key_check").use { cursor ->
+            check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 15→16" }
+        }
     }
 }

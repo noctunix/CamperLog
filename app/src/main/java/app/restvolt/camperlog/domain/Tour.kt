@@ -18,7 +18,8 @@ data class Tour(
     /** 0 bedeutet beim Speichern „aktuelles Fahrzeug" (das Repository löst das auf). */
     val vehicleId: Long = 0,
     val startDate: LocalDate,
-    val endDate: LocalDate,
+    /** Abschlussdatum; `null` kennzeichnet eine laufende Tour. */
+    val endDate: LocalDate?,
     val destination: String,
     val tourType: TourType,
     val travelDays: Int,

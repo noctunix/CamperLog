@@ -219,6 +219,31 @@ class BackupTest {
     }
 
     @Test
+    fun roundTrip_keepsRunningTourWithoutEndDate() {
+        val running = backup.copy(tours = listOf(tour().copy(endDate = null)))
+
+        val text = encodeBackup(running)
+        val decoded = success(text)
+
+        assert("\"schemaVersion\": 11" in text)
+        assert("\"endDate\": null" in text)
+        assertEquals(null, decoded.tours.single().endDate)
+    }
+
+    @Test
+    fun decode_rejectsMissingEndDateInOlderBackup() {
+        val old = applyAll(
+            encodeBackup(backup),
+            listOf(
+                "\"schemaVersion\": 11" to "\"schemaVersion\": 10",
+                "\"endDate\": \"2026-07-14\"," to "",
+            ),
+        )
+
+        assertEquals(BackupError.INVALID_DATA, failure(old)?.error)
+    }
+
+    @Test
     fun roundTrip_keepsManualCountryAdjustments() {
         val withCountries = Backup(
             exportedAt = backup.exportedAt,
@@ -291,7 +316,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 10" in text)
+        assert("\"schemaVersion\": 11" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -326,13 +351,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 10", "\"schemaVersion\": 11"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 11", "\"schemaVersion\": 12"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 10", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 11", it))?.error)
         }
     }
 

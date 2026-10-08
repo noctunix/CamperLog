@@ -89,7 +89,8 @@ interface StationDao {
      * spätesten Start; `NULL`, wenn keine passt.
      */
     @Query(
-        "SELECT id FROM tours WHERE vehicle_id = :vehicleId AND start_date <= :date AND end_date >= :date " +
+        "SELECT id FROM tours WHERE vehicle_id = :vehicleId AND start_date <= :date " +
+            "AND (end_date IS NULL OR end_date >= :date) " +
             "ORDER BY start_date DESC, id DESC LIMIT 1",
     )
     suspend fun defaultTourId(vehicleId: Long, date: String): Long?

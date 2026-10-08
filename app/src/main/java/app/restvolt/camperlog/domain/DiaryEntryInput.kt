@@ -52,12 +52,14 @@ fun DiaryEntry.toInput(): DiaryEntryInput = DiaryEntryInput(date = date, text = 
 
 /**
  * Vorbelegtes Datum eines neuen Tagebucheintrags: [today], wenn es innerhalb von [tourStart] und
- * [tourEnd] liegt; sonst der erste Tourtag ohne Eintrag in [otherEntryDates]; sonst [tourStart].
+ * [tourEnd] liegt; bei einer laufenden Tour gilt [today] als vorläufiges Ende. Sonst der erste
+ * Tourtag ohne Eintrag in [otherEntryDates], abschließend [tourStart].
  */
-fun defaultDiaryEntryDate(tourStart: LocalDate, tourEnd: LocalDate, otherEntryDates: Set<LocalDate>, today: LocalDate): LocalDate {
-    if (today in tourStart..tourEnd) return today
+fun defaultDiaryEntryDate(tourStart: LocalDate, tourEnd: LocalDate?, otherEntryDates: Set<LocalDate>, today: LocalDate): LocalDate {
+    val effectiveEnd = tourEnd ?: maxOf(today, tourStart)
+    if (today in tourStart..effectiveEnd) return today
     var date = tourStart
-    while (date <= tourEnd) {
+    while (date <= effectiveEnd) {
         if (date !in otherEntryDates) return date
         date = date.plusDays(1)
     }

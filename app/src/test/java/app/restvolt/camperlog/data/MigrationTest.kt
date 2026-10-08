@@ -33,7 +33,7 @@ import java.util.Currency
 import java.util.UUID
 
 /**
- * Prüft jede Migration von Version 1 bis 15 einzeln: Die Ausgangsdatenbank wird exakt nach dem
+ * Prüft jede Migration von Version 1 bis 16 einzeln: Die Ausgangsdatenbank wird exakt nach dem
  * jeweiligen `schemas/…/<n>.json` angelegt (`createVersion<n>`), migriert und auf erhaltene bzw.
  * umgewandelte Daten geprüft. Room validiert beim Öffnen zusätzlich, dass das Ergebnis dem Schema der
  * Zielversion entspricht.
@@ -589,10 +589,54 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migration15To16MakesEndDateNullableAndKeepsTourChildren() = runTest {
+        createVersion15(
+            defaultVehicleInsert,
+            "INSERT INTO tours VALUES (1, 'tour-1', 1, '2026-07-04', '2026-07-05', 'Lofoten', 'WEEKEND', 2, 1, " +
+                "100, '', NULL, 1000, 2000)",
+            "INSERT INTO tour_costs VALUES (1, 'EUR', 1234, 0)",
+            "INSERT INTO track_points VALUES (1, 1, 1, 5000, 68.2, 14.5, NULL, NULL)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val repository = RoomTourRepository(db) { Instant.EPOCH }
+            val migrated = repository.allTours().single()
+            assertEquals(LocalDate.of(2026, 7, 5), migrated.endDate)
+            assertEquals(listOf(Money(1234, EUR)), migrated.costs)
+            assertEquals(1, RoomTrackRepository(db).allPoints().size)
+
+            repository.save(migrated.copy(id = 0, uuid = "tour-2", endDate = null, costs = emptyList()))
+            assertEquals(null, repository.allTours().last().endDate)
+        } finally {
+            db.close()
+        }
+    }
+
+    private fun createVersion15(vararg inserts: String) = createVersion14Schema(
+        version = 15,
+        identityHash = "f32acf41debcc664b1bdf640271c1311",
+        includeTrackPoints = true,
+        inserts = inserts,
+    )
+
     /** Legt `camperlog.db` im Stand von Version 14 nach `schemas/…/14.json` an und füllt sie mit [inserts]. */
-    private fun createVersion14(vararg inserts: String) = createDatabase(
+    private fun createVersion14(vararg inserts: String) = createVersion14Schema(
         version = 14,
         identityHash = "e66896a3e7ff829c6c299ff1974b48c2",
+        includeTrackPoints = false,
+        inserts = inserts,
+    )
+
+    private fun createVersion14Schema(
+        version: Int,
+        identityHash: String,
+        includeTrackPoints: Boolean,
+        inserts: Array<out String>,
+    ) = createDatabase(
+        version = version,
+        identityHash = identityHash,
         schema = listOf(
             "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL DEFAULT '', `vehicle_id` INTEGER NOT NULL, `start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, `tour_type` TEXT NOT NULL, `travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, `notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
             "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)",
@@ -634,7 +678,10 @@ class MigrationTest {
             "CREATE INDEX IF NOT EXISTS `index_checklists_vehicle_id` ON `checklists` (`vehicle_id`)",
             "CREATE INDEX IF NOT EXISTS `index_checklists_tour_id` ON `checklists` (`tour_id`)",
             "CREATE TABLE IF NOT EXISTS `checklist_items` (`checklist_id` INTEGER NOT NULL, `position` INTEGER NOT NULL, `text` TEXT NOT NULL, `checked` INTEGER NOT NULL, PRIMARY KEY(`checklist_id`, `position`), FOREIGN KEY(`checklist_id`) REFERENCES `checklists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
-        ),
+        ) + if (includeTrackPoints) listOf(
+            "CREATE TABLE IF NOT EXISTS `track_points` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tour_id` INTEGER NOT NULL, `segment` INTEGER NOT NULL, `recorded_at` INTEGER NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `accuracy_m` INTEGER, `altitude_m` INTEGER, FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_track_points_tour_id_recorded_at` ON `track_points` (`tour_id`, `recorded_at`)",
+        ) else emptyList(),
         inserts = inserts.toList(),
     )
 

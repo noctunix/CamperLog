@@ -64,9 +64,8 @@ internal fun TourInput.validation(locale: Locale): TourValidation {
     val costErrors = costErrors(locale)
     val errors = buildMap {
         if (startDate == null) put(TourField.START_DATE, TourError.REQUIRED)
-        when {
-            endDate == null -> put(TourField.END_DATE, TourError.REQUIRED)
-            startDate != null && endDate < startDate -> put(TourField.END_DATE, TourError.END_BEFORE_START)
+        if (startDate != null && endDate != null && endDate < startDate) {
+            put(TourField.END_DATE, TourError.END_BEFORE_START)
         }
         if (destination.isBlank()) put(TourField.DESTINATION, TourError.REQUIRED)
         countError(travelDays)?.let { put(TourField.TRAVEL_DAYS, it) }
@@ -110,7 +109,7 @@ fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
     uuid = original?.uuid.orEmpty(),
     vehicleId = vehicleId,
     startDate = checkNotNull(startDate),
-    endDate = checkNotNull(endDate),
+    endDate = endDate,
     destination = destination.trim(),
     tourType = tourType,
     travelDays = checkNotNull(parseCount(travelDays)),

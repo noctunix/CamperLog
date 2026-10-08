@@ -30,7 +30,7 @@ data class TourEntity(
     @ColumnInfo(defaultValue = "") val uuid: String,
     @ColumnInfo(name = "vehicle_id") val vehicleId: Long,
     @ColumnInfo(name = "start_date") val startDate: String,
-    @ColumnInfo(name = "end_date") val endDate: String,
+    @ColumnInfo(name = "end_date") val endDate: String?,
     val destination: String,
     @ColumnInfo(name = "tour_type") val tourType: String,
     @ColumnInfo(name = "travel_days") val travelDays: Int,

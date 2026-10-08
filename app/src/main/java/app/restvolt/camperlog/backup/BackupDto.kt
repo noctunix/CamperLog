@@ -57,7 +57,8 @@ internal data class CostDto(
 internal data class TourDto(
     val uuid: String,
     val startDate: String,
-    val endDate: String,
+    /** `null` kennzeichnet ab Sicherungsformat 11 eine laufende Tour. */
+    val endDate: String? = null,
     val destination: String,
     val tourType: String,
     val travelDays: Int,

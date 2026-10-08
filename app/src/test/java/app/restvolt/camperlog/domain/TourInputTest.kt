@@ -39,7 +39,15 @@ class TourInputTest {
     @Test
     fun missingRequiredFieldsAreReported() {
         val errors = TourInput().validate(de)
-        assertEquals(setOf(TourField.START_DATE, TourField.END_DATE, TourField.DESTINATION), errors.keys)
+        assertEquals(setOf(TourField.START_DATE, TourField.DESTINATION), errors.keys)
+    }
+
+    @Test
+    fun missingEndDateCreatesRunningTour() {
+        val input = valid.copy(endDate = null)
+
+        assertTrue(input.validate(de).isEmpty())
+        assertNull(input.toTour(null, de).endDate)
     }
 
     @Test
@@ -91,6 +99,13 @@ class TourInputTest {
     @Test
     fun roundTripThroughInputIsLossless() {
         val tour = valid.toTour(null, de)
+        assertEquals(tour, tour.toInput(de).toTour(tour, de))
+    }
+
+    @Test
+    fun runningTourRoundTripThroughInputIsLossless() {
+        val tour = valid.copy(endDate = null).toTour(null, de)
+
         assertEquals(tour, tour.toInput(de).toTour(tour, de))
     }
 

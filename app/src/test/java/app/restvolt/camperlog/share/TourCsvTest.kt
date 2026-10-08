@@ -262,6 +262,18 @@ class TourCsvTest {
     }
 
     @Test
+    fun runningTourHasEmptyEndDateColumn() {
+        val tour = tour(id = 1, vehicleId = 1).copy(endDate = null)
+
+        val fields = toursToCsv(listOf(tour), emptyList(), emptyMap(), DEFAULT_NAME)
+            .split("\r\n")[1]
+            .split(',')
+
+        assertEquals("", fields[2])
+        assertEquals(tour.destination, fields[3])
+    }
+
+    @Test
     fun totalCostsColumnIsAppendedAfterTheVehicleColumn() {
         assertEquals("fahrzeug", CSV_HEADER[CSV_HEADER.size - 2])
         assertEquals("kosten_gesamt", CSV_HEADER.last())

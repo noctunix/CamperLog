@@ -172,7 +172,6 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 initialDate = input.startDate,
                 minDate = input.startDate,
                 modifier = focusOf(TourField.END_DATE),
-                hint = required,
             )
             FormTextField(
                 label = stringResource(R.string.field_destination),

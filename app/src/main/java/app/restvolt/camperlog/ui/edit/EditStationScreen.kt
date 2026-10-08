@@ -255,7 +255,8 @@ private fun StationForm(
     val selectedTour = state.tours.firstOrNull { it.id == input.tourId }
     val toursOfVehicle = state.tours.filter { it.vehicleId == input.vehicleId }.sortedByDescending { it.startDate }
     val dateWarning = input.date?.let { date ->
-        selectedTour?.takeIf { date < it.startDate || date > it.endDate }?.let { stringResource(R.string.station_date_outside_tour, it.period(locale)) }
+        selectedTour?.takeIf { date < it.startDate || (it.endDate != null && date > it.endDate) }
+            ?.let { stringResource(R.string.station_date_outside_tour, it.period(locale)) }
     }
 
     Column(

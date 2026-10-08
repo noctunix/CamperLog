@@ -372,7 +372,7 @@ private fun TourDetails(
                     LabeledValue(stringResource(R.string.field_vehicle), vehicleDisplayName(vehicle))
                 }
                 LabeledValue(stringResource(R.string.field_start_date), formatDate(tour.startDate, locale))
-                LabeledValue(stringResource(R.string.field_end_date), formatDate(tour.endDate, locale))
+                tour.endDate?.let { LabeledValue(stringResource(R.string.field_end_date), formatDate(it, locale)) }
                 LabeledValue(stringResource(R.string.field_destination), tour.destination)
                 LabeledValue(stringResource(R.string.field_tour_type), stringResource(tour.tourType.labelRes))
                 LabeledValue(stringResource(R.string.field_travel_days), tour.travelDays.toString())
