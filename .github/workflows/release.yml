@@ -52,6 +52,7 @@ jobs:
             exit 1
           fi
           ./gradlew --no-daemon :app:assembleRelease
+          rm -f release.jks keystore.properties
           apk="CamperLog-${TAG}-arm64.apk"
           cp app/build/outputs/apk/release/app-release.apk "$apk"
           apksigner=''
