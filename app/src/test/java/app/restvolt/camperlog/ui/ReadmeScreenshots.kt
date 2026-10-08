@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.EUR
@@ -54,10 +55,11 @@ class ReadmeScreenshots {
     val compose = createComposeRule()
 
     private val target = System.getenv("CAMPERLOG_SCREENSHOTS")?.let(::File)
+    private val targetDe = System.getenv("CAMPERLOG_SCREENSHOTS_DE")?.let(::File)
 
     @Before
     fun setUp() {
-        assumeTrue("CAMPERLOG_SCREENSHOTS not set", target != null)
+        assumeTrue("Screenshot target not set", target != null || targetDe != null)
         val rates = listOf(
             ExchangeRate(NOK, BigDecimal("11.485"), LocalDate.of(2026, 9, 1), "ECB"),
             ExchangeRate(CHF, BigDecimal("0.9372"), LocalDate.of(2026, 9, 1), "ECB"),
@@ -66,7 +68,9 @@ class ReadmeScreenshots {
         compose.setContent {
             CamperLogTheme(darkTheme = false) {
                 CamperLogNavHost(
-                    FakeTourRepository(sampleTours, stations = stations),
+                    FakeTourRepository(sampleTours.mapIndexed { index, tour ->
+                        if (index == 0) tour.copy(startDate = LocalDate.now(), endDate = null) else tour
+                    }, stations = stations),
                     FakeVehicleRepository(listOf(sampleVehicle)),
                     FakeLogRepository(sampleLogEntries()),
                     stations,
@@ -82,27 +86,41 @@ class ReadmeScreenshots {
 
     @Test
     fun captureScreens() {
-        capture("1_tours")
-        compose.onNodeWithText("Lofoten").performClick()
-        capture("2_detail")
-        compose.onNodeWithContentDescription("Back").performClick()
-        compose.onNodeWithContentDescription("Overview").performClick()
-        capture("3_overview")
-        compose.onNodeWithContentDescription("Back").performClick()
-        compose.onNodeWithContentDescription("Data").performClick()
-        capture("4_data")
-        compose.onNodeWithContentDescription("Back").performClick()
-        compose.onNodeWithText("Vehicle").performClick()
-        capture("5_vehicle")
-        compose.onNodeWithText("Logbook").performClick()
-        capture("6_logbook")
-        compose.onNodeWithText("Stops").performClick()
-        capture("7_stops")
+        val output = checkNotNull(target)
+        captureScreens(output, german = false)
     }
 
-    private fun capture(name: String) {
+    @Test
+    @Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
+    fun captureGermanScreens() {
+        val output = checkNotNull(targetDe)
+        captureScreens(output, german = true)
+    }
+
+    private fun captureScreens(output: File, german: Boolean) {
+        capture(output, "1_tours")
+        compose.onNodeWithText("Lofoten").performClick()
+        capture(output, "2_detail")
+        compose.onNodeWithText(if (german) "Aufzeichnung starten" else "Start recording").performScrollTo()
+        capture(output, "8_track")
+        compose.onNodeWithContentDescription(if (german) "Zurück" else "Back").performClick()
+        compose.onNodeWithContentDescription(if (german) "Übersicht" else "Overview").performClick()
+        capture(output, "3_overview")
+        compose.onNodeWithContentDescription(if (german) "Zurück" else "Back").performClick()
+        compose.onNodeWithContentDescription(if (german) "Daten" else "Data").performClick()
+        capture(output, "4_data")
+        compose.onNodeWithContentDescription(if (german) "Zurück" else "Back").performClick()
+        compose.onNodeWithText(if (german) "Fahrzeug" else "Vehicle").performClick()
+        capture(output, "5_vehicle")
+        compose.onNodeWithText(if (german) "Bordbuch" else "Logbook").performClick()
+        capture(output, "6_logbook")
+        compose.onNodeWithText(if (german) "Stationen" else "Stops").performClick()
+        capture(output, "7_stops")
+    }
+
+    private fun capture(dir: File, name: String) {
         compose.waitForIdle()
-        val dir = checkNotNull(target).apply { mkdirs() }
+        dir.mkdirs()
         File(dir, "$name.png").outputStream().use {
             compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
         }
