@@ -49,4 +49,19 @@ class GeoIntentTest {
     fun zoomParameterIsIgnored() {
         assertEquals(GeoIntentLocation(68.0912, 13.1023), parseGeoIntent("geo:68.0912,13.1023?z=14"))
     }
+
+    @Test
+    fun overlongLabelsAreTruncatedToTheStationNameLimit() {
+        val long = "a".repeat(MAX_STATION_NAME_LENGTH + 100)
+
+        assertEquals(MAX_STATION_NAME_LENGTH, parseGeoIntent("geo:0,0?q=68.1,13.1($long)")?.label?.length)
+        assertEquals(MAX_STATION_NAME_LENGTH, parseGeoIntent("geo:0,0?q=$long")?.label?.length)
+    }
+
+    @Test
+    fun truncationDoesNotSplitASurrogatePair() {
+        val label = "a".repeat(MAX_STATION_NAME_LENGTH - 1) + "\uD83D\uDE90"
+
+        assertEquals("a".repeat(MAX_STATION_NAME_LENGTH - 1), parseGeoIntent("geo:0,0?q=$label")?.label)
+    }
 }
