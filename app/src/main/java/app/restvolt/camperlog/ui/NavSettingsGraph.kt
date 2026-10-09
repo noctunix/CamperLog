@@ -10,6 +10,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import app.restvolt.camperlog.data.AndroidLocationPermissionGate
+import app.restvolt.camperlog.domain.guide.introductionTour
 import app.restvolt.camperlog.ui.about.AboutScreen
 import app.restvolt.camperlog.ui.data.AndroidDataFiles
 import app.restvolt.camperlog.ui.data.DataScreen
@@ -34,7 +35,6 @@ internal fun NavGraphBuilder.settingsGraph(
     onThemeModeChange: (ThemeMode) -> Unit,
     accentColor: AccentColor,
     onAccentColorChange: (AccentColor) -> Unit,
-    onShowIntroductionAgain: () -> Unit,
 ) = with(deps) {
     composable<SearchRoute> { entry ->
         val resources = LocalResources.current
@@ -144,7 +144,7 @@ internal fun NavGraphBuilder.settingsGraph(
     composable<AboutRoute> { entry ->
         AboutScreen(
             onBack = { navController.popFrom(entry) },
-            onShowIntroductionAgain = { onShowIntroductionAgain() },
+            onShowIntroductionAgain = { guideController.start(introductionTour()) },
         )
     }
     composable<RateEditRoute> { entry ->

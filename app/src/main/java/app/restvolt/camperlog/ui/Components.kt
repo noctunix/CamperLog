@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.ui.guide.guideAnchor
 
 /** Obere Leiste mit Zurück-Pfeil für Unterseiten. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,7 +85,7 @@ fun TabTopBar(
                     Icon(painterResource(R.drawable.ic_bar_chart), contentDescription = stringResource(R.string.tours_overview))
                 }
             }
-            IconButton(onClick = onOpenData) {
+            IconButton(onClick = onOpenData, modifier = Modifier.guideAnchor("nav.data")) {
                 Icon(painterResource(R.drawable.ic_folder_zip), contentDescription = stringResource(R.string.data_title))
             }
             IconButton(onClick = onOpenSettings) {

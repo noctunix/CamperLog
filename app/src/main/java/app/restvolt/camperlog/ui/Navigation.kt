@@ -94,10 +94,12 @@ import app.restvolt.camperlog.ui.data.BackupSettings
 import app.restvolt.camperlog.ui.detail.StationDetailViewModel
 import app.restvolt.camperlog.ui.detail.AndroidTourExportFiles
 import app.restvolt.camperlog.ui.detail.TourDetailViewModel
+import app.restvolt.camperlog.domain.guide.introductionTour
 import app.restvolt.camperlog.ui.guide.GuideHost
 import app.restvolt.camperlog.ui.guide.GuideProgressStore
+import app.restvolt.camperlog.ui.guide.guideAnchor
+import app.restvolt.camperlog.ui.onboarding.FirstRunSetupScreen
 import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
-import app.restvolt.camperlog.ui.onboarding.IntroductionTourScreen
 import app.restvolt.camperlog.ui.stations.StationsViewModel
 import app.restvolt.camperlog.ui.stations.StationsWhatsNewSettings
 import app.restvolt.camperlog.ui.theme.AccentColor
@@ -354,7 +356,7 @@ fun CamperLogNavHost(
     }
 
     val introductionSettings = remember { IntroductionSettings(context) }
-    var showIntroductionTour by rememberSaveable { mutableStateOf(false) }
+    var showFirstRunSetup by rememberSaveable { mutableStateOf(false) }
 
     // Geteilter Controller für künftige geführte Touren; Lebensdauer wie die übrigen hier
     // erzeugten Einstellungen-Objekte, also solange diese Komposition bestehen bleibt.
@@ -375,8 +377,8 @@ fun CamperLogNavHost(
         LaunchedEffect(Unit) {
             keepAndroidOpenSettings.recordFirstLaunchIfNeeded()
             if (!introductionSettings.seen) {
-                // Die Einführungstour hat Vorrang: der Hinweis erscheint nie zusammen mit ihr.
-                showIntroductionTour = true
+                // Die Ersteinrichtung hat Vorrang: der Hinweis erscheint nie zusammen mit ihr.
+                showFirstRunSetup = true
             } else {
                 val hasData = repository.hasTours() || logbook.hasEntries()
                 showStartupKeepAndroidOpen = shouldShowKeepAndroidOpen(keepAndroidOpenSettings.state, hasData, Instant.now())
@@ -384,8 +386,8 @@ fun CamperLogNavHost(
         }
     }
 
-    if (showIntroductionTour) {
-        IntroductionTourScreen(
+    if (showFirstRunSetup) {
+        FirstRunSetupScreen(
             themeMode = themeMode,
             onThemeModeChange = onThemeModeChange,
             reminderSettings = reminderSettings,
@@ -393,7 +395,9 @@ fun CamperLogNavHost(
             weatherSettings = weatherSettings,
             onFinished = {
                 introductionSettings.seen = true
-                showIntroductionTour = false
+                showFirstRunSetup = false
+                // Startet einmalig nach der Ersteinrichtung; über "Über CamperLog" jederzeit wiederholbar.
+                guideController.start(introductionTour())
             },
         )
         return
@@ -451,15 +455,7 @@ fun CamperLogNavHost(
         toursGraph(navController, deps, bottomBar)
         vehicleGraph(navController, deps, bottomBar)
         stationsGraph(navController, deps, bottomBar)
-        settingsGraph(
-            navController,
-            deps,
-            themeMode,
-            onThemeModeChange,
-            accentColor,
-            onAccentColorChange,
-            onShowIntroductionAgain = { showIntroductionTour = true },
-        )
+        settingsGraph(navController, deps, themeMode, onThemeModeChange, accentColor, onAccentColorChange)
     }
     GuideHost(guideController, modifier = Modifier.fillMaxSize())
 
@@ -504,25 +500,28 @@ private fun CamperLogBottomBar(navController: NavController, current: NavDestina
             onClick = { navController.navigateToTab(ToursRoute) },
             icon = { Icon(painterResource(R.drawable.ic_route), contentDescription = null) },
             label = { NavLabel(stringResource(R.string.nav_tours)) },
+            modifier = Modifier.guideAnchor("nav.tab.tours"),
         )
         NavigationBarItem(
             selected = current.isOnTab<StationsRoute>(),
             onClick = { navController.navigateToTab(StationsRoute) },
             icon = { Icon(painterResource(R.drawable.ic_location_on), contentDescription = null) },
             label = { NavLabel(stringResource(R.string.nav_stops)) },
+            modifier = Modifier.guideAnchor("nav.tab.stations"),
         )
         NavigationBarItem(
             selected = current.isOnTab<LogbookRoute>(),
             onClick = { navController.navigateToTab(LogbookRoute) },
             icon = { Icon(painterResource(R.drawable.ic_book), contentDescription = null) },
             label = { NavLabel(stringResource(R.string.nav_logbook)) },
+            modifier = Modifier.guideAnchor("nav.tab.logbook"),
         )
         val vehicleLabel = stringResource(R.string.nav_vehicle)
         val vehicleItemModifier = if (reminderCount > 0) {
             val description = pluralStringResource(R.plurals.nav_vehicle_reminders, reminderCount, vehicleLabel, reminderCount)
-            Modifier.semantics(mergeDescendants = true) { contentDescription = description }
+            Modifier.guideAnchor("nav.tab.vehicle").semantics(mergeDescendants = true) { contentDescription = description }
         } else {
-            Modifier
+            Modifier.guideAnchor("nav.tab.vehicle")
         }
         NavigationBarItem(
             selected = current.isOnTab<VehicleRoute>(),

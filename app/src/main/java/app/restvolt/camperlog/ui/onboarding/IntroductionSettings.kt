@@ -3,7 +3,7 @@ package app.restvolt.camperlog.ui.onboarding
 import android.content.Context
 import androidx.core.content.edit
 
-/** Persist whether the introduction tour has already been shown. */
+/** Persist whether the first-run setup has already been completed. */
 class IntroductionSettings(context: Context) {
     private val preferences = context.getSharedPreferences("introduction", Context.MODE_PRIVATE)
 

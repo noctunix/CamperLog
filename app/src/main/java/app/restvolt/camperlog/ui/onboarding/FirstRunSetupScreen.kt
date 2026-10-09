@@ -23,7 +23,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,13 +33,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
@@ -54,19 +51,19 @@ import app.restvolt.camperlog.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-private const val PAGE_COUNT = 6
-private const val PAGE_SETTINGS = 4
-private const val PAGE_FINISH = 5
+private const val PAGE_COUNT = 2
+private const val PAGE_FINISH = 1
 
 /**
- * Einführungstour über [PAGE_COUNT] Seiten, erreichbar beim ersten Start und erneut über "Über
- * CamperLog". [reminderSettings], [locationSettings] und [weatherSettings] sind dieselben Instanzen
- * wie im übrigen Navigationsgraphen; [onThemeModeChange] wirkt sofort wie im Einstellungen-Bildschirm.
- * Die letzte Seite ist die Opt-in-Seite mit den Schaltern "Standort" und "Wetter & Karte";
- * [onFinished] markiert die Tour als gesehen, egal ob sie zu Ende durchlaufen oder übersprungen wurde.
+ * Kurzer Erststart-Bildschirm vor der eigentlichen App: Erscheinungsbild, Erinnerungs-Vorlauf und
+ * Opt-in für Standort und Wetter & Karte. Läuft einmalig ab; der anschließende Rundgang durch die
+ * Hauptbereiche ist eine geführte Tour über `GuideController`, nicht mehr Teil dieses Bildschirms.
+ * [reminderSettings], [locationSettings] und [weatherSettings] sind dieselben Instanzen wie im
+ * übrigen Navigationsgraphen; [onThemeModeChange] wirkt sofort wie im Einstellungen-Bildschirm.
+ * [onFinished] markiert die Ersteinrichtung als abgeschlossen, egal ob zu Ende durchlaufen oder übersprungen.
  */
 @Composable
-fun IntroductionTourScreen(
+fun FirstRunSetupScreen(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
     reminderSettings: ReminderSettings,
@@ -110,11 +107,7 @@ fun IntroductionTourScreen(
 
             HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
                 when (page) {
-                    0 -> TourPage(R.drawable.ic_map, R.string.title_intro_welcome, R.string.body_intro_welcome)
-                    1 -> TourPage(R.drawable.ic_book, R.string.title_intro_logbook, R.string.body_intro_logbook)
-                    2 -> TourPage(R.drawable.ic_directions_car, R.string.title_intro_vehicle, R.string.body_intro_vehicle)
-                    3 -> TourPage(R.drawable.ic_folder_zip, R.string.title_intro_data, R.string.body_intro_data)
-                    PAGE_SETTINGS -> SettingsPage(
+                    0 -> SettingsPage(
                         themeMode = themeMode,
                         onThemeModeChange = onThemeModeChange,
                         leadDays = reminderPreferences.leadDays,
@@ -131,38 +124,6 @@ fun IntroductionTourScreen(
 
             TourControls(pagerState = pagerState, scope = scope, onFinished = onFinished)
         }
-    }
-}
-
-@Composable
-private fun TourPage(iconRes: Int, titleRes: Int, bodyRes: Int) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Icon(
-            painterResource(iconRes),
-            contentDescription = null,
-            modifier = Modifier.size(96.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(Modifier.height(24.dp))
-        Text(
-            stringResource(titleRes),
-            modifier = Modifier.semantics { heading() },
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            stringResource(bodyRes),
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-        )
     }
 }
 
@@ -207,7 +168,7 @@ private fun SettingsPage(
 }
 
 /**
- * Letzte Seite der Einführungstour: Opt-in für Standort und Wetter & Karte, ohne dass das
+ * Letzte Seite der Ersteinrichtung: Opt-in für Standort und Wetter & Karte, ohne dass das
  * Einschalten hier schon einen Berechtigungsdialog auslöst (der kommt erst beim ersten Tastendruck
  * bzw. Wetterabruf).
  */
