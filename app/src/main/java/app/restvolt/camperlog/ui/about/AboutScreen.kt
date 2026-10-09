@@ -66,8 +66,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * Ein Eintrag der Liste "Geführte Touren" in [AboutScreen]: [titleRes] bezeichnet die Tour,
- * [completed] zeigt das Häkchen, [onStart] startet sie (erneut).
+ * Ein Eintrag der Liste "Tutorials": [titleRes] bezeichnet das Tutorial, [completed] zeigt das
+ * Häkchen, [onStart] startet es (erneut).
  */
 data class GuidedTourEntry(
     @StringRes val titleRes: Int,
@@ -77,8 +77,9 @@ data class GuidedTourEntry(
 
 /**
  * Über-Bildschirm: Version, Kontakt- und Unterstützungsaktionen sowie aufklappbare Abschnitte zu
- * Quellcode, Lizenz, Drittanbieter-Bibliotheken und Datenschutz. [guidedTours] listet die geführten
- * Touren der App mit Start/Wiederholen-Button und Abschluss-Hinweis.
+ * Quellcode, Lizenz, Drittanbieter-Bibliotheken und Datenschutz. [guidedTours] listet die Tutorials
+ * der App als Kurzlink mit Start/Wiederholen-Button und Abschluss-Hinweis; der primäre Einstiegspunkt
+ * liegt in den Einstellungen.
  */
 @Composable
 fun AboutScreen(onBack: () -> Unit, guidedTours: List<GuidedTourEntry>) {
@@ -186,7 +187,7 @@ fun AboutScreen(onBack: () -> Unit, guidedTours: List<GuidedTourEntry>) {
             }
             item {
                 Text(
-                    stringResource(R.string.about_guided_tours_title),
+                    stringResource(R.string.guide_tutorials_section_title),
                     modifier = Modifier.semantics { heading() },
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.titleSmall,
@@ -361,9 +362,9 @@ private fun AboutLink(label: String, onClick: () -> Unit) {
     TextButton(onClick = onClick) { Text(label) }
 }
 
-/** Eine Zeile der Liste "Geführte Touren": Titel mit Abschluss-Hinweis links, Start/Wiederholen rechts. */
+/** Eine Zeile der Liste "Tutorials": Titel mit Abschluss-Hinweis links, Start/Wiederholen rechts; auch von SettingsScreen genutzt. */
 @Composable
-private fun GuidedTourRow(tour: GuidedTourEntry) {
+internal fun GuidedTourRow(tour: GuidedTourEntry) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),

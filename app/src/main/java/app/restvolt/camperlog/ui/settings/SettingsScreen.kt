@@ -38,6 +38,8 @@ import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CurrencyPicker
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.about.GuidedTourEntry
+import app.restvolt.camperlog.ui.about.GuidedTourRow
 import app.restvolt.camperlog.ui.about.openExternalLink
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.rates.MainCurrencyCard
@@ -61,6 +63,7 @@ fun SettingsScreen(
     trackSettings: TrackRecordingSettings,
     homeLocationSettings: HomeLocationSettings,
     homeLocationViewModel: HomeLocationViewModel,
+    guidedTours: List<GuidedTourEntry>,
     onBack: () -> Unit,
     onOpenRates: () -> Unit,
     onOpenAbout: () -> Unit,
@@ -214,6 +217,17 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     HomeLocationSection(homeLocationSettings, locationEnabled, homeLocationViewModel.locationCapture)
+                }
+            }
+            item {
+                SectionCard {
+                    Text(
+                        stringResource(R.string.guide_tutorials_section_title),
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    guidedTours.forEach { tour -> GuidedTourRow(tour) }
                 }
             }
             item {

@@ -18,6 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.TrackSummary
+import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_FAB_ACTION
 import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_ID
 import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_SAVE_ACTION
 import app.restvolt.camperlog.domain.displayTitle
@@ -68,7 +69,14 @@ internal fun NavGraphBuilder.toursGraph(
                     },
                 )
             },
-            onAddTour = { navController.navigate(EditRoute()) },
+            onAddTour = {
+                // Schaltet den zweiten Schritt der Pilot-Tour frei, aber nur, wenn sie gerade läuft:
+                // normales Anlegen ohne aktive Tour soll nicht an sie koppeln.
+                if (guideController.state.value.tour?.id == CREATE_FIRST_TOUR_ID) {
+                    guideController.completeAction(CREATE_FIRST_TOUR_FAB_ACTION)
+                }
+                navController.navigate(EditRoute())
+            },
             onOpenOverview = { vehicleId -> navController.navigate(OverviewRoute(vehicleId)) },
             onOpenSearch = { navController.navigate(SearchRoute) },
             onOpenData = { navController.navigate(DataRoute) },

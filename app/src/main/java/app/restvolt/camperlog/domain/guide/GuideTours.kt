@@ -22,6 +22,9 @@ fun introductionTour() = TourDefinition(
 const val CREATE_FIRST_TOUR_ID = "tour.create-first"
 const val CREATE_FIRST_TOUR_VERSION = 1
 
+/** Aktion, die den zweiten Schritt von [CREATE_FIRST_TOUR_ID] beim echten Klick auf den FAB freischaltet. */
+const val CREATE_FIRST_TOUR_FAB_ACTION = "tour.fab.clicked"
+
 /** Aktion, die den letzten Schritt von [CREATE_FIRST_TOUR_ID] beim echten Speichern der Tour freischaltet. */
 const val CREATE_FIRST_TOUR_SAVE_ACTION = "tour.saved"
 
@@ -30,7 +33,13 @@ fun createFirstTourTour() = TourDefinition(
     id = CREATE_FIRST_TOUR_ID,
     version = CREATE_FIRST_TOUR_VERSION,
     steps = listOf(
-        TourStep("fab", "tours.fab.add", R.string.tours_new, R.string.guide_step_fab_body, StepCompletion.Information),
+        TourStep(
+            "fab",
+            "tours.fab.add",
+            R.string.tours_new,
+            R.string.guide_step_fab_body,
+            StepCompletion.Action(CREATE_FIRST_TOUR_FAB_ACTION),
+        ),
         TourStep("name", "edit.tour.name", R.string.field_name, R.string.guide_step_name_body, StepCompletion.Information),
         TourStep(
             "save",

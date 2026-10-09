@@ -107,6 +107,7 @@ import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import app.restvolt.camperlog.ui.tours.ToursViewModel
 import app.restvolt.camperlog.ui.vehicle.VehicleViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 import java.time.Instant
 import java.time.LocalDate
@@ -577,6 +578,18 @@ internal fun NavController.navigateToToursTabRoot() {
         popUpTo(ToursRoute) { inclusive = false }
         launchSingleTop = true
     }
+}
+
+/**
+ * Wie [navigateToToursTabRoot], kehrt aber erst zurück, wenn die Tourenliste tatsächlich die
+ * aktuelle Zielroute ist, statt nur die Navigation ausgelöst zu haben: Ein direkt anschließend
+ * gestarteter [GuideController] zeigt sonst seine Karte, bevor der Anker auf der Zielseite
+ * überhaupt existiert.
+ */
+internal suspend fun NavController.navigateToToursTabRootAndAwait() {
+    val alreadyThere = currentBackStackEntry?.destination?.hasRoute<ToursRoute>() == true
+    navigateToToursTabRoot()
+    if (!alreadyThere) currentBackStackEntryFlow.first { it.destination.hasRoute<ToursRoute>() }
 }
 
 /**

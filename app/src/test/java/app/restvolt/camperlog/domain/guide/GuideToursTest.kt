@@ -16,12 +16,13 @@ class GuideToursTest {
     }
 
     @Test
-    fun createFirstTourTour_endsOnTheSaveActionAnchoredAtTheSaveButton() {
+    fun createFirstTourTour_startsOnTheFabActionAndEndsOnTheSaveActionAnchoredAtTheSaveButton() {
         val tour = createFirstTourTour()
 
         assertEquals(CREATE_FIRST_TOUR_ID, tour.id)
         assertEquals(listOf("tours.fab.add", "edit.tour.name", "edit.tour.save"), tour.steps.map { it.anchorId })
+        assertEquals(StepCompletion.Action(CREATE_FIRST_TOUR_FAB_ACTION), tour.steps.first().completion)
         assertEquals(StepCompletion.Action(CREATE_FIRST_TOUR_SAVE_ACTION), tour.steps.last().completion)
-        assertTrue(tour.steps.dropLast(1).all { it.completion is StepCompletion.Information })
+        assertTrue(tour.steps[1].completion is StepCompletion.Information)
     }
 }

@@ -1199,5 +1199,5 @@
     <string name="guide_entry_start">Starten</string>
     <string name="guide_entry_repeat">Wiederholen</string>
     <string name="guide_entry_completed">Abgeschlossen</string>
-    <string name="about_guided_tours_title">Geführte Touren</string>
+    <string name="guide_tutorials_section_title">Tutorials</string>
 </resources>

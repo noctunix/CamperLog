@@ -32,6 +32,7 @@ import app.restvolt.camperlog.ui.settings.HomeLocationViewModel
 import app.restvolt.camperlog.ui.settings.SettingsScreen
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /** Navigationsziele: Suche, Kurse, Daten, Einstellungen und Über. */
@@ -43,6 +44,29 @@ internal fun NavGraphBuilder.settingsGraph(
     accentColor: AccentColor,
     onAccentColorChange: (AccentColor) -> Unit,
 ) = with(deps) {
+    /**
+     * Die Einträge der Liste "Tutorials", sowohl direkt in den Einstellungen als auch (als
+     * Kurzlink) in "Über CamperLog". Startet [guideController] für die Pilot-Tour erst, nachdem
+     * die Navigation zur Tourenliste tatsächlich abgeschlossen ist - sonst zeigt die Karte keinen
+     * echten Anker, weil die Zielseite noch gar nicht komponiert ist.
+     */
+    fun guidedTourEntries(scope: CoroutineScope) = listOf(
+        GuidedTourEntry(
+            titleRes = R.string.guide_tour_introduction_title,
+            completed = guideProgressStore.isCompleted(INTRODUCTION_TOUR_ID, INTRODUCTION_TOUR_VERSION),
+            onStart = { guideController.start(introductionTour()) },
+        ),
+        GuidedTourEntry(
+            titleRes = R.string.guide_tour_create_first_title,
+            completed = guideProgressStore.isCompleted(CREATE_FIRST_TOUR_ID, CREATE_FIRST_TOUR_VERSION),
+            onStart = {
+                scope.launch {
+                    navController.navigateToToursTabRootAndAwait()
+                    guideController.start(createFirstTourTour())
+                }
+            },
+        ),
+    )
     composable<SearchRoute> { entry ->
         val resources = LocalResources.current
         val scope = rememberCoroutineScope()
@@ -128,6 +152,7 @@ internal fun NavGraphBuilder.settingsGraph(
     }
     composable<SettingsRoute> { entry ->
         val context = LocalContext.current
+        val scope = rememberCoroutineScope()
         SettingsScreen(
             viewModel = viewModel { RatesViewModel(exchangeRates, repository) },
             themeMode = themeMode,
@@ -143,29 +168,17 @@ internal fun NavGraphBuilder.settingsGraph(
             homeLocationViewModel = viewModel {
                 HomeLocationViewModel(homeLocationSettings, locationProvider, AndroidLocationPermissionGate(context))
             },
+            guidedTours = guidedTourEntries(scope),
             onBack = { navController.popFrom(entry) },
             onOpenRates = { navController.navigate(RatesRoute) },
             onOpenAbout = { navController.navigate(AboutRoute) },
         )
     }
     composable<AboutRoute> { entry ->
+        val scope = rememberCoroutineScope()
         AboutScreen(
             onBack = { navController.popFrom(entry) },
-            guidedTours = listOf(
-                GuidedTourEntry(
-                    titleRes = R.string.guide_tour_introduction_title,
-                    completed = guideProgressStore.isCompleted(INTRODUCTION_TOUR_ID, INTRODUCTION_TOUR_VERSION),
-                    onStart = { guideController.start(introductionTour()) },
-                ),
-                GuidedTourEntry(
-                    titleRes = R.string.guide_tour_create_first_title,
-                    completed = guideProgressStore.isCompleted(CREATE_FIRST_TOUR_ID, CREATE_FIRST_TOUR_VERSION),
-                    onStart = {
-                        guideController.start(createFirstTourTour())
-                        navController.navigateToToursTabRoot()
-                    },
-                ),
-            ),
+            guidedTours = guidedTourEntries(scope),
         )
     }
     composable<RateEditRoute> { entry ->

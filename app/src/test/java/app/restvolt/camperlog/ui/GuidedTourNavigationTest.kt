@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
@@ -101,6 +103,10 @@ class GuidedTourNavigationTest {
         compose.onNodeWithText("Über CamperLog").performClick()
     }
 
+    private fun openSettings() {
+        compose.onNodeWithContentDescription("Einstellungen").performClick()
+    }
+
     /** Mittelpunkt des Knotens in Fensterkoordinaten, für einen echten `performTouchInput`-Klick. */
     private fun centerOf(matcher: SemanticsMatcher) =
         compose.onNode(matcher).fetchSemanticsNode().boundsInRoot.let { Offset(it.left + it.width / 2, it.top + it.height / 2) }
@@ -189,6 +195,28 @@ class GuidedTourNavigationTest {
     }
 
     @Test
+    fun createFirstTourTour_weiterStaysDisabledUntilTheRealFabClick() {
+        clearPreferences()
+        try {
+            start()
+            openAbout()
+            compose.onAllNodesWithText("Starten")[1].performClick()
+            compose.waitForIdle()
+
+            // Schritt 1 wartet auf den echten FAB-Klick: Weiter allein darf nicht weiterschalten,
+            // sonst denkt die Tour, sie sei im Formular, ohne dass navigiert wurde.
+            compose.onNodeWithText("Weiter").assertIsNotEnabled()
+
+            val fabCenter = centerOf(hasText("Neue Tour") and hasClickAction())
+            compose.onRoot().performTouchInput { click(fabCenter) }
+
+            compose.onNodeWithText("Weiter").assertIsEnabled()
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
     fun createFirstTourTour_realSaveCompletesTheActionStepAndEndsTheTour() {
         clearPreferences()
         try {
@@ -224,6 +252,28 @@ class GuidedTourNavigationTest {
 
             openAbout()
             compose.onAllNodesWithText("Abgeschlossen").assertCountEquals(1)
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    /** Der primäre Einstiegspunkt liegt jetzt direkt in den Einstellungen, nicht erst eine Ebene tiefer in "Über CamperLog". */
+    @Test
+    fun createFirstTourTour_reachableDirectlyFromSettingsAndTheFabAnchorIsReal() {
+        clearPreferences()
+        try {
+            start()
+            openSettings()
+            scrollUntilVisible("Erste Tour anlegen")
+            compose.onAllNodesWithText("Starten")[1].performClick()
+            compose.waitForIdle()
+
+            // Die Navigation zur Tourenliste muss abgeschlossen sein, bevor die Tour startet: Ein
+            // echter Klick muss durch das Loch der Barriere zum echten FAB durchkommen.
+            val fabCenter = centerOf(hasText("Neue Tour") and hasClickAction())
+            compose.onRoot().performTouchInput { click(fabCenter) }
+
+            compose.onNode(hasSetTextAction() and hasText("Name")).assertExists()
         } finally {
             clearPreferences()
         }
