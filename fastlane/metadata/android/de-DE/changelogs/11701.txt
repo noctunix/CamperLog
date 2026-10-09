@@ -1,0 +1,4 @@
+• Tourenübersicht zeigt jetzt die Reisetage
+• Spenden-Button in die Einstellungen verschoben
+• GPS-Aufzeichnung: pausieren/fortsetzen, eine Statusleiste während der Aufzeichnung, und ein Schalter direkt an der Tour (auch beim Anlegen)
+• Deutlicherer Hinweis, wenn eine Aufzeichnung nicht starten konnte

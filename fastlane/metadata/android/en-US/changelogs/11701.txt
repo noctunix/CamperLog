@@ -1,0 +1,4 @@
+• Tour list now shows travel days
+• Support/donate button moved into Settings
+• GPS track recording: pause and resume, a status bar while recording, and a switch right on the tour (and when creating one)
+• Clearer feedback if a track recording fails to start
