@@ -283,12 +283,14 @@ private fun TourCard(
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(tour.displayTitle(stringResource(R.string.detail_fallback_title)), style = MaterialTheme.typography.titleMedium)
+                val periodText = if (tour.endDate == null) {
+                    stringResource(R.string.tours_running_since, formatDate(tour.startDate, currentLocale()))
+                } else {
+                    tour.period(currentLocale())
+                }
+                val daysText = pluralStringResource(R.plurals.share_travel_days, tour.travelDays, tour.travelDays)
                 Text(
-                    if (tour.endDate == null) {
-                        stringResource(R.string.tours_running_since, formatDate(tour.startDate, currentLocale()))
-                    } else {
-                        tour.period(currentLocale())
-                    },
+                    "$periodText · $daysText",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

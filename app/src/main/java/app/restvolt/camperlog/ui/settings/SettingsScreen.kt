@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -37,6 +38,7 @@ import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CurrencyPicker
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.about.openExternalLink
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.rates.MainCurrencyCard
 import app.restvolt.camperlog.ui.rates.RatesViewModel
@@ -63,6 +65,7 @@ fun SettingsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val locale = currentLocale()
+    val context = LocalContext.current
     val resources = LocalResources.current
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -192,6 +195,16 @@ fun SettingsScreen(
                         WeatherTransferDetailRow()
                         MapStorageRow(snackbar, scope)
                     }
+                }
+            }
+            item {
+                val donateUri = stringResource(R.string.about_donate_uri)
+                val noAppAvailable = stringResource(R.string.about_no_app_available)
+                OutlinedButton(
+                    onClick = { openExternalLink(scope, context, snackbar, noAppAvailable, donateUri) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.about_action_support))
                 }
             }
             item {

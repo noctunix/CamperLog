@@ -87,7 +87,6 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
     val repoUri = stringResource(R.string.about_repo_uri)
     val issuesUri = stringResource(R.string.about_issues_uri)
     val licenseGithubUri = stringResource(R.string.about_license_github_uri)
-    val donateUri = stringResource(R.string.about_donate_uri)
     val osmCopyrightUri = stringResource(R.string.about_osm_copyright_uri)
     val openMeteoUri = stringResource(R.string.about_open_meteo_uri)
     val naturalEarthUri = stringResource(R.string.about_natural_earth_uri)
@@ -166,14 +165,6 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(stringResource(R.string.about_action_feedback))
-                }
-            }
-            item {
-                OutlinedButton(
-                    onClick = { openExternalLink(scope, context, snackbar, noAppAvailable, donateUri) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.about_action_support))
                 }
             }
             item {
@@ -304,7 +295,7 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
 }
 
 /** Öffnet [url] extern über [app.restvolt.camperlog.share.tryStart]; zeigt sonst [noAppMessage]. */
-private fun openExternalLink(scope: CoroutineScope, context: Context, snackbar: SnackbarHostState, noAppMessage: String, url: String) {
+internal fun openExternalLink(scope: CoroutineScope, context: Context, snackbar: SnackbarHostState, noAppMessage: String, url: String) {
     if (!context.tryStart(Intent(Intent.ACTION_VIEW, url.toUri()))) {
         scope.launch { snackbar.showSnackbar(noAppMessage, withDismissAction = true) }
     }
