@@ -431,6 +431,12 @@ class TrackRecordingService : Service() {
             sendAction(context, ACTION_STOP)
         }
 
+        /** Stoppt die Aufzeichnung, falls sie gerade [tourId] zugeordnet oder zuordnet ist. */
+        fun stopIfTracking(context: Context, tourId: Long) {
+            val settings = TrackRecordingSettings.get(context)
+            if (settings.trackedTourId == tourId || settings.activeRecording?.tourId == tourId) stop(context)
+        }
+
         private fun sendAction(context: Context, action: String) {
             try {
                 context.startService(Intent(context, TrackRecordingService::class.java).setAction(action))

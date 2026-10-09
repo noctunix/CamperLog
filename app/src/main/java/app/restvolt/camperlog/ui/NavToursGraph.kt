@@ -57,16 +57,8 @@ internal fun NavGraphBuilder.toursGraph(
                     stations,
                     tracks,
                     VehicleScopeSettings(context),
-                    onTourFinished = { tourId ->
-                        if (trackSettings.trackedTourId == tourId || trackSettings.activeRecording?.tourId == tourId) {
-                            app.restvolt.camperlog.tracking.TrackRecordingService.stop(context)
-                        }
-                    },
-                    onTourDeleted = { tourId ->
-                        if (trackSettings.trackedTourId == tourId || trackSettings.activeRecording?.tourId == tourId) {
-                            app.restvolt.camperlog.tracking.TrackRecordingService.stop(context)
-                        }
-                    },
+                    onTourFinished = { tourId -> app.restvolt.camperlog.tracking.TrackRecordingService.stopIfTracking(context, tourId) },
+                    onTourDeleted = { tourId -> app.restvolt.camperlog.tracking.TrackRecordingService.stopIfTracking(context, tourId) },
                 )
             },
             onAddTour = {
@@ -149,11 +141,7 @@ internal fun NavGraphBuilder.toursGraph(
                     AndroidTourExportFiles(context),
                     tracks,
                     tourId,
-                    onTourFinished = {
-                        if (trackSettings.trackedTourId == tourId || trackSettings.activeRecording?.tourId == tourId) {
-                            app.restvolt.camperlog.tracking.TrackRecordingService.stop(context)
-                        }
-                    },
+                    onTourFinished = { app.restvolt.camperlog.tracking.TrackRecordingService.stopIfTracking(context, tourId) },
                 )
             },
             weatherMapEnabled = weatherMapEnabled,

@@ -606,7 +606,6 @@ internal fun NavController.toursViewModel(
 ): ToursViewModel {
     val toursEntry = remember(entry) { getBackStackEntry<ToursRoute>() }
     val context = LocalContext.current
-    val trackSettings = remember { TrackRecordingSettings.get(context) }
     return viewModel(viewModelStoreOwner = toursEntry) {
         ToursViewModel(
             repository,
@@ -614,12 +613,8 @@ internal fun NavController.toursViewModel(
             stations,
             tracks,
             VehicleScopeSettings(context),
-            onTourFinished = { tourId ->
-                if (trackSettings.trackedTourId == tourId || trackSettings.activeRecording?.tourId == tourId) TrackRecordingService.stop(context)
-            },
-            onTourDeleted = { tourId ->
-                if (trackSettings.trackedTourId == tourId || trackSettings.activeRecording?.tourId == tourId) TrackRecordingService.stop(context)
-            },
+            onTourFinished = { tourId -> TrackRecordingService.stopIfTracking(context, tourId) },
+            onTourDeleted = { tourId -> TrackRecordingService.stopIfTracking(context, tourId) },
         )
     }
 }
