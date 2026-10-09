@@ -271,4 +271,21 @@ class VehicleInputTest {
     fun blankPhoneNumbersAreValid() {
         assertTrue(valid.copy(insurerClaimsPhone = "").validate(de, isNew = true).isEmpty())
     }
+
+    @Test
+    fun requiredEnergyTypesDefaultToEmptyAndRoundTripThroughInput() {
+        assertEquals(emptySet<EnergyType>(), valid.toVehicle(null, de).requiredEnergyTypes)
+
+        val input = valid.copy(requiredEnergyTypes = setOf(EnergyType.DIESEL, EnergyType.ELECTRICITY))
+        val vehicle = input.toVehicle(null, de)
+        assertEquals(setOf(EnergyType.DIESEL, EnergyType.ELECTRICITY), vehicle.requiredEnergyTypes)
+        assertEquals(vehicle.requiredEnergyTypes, vehicle.toInput(de).requiredEnergyTypes)
+    }
+
+    @Test
+    fun allowsAnyIsTrueWhenEmptyOrMatching() {
+        assertTrue(emptySet<EnergyType>().allowsAny(EnergyType.DIESEL))
+        assertTrue(setOf(EnergyType.DIESEL).allowsAny(EnergyType.PETROL, EnergyType.DIESEL))
+        assertTrue(setOf(EnergyType.GAS).allowsAny(EnergyType.GAS) && !setOf(EnergyType.GAS).allowsAny(EnergyType.DIESEL))
+    }
 }

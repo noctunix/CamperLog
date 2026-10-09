@@ -415,6 +415,12 @@
     <string name="field_tire_size">Tyre size</string>
     <string name="field_tire_pressure_front">Tyre pressure front</string>
     <string name="field_tire_pressure_rear">Tyre pressure rear</string>
+    <string name="field_required_energy_types">Needs</string>
+    <string name="energy_type_petrol">Petrol</string>
+    <string name="energy_type_diesel">Diesel</string>
+    <string name="energy_type_adblue">AdBlue</string>
+    <string name="energy_type_gas">Gas</string>
+    <string name="energy_type_electricity">Electricity</string>
     <string name="field_fuel_tank">Diesel tank</string>
     <string name="field_ad_blue_tank">AdBlue tank</string>
     <string name="field_fresh_water_tank">Fresh water</string>

@@ -3,6 +3,7 @@ package app.restvolt.camperlog.ui.edit
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -46,9 +48,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.MAX_AMOUNT_MINOR
 import app.restvolt.camperlog.domain.VehicleError
 import app.restvolt.camperlog.domain.VehicleField
+import app.restvolt.camperlog.domain.allowsAny
 import app.restvolt.camperlog.domain.formatAmount
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CurrencyPicker
@@ -369,14 +373,21 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
         }
         SectionCard {
             SectionHeading(stringResource(R.string.section_tanks))
-            UnitField(
-                stringResource(R.string.field_fuel_tank), input.fuelTankL, "l", KeyboardType.Decimal,
-                errorOf(VehicleField.FUEL_TANK), focusOf(VehicleField.FUEL_TANK),
-            ) { value -> change { it.copy(fuelTankL = value) } }
-            UnitField(
-                stringResource(R.string.field_ad_blue_tank), input.adBlueTankL, "l", KeyboardType.Decimal,
-                errorOf(VehicleField.AD_BLUE_TANK), focusOf(VehicleField.AD_BLUE_TANK),
-            ) { value -> change { it.copy(adBlueTankL = value) } }
+            EnergyTypesField(input.requiredEnergyTypes) { type ->
+                change { it.copy(requiredEnergyTypes = it.requiredEnergyTypes.toggled(type)) }
+            }
+            if (input.requiredEnergyTypes.allowsAny(EnergyType.PETROL, EnergyType.DIESEL)) {
+                UnitField(
+                    stringResource(R.string.field_fuel_tank), input.fuelTankL, "l", KeyboardType.Decimal,
+                    errorOf(VehicleField.FUEL_TANK), focusOf(VehicleField.FUEL_TANK),
+                ) { value -> change { it.copy(fuelTankL = value) } }
+            }
+            if (input.requiredEnergyTypes.allowsAny(EnergyType.ADBLUE)) {
+                UnitField(
+                    stringResource(R.string.field_ad_blue_tank), input.adBlueTankL, "l", KeyboardType.Decimal,
+                    errorOf(VehicleField.AD_BLUE_TANK), focusOf(VehicleField.AD_BLUE_TANK),
+                ) { value -> change { it.copy(adBlueTankL = value) } }
+            }
             UnitField(
                 stringResource(R.string.field_fresh_water_tank), input.freshWaterTankL, "l", KeyboardType.Decimal,
                 errorOf(VehicleField.FRESH_WATER_TANK), focusOf(VehicleField.FRESH_WATER_TANK),
@@ -394,16 +405,18 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 errorOf(VehicleField.CASSETTE), focusOf(VehicleField.CASSETTE),
             ) { value -> change { it.copy(cassetteL = value) } }
         }
-        SectionCard {
-            SectionHeading(stringResource(R.string.section_energy))
-            UnitField(
-                stringResource(R.string.field_battery_capacity), input.batteryCapacityAh, "Ah", KeyboardType.Number,
-                errorOf(VehicleField.BATTERY_CAPACITY_AH), focusOf(VehicleField.BATTERY_CAPACITY_AH),
-            ) { value -> change { it.copy(batteryCapacityAh = value) } }
-            UnitField(
-                stringResource(R.string.field_solar_power), input.solarPowerWp, "Wp", KeyboardType.Number,
-                errorOf(VehicleField.SOLAR_POWER_WP), focusOf(VehicleField.SOLAR_POWER_WP),
-            ) { value -> change { it.copy(solarPowerWp = value) } }
+        if (input.requiredEnergyTypes.allowsAny(EnergyType.ELECTRICITY)) {
+            SectionCard {
+                SectionHeading(stringResource(R.string.section_energy))
+                UnitField(
+                    stringResource(R.string.field_battery_capacity), input.batteryCapacityAh, "Ah", KeyboardType.Number,
+                    errorOf(VehicleField.BATTERY_CAPACITY_AH), focusOf(VehicleField.BATTERY_CAPACITY_AH),
+                ) { value -> change { it.copy(batteryCapacityAh = value) } }
+                UnitField(
+                    stringResource(R.string.field_solar_power), input.solarPowerWp, "Wp", KeyboardType.Number,
+                    errorOf(VehicleField.SOLAR_POWER_WP), focusOf(VehicleField.SOLAR_POWER_WP),
+                ) { value -> change { it.copy(solarPowerWp = value) } }
+            }
         }
         SectionCard {
             SectionHeading(stringResource(R.string.section_maintenance))
@@ -476,6 +489,29 @@ private fun SectionHeading(text: String) {
         color = MaterialTheme.colorScheme.primary,
     )
 }
+
+/** Mehrfachauswahl der benötigten Energiearten; steuert, welche Tank-/Kapazitätsfelder darunter erscheinen. */
+@Composable
+private fun EnergyTypesField(selected: Set<EnergyType>, onToggle: (EnergyType) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            stringResource(R.string.field_required_energy_types),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            EnergyType.entries.forEach { type ->
+                FilterChip(
+                    selected = type in selected,
+                    onClick = { onToggle(type) },
+                    label = { Text(stringResource(type.labelRes)) },
+                )
+            }
+        }
+    }
+}
+
+private fun Set<EnergyType>.toggled(type: EnergyType): Set<EnergyType> = if (type in this) this - type else this + type
 
 @Composable
 private fun FormTextField(

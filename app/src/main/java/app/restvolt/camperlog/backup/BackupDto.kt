@@ -127,6 +127,8 @@ internal data class VehicleDto(
     val tireSize: String = "",
     val tirePressureFrontMbar: Int? = null,
     val tirePressureRearMbar: Int? = null,
+    /** [app.restvolt.camperlog.domain.EnergyType]-Namen; fehlt in Sicherungen vor Formatversion 14. */
+    val requiredEnergyTypes: List<String> = emptyList(),
     val fuelTankDl: Int? = null,
     val adBlueTankDl: Int? = null,
     val freshWaterTankDl: Int? = null,

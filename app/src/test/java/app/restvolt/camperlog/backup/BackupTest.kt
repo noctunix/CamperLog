@@ -3,6 +3,7 @@ package app.restvolt.camperlog.backup
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.ElectricityBilling
+import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
@@ -256,7 +257,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 13" in text)
+        assert("\"schemaVersion\": 14" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -266,7 +267,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 13" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 14" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -353,13 +354,44 @@ class BackupTest {
     }
 
     @Test
+    fun read_importsOlderBackupsMissingTheRequiredEnergyTypesField() {
+        val text = vehicleEncodedWith("\"requiredEnergyTypes\": [],", "")
+
+        val decoded = success(text)
+
+        assertEquals(emptySet<EnergyType>(), decoded.vehicles.single().vehicle.requiredEnergyTypes)
+    }
+
+    private fun vehicleBackupWithEnergyTypes(types: Set<EnergyType>) = vehicleBackup.copy(
+        vehicles = listOf(BackupVehicle(fullVehicle().copy(requiredEnergyTypes = types), listOf(repair()), listOf(logEntry()))),
+    )
+
+    @Test
+    fun roundTrip_keepsRequiredEnergyTypes() {
+        val decoded = success(encodeBackup(vehicleBackupWithEnergyTypes(setOf(EnergyType.DIESEL, EnergyType.ELECTRICITY))))
+
+        assertEquals(setOf(EnergyType.DIESEL, EnergyType.ELECTRICITY), decoded.vehicles.single().vehicle.requiredEnergyTypes)
+    }
+
+    @Test
+    fun decode_rejectsVehicleWithUnknownEnergyType() {
+        val text = encodeBackup(vehicleBackupWithEnergyTypes(setOf(EnergyType.DIESEL)))
+        check("\"DIESEL\"" in text) { "\"DIESEL\" nicht in der Sicherung" }
+
+        assertEquals(
+            BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1),
+            failure(text.replaceFirst("\"DIESEL\"", "\"HYDROGEN\"")),
+        )
+    }
+
+    @Test
     fun encode_writesAmountsAsDecimalTextPerCurrencyPrecision() {
         val text = encodeBackup(backup)
 
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 13" in text)
+        assert("\"schemaVersion\": 14" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -394,13 +426,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 13", "\"schemaVersion\": 14"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 14", "\"schemaVersion\": 15"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 13", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 14", it))?.error)
         }
     }
 

@@ -94,11 +94,17 @@ class FakeVehicleRepository(
 }
 
 /** Fahrzeug für Tests mit sinnvollen Zeitstempeln; [sold] setzt ein Verkaufsdatum. */
-fun defaultVehicle(id: Long = 1, name: String = "", sold: Boolean = false) = Vehicle(
+fun defaultVehicle(
+    id: Long = 1,
+    name: String = "",
+    sold: Boolean = false,
+    requiredEnergyTypes: Set<app.restvolt.camperlog.domain.EnergyType> = emptySet(),
+) = Vehicle(
     id = id,
     uuid = "vehicle-$id",
     name = name,
     saleDate = if (sold) java.time.LocalDate.of(2025, 1, 1) else null,
+    requiredEnergyTypes = requiredEnergyTypes,
     createdAt = Instant.EPOCH,
     updatedAt = Instant.EPOCH,
 )

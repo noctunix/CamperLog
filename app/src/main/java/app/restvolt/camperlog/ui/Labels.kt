@@ -13,6 +13,7 @@ import app.restvolt.camperlog.domain.DiaryEntryError
 import app.restvolt.camperlog.domain.DiaryEntryField
 import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.ElectricityBilling
+import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.LogRecency
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
@@ -195,6 +196,17 @@ val VehicleField.labelRes: Int
         VehicleField.SOLAR_POWER_WP -> R.string.field_solar_power
         VehicleField.LAST_OIL_CHANGE_DATE -> R.string.field_last_oil_change
         VehicleField.LAST_OIL_CHANGE_ODOMETER_KM -> R.string.field_last_oil_change_odometer
+    }
+
+/** Anzeigetext einer Energieart, für die Mehrfachauswahl am Fahrzeug. */
+@get:StringRes
+val EnergyType.labelRes: Int
+    get() = when (this) {
+        EnergyType.PETROL -> R.string.energy_type_petrol
+        EnergyType.DIESEL -> R.string.energy_type_diesel
+        EnergyType.ADBLUE -> R.string.energy_type_adblue
+        EnergyType.GAS -> R.string.energy_type_gas
+        EnergyType.ELECTRICITY -> R.string.energy_type_electricity
     }
 
 /** Höchstwert und Einheit eines Feldes mit Obergrenze, für die Fehlermeldung zu [VehicleError.TOO_LARGE]. */

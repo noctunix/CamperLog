@@ -9,6 +9,8 @@ import androidx.room.PrimaryKey
 /**
  * Datenbankzeile eines Fahrzeugs. Datumswerte sind ISO-Texte (`yyyy-MM-dd`); Geldbeträge liegen
  * als Paar aus Währungscode und Minor-Betrag vor und sind beide `NULL`, wenn kein Betrag erfasst ist.
+ * [requiredEnergyTypes] speichert die [app.restvolt.camperlog.domain.EnergyType]-Werte kommagetrennt
+ * als Namen; leer bedeutet "nicht konfiguriert".
  */
 @Entity(tableName = "vehicles", indices = [Index(value = ["uuid"], unique = true)])
 data class VehicleEntity(
@@ -50,6 +52,7 @@ data class VehicleEntity(
     @ColumnInfo(name = "tire_size") val tireSize: String = "",
     @ColumnInfo(name = "tire_pressure_front_mbar") val tirePressureFrontMbar: Int? = null,
     @ColumnInfo(name = "tire_pressure_rear_mbar") val tirePressureRearMbar: Int? = null,
+    @ColumnInfo(name = "required_energy_types") val requiredEnergyTypes: String = "",
     @ColumnInfo(name = "fuel_tank_dl") val fuelTankDl: Int? = null,
     @ColumnInfo(name = "ad_blue_tank_dl") val adBlueTankDl: Int? = null,
     @ColumnInfo(name = "fresh_water_tank_dl") val freshWaterTankDl: Int? = null,

@@ -91,6 +91,21 @@ class EditVehicleFlowTest {
     }
 
     @Test
+    fun requiredEnergyTypes_hideTankFieldsForUnselectedDriveTypes() {
+        start()
+        compose.onNodeWithText("Fahrzeug").performClick()
+        compose.onNodeWithText("Details hinzufügen").performClick()
+
+        compose.onNode(hasText("Diesel") and hasClickAction() and !hasSetTextAction()).performScrollTo().performClick()
+        compose.onNode(hasText("Strom") and hasClickAction() and !hasSetTextAction()).performScrollTo().performClick()
+
+        compose.onNode(hasSetTextAction() and hasText("Diesel")).assertExists()
+        compose.onNode(hasSetTextAction() and hasText("AdBlue")).assertDoesNotExist()
+        compose.onNode(hasSetTextAction() and hasText("Batteriekapazität")).assertExists()
+        compose.onNode(hasSetTextAction() and hasText("Frischwasser")).assertExists()
+    }
+
+    @Test
     fun nameRequired_forNewVehicle() {
         start()
         compose.onNodeWithText("Fahrzeug").performClick()

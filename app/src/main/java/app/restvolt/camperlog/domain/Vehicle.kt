@@ -6,6 +6,21 @@ import java.time.LocalDate
 import java.util.Currency
 
 /**
+ * Energieart, die ein Fahrzeug benötigt. Eine leere [Vehicle.requiredEnergyTypes]-Menge bedeutet
+ * "nicht konfiguriert" und zeigt im Formular wie bisher alle antriebsbezogenen Felder.
+ */
+enum class EnergyType {
+    PETROL,
+    DIESEL,
+    ADBLUE,
+    GAS,
+    ELECTRICITY,
+}
+
+/** Ob [this] leer ist (nicht konfiguriert, zeigt alles) oder mindestens eine von [types] enthält. */
+fun Set<EnergyType>.allowsAny(vararg types: EnergyType): Boolean = isEmpty() || types.any { it in this }
+
+/**
  * Ein Wohnmobil. Nur [id], [uuid] und [name] sind nicht optional; ein leerer [name] wird in der
  * Oberfläche als „Mein Wohnmobil" angezeigt. [isSold] ergibt sich aus [saleDate].
  */
@@ -44,6 +59,7 @@ data class Vehicle(
     val tireSize: String = "",
     val tirePressureFrontMbar: Int? = null,
     val tirePressureRearMbar: Int? = null,
+    val requiredEnergyTypes: Set<EnergyType> = emptySet(),
     val fuelTankDl: Int? = null,
     val adBlueTankDl: Int? = null,
     val freshWaterTankDl: Int? = null,

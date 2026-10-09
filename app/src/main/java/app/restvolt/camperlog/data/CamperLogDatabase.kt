@@ -39,7 +39,7 @@ import java.util.UUID
         ChecklistItemEntity::class,
         TrackPointEntity::class,
     ],
-    version = 18,
+    version = 19,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -79,7 +79,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
-                    MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18,
+                    MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
                 )
                 .build()
     }
@@ -745,5 +745,18 @@ internal val MIGRATION_17_18 = object : Migration(17, 18) {
         db.execSQL("ALTER TABLE `stations` ADD COLUMN `odometer_km` INTEGER")
         db.execSQL("ALTER TABLE `stations` ADD COLUMN `manual_temperature_deci_c` INTEGER")
         db.execSQL("ALTER TABLE `stations` ADD COLUMN `link` TEXT")
+    }
+}
+
+/**
+ * Version 19: Fahrzeuge bekommen die benötigten Energiearten
+ * ([app.restvolt.camperlog.domain.Vehicle.requiredEnergyTypes]), um im Formular nur die passenden
+ * Tank-/Kapazitätsfelder anzuzeigen; eine leere Menge bedeutet "nicht konfiguriert" und zeigt wie
+ * bisher alle Felder. Eine nullable-freie Textspalte ohne Fremdschlüssel, daher reicht
+ * `ALTER TABLE ADD COLUMN` wie schon bei [MIGRATION_16_17].
+ */
+internal val MIGRATION_18_19 = object : Migration(18, 19) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `required_energy_types` TEXT NOT NULL DEFAULT ''")
     }
 }

@@ -16,6 +16,7 @@ import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.LATITUDE_RANGE
 import app.restvolt.camperlog.domain.LONGITUDE_RANGE
@@ -88,7 +89,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 13
+const val BACKUP_SCHEMA_VERSION = 14
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -765,6 +766,7 @@ private fun VehicleDto.toVehicle(): Vehicle? {
     if (!tanksInBounds) return null
     if (!batteryCapacityAh.inBounds(MAX_BATTERY_AH) || !solarPowerWp.inBounds(MAX_SOLAR_WP)) return null
     if (!purchaseOdometerKm.inBounds(MAX_ODOMETER_KM) || !lastOilChangeOdometerKm.inBounds(MAX_ODOMETER_KM)) return null
+    val requiredEnergyTypesSet = requiredEnergyTypes.map { enumOrNull<EnergyType>(it) ?: return null }.toSet()
     val createdAtValue = parseInstant(createdAt) ?: return null
     val updatedAtValue = parseInstant(updatedAt) ?: return null
     return Vehicle(
@@ -801,6 +803,7 @@ private fun VehicleDto.toVehicle(): Vehicle? {
         tireSize = tireSize,
         tirePressureFrontMbar = tirePressureFrontMbar,
         tirePressureRearMbar = tirePressureRearMbar,
+        requiredEnergyTypes = requiredEnergyTypesSet,
         fuelTankDl = fuelTankDl,
         adBlueTankDl = adBlueTankDl,
         freshWaterTankDl = freshWaterTankDl,
@@ -918,6 +921,7 @@ private fun BackupVehicle.toDto(logEntryStationUuid: Map<String, String>) = vehi
         tireSize = v.tireSize,
         tirePressureFrontMbar = v.tirePressureFrontMbar,
         tirePressureRearMbar = v.tirePressureRearMbar,
+        requiredEnergyTypes = v.requiredEnergyTypes.map { it.name },
         fuelTankDl = v.fuelTankDl,
         adBlueTankDl = v.adBlueTankDl,
         freshWaterTankDl = v.freshWaterTankDl,

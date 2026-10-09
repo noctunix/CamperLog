@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.data
 
+import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Vehicle
@@ -42,6 +43,7 @@ internal fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     tireSize = tireSize,
     tirePressureFrontMbar = tirePressureFrontMbar,
     tirePressureRearMbar = tirePressureRearMbar,
+    requiredEnergyTypes = decodeEnergyTypes(requiredEnergyTypes),
     fuelTankDl = fuelTankDl,
     adBlueTankDl = adBlueTankDl,
     freshWaterTankDl = freshWaterTankDl,
@@ -98,6 +100,7 @@ internal fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     tireSize = tireSize,
     tirePressureFrontMbar = tirePressureFrontMbar,
     tirePressureRearMbar = tirePressureRearMbar,
+    requiredEnergyTypes = encodeEnergyTypes(requiredEnergyTypes),
     fuelTankDl = fuelTankDl,
     adBlueTankDl = adBlueTankDl,
     freshWaterTankDl = freshWaterTankDl,
@@ -142,3 +145,8 @@ internal fun Repair.toEntity(): RepairEntity = RepairEntity(
 
 private fun moneyOf(currency: String?, minor: Long?): Money? =
     if (currency != null && minor != null) Money(minor, Currency.getInstance(currency)) else null
+
+private fun encodeEnergyTypes(types: Set<EnergyType>): String = types.joinToString(",") { it.name }
+
+private fun decodeEnergyTypes(text: String): Set<EnergyType> =
+    text.split(",").mapNotNullTo(LinkedHashSet()) { name -> name.takeIf(String::isNotBlank)?.let(EnergyType::valueOf) }
