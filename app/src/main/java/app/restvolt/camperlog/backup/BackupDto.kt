@@ -107,6 +107,8 @@ internal data class VehicleDto(
     val purchaseOdometerKm: Int? = null,
     val saleDate: String? = null,
     val salePrice: CostDto? = null,
+    /** Fehlt in Sicherungen vor Formatversion 15. */
+    val saleOdometerKm: Int? = null,
     val insurer: String = "",
     val insurancePolicyNumber: String = "",
     val insurancePremiumPerYear: CostDto? = null,
@@ -124,6 +126,10 @@ internal data class VehicleDto(
     val travelProtectionPhone: String = "",
     val insurerClaimsPhone: String = "",
     val powerKw: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 15. */
+    val displacementCc: Int? = null,
+    /** Name von [app.restvolt.camperlog.domain.TransmissionType]; fehlt in Sicherungen vor Formatversion 15. */
+    val transmission: String? = null,
     val tireSize: String = "",
     val tirePressureFrontMbar: Int? = null,
     val tirePressureRearMbar: Int? = null,

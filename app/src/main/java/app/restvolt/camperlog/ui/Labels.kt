@@ -19,6 +19,7 @@ import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.MAX_BATTERY_AH
 import app.restvolt.camperlog.domain.MAX_DIMENSION_CM
+import app.restvolt.camperlog.domain.MAX_DISPLACEMENT_CC
 import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
 import app.restvolt.camperlog.domain.MAX_POWER_KW
 import app.restvolt.camperlog.domain.MAX_SOLAR_WP
@@ -40,6 +41,7 @@ import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.TourError
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.TransmissionType
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleError
 import app.restvolt.camperlog.domain.VehicleField
@@ -196,6 +198,19 @@ val VehicleField.labelRes: Int
         VehicleField.SOLAR_POWER_WP -> R.string.field_solar_power
         VehicleField.LAST_OIL_CHANGE_DATE -> R.string.field_last_oil_change
         VehicleField.LAST_OIL_CHANGE_ODOMETER_KM -> R.string.field_last_oil_change_odometer
+        VehicleField.SALE_ODOMETER_KM -> R.string.field_sale_odometer
+        VehicleField.DISPLACEMENT_CC -> R.string.field_displacement
+    }
+
+/** Anzeigetext der Schaltungsart. */
+@get:StringRes
+val TransmissionType.labelRes: Int
+    get() = when (this) {
+        TransmissionType.MANUAL -> R.string.transmission_manual
+        TransmissionType.AUTOMATIC -> R.string.transmission_automatic
+        TransmissionType.DSG -> R.string.transmission_dsg
+        TransmissionType.CVT -> R.string.transmission_cvt
+        TransmissionType.OTHER -> R.string.transmission_other
     }
 
 /** Anzeigetext einer Energieart, für die Mehrfachauswahl am Fahrzeug. */
@@ -214,13 +229,14 @@ private fun vehicleFieldBound(field: VehicleField): Pair<Double, String> = when 
     VehicleField.LENGTH, VehicleField.WIDTH, VehicleField.HEIGHT -> MAX_DIMENSION_CM.toDouble() to "cm"
     VehicleField.GROSS_WEIGHT_KG, VehicleField.MEASURED_EMPTY_WEIGHT_KG -> MAX_WEIGHT_KG.toDouble() to "kg"
     VehicleField.POWER_KW -> MAX_POWER_KW.toDouble() to "kW"
+    VehicleField.DISPLACEMENT_CC -> MAX_DISPLACEMENT_CC.toDouble() to "cm³"
     VehicleField.TIRE_PRESSURE_FRONT, VehicleField.TIRE_PRESSURE_REAR -> MAX_TIRE_PRESSURE_BAR to "bar"
     VehicleField.FUEL_TANK, VehicleField.AD_BLUE_TANK, VehicleField.FRESH_WATER_TANK,
     VehicleField.GREY_WATER_TANK, VehicleField.BOILER, VehicleField.CASSETTE,
     -> MAX_TANK_L to "l"
     VehicleField.BATTERY_CAPACITY_AH -> MAX_BATTERY_AH.toDouble() to "Ah"
     VehicleField.SOLAR_POWER_WP -> MAX_SOLAR_WP.toDouble() to "Wp"
-    VehicleField.PURCHASE_ODOMETER_KM, VehicleField.LAST_OIL_CHANGE_ODOMETER_KM -> MAX_ODOMETER_KM.toDouble() to "km"
+    VehicleField.PURCHASE_ODOMETER_KM, VehicleField.LAST_OIL_CHANGE_ODOMETER_KM, VehicleField.SALE_ODOMETER_KM -> MAX_ODOMETER_KM.toDouble() to "km"
     else -> 0.0 to ""
 }
 

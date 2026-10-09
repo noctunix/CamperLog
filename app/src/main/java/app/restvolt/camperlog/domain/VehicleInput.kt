@@ -11,6 +11,7 @@ import java.util.Locale
 const val MAX_DIMENSION_CM = 3_000
 const val MAX_WEIGHT_KG = 100_000
 const val MAX_POWER_KW = 2_000
+const val MAX_DISPLACEMENT_CC = 20_000
 const val MAX_TIRE_PRESSURE_BAR = 15.0
 const val MAX_TANK_L = 10_000.0
 const val MAX_BATTERY_AH = 100_000
@@ -42,6 +43,7 @@ data class VehicleInput(
     @Serializable(with = LocalDateSerializer::class) val saleDate: LocalDate? = null,
     val salePrice: String = "",
     @Serializable(with = CurrencySerializer::class) val salePriceCurrency: Currency = EUR,
+    val saleOdometerKm: String = "",
     val insurer: String = "",
     val insurancePolicyNumber: String = "",
     val insurancePremiumPerYear: String = "",
@@ -61,6 +63,8 @@ data class VehicleInput(
     val travelProtectionPhone: String = "",
     val insurerClaimsPhone: String = "",
     val powerKw: String = "",
+    val displacementCc: String = "",
+    val transmission: TransmissionType? = null,
     val tireSize: String = "",
     val tirePressureFrontBar: String = "",
     val tirePressureRearBar: String = "",
@@ -89,6 +93,7 @@ enum class VehicleField {
     PURCHASE_ODOMETER_KM,
     SALE_DATE,
     SALE_PRICE,
+    SALE_ODOMETER_KM,
     INSURANCE_PREMIUM_PER_YEAR,
     VEHICLE_TAX_PER_YEAR,
     LENGTH,
@@ -100,6 +105,7 @@ enum class VehicleField {
     TRAVEL_PROTECTION_PHONE,
     INSURER_CLAIMS_PHONE,
     POWER_KW,
+    DISPLACEMENT_CC,
     TIRE_PRESSURE_FRONT,
     TIRE_PRESSURE_REAR,
     FUEL_TANK,
@@ -147,6 +153,7 @@ fun VehicleInput.validate(locale: Locale, isNew: Boolean, today: LocalDate = Loc
         }
         amountError(purchasePrice, purchasePriceCurrency, locale)?.let { put(VehicleField.PURCHASE_PRICE, it) }
         amountError(salePrice, salePriceCurrency, locale)?.let { put(VehicleField.SALE_PRICE, it) }
+        intError(saleOdometerKm, MAX_ODOMETER_KM)?.let { put(VehicleField.SALE_ODOMETER_KM, it) }
         amountError(insurancePremiumPerYear, insurancePremiumPerYearCurrency, locale)
             ?.let { put(VehicleField.INSURANCE_PREMIUM_PER_YEAR, it) }
         amountError(vehicleTaxPerYear, vehicleTaxPerYearCurrency, locale)?.let { put(VehicleField.VEHICLE_TAX_PER_YEAR, it) }
@@ -160,6 +167,7 @@ fun VehicleInput.validate(locale: Locale, isNew: Boolean, today: LocalDate = Loc
         phoneError(travelProtectionPhone)?.let { put(VehicleField.TRAVEL_PROTECTION_PHONE, it) }
         phoneError(insurerClaimsPhone)?.let { put(VehicleField.INSURER_CLAIMS_PHONE, it) }
         intError(powerKw, MAX_POWER_KW)?.let { put(VehicleField.POWER_KW, it) }
+        intError(displacementCc, MAX_DISPLACEMENT_CC)?.let { put(VehicleField.DISPLACEMENT_CC, it) }
         decimalError(tirePressureFrontBar, locale, 2, MAX_TIRE_PRESSURE_BAR)?.let { put(VehicleField.TIRE_PRESSURE_FRONT, it) }
         decimalError(tirePressureRearBar, locale, 2, MAX_TIRE_PRESSURE_BAR)?.let { put(VehicleField.TIRE_PRESSURE_REAR, it) }
         decimalError(fuelTankL, locale, 1, MAX_TANK_L)?.let { put(VehicleField.FUEL_TANK, it) }
@@ -198,6 +206,7 @@ fun VehicleInput.toVehicle(original: Vehicle?, locale: Locale): Vehicle = Vehicl
     purchaseOdometerKm = parseOptionalInt(purchaseOdometerKm),
     saleDate = saleDate,
     salePrice = parseMoney(salePrice, salePriceCurrency, locale),
+    saleOdometerKm = parseOptionalInt(saleOdometerKm),
     insurer = insurer.trim(),
     insurancePolicyNumber = insurancePolicyNumber.trim(),
     insurancePremiumPerYear = parseMoney(insurancePremiumPerYear, insurancePremiumPerYearCurrency, locale),
@@ -215,6 +224,8 @@ fun VehicleInput.toVehicle(original: Vehicle?, locale: Locale): Vehicle = Vehicl
     travelProtectionPhone = travelProtectionPhone.trim(),
     insurerClaimsPhone = insurerClaimsPhone.trim(),
     powerKw = parseOptionalInt(powerKw),
+    displacementCc = parseOptionalInt(displacementCc),
+    transmission = transmission,
     tireSize = tireSize.trim(),
     tirePressureFrontMbar = parseScaledDecimal(tirePressureFrontBar, locale, uiFractionDigits = 2, storageExponent = 3),
     tirePressureRearMbar = parseScaledDecimal(tirePressureRearBar, locale, uiFractionDigits = 2, storageExponent = 3),
@@ -251,6 +262,7 @@ fun Vehicle.toInput(locale: Locale): VehicleInput = VehicleInput(
     saleDate = saleDate,
     salePrice = salePrice.toInput(locale),
     salePriceCurrency = salePrice?.currency ?: EUR,
+    saleOdometerKm = saleOdometerKm?.toString().orEmpty(),
     insurer = insurer,
     insurancePolicyNumber = insurancePolicyNumber,
     insurancePremiumPerYear = insurancePremiumPerYear.toInput(locale),
@@ -270,6 +282,8 @@ fun Vehicle.toInput(locale: Locale): VehicleInput = VehicleInput(
     travelProtectionPhone = travelProtectionPhone,
     insurerClaimsPhone = insurerClaimsPhone,
     powerKw = powerKw?.toString().orEmpty(),
+    displacementCc = displacementCc?.toString().orEmpty(),
+    transmission = transmission,
     tireSize = tireSize,
     tirePressureFrontBar = scaledToInput(tirePressureFrontMbar, locale, uiFractionDigits = 2, storageExponent = 3),
     tirePressureRearBar = scaledToInput(tirePressureRearMbar, locale, uiFractionDigits = 2, storageExponent = 3),

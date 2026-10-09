@@ -10,6 +10,7 @@ import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.MAX_BATTERY_AH
 import app.restvolt.camperlog.domain.MAX_DIMENSION_CM
+import app.restvolt.camperlog.domain.MAX_DISPLACEMENT_CC
 import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
 import app.restvolt.camperlog.domain.MAX_PHONE_LENGTH
 import app.restvolt.camperlog.domain.MAX_POWER_KW
@@ -28,6 +29,7 @@ import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.TransmissionType
 import app.restvolt.camperlog.domain.Vehicle
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -120,6 +122,7 @@ class BackupTest {
         purchaseOdometerKm = 500,
         saleDate = LocalDate.of(2026, 1, 1),
         salePrice = Money(3200000, eur),
+        saleOdometerKm = 80000,
         insurer = "HUK24",
         insurancePolicyNumber = "POL-123",
         insurancePremiumPerYear = Money(80000, eur),
@@ -137,6 +140,8 @@ class BackupTest {
         travelProtectionPhone = "+49 30 123456",
         insurerClaimsPhone = "+49 69 5678",
         powerKw = 130,
+        displacementCc = 1968,
+        transmission = TransmissionType.DSG,
         tireSize = "225/75 R16 C",
         tirePressureFrontMbar = 2500,
         tirePressureRearMbar = 2800,
@@ -257,7 +262,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 14" in text)
+        assert("\"schemaVersion\": 15" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -267,7 +272,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 14" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 15" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -391,7 +396,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 14" in text)
+        assert("\"schemaVersion\": 15" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -426,13 +431,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 14", "\"schemaVersion\": 15"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 15", "\"schemaVersion\": 16"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 14", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 15", it))?.error)
         }
     }
 
@@ -643,6 +648,8 @@ class BackupTest {
             "\"lengthCm\": 500" to "\"lengthCm\": -1",
             "\"grossWeightKg\": 3500" to "\"grossWeightKg\": ${MAX_WEIGHT_KG + 1}",
             "\"powerKw\": 130" to "\"powerKw\": ${MAX_POWER_KW + 1}",
+            "\"displacementCc\": 1968" to "\"displacementCc\": ${MAX_DISPLACEMENT_CC + 1}",
+            "\"saleOdometerKm\": 80000" to "\"saleOdometerKm\": ${MAX_ODOMETER_KM + 1}",
             "\"tirePressureFrontMbar\": 2500" to "\"tirePressureFrontMbar\": ${maxTireMbar + 1}",
             "\"fuelTankDl\": 900" to "\"fuelTankDl\": ${maxTankDl + 1}",
             "\"batteryCapacityAh\": 200" to "\"batteryCapacityAh\": ${MAX_BATTERY_AH + 1}",
@@ -651,9 +658,29 @@ class BackupTest {
             "\"lastOilChangeOdometerKm\": 12000" to "\"lastOilChangeOdometerKm\": ${MAX_ODOMETER_KM + 1}",
             "\"measuredEmptyWeightKg\": 3020" to "\"measuredEmptyWeightKg\": ${MAX_WEIGHT_KG + 1}",
             "\"measuredEmptyWeightKg\": 3020" to "\"measuredEmptyWeightKg\": -1",
+            "\"transmission\": \"DSG\"" to "\"transmission\": \"UNKNOWN\"",
         ).forEach { (old, new) ->
             assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1), failure(vehicleEncodedWith(old, new)))
         }
+    }
+
+    @Test
+    fun read_importsOlderBackupsMissingTheDisplacementTransmissionAndSaleOdometerFields() {
+        val text = applyAll(
+            encodeBackup(vehicleBackup),
+            listOf(
+                "\"saleOdometerKm\": 80000," to "",
+                "\"displacementCc\": 1968," to "",
+                "\"transmission\": \"DSG\"," to "",
+            ),
+        )
+
+        val decoded = success(text)
+
+        val vehicle = decoded.vehicles.single().vehicle
+        assertEquals(null, vehicle.saleOdometerKm)
+        assertEquals(null, vehicle.displacementCc)
+        assertEquals(null, vehicle.transmission)
     }
 
     @Test

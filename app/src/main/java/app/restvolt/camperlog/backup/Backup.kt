@@ -26,6 +26,7 @@ import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.MAX_BATTERY_AH
 import app.restvolt.camperlog.domain.MAX_DIMENSION_CM
+import app.restvolt.camperlog.domain.MAX_DISPLACEMENT_CC
 import app.restvolt.camperlog.domain.MAX_ELECTRICITY_COINS
 import app.restvolt.camperlog.domain.MAX_ELECTRICITY_KWH
 import app.restvolt.camperlog.domain.MAX_FERRY_BOOKING_REFERENCE_LENGTH
@@ -55,6 +56,7 @@ import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.TransmissionType
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleDocument
 import app.restvolt.camperlog.domain.WeatherSnapshot
@@ -89,7 +91,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 14
+const val BACKUP_SCHEMA_VERSION = 15
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -759,6 +761,9 @@ private fun VehicleDto.toVehicle(): Vehicle? {
     if (!lengthCm.inBounds(MAX_DIMENSION_CM) || !widthCm.inBounds(MAX_DIMENSION_CM) || !heightCm.inBounds(MAX_DIMENSION_CM)) return null
     if (!grossWeightKg.inBounds(MAX_WEIGHT_KG) || !powerKw.inBounds(MAX_POWER_KW)) return null
     if (!measuredEmptyWeightKg.inBounds(MAX_WEIGHT_KG)) return null
+    if (!displacementCc.inBounds(MAX_DISPLACEMENT_CC)) return null
+    if (!saleOdometerKm.inBounds(MAX_ODOMETER_KM)) return null
+    val transmissionValue = transmission?.let { enumOrNull<TransmissionType>(it) ?: return null }
     if (!tirePressureFrontMbar.inBounds(MAX_TIRE_PRESSURE_MBAR) || !tirePressureRearMbar.inBounds(MAX_TIRE_PRESSURE_MBAR)) return null
     val tanksInBounds = listOf(fuelTankDl, adBlueTankDl, freshWaterTankDl, greyWaterTankDl, boilerDl, cassetteDl)
         .all { it.inBounds(MAX_TANK_DL) }
@@ -782,6 +787,7 @@ private fun VehicleDto.toVehicle(): Vehicle? {
         purchaseOdometerKm = purchaseOdometerKm,
         saleDate = saleDate,
         salePrice = salePriceMoney,
+        saleOdometerKm = saleOdometerKm,
         insurer = insurer,
         insurancePolicyNumber = insurancePolicyNumber,
         insurancePremiumPerYear = insurancePremium,
@@ -799,6 +805,8 @@ private fun VehicleDto.toVehicle(): Vehicle? {
         travelProtectionPhone = travelProtectionPhone,
         insurerClaimsPhone = insurerClaimsPhone,
         powerKw = powerKw,
+        displacementCc = displacementCc,
+        transmission = transmissionValue,
         tireSize = tireSize,
         tirePressureFrontMbar = tirePressureFrontMbar,
         tirePressureRearMbar = tirePressureRearMbar,
@@ -900,6 +908,7 @@ private fun BackupVehicle.toDto(logEntryStationUuid: Map<String, String>) = vehi
         purchaseOdometerKm = v.purchaseOdometerKm,
         saleDate = v.saleDate?.toString(),
         salePrice = v.salePrice?.toCostDto(),
+        saleOdometerKm = v.saleOdometerKm,
         insurer = v.insurer,
         insurancePolicyNumber = v.insurancePolicyNumber,
         insurancePremiumPerYear = v.insurancePremiumPerYear?.toCostDto(),
@@ -917,6 +926,8 @@ private fun BackupVehicle.toDto(logEntryStationUuid: Map<String, String>) = vehi
         travelProtectionPhone = v.travelProtectionPhone,
         insurerClaimsPhone = v.insurerClaimsPhone,
         powerKw = v.powerKw,
+        displacementCc = v.displacementCc,
+        transmission = v.transmission?.name,
         tireSize = v.tireSize,
         tirePressureFrontMbar = v.tirePressureFrontMbar,
         tirePressureRearMbar = v.tirePressureRearMbar,

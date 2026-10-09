@@ -287,4 +287,39 @@ class VehicleInputTest {
         assertTrue(setOf(EnergyType.DIESEL).allowsAny(EnergyType.PETROL, EnergyType.DIESEL))
         assertTrue(setOf(EnergyType.GAS).allowsAny(EnergyType.GAS) && !setOf(EnergyType.GAS).allowsAny(EnergyType.DIESEL))
     }
+
+    @Test
+    fun saleOdometerFollowsExistingOdometerBoundsAndRoundTrips() {
+        assertEquals(
+            VehicleError.NEGATIVE_NUMBER,
+            valid.copy(saleOdometerKm = "-1").validate(de, isNew = true)[VehicleField.SALE_ODOMETER_KM],
+        )
+        assertEquals(
+            VehicleError.TOO_LARGE,
+            valid.copy(saleOdometerKm = "10000001").validate(de, isNew = true)[VehicleField.SALE_ODOMETER_KM],
+        )
+        val vehicle = valid.copy(saleOdometerKm = "80000").toVehicle(null, de)
+        assertEquals(80_000, vehicle.saleOdometerKm)
+        assertEquals(80_000, vehicle.toInput(de).toVehicle(vehicle, de).saleOdometerKm)
+    }
+
+    @Test
+    fun displacementFollowsItsOwnBoundAndRoundTrips() {
+        assertEquals(
+            VehicleError.TOO_LARGE,
+            valid.copy(displacementCc = "20001").validate(de, isNew = true)[VehicleField.DISPLACEMENT_CC],
+        )
+        val vehicle = valid.copy(displacementCc = "2287").toVehicle(null, de)
+        assertEquals(2_287, vehicle.displacementCc)
+        assertEquals(2_287, vehicle.toInput(de).toVehicle(vehicle, de).displacementCc)
+    }
+
+    @Test
+    fun transmissionDefaultsToNullAndRoundTripsThroughInput() {
+        assertNull(valid.toVehicle(null, de).transmission)
+
+        val vehicle = valid.copy(transmission = TransmissionType.AUTOMATIC).toVehicle(null, de)
+        assertEquals(TransmissionType.AUTOMATIC, vehicle.transmission)
+        assertEquals(TransmissionType.AUTOMATIC, vehicle.toInput(de).toVehicle(vehicle, de).transmission)
+    }
 }

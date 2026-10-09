@@ -403,6 +403,7 @@
     <string name="field_purchase_odometer">km-Stand bei Kauf</string>
     <string name="field_sale_date">Verkaufsdatum</string>
     <string name="field_sale_price">Verkaufspreis</string>
+    <string name="field_sale_odometer">km-Stand bei Verkauf</string>
     <string name="field_insurer">Versicherer</string>
     <string name="field_insurance_policy_number">Versicherungsnummer</string>
     <string name="field_insurance_premium">Jahresbeitrag</string>
@@ -422,6 +423,14 @@
     <string name="field_insurer_claims_phone">Schadenhotline Versicherung</string>
     <string name="field_phone_hint">Mit Ländervorwahl, z. B. +49 …, damit es auch im Ausland klappt.</string>
     <string name="field_power">Leistung</string>
+    <string name="field_displacement">Hubraum</string>
+    <string name="vehicle_displacement_value">%1$,d cm³</string>
+    <string name="field_transmission">Schaltung</string>
+    <string name="transmission_manual">Schaltgetriebe</string>
+    <string name="transmission_automatic">Automatik</string>
+    <string name="transmission_dsg">DSG</string>
+    <string name="transmission_cvt">CVT</string>
+    <string name="transmission_other">Sonstige</string>
     <string name="field_tire_size">Reifengröße</string>
     <string name="field_tire_pressure_front">Reifendruck vorne</string>
     <string name="field_tire_pressure_rear">Reifendruck hinten</string>
@@ -456,6 +465,7 @@
     <string name="section_dimensions_weight">Abmessungen &amp; Gewicht</string>
     <string name="section_breakdown_accident">Panne &amp; Unfall</string>
     <string name="section_engine">Motor</string>
+    <string name="section_engine_details">Hubraum &amp; Schaltung</string>
     <string name="section_tires">Reifen</string>
     <string name="section_tanks">Tanks</string>
     <string name="section_energy">Energie</string>

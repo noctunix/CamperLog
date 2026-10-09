@@ -39,7 +39,7 @@ import java.util.UUID
         ChecklistItemEntity::class,
         TrackPointEntity::class,
     ],
-    version = 19,
+    version = 20,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -79,7 +79,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
-                    MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
+                    MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
                 )
                 .build()
     }
@@ -758,5 +758,19 @@ internal val MIGRATION_17_18 = object : Migration(17, 18) {
 internal val MIGRATION_18_19 = object : Migration(18, 19) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `required_energy_types` TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+/**
+ * Version 20: Fahrzeuge bekommen den Hubraum ([app.restvolt.camperlog.domain.Vehicle.displacementCc]),
+ * die Schaltungsart ([app.restvolt.camperlog.domain.Vehicle.transmission]) und den Kilometerstand beim
+ * Verkauf ([app.restvolt.camperlog.domain.Vehicle.saleOdometerKm]). Drei nullable Spalten ohne
+ * Fremdschlüssel, daher reicht `ALTER TABLE ADD COLUMN` wie schon bei [MIGRATION_16_17].
+ */
+internal val MIGRATION_19_20 = object : Migration(19, 20) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `displacement_cc` INTEGER")
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `transmission` TEXT")
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `sale_odometer_km` INTEGER")
     }
 }

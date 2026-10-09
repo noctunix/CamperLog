@@ -20,6 +20,15 @@ enum class EnergyType {
 /** Ob [this] leer ist (nicht konfiguriert, zeigt alles) oder mindestens eine von [types] enthält. */
 fun Set<EnergyType>.allowsAny(vararg types: EnergyType): Boolean = isEmpty() || types.any { it in this }
 
+/** Schaltungsart eines Fahrzeugs. */
+enum class TransmissionType {
+    MANUAL,
+    AUTOMATIC,
+    DSG,
+    CVT,
+    OTHER,
+}
+
 /**
  * Ein Wohnmobil. Nur [id], [uuid] und [name] sind nicht optional; ein leerer [name] wird in der
  * Oberfläche als „Mein Wohnmobil" angezeigt. [isSold] ergibt sich aus [saleDate].
@@ -39,6 +48,7 @@ data class Vehicle(
     val purchaseOdometerKm: Int? = null,
     val saleDate: LocalDate? = null,
     val salePrice: Money? = null,
+    val saleOdometerKm: Int? = null,
     val insurer: String = "",
     val insurancePolicyNumber: String = "",
     val insurancePremiumPerYear: Money? = null,
@@ -56,6 +66,8 @@ data class Vehicle(
     val travelProtectionPhone: String = "",
     val insurerClaimsPhone: String = "",
     val powerKw: Int? = null,
+    val displacementCc: Int? = null,
+    val transmission: TransmissionType? = null,
     val tireSize: String = "",
     val tirePressureFrontMbar: Int? = null,
     val tirePressureRearMbar: Int? = null,

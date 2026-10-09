@@ -606,6 +606,7 @@ private fun purchaseSaleRows(vehicle: Vehicle, locale: Locale): List<Pair<String
     vehicle.purchasePrice?.let { add(stringResource(R.string.field_purchase_price) to formatAmount(it.minor, it.currency, locale)) }
     vehicle.purchaseOdometerKm?.let { add(stringResource(R.string.field_purchase_odometer) to stringResource(R.string.distance_km, it)) }
     vehicle.salePrice?.let { add(stringResource(R.string.field_sale_price) to formatAmount(it.minor, it.currency, locale)) }
+    vehicle.saleOdometerKm?.let { add(stringResource(R.string.field_sale_odometer) to stringResource(R.string.distance_km, it)) }
 }
 
 @Composable
@@ -631,6 +632,8 @@ private fun dimensionsRows(vehicle: Vehicle, locale: Locale): List<Pair<String, 
 @Composable
 private fun engineRows(vehicle: Vehicle, locale: Locale): List<Pair<String, String>> = buildList {
     vehicle.powerKw?.let { add(stringResource(R.string.field_power) to formatPower(it, locale)) }
+    vehicle.displacementCc?.let { add(stringResource(R.string.field_displacement) to stringResource(R.string.vehicle_displacement_value, it)) }
+    vehicle.transmission?.let { add(stringResource(R.string.field_transmission) to stringResource(it.labelRes)) }
 }
 
 @Composable

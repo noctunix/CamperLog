@@ -87,6 +87,29 @@ class EditVehicleFlowTest {
     }
 
     @Test
+    fun engineDetailsSection_startsCollapsedAndRevealsDisplacementAndTransmission() {
+        start()
+        compose.onNodeWithText("Fahrzeug").performClick()
+        compose.onNodeWithText("Details hinzufügen").performClick()
+
+        compose.onNode(hasSetTextAction() and hasText("Hubraum")).assertDoesNotExist()
+
+        compose.onNodeWithText("Hubraum & Schaltung").performScrollTo().performClick()
+
+        compose.onNode(hasSetTextAction() and hasText("Hubraum")).assertExists()
+        compose.onNodeWithText("Automatik").assertExists()
+    }
+
+    @Test
+    fun saleSection_hasOdometerFieldNextToSaleDateAndPrice() {
+        start()
+        compose.onNodeWithText("Fahrzeug").performClick()
+        compose.onNodeWithText("Details hinzufügen").performClick()
+
+        compose.onNode(hasSetTextAction() and hasText("km-Stand bei Verkauf")).performScrollTo().assertExists()
+    }
+
+    @Test
     fun editAction_inTopBarOpensFormForExistingVehicle() {
         start(FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "Camper"))))
         compose.onNodeWithText("Fahrzeug").performClick()

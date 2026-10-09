@@ -403,6 +403,7 @@
     <string name="field_purchase_odometer">Odometer at purchase</string>
     <string name="field_sale_date">Sale date</string>
     <string name="field_sale_price">Sale price</string>
+    <string name="field_sale_odometer">Odometer at sale</string>
     <string name="field_insurer">Insurer</string>
     <string name="field_insurance_policy_number">Policy number</string>
     <string name="field_insurance_premium">Annual premium</string>
@@ -422,6 +423,14 @@
     <string name="field_insurer_claims_phone">Insurer claims hotline</string>
     <string name="field_phone_hint">With country code, e.g. +49 …, so it works abroad.</string>
     <string name="field_power">Power</string>
+    <string name="field_displacement">Displacement</string>
+    <string name="vehicle_displacement_value">%1$,d cm³</string>
+    <string name="field_transmission">Transmission</string>
+    <string name="transmission_manual">Manual</string>
+    <string name="transmission_automatic">Automatic</string>
+    <string name="transmission_dsg">DSG</string>
+    <string name="transmission_cvt">CVT</string>
+    <string name="transmission_other">Other</string>
     <string name="field_tire_size">Tyre size</string>
     <string name="field_tire_pressure_front">Tyre pressure front</string>
     <string name="field_tire_pressure_rear">Tyre pressure rear</string>
@@ -456,6 +465,7 @@
     <string name="section_dimensions_weight">Dimensions &amp; weight</string>
     <string name="section_breakdown_accident">Breakdown &amp; accident</string>
     <string name="section_engine">Engine</string>
+    <string name="section_engine_details">Displacement &amp; transmission</string>
     <string name="section_tires">Tyres</string>
     <string name="section_tanks">Tanks</string>
     <string name="section_energy">Energy</string>

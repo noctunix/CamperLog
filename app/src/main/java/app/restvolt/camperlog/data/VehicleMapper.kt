@@ -3,6 +3,7 @@ package app.restvolt.camperlog.data
 import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Repair
+import app.restvolt.camperlog.domain.TransmissionType
 import app.restvolt.camperlog.domain.Vehicle
 import java.time.Instant
 import java.time.LocalDate
@@ -23,6 +24,7 @@ internal fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     purchaseOdometerKm = purchaseOdometerKm,
     saleDate = saleDate?.let(LocalDate::parse),
     salePrice = moneyOf(salePriceCurrency, salePriceMinor),
+    saleOdometerKm = saleOdometerKm,
     insurer = insurer,
     insurancePolicyNumber = insurancePolicyNumber,
     insurancePremiumPerYear = moneyOf(insurancePremiumPerYearCurrency, insurancePremiumPerYearMinor),
@@ -40,6 +42,8 @@ internal fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     travelProtectionPhone = travelProtectionPhone,
     insurerClaimsPhone = insurerClaimsPhone,
     powerKw = powerKw,
+    displacementCc = displacementCc,
+    transmission = transmission?.let(TransmissionType::valueOf),
     tireSize = tireSize,
     tirePressureFrontMbar = tirePressureFrontMbar,
     tirePressureRearMbar = tirePressureRearMbar,
@@ -78,6 +82,7 @@ internal fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     saleDate = saleDate?.toString(),
     salePriceCurrency = salePrice?.currency?.currencyCode,
     salePriceMinor = salePrice?.minor,
+    saleOdometerKm = saleOdometerKm,
     insurer = insurer,
     insurancePolicyNumber = insurancePolicyNumber,
     insurancePremiumPerYearCurrency = insurancePremiumPerYear?.currency?.currencyCode,
@@ -97,6 +102,8 @@ internal fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     travelProtectionPhone = travelProtectionPhone,
     insurerClaimsPhone = insurerClaimsPhone,
     powerKw = powerKw,
+    displacementCc = displacementCc,
+    transmission = transmission?.name,
     tireSize = tireSize,
     tirePressureFrontMbar = tirePressureFrontMbar,
     tirePressureRearMbar = tirePressureRearMbar,

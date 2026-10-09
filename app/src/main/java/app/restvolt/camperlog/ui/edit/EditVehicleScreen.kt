@@ -50,12 +50,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.MAX_AMOUNT_MINOR
+import app.restvolt.camperlog.domain.TransmissionType
 import app.restvolt.camperlog.domain.VehicleError
 import app.restvolt.camperlog.domain.VehicleField
 import app.restvolt.camperlog.domain.allowsAny
 import app.restvolt.camperlog.domain.formatAmount
 import app.restvolt.camperlog.domain.formatApproxPs
 import app.restvolt.camperlog.ui.BackTopBar
+import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.CurrencyPicker
 import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
@@ -237,6 +239,15 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 onCurrencyChange = { value -> change { it.copy(salePriceCurrency = value) } },
                 modifier = focusOf(VehicleField.SALE_PRICE),
             )
+            UnitField(
+                label = stringResource(R.string.field_sale_odometer),
+                value = input.saleOdometerKm,
+                unit = "km",
+                keyboardType = KeyboardType.Number,
+                error = errorOf(VehicleField.SALE_ODOMETER_KM),
+                modifier = focusOf(VehicleField.SALE_ODOMETER_KM),
+                onValueChange = { value -> change { it.copy(saleOdometerKm = value) } },
+            )
         }
         SectionCard {
             SectionHeading(stringResource(R.string.section_insurance_tax))
@@ -355,6 +366,26 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 errorOf(VehicleField.POWER_KW), focusOf(VehicleField.POWER_KW),
             ) { value -> change { it.copy(powerKw = value) } }
             PowerPsHint(input.powerKw)
+
+            var engineDetailsExpanded by rememberSaveable {
+                mutableStateOf(input.displacementCc.isNotBlank() || input.transmission != null)
+            }
+            val engineDetailsSummary = listOfNotNull(
+                input.displacementCc.takeIf(String::isNotBlank)?.let { "$it cm³" },
+                input.transmission?.let { stringResource(it.labelRes) },
+            ).joinToString(" · ").ifEmpty { stringResource(R.string.station_summary_none) }
+            CollapsibleSection(
+                title = stringResource(R.string.section_engine_details),
+                expanded = engineDetailsExpanded,
+                onToggle = { engineDetailsExpanded = !engineDetailsExpanded },
+                summary = engineDetailsSummary,
+            ) {
+                UnitField(
+                    stringResource(R.string.field_displacement), input.displacementCc, "cm³", KeyboardType.Number,
+                    errorOf(VehicleField.DISPLACEMENT_CC), focusOf(VehicleField.DISPLACEMENT_CC),
+                ) { value -> change { it.copy(displacementCc = value) } }
+                TransmissionField(input.transmission) { value -> change { it.copy(transmission = value) } }
+            }
         }
         SectionCard {
             SectionHeading(stringResource(R.string.section_tires))
@@ -525,6 +556,27 @@ private fun PowerPsHint(powerKw: String) {
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+}
+
+/** Einfachauswahl der Schaltungsart; erneutes Tippen auf die gewählte Option hebt sie wieder auf. */
+@Composable
+private fun TransmissionField(selected: TransmissionType?, onSelect: (TransmissionType?) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            stringResource(R.string.field_transmission),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TransmissionType.entries.forEach { type ->
+                FilterChip(
+                    selected = type == selected,
+                    onClick = { onSelect(if (type == selected) null else type) },
+                    label = { Text(stringResource(type.labelRes)) },
+                )
+            }
+        }
+    }
 }
 
 @Composable
