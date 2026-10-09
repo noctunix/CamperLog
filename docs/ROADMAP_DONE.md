@@ -2,6 +2,7 @@
 
 Shipped features, newest first.
 
+- 1.19.0 – Tour list and detail screen reworked (tinted header card, grouped form, configurable list metrics), rough distance estimate when a tour has no GPS track, tour-list search also matches the name, fixed travel-day count for ongoing tours in the list
 - 1.18.0 – Home location auto-fills start/end stations at tour start, clearer data/backup icon, vehicle dimensions in cm with PS/kW and optional displacement & transmission, odometer at sale, GPS track recording detects a reboot instead of silently resuming and restarts itself automatically afterward (new permission: RECEIVE_BOOT_COMPLETED)
 - 1.17.1 – Travel days in the tour list, donate button moved into Settings, GPS track recording redesigned: pause/resume, a persistent status bar while recording, a switch directly on the tour (and at tour creation), clearer feedback when a recording fails to start
 - 1.17.0 – Optional tour destination with name and export slug, configurable accent color, camper-icon station rating (incl. food), odometer and temperature with one-tap weather lookup on stations, heart-tap favorite, LTE smileys, photos at station creation, link field for overnight spots, per-vehicle required energy types filtering tank and fuel-station fields

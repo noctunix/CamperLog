@@ -1,0 +1,4 @@
+• Tourenliste und Detailseite überarbeitet: klarere Übersicht, gruppiertes Formular, Status-Kopfkarte während der Fahrt
+• Grobe Distanzschätzung, wenn eine Tour keinen GPS-Track hat
+• Suche in der Tourenliste findet jetzt auch den Tour-Namen
+• Reisetage-Anzeige für laufende Touren in der Liste korrigiert

@@ -1,0 +1,4 @@
+• Tour list and detail screen redesigned: clearer overview, grouped form, status card while traveling
+• Rough distance estimate shown when a tour has no GPS track
+• Search in the tour list now also matches the tour name
+• Fixed the travel-day count for ongoing tours in the list
