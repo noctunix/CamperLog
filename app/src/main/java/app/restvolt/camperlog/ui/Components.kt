@@ -85,7 +85,7 @@ fun TabTopBar(
                 }
             }
             IconButton(onClick = onOpenData) {
-                Icon(painterResource(R.drawable.ic_import_export), contentDescription = stringResource(R.string.data_title))
+                Icon(painterResource(R.drawable.ic_folder_zip), contentDescription = stringResource(R.string.data_title))
             }
             IconButton(onClick = onOpenSettings) {
                 Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.settings_title))

@@ -113,7 +113,7 @@ fun IntroductionTourScreen(
                     0 -> TourPage(R.drawable.ic_map, R.string.title_intro_welcome, R.string.body_intro_welcome)
                     1 -> TourPage(R.drawable.ic_book, R.string.title_intro_logbook, R.string.body_intro_logbook)
                     2 -> TourPage(R.drawable.ic_directions_car, R.string.title_intro_vehicle, R.string.body_intro_vehicle)
-                    3 -> TourPage(R.drawable.ic_import_export, R.string.title_intro_data, R.string.body_intro_data)
+                    3 -> TourPage(R.drawable.ic_folder_zip, R.string.title_intro_data, R.string.body_intro_data)
                     PAGE_SETTINGS -> SettingsPage(
                         themeMode = themeMode,
                         onThemeModeChange = onThemeModeChange,
