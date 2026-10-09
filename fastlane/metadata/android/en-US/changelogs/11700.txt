@@ -1,0 +1,8 @@
+• Tour destination is optional; add a name and a short slug for exports
+• Choose an accent color in Settings
+• Rate stations with camper icons, now including food stops
+• Record odometer and temperature on any station, with one-tap weather lookup
+• "Would return" is now just tapping the heart
+• LTE quality shown as smileys
+• Add photos right when creating a station, plus a link for overnight spots
+• Vehicles declare their fuel/energy types, filtering tank and refuelling fields

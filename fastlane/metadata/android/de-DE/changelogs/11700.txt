@@ -1,0 +1,8 @@
+• Ziel bei Touren ist optional; Name und kurzer Slug für Export/Berichte
+• Akzentfarbe in den Einstellungen wählbar
+• Stationen jetzt mit Camper-Icons bewertbar, auch beim Essen
+• Kilometerstand und Temperatur bei jeder Station, Wetter per Knopfdruck
+• „Gerne wieder" jetzt direkt am Herz antippbar
+• LTE-Qualität als Smileys
+• Fotos schon beim Anlegen einer Station, Link-Feld beim Schlafplatz
+• Fahrzeuge geben benötigte Energiearten an, filtert Tank- und Tankstellenfelder
