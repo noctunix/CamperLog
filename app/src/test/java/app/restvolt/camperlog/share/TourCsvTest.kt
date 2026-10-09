@@ -80,7 +80,7 @@ class TourCsvTest {
             "3,2026-07-10,2026-07-12,\"Bodensee, Nordufer\",${tour.tourType.csvValue},3,2,412,89.50,ja," +
                 "${ElectricityFlatRate.NOT_USED.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
                 "\"Sagte: \"\"toll\"\"\",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z,\"89.50 EUR; 1450.00 NOK\",Bulli," +
-                "\"89.50 EUR; 1450.00 NOK\"",
+                "\"89.50 EUR; 1450.00 NOK\",,",
             lines[1],
         )
         assertEquals("", lines[2])
@@ -137,7 +137,7 @@ class TourCsvTest {
         assertEquals(
             "1,2026-07-10,2026-07-10,'=cmd|' /C calc'!A0,${TourType.DAY_TRIP.csvValue},1,0,80,0.00,nein," +
                 "${ElectricityFlatRate.NO.csvValue},${LteQuality.OK.csvValue},${PitchSlope.SLOPED.csvValue},ja," +
-                "\"'@Kontakt, bitte\",,2026-07-10T08:00:00Z,2026-07-10T08:00:00Z,,$DEFAULT_NAME,",
+                "\"'@Kontakt, bitte\",,2026-07-10T08:00:00Z,2026-07-10T08:00:00Z,,$DEFAULT_NAME,,,",
             row,
         )
     }
@@ -212,7 +212,8 @@ class TourCsvTest {
     fun germanHeaderMatchesThePinnedLegacyFormat() {
         assertEquals(
             "id,startdatum,enddatum,ziel,tourart,reisetage,uebernachtungen,km,kosten_eur,stellplatz_zugewiesen," +
-                "strompauschale,lte,stellplatz_neigung,keile_genutzt,notizen,kartenlink,angelegt,geaendert,kosten,fahrzeug,kosten_gesamt",
+                "strompauschale,lte,stellplatz_neigung,keile_genutzt,notizen,kartenlink,angelegt,geaendert,kosten,fahrzeug,kosten_gesamt," +
+                "name,slug",
             CSV_HEADER.joinToString(","),
         )
         assertEquals(CSV_HEADER, tourCsvHeader(CsvVocabulary.GERMAN))
@@ -222,7 +223,8 @@ class TourCsvTest {
     fun englishHeaderAndRowUseEnglishVocabulary() {
         assertEquals(
             "id,start_date,end_date,destination,trip_type,travel_days,overnight_stays,distance_km,costs_eur,pitch_assigned," +
-                "electricity_flat_rate,lte_quality,pitch_slope,leveling_blocks_used,notes,map_link,created_at,updated_at,costs,vehicle,total_costs",
+                "electricity_flat_rate,lte_quality,pitch_slope,leveling_blocks_used,notes,map_link,created_at,updated_at,costs,vehicle,total_costs," +
+                "name,slug",
             tourCsvHeader(CsvVocabulary.ENGLISH).joinToString(","),
         )
 
@@ -256,7 +258,7 @@ class TourCsvTest {
 
         assertEquals(
             "3,2026-07-10,2026-07-12,Lake Garda,day_trip,3,2,412,89.50,yes,not_used,good,level,no," +
-                ",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z,89.50 EUR,Bulli,89.50 EUR",
+                ",,2026-07-13T08:00:00Z,2026-07-14T09:30:00Z,89.50 EUR,Bulli,89.50 EUR,,",
             row,
         )
     }
@@ -274,9 +276,11 @@ class TourCsvTest {
     }
 
     @Test
-    fun totalCostsColumnIsAppendedAfterTheVehicleColumn() {
-        assertEquals("fahrzeug", CSV_HEADER[CSV_HEADER.size - 2])
-        assertEquals("kosten_gesamt", CSV_HEADER.last())
+    fun totalCostsColumnIsAppendedAfterTheVehicleColumnAndNameAndSlugAreLast() {
+        assertEquals("fahrzeug", CSV_HEADER[CSV_HEADER.size - 4])
+        assertEquals("kosten_gesamt", CSV_HEADER[CSV_HEADER.size - 3])
+        assertEquals("name", CSV_HEADER[CSV_HEADER.size - 2])
+        assertEquals("slug", CSV_HEADER.last())
     }
 
     @Test
@@ -291,6 +295,16 @@ class TourCsvTest {
         assertEquals("Bulli", rows[1].split(",")[vehicleIndex])
         assertEquals(DEFAULT_NAME, rows[2].split(",")[vehicleIndex])
         assertEquals(DEFAULT_NAME, rows[3].split(",")[vehicleIndex])
+    }
+
+    @Test
+    fun nameAndSlugColumnsHoldTheTourFieldsAndAreProtectedAgainstFormulaInjection() {
+        val tour = tour(1, vehicleId = 0).copy(name = "=cmd|' /C calc'!A0", slug = "sommerurlaub-2026")
+
+        val row = toursToCsv(listOf(tour), emptyList(), emptyMap(), DEFAULT_NAME).split("\r\n")[1].split(",")
+
+        assertEquals("'=cmd|' /C calc'!A0", row[CSV_HEADER.indexOf("name")])
+        assertEquals("sommerurlaub-2026", row[CSV_HEADER.indexOf("slug")])
     }
 
     @Test

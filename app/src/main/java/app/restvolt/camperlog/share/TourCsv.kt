@@ -34,6 +34,8 @@ val CSV_HEADER = listOf(
     "kosten",
     "fahrzeug",
     "kosten_gesamt",
+    "name",
+    "slug",
 )
 
 /** Englische Kopfzeile des Touren-CSV-Exports, Spalte für Spalte wie [CSV_HEADER]. */
@@ -59,6 +61,8 @@ private val ENGLISH_CSV_HEADER = listOf(
     "costs",
     "vehicle",
     "total_costs",
+    "name",
+    "slug",
 )
 
 /** Kopfzeile des Touren-CSV-Exports in [vocabulary]. */
@@ -164,6 +168,8 @@ private fun Tour.csvFields(
         costs.joinToString("; ") { "${amountToDecimal(it.minor, it.currency)} ${it.currency.currencyCode}" },
         neutralizeFormula(vehicleNames[vehicleId]?.takeIf(String::isNotBlank) ?: defaultVehicleName),
         totalCosts(tourStations).joinToString("; ") { "${amountToDecimal(it.minor, it.currency)} ${it.currency.currencyCode}" },
+        neutralizeFormula(name),
+        neutralizeFormula(slug),
     )
 
 private fun yesNoOrEmpty(value: Boolean?, vocabulary: CsvVocabulary) = when (value) {

@@ -249,6 +249,8 @@ class RoomVehicleRepositoryTest {
                 startDate = "2026-05-01",
                 endDate = "2026-05-01",
                 destination = "Ziel",
+                name = "",
+                slug = "",
                 tourType = TourType.DAY_TRIP.name,
                 travelDays = 1,
                 overnightStays = 0,

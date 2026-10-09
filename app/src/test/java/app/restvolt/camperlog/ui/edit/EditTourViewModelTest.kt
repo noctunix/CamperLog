@@ -101,6 +101,41 @@ class EditTourViewModelTest {
         assertEquals("1", viewModel.uiState.value.input.distanceKm)
     }
 
+    @Test
+    fun slugFollowsDestinationUntilManuallyChanged() = runTest {
+        val viewModel = newViewModel()
+
+        viewModel.onDestinationChange("Gardasee")
+        assertEquals("gardasee", viewModel.uiState.value.input.slug)
+
+        viewModel.onDestinationChange("Gardasee Nord")
+        assertEquals("gardasee-nord", viewModel.uiState.value.input.slug)
+
+        viewModel.onSlugChange("custom-slug")
+        viewModel.onDestinationChange("Ostsee")
+        assertEquals("custom-slug", viewModel.uiState.value.input.slug)
+    }
+
+    @Test
+    fun slugPrefersNameOverDestination() = runTest {
+        val viewModel = newViewModel()
+
+        viewModel.onDestinationChange("Gardasee")
+        viewModel.onNameChange("Sommerurlaub")
+
+        assertEquals("sommerurlaub", viewModel.uiState.value.input.slug)
+    }
+
+    private fun newViewModel() = EditTourViewModel(
+        FakeTourRepository(),
+        FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+        FakeStationRepository(),
+        FakeChecklistRepository(),
+        0,
+        SavedStateHandle(),
+        locale,
+    )
+
     private fun tour(vehicleId: Long) = Tour(
         id = 1,
         vehicleId = vehicleId,

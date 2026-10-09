@@ -16,6 +16,10 @@ data class TourInput(
     @Serializable(with = LocalDateSerializer::class) val startDate: LocalDate? = null,
     @Serializable(with = LocalDateSerializer::class) val endDate: LocalDate? = null,
     val destination: String = "",
+    /** Freitext-Name der Tour; leer bedeutet, dass die Oberfläche stattdessen [destination] anzeigt. */
+    val name: String = "",
+    /** URL-/dateinamensicherer Kurzname für Berichte und Exporte; siehe [suggestSlug]. */
+    val slug: String = "",
     val tourType: TourType = TourType.WEEKEND,
     val travelDays: String = "",
     val overnightStays: String = "",
@@ -67,7 +71,6 @@ internal fun TourInput.validation(locale: Locale): TourValidation {
         if (startDate != null && endDate != null && endDate < startDate) {
             put(TourField.END_DATE, TourError.END_BEFORE_START)
         }
-        if (destination.isBlank()) put(TourField.DESTINATION, TourError.REQUIRED)
         countError(travelDays)?.let { put(TourField.TRAVEL_DAYS, it) }
         countError(overnightStays)?.let { put(TourField.OVERNIGHT_STAYS, it) }
         countError(distanceKm)?.let { put(TourField.DISTANCE_KM, it) }
@@ -111,6 +114,8 @@ fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
     startDate = checkNotNull(startDate),
     endDate = endDate,
     destination = destination.trim(),
+    name = name.trim(),
+    slug = slug.trim(),
     tourType = tourType,
     travelDays = checkNotNull(parseCount(travelDays)),
     overnightStays = checkNotNull(parseCount(overnightStays)),
@@ -135,6 +140,8 @@ fun Tour.toInput(locale: Locale): TourInput = TourInput(
     startDate = startDate,
     endDate = endDate,
     destination = destination,
+    name = name,
+    slug = slug,
     tourType = tourType,
     travelDays = travelDays.toString(),
     overnightStays = overnightStays.toString(),
@@ -154,6 +161,21 @@ fun isWebUrl(link: String): Boolean {
     val uri = runCatching { URI(link) }.getOrNull() ?: return false
     return uri.scheme?.lowercase() in setOf("http", "https") && !uri.host.isNullOrBlank()
 }
+
+/**
+ * Schlägt einen URL-/dateinamensicheren Kurznamen aus [source] vor: deutsche Umlaute werden
+ * transliteriert (ä→ae, ö→oe, ü→ue, ß→ss), der Rest klein geschrieben, jede Folge anderer Zeichen
+ * wird zu einem einzelnen `-`, führende und folgende `-` fallen weg.
+ */
+fun suggestSlug(source: String): String {
+    val transliterated = source
+        .replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
+        .replace("Ä", "Ae").replace("Ö", "Oe").replace("Ü", "Ue")
+        .replace("ß", "ss")
+    return transliterated.lowercase(Locale.ROOT).replace(SLUG_SEPARATOR, "-").trim('-')
+}
+
+private val SLUG_SEPARATOR = Regex("[^a-z0-9]+")
 
 private fun parseCount(text: String): Int? = if (text.isBlank()) 0 else text.trim().toIntOrNull()?.takeIf { it >= 0 }
 

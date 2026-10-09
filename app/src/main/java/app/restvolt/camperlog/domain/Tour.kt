@@ -21,6 +21,10 @@ data class Tour(
     /** Abschlussdatum; `null` kennzeichnet eine laufende Tour. */
     val endDate: LocalDate?,
     val destination: String,
+    /** Freitext-Name der Tour; leer bedeutet, dass [displayTitle] auf [destination] zurückfällt. */
+    val name: String = "",
+    /** URL-/dateinamensicherer Kurzname für Berichte und Exporte; siehe [app.restvolt.camperlog.domain.suggestSlug]. */
+    val slug: String = "",
     val tourType: TourType,
     val travelDays: Int,
     val overnightStays: Int,
@@ -36,6 +40,9 @@ data class Tour(
     /** Jahr der Tour, bestimmt durch das Startdatum. */
     val year: Int get() = startDate.year
 }
+
+/** Anzeigename der Tour: [Tour.name] falls gesetzt, sonst [Tour.destination], sonst [fallback]. */
+fun Tour.displayTitle(fallback: String): String = name.ifBlank { destination }.ifBlank { fallback }
 
 /** Art der Tour mit stabilem Exportwert [csvValue]. */
 enum class TourType(val csvValue: String) {

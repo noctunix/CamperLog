@@ -47,6 +47,7 @@ import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.allowedServices
 import app.restvolt.camperlog.domain.countryDisplayName
+import app.restvolt.camperlog.domain.displayTitle
 import app.restvolt.camperlog.domain.effectiveCosts
 import app.restvolt.camperlog.domain.electricityCost
 import app.restvolt.camperlog.domain.electricityKwh
@@ -131,7 +132,7 @@ fun StationDetailScreen(
             StationDetailUiState.NotFound -> EmptyHint(stringResource(R.string.station_not_found), Modifier.padding(padding))
             is StationDetailUiState.Loaded -> StationDetails(
                 station = current.station,
-                tourDestination = current.tour?.destination,
+                tourTitle = current.tour?.displayTitle(stringResource(R.string.detail_fallback_title)),
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
                 attachmentPickers = attachmentPickers,
@@ -153,7 +154,7 @@ fun StationDetailScreen(
 @Composable
 private fun StationDetails(
     station: Station,
-    tourDestination: String?,
+    tourTitle: String?,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers,
@@ -171,11 +172,11 @@ private fun StationDetails(
     ) {
         SectionCard {
             val typeLabel = stringResource(station.type.labelRes)
-            val rowText = if (tourDestination != null) stringResource(R.string.station_open_tour, typeLabel, tourDestination) else typeLabel
+            val rowText = if (tourTitle != null) stringResource(R.string.station_open_tour, typeLabel, tourTitle) else typeLabel
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .let { if (tourDestination != null) it.clickable(onClickLabel = stringResource(R.string.tours_open_details), onClick = onOpenTour) else it },
+                    .let { if (tourTitle != null) it.clickable(onClickLabel = stringResource(R.string.tours_open_details), onClick = onOpenTour) else it },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(painterResource(station.type.iconRes), contentDescription = null, modifier = Modifier.padding(end = 12.dp))

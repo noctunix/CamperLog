@@ -174,7 +174,6 @@ class TourFlowTest {
         compose.onNodeWithText("Neue Tour").performClick()
         clickSave()
 
-        compose.onNodeWithText("Ziel erforderlich").assertExists()
         compose.onNodeWithText("Startdatum erforderlich").assertExists()
         destinationField().assertExists()
         assertEquals(0, repository.tours.size)
@@ -342,8 +341,8 @@ class TourFlowTest {
 
         clickSave()
 
-        destinationField().assertIsFocused().assertIsDisplayed()
-        compose.onNodeWithText("Bitte diese Felder prüfen: Ziel, Kosten")
+        compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).assertIsFocused().assertIsDisplayed()
+        compose.onNodeWithText("Bitte diese Felder prüfen: Kosten")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
     }
 
@@ -354,15 +353,14 @@ class TourFlowTest {
 
         compose.onNode(hasText("Startdatum") and hasClickAction()).assert(hasText("Pflichtfeld"))
         compose.onNode(hasText("Enddatum") and hasClickAction()).assert(!hasText("Pflichtfeld"))
-        destinationField().assert(hasText("Pflichtfeld"))
+        destinationField().assert(!hasText("Pflichtfeld"))
         compose.onNodeWithText("Werden beim Beenden automatisch aus Zeitraum, Stationen und GPS-Track berechnet.").assertExists()
         compose.onNodeWithText("Kartenlink").assertDoesNotExist()
         compose.onNode(hasSetTextAction() and hasText("Notizen")).assert(!hasText("Pflichtfeld"))
 
         clickSave()
 
-        destinationField().assert(hasText("Ziel erforderlich")).assert(!hasText("Pflichtfeld"))
-        compose.onNodeWithText("Bitte diese Felder prüfen: Startdatum, Ziel").assertExists()
+        compose.onNodeWithText("Bitte diese Felder prüfen: Startdatum").assertExists()
     }
 
     @Test

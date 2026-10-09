@@ -22,6 +22,7 @@ import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.derivedMetrics
+import app.restvolt.camperlog.domain.suggestSlug
 import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toTour
 import app.restvolt.camperlog.domain.travelDaysBetween
@@ -68,6 +69,7 @@ internal data class TourDraft(
     val input: TourInput,
     val showErrors: Boolean,
     val autoTravelDays: String?,
+    val autoSlug: String? = null,
 )
 
 /**
@@ -103,6 +105,7 @@ class EditTourViewModel(
     private var original: Tour? = null
     private var showErrors = draft?.showErrors ?: false
     private var autoTravelDays: String? = draft?.autoTravelDays
+    private var autoSlug: String? = draft?.autoSlug
 
     init {
         if (showErrors) _uiState.update { it.withErrors() }
@@ -172,6 +175,23 @@ class EditTourViewModel(
     }
 
     fun onVehicleChange(vehicleId: Long) = onInputChange { it.copy(vehicleId = vehicleId) }
+
+    fun onNameChange(name: String) = onInputChange { updateSlugSuggestion(it.copy(name = name)) }
+
+    fun onDestinationChange(destination: String) = onInputChange { updateSlugSuggestion(it.copy(destination = destination)) }
+
+    fun onSlugChange(slug: String) = onInputChange { it.copy(slug = slug) }
+
+    /**
+     * Schlägt den Slug aus [TourInput.name] bzw. [TourInput.destination] vor, solange der Nutzer ihn
+     * nicht selbst geändert hat (leer oder noch gleich dem letzten Vorschlag).
+     */
+    private fun updateSlugSuggestion(input: TourInput): TourInput {
+        if (input.slug.isNotBlank() && input.slug != autoSlug) return input
+        val suggestion = suggestSlug(input.name.ifBlank { input.destination })
+        autoSlug = suggestion
+        return input.copy(slug = suggestion)
+    }
 
     fun onStartDateChange(date: LocalDate) {
         onInputChange { prefillTravelDays(it.copy(startDate = date)) }
@@ -243,7 +263,7 @@ class EditTourViewModel(
 
     private fun saveDraft() {
         val input = _uiState.value.input
-        savedStateHandle[DRAFT_KEY] = encodeToSavedState(TourDraft(input, showErrors, autoTravelDays))
+        savedStateHandle[DRAFT_KEY] = encodeToSavedState(TourDraft(input, showErrors, autoTravelDays, autoSlug))
     }
 
     /** Aktualisiert nach einer Datumswahl alle automatisch ableitbaren Kennzahlen. */

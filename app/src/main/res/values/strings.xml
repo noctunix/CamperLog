@@ -35,6 +35,8 @@
     <string name="field_start_date">Start date</string>
     <string name="field_end_date">End date</string>
     <string name="field_destination">Destination</string>
+    <string name="field_slug">Slug</string>
+    <string name="edit_slug_hint">Used for export file names</string>
     <string name="field_tour_type">Trip type</string>
     <string name="field_travel_days">Travel days</string>
     <string name="field_overnight_stays">Overnight stays</string>

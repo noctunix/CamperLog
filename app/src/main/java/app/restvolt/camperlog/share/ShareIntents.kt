@@ -150,9 +150,12 @@ fun backupFileName(date: LocalDate = LocalDate.now()): String = "camperlog-siche
 /** Vorgeschlagener Dateiname für eine ZIP-Sicherung, z. B. `camperlog-sicherung-2026-10-04.zip`. */
 fun backupZipFileName(date: LocalDate = LocalDate.now()): String = "camperlog-sicherung-$date.zip"
 
-/** Dateiname (ohne Endung) der ZIP-Datei eines Tour-Exports, z. B. `CamperLog Bodensee 2026-07-10`. */
-fun tourExportBaseName(destination: String, startDate: LocalDate): String =
-    "CamperLog ${sanitizeZipName(destination, "Tour")} $startDate"
+/**
+ * Dateiname (ohne Endung) der ZIP-Datei eines Tour-Exports, z. B. `CamperLog Bodensee 2026-07-10`.
+ * [nameHint] ist bevorzugt der Slug der Tour, sonst ihr Ziel (siehe Aufrufer).
+ */
+fun tourExportBaseName(nameHint: String, startDate: LocalDate): String =
+    "CamperLog ${sanitizeZipName(nameHint, "Tour")} $startDate"
 
 /**
  * Schreibt die ZIP-Datei eines Tour-Exports in den Cache-Ordner `exports/` und liefert eine

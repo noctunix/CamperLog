@@ -35,6 +35,8 @@
     <string name="field_start_date">Startdatum</string>
     <string name="field_end_date">Enddatum</string>
     <string name="field_destination">Ziel</string>
+    <string name="field_slug">Slug</string>
+    <string name="edit_slug_hint">Für Dateinamen bei Berichten</string>
     <string name="field_tour_type">Tourart</string>
     <string name="field_travel_days">Reisetage</string>
     <string name="field_overnight_stays">Übernachtungen</string>

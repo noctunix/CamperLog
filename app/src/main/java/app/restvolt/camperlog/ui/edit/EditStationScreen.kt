@@ -75,6 +75,7 @@ import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.CoordinateSource
+import app.restvolt.camperlog.domain.displayTitle
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.FUEL_SERVICES
 import app.restvolt.camperlog.domain.LocationFix
@@ -785,11 +786,12 @@ private fun TypeField(selected: StationType, onSelect: (StationType) -> Unit) {
 private fun TourField(tours: List<Tour>, selectedId: Long?, onSelect: (Long?) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val noTourLabel = stringResource(R.string.station_no_tour)
+    val fallbackTitle = stringResource(R.string.detail_fallback_title)
     val selected = tours.firstOrNull { it.id == selectedId }
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
-            value = selected?.destination ?: noTourLabel,
+            value = selected?.displayTitle(fallbackTitle) ?: noTourLabel,
             onValueChange = {},
             readOnly = true,
             label = { Text(stringResource(R.string.field_tour)) },
@@ -809,7 +811,7 @@ private fun TourField(tours: List<Tour>, selectedId: Long?, onSelect: (Long?) ->
             )
             tours.forEach { tour ->
                 DropdownMenuItem(
-                    text = { Text(tour.destination) },
+                    text = { Text(tour.displayTitle(fallbackTitle)) },
                     onClick = {
                         expanded = false
                         onSelect(tour.id)

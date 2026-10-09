@@ -87,7 +87,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 11
+const val BACKUP_SCHEMA_VERSION = 12
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -692,7 +692,9 @@ private fun TourDto.toTour(schemaVersion: Int): Tour? {
         endDate == null -> return null
         else -> parseDate(endDate)?.takeIf { it >= start } ?: return null
     }
-    val destination = destination.trim().takeIf { it.isNotEmpty() && it.length <= MAX_DESTINATION_LENGTH } ?: return null
+    val destination = destination.trim().takeIf { it.length <= MAX_DESTINATION_LENGTH } ?: return null
+    val name = name.trim().takeIf { it.length <= MAX_DESTINATION_LENGTH } ?: return null
+    val slug = slug.trim().takeIf { it.length <= MAX_DESTINATION_LENGTH } ?: return null
     if (travelDays < 0 || overnightStays < 0 || distanceKm < 0 || overnightStays > travelDays) return null
     if (notes.length > MAX_NOTES_LENGTH) return null
     val link = mapLink?.trim()?.ifEmpty { null }
@@ -707,6 +709,8 @@ private fun TourDto.toTour(schemaVersion: Int): Tour? {
         startDate = start,
         endDate = end,
         destination = destination,
+        name = name,
+        slug = slug,
         tourType = enumOrNull<TourType>(tourType) ?: return null,
         travelDays = travelDays,
         overnightStays = overnightStays,
@@ -862,6 +866,8 @@ private fun Tour.toDto(vehicleUuid: String?) = TourDto(
     startDate = startDate.toString(),
     endDate = endDate?.toString(),
     destination = destination,
+    name = name,
+    slug = slug,
     tourType = tourType.name,
     travelDays = travelDays,
     overnightStays = overnightStays,

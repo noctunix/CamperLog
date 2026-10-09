@@ -32,6 +32,8 @@ data class TourEntity(
     @ColumnInfo(name = "start_date") val startDate: String,
     @ColumnInfo(name = "end_date") val endDate: String?,
     val destination: String,
+    @ColumnInfo(defaultValue = "") val name: String,
+    @ColumnInfo(defaultValue = "") val slug: String,
     @ColumnInfo(name = "tour_type") val tourType: String,
     @ColumnInfo(name = "travel_days") val travelDays: Int,
     @ColumnInfo(name = "overnight_stays") val overnightStays: Int,

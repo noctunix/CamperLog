@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.displayTitle
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.period
 import app.restvolt.camperlog.ui.EmptyHint
@@ -163,7 +164,7 @@ fun ToursScreen(
         when (current) {
             is ToursMessage.Deleted -> {
                 val result = snackbar.showSnackbar(
-                    message = resources.getString(R.string.tours_deleted, current.tour.destination),
+                    message = resources.getString(R.string.tours_deleted, current.tour.displayTitle(resources.getString(R.string.detail_fallback_title))),
                     actionLabel = resources.getString(R.string.tours_undo),
                     withDismissAction = true,
                     duration = SnackbarDuration.Long,
@@ -281,7 +282,7 @@ private fun TourCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(tour.destination, style = MaterialTheme.typography.titleMedium)
+                Text(tour.displayTitle(stringResource(R.string.detail_fallback_title)), style = MaterialTheme.typography.titleMedium)
                 Text(
                     if (tour.endDate == null) {
                         stringResource(R.string.tours_running_since, formatDate(tour.startDate, currentLocale()))

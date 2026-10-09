@@ -33,7 +33,7 @@ import java.util.Currency
 import java.util.UUID
 
 /**
- * Prüft jede Migration von Version 1 bis 16 einzeln: Die Ausgangsdatenbank wird exakt nach dem
+ * Prüft jede Migration von Version 1 bis 17 einzeln: Die Ausgangsdatenbank wird exakt nach dem
  * jeweiligen `schemas/…/<n>.json` angelegt (`createVersion<n>`), migriert und auf erhaltene bzw.
  * umgewandelte Daten geprüft. Room validiert beim Öffnen zusätzlich, dass das Ergebnis dem Schema der
  * Zielversion entspricht.
@@ -614,6 +614,39 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migration16To17AddsEmptyNameAndSlugColumnsAndKeepsThemEditable() = runTest {
+        createVersion16(
+            defaultVehicleInsert,
+            "INSERT INTO tours VALUES (1, 'tour-1', 1, '2026-07-04', '2026-07-05', 'Lofoten', 'WEEKEND', 2, 1, " +
+                "100, '', NULL, 1000, 2000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val repository = RoomTourRepository(db) { Instant.EPOCH }
+            val tour = repository.allTours().single()
+            assertEquals("", tour.name)
+            assertEquals("", tour.slug)
+
+            repository.save(tour.copy(name = "Sommerurlaub", slug = "sommerurlaub-2026"))
+            val reloaded = repository.allTours().single()
+            assertEquals("Sommerurlaub", reloaded.name)
+            assertEquals("sommerurlaub-2026", reloaded.slug)
+        } finally {
+            db.close()
+        }
+    }
+
+    /** Legt `camperlog.db` im Stand von Version 16 nach `schemas/…/16.json` an und füllt sie mit [inserts]. */
+    private fun createVersion16(vararg inserts: String) = createVersion14Schema(
+        version = 16,
+        identityHash = "50fb4ee6a871a5518847c6b9f8777501",
+        includeTrackPoints = true,
+        inserts = inserts,
+        toursEndDateNullable = true,
+    )
+
     private fun createVersion15(vararg inserts: String) = createVersion14Schema(
         version = 15,
         identityHash = "f32acf41debcc664b1bdf640271c1311",
@@ -634,11 +667,12 @@ class MigrationTest {
         identityHash: String,
         includeTrackPoints: Boolean,
         inserts: Array<out String>,
+        toursEndDateNullable: Boolean = false,
     ) = createDatabase(
         version = version,
         identityHash = identityHash,
         schema = listOf(
-            "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL DEFAULT '', `vehicle_id` INTEGER NOT NULL, `start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, `destination` TEXT NOT NULL, `tour_type` TEXT NOT NULL, `travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, `notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+            "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL DEFAULT '', `vehicle_id` INTEGER NOT NULL, `start_date` TEXT NOT NULL, `end_date` TEXT${if (toursEndDateNullable) "" else " NOT NULL"}, `destination` TEXT NOT NULL, `tour_type` TEXT NOT NULL, `travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, `notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
             "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)",
             "CREATE UNIQUE INDEX IF NOT EXISTS `index_tours_uuid` ON `tours` (`uuid`)",
             "CREATE INDEX IF NOT EXISTS `index_tours_vehicle_id` ON `tours` (`vehicle_id`)",

@@ -219,13 +219,40 @@ class BackupTest {
     }
 
     @Test
+    fun roundTrip_keepsNameAndSlugAndAllowsBlankDestination() {
+        val withNameAndSlug = backup.copy(
+            tours = listOf(tour().copy(name = "Sommerurlaub", slug = "sommerurlaub-2026", destination = "")),
+        )
+
+        val decoded = success(encodeBackup(withNameAndSlug))
+
+        val decodedTour = decoded.tours.single()
+        assertEquals("Sommerurlaub", decodedTour.name)
+        assertEquals("sommerurlaub-2026", decodedTour.slug)
+        assertEquals("", decodedTour.destination)
+    }
+
+    @Test
+    fun read_importsOlderBackupsMissingTheNameAndSlugFields() {
+        val text = applyAll(
+            encodeBackup(backup),
+            listOf("\"name\": \"\"," to "", "\"slug\": \"\"," to ""),
+        )
+
+        val decoded = success(text)
+
+        assertEquals("", decoded.tours.first().name)
+        assertEquals("", decoded.tours.first().slug)
+    }
+
+    @Test
     fun roundTrip_keepsRunningTourWithoutEndDate() {
         val running = backup.copy(tours = listOf(tour().copy(endDate = null)))
 
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 11" in text)
+        assert("\"schemaVersion\": 12" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -235,7 +262,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 11" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 12" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -328,7 +355,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 11" in text)
+        assert("\"schemaVersion\": 12" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -363,13 +390,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 11", "\"schemaVersion\": 12"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 12", "\"schemaVersion\": 13"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 11", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 12", it))?.error)
         }
     }
 
@@ -458,7 +485,6 @@ class BackupTest {
     fun decode_reportsNumberOfInvalidTour() {
         listOf(
             "\"uuid\": \"1b6f5e2a-6c1d-4e8a-9f3b-2d7c1a4e5f60\"" to "\"uuid\": \"keine-uuid\"",
-            "\"destination\": \"Ostsee\"" to "\"destination\": \"   \"",
             "\"destination\": \"Ostsee\"" to "\"destination\": \"${"x".repeat(MAX_DESTINATION_LENGTH + 1)}\"",
         ).forEach { (old, new) ->
             assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, tourNumber = 2), failure(encodedWith(old, new)))

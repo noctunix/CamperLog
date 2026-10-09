@@ -130,9 +130,9 @@ class DraftRestorationTest {
 
         val after = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle.afterProcessDeath(), locale)
 
-        assertEquals(TourError.REQUIRED, after.uiState.value.errors[TourField.DESTINATION])
-        after.onInputChange { it.copy(destination = "Harz") }
-        assertFalse(TourField.DESTINATION in after.uiState.value.errors)
+        assertEquals(TourError.REQUIRED, after.uiState.value.errors[TourField.START_DATE])
+        after.onInputChange { it.copy(startDate = LocalDate.of(2026, 1, 1)) }
+        assertFalse(TourField.START_DATE in after.uiState.value.errors)
     }
 
     @Test

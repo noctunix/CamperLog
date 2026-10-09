@@ -60,6 +60,10 @@ internal data class TourDto(
     /** `null` kennzeichnet ab Sicherungsformat 11 eine laufende Tour. */
     val endDate: String? = null,
     val destination: String,
+    /** Freitext-Name der Tour; fehlt in Sicherungen vor Formatversion 12. */
+    val name: String = "",
+    /** URL-/dateinamensicherer Kurzname für Berichte und Exporte; fehlt in Sicherungen vor Formatversion 12. */
+    val slug: String = "",
     val tourType: String,
     val travelDays: Int,
     val overnightStays: Int,

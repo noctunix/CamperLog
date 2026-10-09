@@ -17,6 +17,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.displayTitle
 import app.restvolt.camperlog.ui.checklists.suggestedChecklistTemplates
 import app.restvolt.camperlog.ui.detail.AndroidTourExportFiles
 import app.restvolt.camperlog.ui.detail.DetailUiState
@@ -180,10 +181,11 @@ internal fun NavGraphBuilder.toursGraph(
         val loaded = detailState as? DetailUiState.Loaded
         val track by remember(route.tourId) { tracks.observeForTour(route.tourId) }
             .collectAsStateWithLifecycle(initialValue = emptyList())
+        val fallbackTitle = stringResource(R.string.detail_fallback_title)
         MapScreen(
             stations = loaded?.stations ?: emptyList(),
             track = track,
-            title = loaded?.tour?.destination ?: stringResource(R.string.detail_fallback_title),
+            title = loaded?.tour?.displayTitle(fallbackTitle) ?: fallbackTitle,
             viewModel = viewModel(key = "map_tour_${route.tourId}") { MapViewModel(tileLoader) },
             onBack = { navController.popFrom(entry) },
             onOpenStation = { stationId -> navController.navigate(StationDetailRoute(stationId)) },

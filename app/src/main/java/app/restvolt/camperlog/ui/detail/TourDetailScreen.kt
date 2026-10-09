@@ -64,6 +64,7 @@ import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.checkedCount
+import app.restvolt.camperlog.domain.displayTitle
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
@@ -143,7 +144,8 @@ fun TourDetailScreen(
     Scaffold(
         topBar = {
             Column {
-                BackTopBar(title = tour?.destination ?: stringResource(R.string.detail_fallback_title), onBack = onBack) {
+                val fallbackTitle = stringResource(R.string.detail_fallback_title)
+                BackTopBar(title = tour?.displayTitle(fallbackTitle) ?: fallbackTitle, onBack = onBack) {
                     if (tour != null) {
                         val loaded = state as DetailUiState.Loaded
                         IconButton(onClick = onEdit) {
@@ -412,7 +414,8 @@ private fun TourDetails(
                 }
                 LabeledValue(stringResource(R.string.field_start_date), formatDate(tour.startDate, locale))
                 tour.endDate?.let { LabeledValue(stringResource(R.string.field_end_date), formatDate(it, locale)) }
-                LabeledValue(stringResource(R.string.field_destination), tour.destination)
+                tour.name.takeIf(String::isNotBlank)?.let { LabeledValue(stringResource(R.string.field_name), it) }
+                tour.destination.takeIf(String::isNotBlank)?.let { LabeledValue(stringResource(R.string.field_destination), it) }
                 LabeledValue(stringResource(R.string.field_tour_type), stringResource(tour.tourType.labelRes))
                 LabeledValue(stringResource(R.string.field_travel_days), metrics.travelDays.toString())
                 LabeledValue(stringResource(R.string.field_overnight_stays), metrics.overnightStays.toString())

@@ -39,7 +39,7 @@ class TourInputTest {
     @Test
     fun missingRequiredFieldsAreReported() {
         val errors = TourInput().validate(de)
-        assertEquals(setOf(TourField.START_DATE, TourField.DESTINATION), errors.keys)
+        assertEquals(setOf(TourField.START_DATE), errors.keys)
     }
 
     @Test
@@ -51,8 +51,8 @@ class TourInputTest {
     }
 
     @Test
-    fun blankDestinationIsInvalid() {
-        assertTrue(TourField.DESTINATION in valid.copy(destination = "   ").validate(de))
+    fun blankDestinationIsValid() {
+        assertTrue(valid.copy(destination = "   ").validate(de).isEmpty())
     }
 
     @Test
@@ -94,6 +94,21 @@ class TourInputTest {
         assertEquals("Ostsee", tour.destination)
         assertNull(tour.mapLink)
         assertEquals(listOf(Money(12_345, EUR)), tour.costs)
+    }
+
+    @Test
+    fun toTourTrimsNameAndSlug() {
+        val tour = valid.copy(name = "  Sommerurlaub  ", slug = "  sommerurlaub-2026  ").toTour(null, de)
+        assertEquals("Sommerurlaub", tour.name)
+        assertEquals("sommerurlaub-2026", tour.slug)
+    }
+
+    @Test
+    fun suggestSlugTransliteratesLowercasesAndDashesSeparators() {
+        assertEquals("ueber-den-aermelkanal", suggestSlug("Über den Ärmelkanal"))
+        assertEquals("oedensee-fjaellbacka", suggestSlug("Ödensee / Fjällbacka!"))
+        assertEquals("", suggestSlug("   "))
+        assertEquals("camping", suggestSlug("-Camping-"))
     }
 
     @Test

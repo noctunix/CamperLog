@@ -368,7 +368,7 @@ class TourDetailViewModel(
                 val vehicleNames = vehicles.allVehicles().associate { it.id to it.name }
                 val defaultVehicleName = res.getString(R.string.vehicle_default_name)
                 val track = tracks.observeForTour(tour.id).first()
-                val baseName = tourExportBaseName(tour.destination, tour.startDate)
+                val baseName = tourExportBaseName(tour.slug.ifBlank { tour.destination }, tour.startDate)
                 val uri = exportFiles.writeTourExportZip(baseName) { output ->
                     writeTourExportZip(
                         output = output,

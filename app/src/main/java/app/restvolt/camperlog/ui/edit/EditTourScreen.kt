@@ -183,16 +183,36 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 onClear = { viewModel.onEndDateChange(null) },
             )
             FormTextField(
+                label = stringResource(R.string.field_name),
+                value = input.name,
+                error = null,
+                onValueChange = viewModel::onNameChange,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next,
+                ),
+            )
+            FormTextField(
                 label = stringResource(R.string.field_destination),
                 value = input.destination,
                 error = errors[TourField.DESTINATION],
-                onValueChange = { value -> change { it.copy(destination = value) } },
+                onValueChange = viewModel::onDestinationChange,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Words,
                     imeAction = ImeAction.Next,
                 ),
                 modifier = focusOf(TourField.DESTINATION),
-                hint = required,
+            )
+            FormTextField(
+                label = stringResource(R.string.field_slug),
+                value = input.slug,
+                error = null,
+                onValueChange = viewModel::onSlugChange,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
+                    imeAction = ImeAction.Next,
+                ),
+                hint = stringResource(R.string.edit_slug_hint),
             )
             ChoiceField(stringResource(R.string.field_tour_type), TourType.entries, input.tourType, TourType::labelRes) { value ->
                 change { it.copy(tourType = value) }

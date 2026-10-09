@@ -39,7 +39,7 @@ import java.util.UUID
         ChecklistItemEntity::class,
         TrackPointEntity::class,
     ],
-    version = 16,
+    version = 17,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -79,7 +79,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
-                    MIGRATION_14_15, MIGRATION_15_16,
+                    MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
                 )
                 .build()
     }
@@ -716,5 +716,18 @@ internal val MIGRATION_15_16 = object : Migration(15, 16) {
         db.query("PRAGMA foreign_key_check").use { cursor ->
             check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 15→16" }
         }
+    }
+}
+
+/**
+ * Version 17: Touren bekommen einen freien [app.restvolt.camperlog.domain.Tour.name] und einen
+ * URL-/dateinamensicheren [app.restvolt.camperlog.domain.Tour.slug] für Berichte und Exporte; beide
+ * sind optional. Zwei nullable-freie Textspalten brauchen keinen Fremdschlüssel, daher reicht
+ * `ALTER TABLE ADD COLUMN` wie schon bei [MIGRATION_5_6].
+ */
+internal val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `tours` ADD COLUMN `name` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `tours` ADD COLUMN `slug` TEXT NOT NULL DEFAULT ''")
     }
 }

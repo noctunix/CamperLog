@@ -990,6 +990,43 @@ class RoomBackupImporterTest {
     }
 
     @Test
+    fun legacyFormat11Backup_importsTourWithoutNameOrSlug() = runTest {
+        val text = """
+            {
+              "format": "camperlog-backup",
+              "schemaVersion": 11,
+              "exportedAt": "2026-10-04T12:00:00Z",
+              "mainCurrency": "SEK",
+              "exchangeRates": [],
+              "tours": [
+                {
+                  "uuid": "6b6f5e2a-6c1d-4e8a-9f3b-2d7c1a4e5f60",
+                  "startDate": "2026-07-04",
+                  "endDate": "2026-07-05",
+                  "destination": "Lofoten",
+                  "tourType": "WEEKEND",
+                  "travelDays": 2,
+                  "overnightStays": 1,
+                  "distanceKm": 100,
+                  "notes": "",
+                  "createdAt": "2026-07-04T10:00:00Z",
+                  "updatedAt": "2026-07-04T10:00:00Z"
+                }
+              ]
+            }
+        """.trimIndent()
+        val decoded = (decodeBackup(text) as BackupReadResult.Success).backup
+
+        val result = importer.import(decoded, ImportMode.MERGE)
+
+        assertEquals(1, result.addedTours)
+        val imported = tours.allTours().single()
+        assertEquals("Lofoten", imported.destination)
+        assertEquals("", imported.name)
+        assertEquals("", imported.slug)
+    }
+
+    @Test
     fun legacyPitchFromAnOldTour_isImportedAsOneOvernightStation() = runTest {
         val text = """
             {
