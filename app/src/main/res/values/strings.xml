@@ -13,8 +13,14 @@
     <string name="no_share_app">No app available for sharing</string>
     <string name="distance_km">%1$,d km</string>
     <string name="distance_km_estimated">≈ %1$,d km (estimated)</string>
-    <string name="distance_km_cd">%1$,d kilometers</string>
-    <string name="distance_km_estimated_cd">approximately %1$,d kilometers, estimated</string>
+    <plurals name="distance_km_cd">
+        <item quantity="one">%1$,d kilometer</item>
+        <item quantity="other">%1$,d kilometers</item>
+    </plurals>
+    <plurals name="distance_km_estimated_cd">
+        <item quantity="one">approximately %1$,d kilometer, estimated</item>
+        <item quantity="other">approximately %1$,d kilometers, estimated</item>
+    </plurals>
     <string name="action_undo">Undo</string>
 
     <!-- Bottom navigation -->

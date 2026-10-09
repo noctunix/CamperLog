@@ -610,11 +610,11 @@ private fun TourHeaderCard(
                     contentDescription = pluralStringResource(R.plurals.share_overnight_stays, metrics.overnightStays, metrics.overnightStays),
                 )
                 val distanceRes = if (metrics.distanceIsEstimated) R.string.distance_km_estimated else R.string.distance_km
-                val distanceCdRes = if (metrics.distanceIsEstimated) R.string.distance_km_estimated_cd else R.string.distance_km_cd
+                val distanceCdRes = if (metrics.distanceIsEstimated) R.plurals.distance_km_estimated_cd else R.plurals.distance_km_cd
                 MetricTile(
                     value = stringResource(distanceRes, metrics.distanceKm),
                     label = stringResource(R.string.label_distance),
-                    contentDescription = stringResource(distanceCdRes, metrics.distanceKm),
+                    contentDescription = pluralStringResource(distanceCdRes, metrics.distanceKm, metrics.distanceKm),
                 )
             }
             Text(
