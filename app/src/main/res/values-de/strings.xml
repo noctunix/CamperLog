@@ -157,6 +157,9 @@
     <string name="settings_map_storage">Kartenspeicher: %1$d MB</string>
     <string name="settings_map_storage_clear">Leeren</string>
     <string name="settings_map_storage_cleared_hint">Kartenspeicher gelöscht.</string>
+    <string name="settings_home_section">Zuhause</string>
+    <string name="settings_home_section_hint">Für die automatische Start- (und Ende-)Station neuer Touren.</string>
+    <string name="home_location_default_name">Zuhause</string>
     <string name="settings_open_about">Über CamperLog</string>
 
     <!-- Detail -->

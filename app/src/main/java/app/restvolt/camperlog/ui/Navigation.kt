@@ -82,6 +82,7 @@ import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
 import app.restvolt.camperlog.ui.attachments.AttachmentPickers
 import app.restvolt.camperlog.ui.checklists.ChecklistTemplatesViewModel
 import app.restvolt.camperlog.ui.checklists.VehicleChecklistsViewModel
+import app.restvolt.camperlog.ui.settings.HomeLocationSettings
 import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.settings.NotificationSettings
 import app.restvolt.camperlog.ui.settings.WeatherSettings
@@ -258,6 +259,7 @@ internal class NavDependencies(
     val notificationSettings: NotificationSettings,
     val backupSettings: BackupSettings,
     val backupFolderWriter: AndroidBackupFolderWriter,
+    val homeLocationSettings: HomeLocationSettings,
 )
 
 /** Navigationsgraph der App mit Start auf der Tourenliste. */
@@ -322,6 +324,7 @@ fun CamperLogNavHost(
     val notificationSettings = remember { NotificationSettings(context) }
     val backupSettings = remember { BackupSettings(context) }
     val backupFolderWriter = remember { AndroidBackupFolderWriter(context) }
+    val homeLocationSettings = remember { HomeLocationSettings(context) }
     val currentVehicleFlow = remember(vehicles) { vehicles.observeCurrentVehicle() }
     val currentVehicle by currentVehicleFlow.collectAsStateWithLifecycle(initialValue = null)
     val currentVehicleDocumentsFlow = remember(documents, currentVehicle?.id) {
@@ -421,7 +424,7 @@ fun CamperLogNavHost(
         repository, vehicles, logbook, stations, exchangeRates, documents, diaryEntries, checklists, checklistTemplates,
         attachments, attachmentFileStore, backupImporter, locationProvider, weatherProvider, placeSearchProvider, tileLoader,
         countryLookup, attachmentPickers, tracks, reminderSettings, locationSettings, trackSettings, weatherSettings,
-        notificationSettings, backupSettings, backupFolderWriter,
+        notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings,
     )
     NavHost(navController, startDestination = ToursRoute) {
         toursGraph(navController, deps, bottomBar)

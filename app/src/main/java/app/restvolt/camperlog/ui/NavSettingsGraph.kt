@@ -9,6 +9,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import app.restvolt.camperlog.data.AndroidLocationPermissionGate
 import app.restvolt.camperlog.ui.about.AboutScreen
 import app.restvolt.camperlog.ui.data.AndroidDataFiles
 import app.restvolt.camperlog.ui.data.DataScreen
@@ -19,6 +20,7 @@ import app.restvolt.camperlog.ui.rates.RatesScreen
 import app.restvolt.camperlog.ui.rates.RatesViewModel
 import app.restvolt.camperlog.ui.search.SearchScreen
 import app.restvolt.camperlog.ui.search.SearchViewModel
+import app.restvolt.camperlog.ui.settings.HomeLocationViewModel
 import app.restvolt.camperlog.ui.settings.SettingsScreen
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
@@ -118,6 +120,7 @@ internal fun NavGraphBuilder.settingsGraph(
         )
     }
     composable<SettingsRoute> { entry ->
+        val context = LocalContext.current
         SettingsScreen(
             viewModel = viewModel { RatesViewModel(exchangeRates, repository) },
             themeMode = themeMode,
@@ -129,6 +132,10 @@ internal fun NavGraphBuilder.settingsGraph(
             locationSettings = locationSettings,
             weatherSettings = weatherSettings,
             trackSettings = trackSettings,
+            homeLocationSettings = homeLocationSettings,
+            homeLocationViewModel = viewModel {
+                HomeLocationViewModel(homeLocationSettings, locationProvider, AndroidLocationPermissionGate(context))
+            },
             onBack = { navController.popFrom(entry) },
             onOpenRates = { navController.navigate(RatesRoute) },
             onOpenAbout = { navController.navigate(AboutRoute) },

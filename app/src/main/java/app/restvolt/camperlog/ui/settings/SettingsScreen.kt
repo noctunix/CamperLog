@@ -59,6 +59,8 @@ fun SettingsScreen(
     locationSettings: LocationSettings,
     weatherSettings: WeatherSettings,
     trackSettings: TrackRecordingSettings,
+    homeLocationSettings: HomeLocationSettings,
+    homeLocationViewModel: HomeLocationViewModel,
     onBack: () -> Unit,
     onOpenRates: () -> Unit,
     onOpenAbout: () -> Unit,
@@ -73,6 +75,7 @@ fun SettingsScreen(
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
     val notificationsEnabled by notificationSettings.values.collectAsStateWithLifecycle()
     var notificationPermissionDenied by rememberSaveable { mutableStateOf(false) }
+    val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
     val weatherEnabled by weatherSettings.values.collectAsStateWithLifecycle()
     var pickOilInterval by rememberSaveable { mutableStateOf(false) }
 
@@ -195,6 +198,22 @@ fun SettingsScreen(
                         WeatherTransferDetailRow()
                         MapStorageRow(snackbar, scope)
                     }
+                }
+            }
+            item {
+                SectionCard {
+                    Text(
+                        stringResource(R.string.settings_home_section),
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        stringResource(R.string.settings_home_section_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    HomeLocationSection(homeLocationSettings, locationEnabled, homeLocationViewModel.locationCapture)
                 }
             }
             item {

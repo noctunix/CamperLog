@@ -157,6 +157,9 @@
     <string name="settings_map_storage">Map storage: %1$d MB</string>
     <string name="settings_map_storage_clear">Clear</string>
     <string name="settings_map_storage_cleared_hint">Map storage cleared.</string>
+    <string name="settings_home_section">Home</string>
+    <string name="settings_home_section_hint">Used to add a start (and end) stop to new tours automatically.</string>
+    <string name="home_location_default_name">Home</string>
     <string name="settings_open_about">About CamperLog</string>
 
     <!-- Detail -->

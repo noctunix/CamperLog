@@ -17,7 +17,9 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -48,14 +50,24 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.TileHttpCache
+import app.restvolt.camperlog.domain.CoordinateSource
+import app.restvolt.camperlog.domain.LocationCaptureController
+import app.restvolt.camperlog.domain.ParsedLocation
+import app.restvolt.camperlog.domain.formatCoordinates
+import app.restvolt.camperlog.domain.parseLocationText
 import app.restvolt.camperlog.domain.tileCacheMegabytes
 import app.restvolt.camperlog.share.openNotificationSettings
+import app.restvolt.camperlog.ui.LocationCaptureSection
+import app.restvolt.camperlog.ui.coordinatesContentDescription
+import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 internal val REMINDER_LEAD_DAYS_OPTIONS = listOf(7, 14, 30, 60, 90)
 
@@ -313,4 +325,73 @@ internal fun MapStorageRow(snackbar: SnackbarHostState, scope: CoroutineScope) {
             },
         ) { Text(stringResource(R.string.settings_map_storage_clear)) }
     }
+}
+
+/**
+ * Name und Koordinate des Zuhause-Orts für die automatische Start-/Ende-Station neuer Touren.
+ * Die GPS-Erfassung erscheint nur, solange [locationEnabled] an ist; sonst bleibt die Texteingabe
+ * die einzige Möglichkeit, eine Koordinate zu hinterlegen.
+ */
+@Composable
+internal fun HomeLocationSection(settings: HomeLocationSettings, locationEnabled: Boolean, captureController: LocationCaptureController) {
+    val preferences by settings.values.collectAsStateWithLifecycle()
+    val locale = currentLocale()
+
+    OutlinedTextField(
+        value = preferences.name,
+        onValueChange = { settings.name = it },
+        label = { Text(stringResource(R.string.field_name)) },
+        placeholder = { Text(stringResource(R.string.home_location_default_name)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+    )
+
+    val latitude = preferences.latitude
+    val longitude = preferences.longitude
+    if (preferences.coordinateSource == CoordinateSource.GPS && latitude != null && longitude != null) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val description = coordinatesContentDescription(latitude, longitude, null, locale)
+            Text(
+                formatCoordinates(latitude, longitude, locale),
+                modifier = Modifier.weight(1f).semantics { contentDescription = description },
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            IconButton(onClick = { settings.setLocation(null, null, null) }) {
+                Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.location_remove_coordinates))
+            }
+        }
+    } else {
+        if (locationEnabled) {
+            LocationCaptureSection(controller = captureController, buttonLabel = stringResource(R.string.location_use_current_button))
+        }
+        HomeCoordinatesField(latitude, longitude, settings, locale)
+    }
+}
+
+/** Freie Texteingabe der Zuhause-Koordinate; übernimmt erkannte Koordinaten offline wie das Stationsformular. */
+@Composable
+private fun HomeCoordinatesField(latitude: Double?, longitude: Double?, settings: HomeLocationSettings, locale: Locale) {
+    var locationText by rememberSaveable { mutableStateOf(if (latitude != null && longitude != null) "$latitude, $longitude" else "") }
+    val feedback = when {
+        latitude != null && longitude != null -> stringResource(R.string.station_coordinates_recognized, formatCoordinates(latitude, longitude, locale))
+        locationText.isBlank() -> null
+        parseLocationText(locationText) == ParsedLocation.ShortLinkUnsupported -> stringResource(R.string.station_coordinates_short_link)
+        else -> stringResource(R.string.station_coordinates_not_found)
+    }
+    OutlinedTextField(
+        value = locationText,
+        onValueChange = { text ->
+            locationText = text
+            when (val parsed = parseLocationText(text)) {
+                is ParsedLocation.Coordinates -> settings.setLocation(parsed.latitude, parsed.longitude, CoordinateSource.ENTERED)
+                else -> if (text.isBlank()) settings.setLocation(null, null, null)
+            }
+        },
+        label = { Text(stringResource(R.string.field_coordinates)) },
+        supportingText = feedback?.let { { Text(it) } },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+    )
 }
