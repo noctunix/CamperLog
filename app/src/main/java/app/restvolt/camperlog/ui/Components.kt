@@ -143,13 +143,17 @@ fun EmptyHint(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** Aufklappbarer Abschnitt mit Überschrift; eingeklappt zeigt er [summary] klein darunter, sofern gesetzt. */
+/**
+ * Aufklappbarer Abschnitt mit Überschrift; eingeklappt zeigt er [summary] klein darunter, sofern
+ * gesetzt. [actions] steht zwischen Überschrift und Klapp-Symbol, z. B. ein eigener Bearbeiten-Button.
+ */
 @Composable
 fun CollapsibleSection(
     title: String,
     expanded: Boolean,
     onToggle: () -> Unit,
     summary: String?,
+    actions: @Composable () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(Modifier.fillMaxWidth()) {
@@ -167,6 +171,7 @@ fun CollapsibleSection(
                     Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            actions()
             Icon(
                 painterResource(R.drawable.ic_expand_more),
                 contentDescription = stringResource(if (expanded) R.string.cd_collapse_section else R.string.cd_expand_section, title),

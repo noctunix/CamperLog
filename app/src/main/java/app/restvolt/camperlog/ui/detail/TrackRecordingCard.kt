@@ -7,9 +7,14 @@ import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -24,13 +29,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
@@ -41,7 +46,6 @@ import app.restvolt.camperlog.share.openAppDetailsSettings
 import app.restvolt.camperlog.tracking.TrackRecordingService
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.tracking.trackIntervalLabel
-import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.settings.SwitchSettingRow
 import app.restvolt.camperlog.ui.settings.trackPermissions
@@ -51,15 +55,48 @@ import java.text.NumberFormat
 import java.util.Locale
 
 /**
- * Karte "Track" im Tourdetail. Für offene Touren (kein Enddatum) schaltet ein Schalter die
- * Aufzeichnung dieser Tour ein, dazu Pausieren/Fortsetzen und Löschen des Tracks. Für beendete
- * Touren zeigt sie nur noch die Zusammenfassung und "Track löschen", sofern bereits Punkte
- * aufgezeichnet wurden. Fehlt die Standortberechtigung, wird sie beim Einschalten angefragt. Vor
- * dem ersten Start erscheint einmalig der Hinweis zur Akkuoptimierung, sofern CamperLog nicht
- * schon ausgenommen ist.
+ * Status der laufenden Trackaufzeichnung für die getönte Kopfkarte der Tourdetailseite: ein Punkt,
+ * der Hinweis "GPS-Track läuft" (oder nach einem Geräteneustart "GPS-Track nach Neustart
+ * fortgesetzt") und ein Pausieren-Button. Zeigt nichts, solange keine Aufzeichnung für [tourId]
+ * läuft; das Pausieren braucht keine Standortberechtigung. Der pausierte Zustand steht stattdessen
+ * im Abschnitt "GPS-Track" ([TrackRecordingSection]), zusammen mit dem Fortsetzen-Button.
  */
 @Composable
-internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings: TrackRecordingSettings, hasEndDate: Boolean) {
+internal fun TrackRecordingStatusRow(tourId: Long, settings: TrackRecordingSettings) {
+    val context = LocalContext.current
+    val active by settings.active.collectAsStateWithLifecycle()
+    if (active?.tourId != tourId) return
+    val resumedAfterBoot by settings.resumedAfterBootFlow.collectAsStateWithLifecycle()
+
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+            Text(
+                stringResource(if (resumedAfterBoot) R.string.tours_track_resumed_after_boot else R.string.tours_track_recording),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        TextButton(onClick = { TrackRecordingService.pause(context) }) {
+            Text(stringResource(R.string.tour_track_pause))
+        }
+    }
+}
+
+/**
+ * Inhalt des aufklappbaren Abschnitts "GPS-Track" im Tourdetail: Zusammenfassung (Länge, Punkte,
+ * Segmente), Aufzeichnungsintervall, für offene Touren (kein Enddatum) der Schalter "Für diese Tour
+ * aufzeichnen" mit Fortsetzen-Button und Löschen des Tracks. Das knappe Pausieren selbst zeigt die
+ * Kopfkarte ([TrackRecordingStatusRow]). Für beendete Touren ohne aufgezeichnete Punkte
+ * zeigt dieser Abschnitt nichts. Fehlt die Standortberechtigung, wird sie beim Einschalten oder
+ * Fortsetzen angefragt. Vor dem ersten Start erscheint einmalig der Hinweis zur Akkuoptimierung,
+ * sofern CamperLog nicht schon ausgenommen ist.
+ */
+@Composable
+internal fun TrackRecordingSection(tourId: Long, tracks: TrackRepository, settings: TrackRecordingSettings, hasEndDate: Boolean) {
     val context = LocalContext.current
     val resources = LocalResources.current
     val scope = rememberCoroutineScope()
@@ -114,105 +151,94 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
         if (!permissionDenied) startRecording()
     }
 
-    SectionCard {
-        Text(
-            stringResource(R.string.tour_track_title),
-            modifier = Modifier.semantics { heading() },
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(
-            if (summary.points == 0) {
-                stringResource(R.string.tour_track_empty)
-            } else {
-                stringResource(R.string.tour_track_length, formatTrackKm(lengthMeters, locale)) + " · " +
-                    pluralStringResource(R.plurals.tour_track_points, summary.points, summary.points) + " · " +
-                    pluralStringResource(R.plurals.tour_track_segments, summary.segments, summary.segments)
-            },
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        if (!hasEndDate) {
-            when {
-                isRunning -> Text(
-                    stringResource(R.string.tour_track_recording, trackIntervalLabel(resources, preferences.interval)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                isPaused -> Text(
-                    stringResource(if (pausedByReboot) R.string.tour_track_paused_by_reboot else R.string.tour_track_paused),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                recordingElsewhere -> Text(
-                    stringResource(R.string.tour_track_other_tour),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (showResumedAfterBootHint) {
-                Text(
-                    stringResource(R.string.tour_track_resumed_after_boot),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (permissionDenied) {
-                Text(
-                    stringResource(R.string.settings_track_denied_hint),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-                TextButton(onClick = { context.openAppDetailsSettings() }) {
-                    Text(stringResource(R.string.settings_track_open_app_settings))
-                }
-            }
-            if (showStartFailedHint) {
-                Text(
-                    stringResource(R.string.tour_track_start_failed),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            SwitchSettingRow(
-                title = stringResource(R.string.tour_track_switch_title),
-                supportingText = stringResource(R.string.tour_track_switch_support),
-                checked = isTrackedHere,
-                onCheckedChange = { wantsOn ->
-                    showStartFailedHint = false
-                    showResumedAfterBootHint = false
-                    if (wantsOn) {
-                        if (TrackRecordingService.hasLocationPermission(context)) {
-                            permissionDenied = false
-                            startRecording()
-                        } else {
-                            permissionLauncher.launch(trackPermissions())
-                        }
-                    } else {
-                        TrackRecordingService.stop(context)
-                    }
-                },
+    Text(
+        if (summary.points == 0) {
+            stringResource(R.string.tour_track_empty)
+        } else {
+            stringResource(R.string.tour_track_length, formatTrackKm(lengthMeters, locale)) + " · " +
+                pluralStringResource(R.plurals.tour_track_points, summary.points, summary.points) + " · " +
+                pluralStringResource(R.plurals.tour_track_segments, summary.segments, summary.segments)
+        },
+        style = MaterialTheme.typography.bodyMedium,
+    )
+    if (!hasEndDate) {
+        when {
+            // Dieselbe Information steht knapper auch in der Kopfkarte, siehe TrackRecordingStatusRow.
+            isRunning -> Text(
+                stringResource(R.string.tour_track_recording, trackIntervalLabel(resources, preferences.interval)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
             )
-            if (isRunning) {
-                Button(onClick = {
-                    showResumedAfterBootHint = false
-                    TrackRecordingService.pause(context)
-                }) { Text(stringResource(R.string.tour_track_pause)) }
-            } else if (isPaused) {
-                Button(onClick = {
-                    showStartFailedHint = false
-                    showResumedAfterBootHint = false
+            isPaused -> Text(
+                stringResource(if (pausedByReboot) R.string.tour_track_paused_by_reboot else R.string.tour_track_paused),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            recordingElsewhere -> Text(
+                stringResource(R.string.tour_track_other_tour),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (showResumedAfterBootHint) {
+            Text(
+                stringResource(R.string.tour_track_resumed_after_boot),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (permissionDenied) {
+            Text(
+                stringResource(R.string.settings_track_denied_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+            TextButton(onClick = { context.openAppDetailsSettings() }) {
+                Text(stringResource(R.string.settings_track_open_app_settings))
+            }
+        }
+        if (showStartFailedHint) {
+            Text(
+                stringResource(R.string.tour_track_start_failed),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        SwitchSettingRow(
+            title = stringResource(R.string.tour_track_switch_title),
+            supportingText = stringResource(R.string.tour_track_switch_support),
+            checked = isTrackedHere,
+            onCheckedChange = { wantsOn ->
+                showStartFailedHint = false
+                showResumedAfterBootHint = false
+                if (wantsOn) {
                     if (TrackRecordingService.hasLocationPermission(context)) {
+                        permissionDenied = false
                         startRecording()
                     } else {
                         permissionLauncher.launch(trackPermissions())
                     }
-                }) { Text(stringResource(R.string.tour_track_resume)) }
-            }
-        }
-        if (summary.points > 0) {
-            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { confirmDelete = true }, enabled = !isRunning) {
-                    Text(stringResource(R.string.tour_track_delete))
+                } else {
+                    TrackRecordingService.stop(context)
                 }
+            },
+        )
+        if (isPaused) {
+            Button(onClick = {
+                showStartFailedHint = false
+                showResumedAfterBootHint = false
+                if (TrackRecordingService.hasLocationPermission(context)) {
+                    startRecording()
+                } else {
+                    permissionLauncher.launch(trackPermissions())
+                }
+            }) { Text(stringResource(R.string.tour_track_resume)) }
+        }
+    }
+    if (summary.points > 0) {
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = { confirmDelete = true }, enabled = !isRunning) {
+                Text(stringResource(R.string.tour_track_delete))
             }
         }
     }

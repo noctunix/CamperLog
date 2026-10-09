@@ -83,8 +83,8 @@ class DiaryFlowTest {
     fun diarySectionIsAlwaysVisibleEvenWhenEmpty() {
         start(tour())
         compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Tagebuch").performScrollTo().performClick()
 
-        compose.onNodeWithText("Tagebuch").assertExists()
         compose.onNodeWithText("Tagebucheintrag hinzufügen").assertExists()
     }
 
@@ -92,6 +92,7 @@ class DiaryFlowTest {
     fun addDiaryEntry_appearsInTheSection() {
         start(tour())
         compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Tagebuch").performScrollTo().performClick()
         compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
 
         textField().performTextInput("Langer Tag am Fjord.")
@@ -104,6 +105,7 @@ class DiaryFlowTest {
     fun textRequired_forNewDiaryEntry() {
         start(tour())
         compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Tagebuch").performScrollTo().performClick()
         compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
 
         clickSave()
@@ -115,6 +117,7 @@ class DiaryFlowTest {
     fun deleteDiaryEntry_undo_restoresIt() {
         start(tour())
         compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Tagebuch").performScrollTo().performClick()
         compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
         textField().performTextInput("Langer Tag am Fjord.")
         clickSave()

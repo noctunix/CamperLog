@@ -26,7 +26,8 @@ import app.restvolt.camperlog.ui.detail.DiaryEditScreen
 import app.restvolt.camperlog.ui.detail.DiaryEditViewModel
 import app.restvolt.camperlog.ui.detail.TourDetailScreen
 import app.restvolt.camperlog.ui.detail.TourDetailViewModel
-import app.restvolt.camperlog.ui.detail.TrackRecordingCard
+import app.restvolt.camperlog.ui.detail.TrackRecordingSection
+import app.restvolt.camperlog.ui.detail.TrackRecordingStatusRow
 import app.restvolt.camperlog.ui.edit.EditTourScreen
 import app.restvolt.camperlog.ui.edit.EditTourViewModel
 import app.restvolt.camperlog.ui.map.MapScreen
@@ -141,11 +142,14 @@ internal fun NavGraphBuilder.toursGraph(
             },
             weatherMapEnabled = weatherMapEnabled,
             checklistTemplates = checklistTemplateList,
-            trackCard = detailTour?.let { tour ->
+            trackStatusContent = detailTour?.takeIf { it.endDate == null }?.let {
+                { TrackRecordingStatusRow(tourId, trackSettings) }
+            },
+            trackSectionContent = detailTour?.let { tour ->
                 if (tour.endDate != null && trackSummary.points == 0) {
                     null
                 } else {
-                    { TrackRecordingCard(tourId, tracks, trackSettings, hasEndDate = tour.endDate != null) }
+                    { TrackRecordingSection(tourId, tracks, trackSettings, hasEndDate = tour.endDate != null) }
                 }
             },
             onBack = { navController.popFrom(entry) },

@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,9 +17,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -77,6 +80,7 @@ import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.FUEL_SERVICES
 import app.restvolt.camperlog.domain.isMapAvailable
+import app.restvolt.camperlog.domain.period
 import app.restvolt.camperlog.domain.SUPPLY_SERVICES
 import app.restvolt.camperlog.domain.sumByCurrency
 import app.restvolt.camperlog.domain.tourCountries
@@ -109,8 +113,10 @@ fun TourDetailScreen(
     viewModel: TourDetailViewModel,
     weatherMapEnabled: Boolean,
     checklistTemplates: List<ChecklistTemplate>,
-    /** Karte "Track" nach den Ländern; `null`, solange die Trackaufzeichnung ausgeschaltet ist. */
-    trackCard: (@Composable () -> Unit)? = null,
+    /** Status- und Pausieren-Zeile der Kopfkarte; `null` ohne laufende Aufzeichnung dieser Tour. */
+    trackStatusContent: (@Composable () -> Unit)? = null,
+    /** Inhalt des Abschnitts "GPS-Track"; `null`, solange die Trackaufzeichnung ausgeschaltet ist. */
+    trackSectionContent: (@Composable () -> Unit)? = null,
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: (Tour) -> Unit,
@@ -240,7 +246,8 @@ fun TourDetailScreen(
                 onAddStop = { showTypePicker = true },
                 onOpenMap = onOpenMap,
                 onSaveCountries = { added, removed -> viewModel.saveCountries(current.tour, added, removed) },
-                trackCard = trackCard,
+                trackStatusContent = trackStatusContent,
+                trackSectionContent = trackSectionContent,
                 onAddDiaryEntry = { onAddDiaryEntry(current.tour.id) },
                 onOpenDiaryEntry = onOpenDiaryEntry,
                 onStartChecklist = { showChecklistPicker = true },
@@ -386,7 +393,8 @@ private fun TourDetails(
     onAddStop: () -> Unit,
     onOpenMap: () -> Unit,
     onSaveCountries: (Set<String>, Set<String>) -> Unit,
-    trackCard: (@Composable () -> Unit)?,
+    trackStatusContent: (@Composable () -> Unit)?,
+    trackSectionContent: (@Composable () -> Unit)?,
     onAddDiaryEntry: () -> Unit,
     onOpenDiaryEntry: (Long) -> Unit,
     onStartChecklist: () -> Unit,
@@ -408,41 +416,19 @@ private fun TourDetails(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            SectionCard {
-                if (vehicle != null) {
-                    LabeledValue(stringResource(R.string.field_vehicle), vehicleDisplayName(vehicle))
-                }
-                LabeledValue(stringResource(R.string.field_start_date), formatDate(tour.startDate, locale))
-                tour.endDate?.let { LabeledValue(stringResource(R.string.field_end_date), formatDate(it, locale)) }
-                tour.name.takeIf(String::isNotBlank)?.let { LabeledValue(stringResource(R.string.field_name), it) }
-                tour.destination.takeIf(String::isNotBlank)?.let { LabeledValue(stringResource(R.string.field_destination), it) }
-                LabeledValue(stringResource(R.string.field_tour_type), stringResource(tour.tourType.labelRes))
-                LabeledValue(stringResource(R.string.field_travel_days), metrics.travelDays.toString())
-                LabeledValue(stringResource(R.string.field_overnight_stays), metrics.overnightStays.toString())
-                val distanceRes = if (metrics.distanceIsEstimated) R.string.distance_km_estimated else R.string.distance_km
-                LabeledValue(stringResource(R.string.label_distance), stringResource(distanceRes, metrics.distanceKm))
-                if (tour.endDate == null) {
-                    Button(onClick = onFinish, enabled = !finishing, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.tour_finish))
-                    }
-                }
-            }
+            TourHeaderCard(
+                tour = tour,
+                vehicle = vehicle,
+                metrics = metrics,
+                totalCosts = totalCosts,
+                locale = locale,
+                finishing = finishing,
+                onFinish = onFinish,
+                trackStatusContent = trackStatusContent,
+            )
         }
         if (vignetteWarnings.isNotEmpty()) {
             item { VignetteWarningsCard(warnings = vignetteWarnings, locale = locale, onOpenStation = onOpenStation) }
-        }
-        item { CostsCard(tour.costs, stopCosts, totalCosts, categoryCosts, conversion, locale) }
-        item {
-            TourCountriesCard(
-                autoDetected = autoDetectedCountries,
-                manuallyAdded = tour.manualCountriesAdded,
-                manuallyRemoved = tour.manualCountriesRemoved,
-                locale = locale,
-                onSave = onSaveCountries,
-            )
-        }
-        if (trackCard != null) {
-            item { trackCard() }
         }
         item {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -484,20 +470,7 @@ private fun TourDetails(
             }
         }
         item {
-            var expanded by rememberSaveable { mutableStateOf(true) }
-            SectionCard {
-                CollapsibleSection(
-                    title = stringResource(R.string.section_checklists),
-                    expanded = expanded,
-                    onToggle = { expanded = !expanded },
-                    summary = checklistsSummary(checklists),
-                ) {
-                    ChecklistsSection(checklists = checklists, onOpenChecklist = onOpenChecklist, onStart = onStartChecklist)
-                }
-            }
-        }
-        item {
-            var expanded by rememberSaveable { mutableStateOf(true) }
+            var expanded by rememberSaveable { mutableStateOf(false) }
             SectionCard {
                 CollapsibleSection(
                     title = stringResource(R.string.diary_section_title),
@@ -510,24 +483,65 @@ private fun TourDetails(
                 }
             }
         }
+        item {
+            var expanded by rememberSaveable { mutableStateOf(false) }
+            SectionCard {
+                CollapsibleSection(
+                    title = stringResource(R.string.section_checklists),
+                    expanded = expanded,
+                    onToggle = { expanded = !expanded },
+                    summary = checklistsSummary(checklists),
+                ) {
+                    ChecklistsSection(checklists = checklists, onOpenChecklist = onOpenChecklist, onStart = onStartChecklist)
+                }
+            }
+        }
+        item { CostsCard(tour.costs, stopCosts, totalCosts, categoryCosts, conversion, locale) }
+        item {
+            TourCountriesCard(
+                autoDetected = autoDetectedCountries,
+                manuallyAdded = tour.manualCountriesAdded,
+                manuallyRemoved = tour.manualCountriesRemoved,
+                locale = locale,
+                onSave = onSaveCountries,
+            )
+        }
+        if (trackSectionContent != null) {
+            item {
+                var expanded by rememberSaveable { mutableStateOf(false) }
+                SectionCard {
+                    CollapsibleSection(
+                        title = stringResource(R.string.tour_track_title),
+                        expanded = expanded,
+                        onToggle = { expanded = !expanded },
+                        summary = null,
+                    ) {
+                        trackSectionContent()
+                    }
+                }
+            }
+        }
         if (tour.notes.isNotBlank() || tour.mapLink != null) {
             item {
+                var expanded by rememberSaveable { mutableStateOf(false) }
                 SectionCard {
-                    if (tour.notes.isNotBlank()) {
-                        Text(
-                            stringResource(R.string.field_notes),
-                            modifier = Modifier.semantics { heading() },
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(tour.notes, style = MaterialTheme.typography.bodyLarge)
-                    }
-                    tour.mapLink?.let {
-                        Text(
-                            stringResource(R.string.field_map_link),
-                            modifier = Modifier.semantics { heading() },
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    CollapsibleSection(
+                        title = stringResource(R.string.field_notes),
+                        expanded = expanded,
+                        onToggle = { expanded = !expanded },
+                        summary = tour.notes.takeIf(String::isNotBlank)?.take(NOTES_SUMMARY_LENGTH),
+                    ) {
+                        if (tour.notes.isNotBlank()) {
+                            Text(tour.notes, style = MaterialTheme.typography.bodyLarge)
+                        }
+                        tour.mapLink?.let {
+                            Text(
+                                stringResource(R.string.field_map_link),
+                                modifier = Modifier.semantics { heading() },
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 }
             }
@@ -535,10 +549,104 @@ private fun TourDetails(
     }
 }
 
+private const val NOTES_SUMMARY_LENGTH = 80
+
 /**
- * Kostenkarte der Tourdetailseite: manuelle Tourkosten ("Sonstige Kosten"), die Summe der
- * Stationskosten ("Stationen"), die Gesamtsumme je Währung, eine Umrechnung in die Hauptwährung
- * (siehe [Conversion]) sowie eine aufklappbare Aufschlüsselung der Stationskosten nach Kategorie.
+ * Getönte Kopfkarte der Tourdetailseite: Status und Pausieren-Button der laufenden Aufzeichnung
+ * ([trackStatusContent], nur bei aktiver Aufzeichnung dieser Tour), Zeitraum, Tourart und
+ * Fahrzeugname (nur bei mehr als einem Fahrzeug) in einer Zeile, die Kennzahlen als Kacheln, die
+ * Gesamtkosten und – für eine laufende Tour – der Beenden-Button. Sekundärfarbe (secondaryContainer)
+ * nur bei laufender Tour, sonst neutral wie die übrigen Karten.
+ */
+@Composable
+private fun TourHeaderCard(
+    tour: Tour,
+    vehicle: Vehicle?,
+    metrics: TourMetrics,
+    totalCosts: List<Money>,
+    locale: Locale,
+    finishing: Boolean,
+    onFinish: () -> Unit,
+    trackStatusContent: (@Composable () -> Unit)?,
+) {
+    val running = tour.endDate == null
+    val contentColor = if (running) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = if (running) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLowest,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (running) {
+                Text(stringResource(R.string.tour_running_day, metrics.travelDays), style = MaterialTheme.typography.titleSmall, color = contentColor)
+            }
+            if (trackStatusContent != null) trackStatusContent()
+            val periodParts = listOfNotNull(
+                tour.period(locale),
+                stringResource(tour.tourType.labelRes),
+                vehicle?.let { vehicleDisplayName(it) },
+            )
+            Text(periodParts.joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = contentColor)
+            // "Ziel" ist nur dann eine eigene Zeile wert, wenn der Titel (siehe TopBar) stattdessen den Namen zeigt.
+            if (tour.name.isNotBlank() && tour.destination.isNotBlank()) {
+                Text(
+                    "${stringResource(R.string.field_destination)}: ${tour.destination}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor,
+                )
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                MetricTile(
+                    value = metrics.travelDays.toString(),
+                    label = stringResource(R.string.field_travel_days),
+                    contentDescription = pluralStringResource(R.plurals.share_travel_days, metrics.travelDays, metrics.travelDays),
+                )
+                MetricTile(
+                    value = metrics.overnightStays.toString(),
+                    label = stringResource(R.string.field_overnight_stays),
+                    contentDescription = pluralStringResource(R.plurals.share_overnight_stays, metrics.overnightStays, metrics.overnightStays),
+                )
+                val distanceRes = if (metrics.distanceIsEstimated) R.string.distance_km_estimated else R.string.distance_km
+                val distanceCdRes = if (metrics.distanceIsEstimated) R.string.distance_km_estimated_cd else R.string.distance_km_cd
+                MetricTile(
+                    value = stringResource(distanceRes, metrics.distanceKm),
+                    label = stringResource(R.string.label_distance),
+                    contentDescription = stringResource(distanceCdRes, metrics.distanceKm),
+                )
+            }
+            Text(
+                stringResource(R.string.tour_header_total_costs, formatAmounts(totalCosts, locale)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor,
+            )
+            if (running) {
+                FilledTonalButton(onClick = onFinish, enabled = !finishing) {
+                    Text(stringResource(R.string.tour_finish))
+                }
+            }
+        }
+    }
+}
+
+/** Eine Kennzahlen-Kachel der Kopfkarte: großer Wert über kleinem Bezeichner, als eine Sprachausgabe [contentDescription]. */
+@Composable
+private fun MetricTile(value: String, label: String, contentDescription: String) {
+    Column(
+        modifier = Modifier.semantics(mergeDescendants = true) { this.contentDescription = contentDescription },
+    ) {
+        Text(value, style = MaterialTheme.typography.titleLarge)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/**
+ * Kostenkarte der Tourdetailseite, aufklappbar: manuelle Tourkosten ("Sonstige Kosten"), die Summe
+ * der Stationskosten ("Stationen"), die Gesamtsumme je Währung (auch die Kurzfassung im
+ * eingeklappten Zustand), eine Umrechnung in die Hauptwährung (siehe [Conversion]) sowie eine
+ * weitere aufklappbare Aufschlüsselung der Stationskosten nach Kategorie.
  */
 @Composable
 private fun CostsCard(
@@ -549,36 +657,44 @@ private fun CostsCard(
     conversion: Conversion?,
     locale: Locale,
 ) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
     SectionCard {
-        LabeledValue(stringResource(R.string.tour_section_other_costs), formatAmounts(otherCosts, locale))
-        LabeledValue(stringResource(R.string.tour_section_stops_costs), formatAmounts(stopCosts, locale))
-        LabeledValue(stringResource(R.string.tour_section_total_costs), formatAmounts(totalCosts, locale))
-        if (conversion != null) {
-            val converted = conversion.total
-            if (converted != null) {
-                LabeledValue(stringResource(R.string.overview_converted, converted.currency.currencyCode), formatAmounts(listOf(converted), locale))
-            } else {
-                Text(
-                    if (conversion.tooLarge) {
-                        stringResource(R.string.overview_conversion_too_large)
-                    } else {
-                        stringResource(R.string.overview_missing_rates, conversion.missing.joinToString(", ") { it.currencyCode })
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        CollapsibleSection(
+            title = stringResource(R.string.field_cost),
+            expanded = expanded,
+            onToggle = { expanded = !expanded },
+            summary = formatAmounts(totalCosts, locale),
+        ) {
+            LabeledValue(stringResource(R.string.tour_section_other_costs), formatAmounts(otherCosts, locale))
+            LabeledValue(stringResource(R.string.tour_section_stops_costs), formatAmounts(stopCosts, locale))
+            LabeledValue(stringResource(R.string.tour_section_total_costs), formatAmounts(totalCosts, locale))
+            if (conversion != null) {
+                val converted = conversion.total
+                if (converted != null) {
+                    LabeledValue(stringResource(R.string.overview_converted, converted.currency.currencyCode), formatAmounts(listOf(converted), locale))
+                } else {
+                    Text(
+                        if (conversion.tooLarge) {
+                            stringResource(R.string.overview_conversion_too_large)
+                        } else {
+                            stringResource(R.string.overview_missing_rates, conversion.missing.joinToString(", ") { it.currencyCode })
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
-        }
-        if (categoryCosts.isNotEmpty()) {
-            var expanded by rememberSaveable { mutableStateOf(false) }
-            CollapsibleSection(
-                title = stringResource(R.string.cost_breakdown_by_category),
-                expanded = expanded,
-                onToggle = { expanded = !expanded },
-                summary = null,
-            ) {
-                categoryCosts.entries.sortedBy { it.key.ordinal }.forEach { (category, amounts) ->
-                    LabeledValue(stringResource(category.labelRes), formatAmounts(amounts, locale))
+            if (categoryCosts.isNotEmpty()) {
+                var categoryExpanded by rememberSaveable { mutableStateOf(false) }
+                CollapsibleSection(
+                    title = stringResource(R.string.cost_breakdown_by_category),
+                    expanded = categoryExpanded,
+                    onToggle = { categoryExpanded = !categoryExpanded },
+                    summary = null,
+                ) {
+                    categoryCosts.entries.sortedBy { it.key.ordinal }.forEach { (category, amounts) ->
+                        LabeledValue(stringResource(category.labelRes), formatAmounts(amounts, locale))
+                    }
                 }
             }
         }

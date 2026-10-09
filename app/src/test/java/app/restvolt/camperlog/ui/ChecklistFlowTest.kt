@@ -73,6 +73,7 @@ class ChecklistFlowTest {
     fun addSuggestedTemplates_startChecklistOnATour_tickItem_updatesProgress() {
         start(tour())
         compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Checklisten").performScrollTo().performClick()
         compose.onNodeWithText("Checkliste starten").performScrollTo().performClick()
 
         // Ohne Vorlagen bietet die Auswahl zuerst die Vorschläge an.
@@ -89,6 +90,7 @@ class ChecklistFlowTest {
     fun startedChecklistAppearsInTheTourSectionWithItsProgress() {
         start(tour())
         compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Checklisten").performScrollTo().performClick()
         compose.onNodeWithText("Checkliste starten").performScrollTo().performClick()
         compose.onNodeWithText("Vorlagen-Vorschläge hinzufügen").performClick()
         compose.onNodeWithText("Ankunft").performClick()

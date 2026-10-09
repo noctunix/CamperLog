@@ -670,6 +670,7 @@ class StationFlowTest {
         compose.onNodeWithText(expectedResult).assertExists()
 
         compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Kosten", substring = false).performScrollTo().performClick()
         compose.onNodeWithText(formatAmount(1_000, EUR, locale)).assertExists()
         compose.onNodeWithText(formatAmount(49_650, EUR, locale)).assertExists()
     }
@@ -873,6 +874,7 @@ class StationFlowTest {
         compose.onNodeWithText("Essen: ${formatAmount(1_250, EUR, locale)}").assertExists()
 
         compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Kosten", substring = false).performScrollTo().performClick()
         compose.onNodeWithText(formatAmount(1_250, EUR, locale)).assertExists()
         compose.onNodeWithText(formatAmount(49_900, EUR, locale)).assertExists()
 

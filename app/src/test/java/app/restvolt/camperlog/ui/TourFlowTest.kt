@@ -195,9 +195,10 @@ class TourFlowTest {
         destinationField().performTextReplacement("Comer See")
         clickSave()
 
-        // Zurück in der Detailansicht: Titel und Ziel-Zeile zeigen das neue Ziel.
+        // Zurück in der Detailansicht: Der Titel zeigt das neue Ziel; eine eigene "Ziel"-Zeile gibt es
+        // ohne gesetzten Namen nicht, das wäre doppelt zum Titel.
         compose.onNodeWithContentDescription("Bearbeiten").assertExists()
-        compose.onAllNodesWithText("Comer See").assertCountEquals(2)
+        compose.onAllNodesWithText("Comer See").assertCountEquals(1)
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Comer See").assertExists()
         compose.onNodeWithText("Gardasee").assertDoesNotExist()
@@ -397,6 +398,7 @@ class TourFlowTest {
         val lastIndex = checkNotNull(detailList.fetchSemanticsNode().config.getOrNull(SemanticsProperties.CollectionInfo)).rowCount - 1
         detailList.performScrollToIndex(lastIndex)
         compose.onNodeWithText("Notizen").assert(isHeading())
+        compose.onNodeWithText("Notizen").performClick()
         compose.onNodeWithText("Kartenlink").assert(isHeading())
 
         compose.onNodeWithContentDescription("Zurück").performClick()

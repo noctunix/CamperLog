@@ -13,6 +13,8 @@
     <string name="no_share_app">Keine App zum Teilen gefunden</string>
     <string name="distance_km">%1$,d km</string>
     <string name="distance_km_estimated">≈ %1$,d km (geschätzt)</string>
+    <string name="distance_km_cd">%1$,d Kilometer</string>
+    <string name="distance_km_estimated_cd">etwa %1$,d Kilometer, geschätzt</string>
     <string name="action_undo">Rückgängig</string>
 
     <!-- Untere Navigation -->
@@ -173,6 +175,8 @@
     <string name="tour_finish_dialog_title">Wann endete die Tour?</string>
     <string name="tour_finished">Tour beendet</string>
     <string name="tour_finish_failed">Die Tour konnte nicht beendet werden.</string>
+    <string name="tour_running_day">Unterwegs · Tag %1$d</string>
+    <string name="tour_header_total_costs">Kosten gesamt: %1$s</string>
     <string name="detail_share">Tour teilen</string>
     <string name="detail_export_tour">Tour exportieren</string>
     <string name="export_tour_failed">Tour-Export fehlgeschlagen</string>

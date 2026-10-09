@@ -64,6 +64,7 @@ class TrackRecordingCardFlowTest {
         tracks: FakeTrackRepository = FakeTrackRepository(),
         scrollTo: String? = "Für diese Tour aufzeichnen",
         running: Boolean = false,
+        expandSection: Boolean = true,
     ) {
         val firstTour = lofoten(1).let { if (running) it.copy(endDate = null) else it }
         compose.setContent {
@@ -73,6 +74,11 @@ class TrackRecordingCardFlowTest {
         }
         // Mit gesetztem trackedTourId zeigt auch die Aufzeichnungsleiste den Tournamen; auf der Liste zählt nur die Karte.
         compose.onNode(hasText("Lofoten") and hasAnyAncestor(hasScrollAction())).performClick()
+        // Der Inhalt des Abschnitts "GPS-Track" ist erst nach dem Aufklappen im Baum.
+        if (expandSection) {
+            compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Track"))
+            compose.onNodeWithText("Track").performClick()
+        }
         if (scrollTo != null) compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(scrollTo))
     }
 
@@ -86,7 +92,7 @@ class TrackRecordingCardFlowTest {
 
     @Test
     fun finishedTourWithoutPoints_hidesTheCard() {
-        openTour(scrollTo = null)
+        openTour(scrollTo = null, expandSection = false)
 
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Stationen", substring = true))
         compose.onNodeWithText("Für diese Tour aufzeichnen").assertDoesNotExist()
@@ -150,12 +156,14 @@ class TrackRecordingCardFlowTest {
         settings.trackedTourId = 1
         settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
         grantLocation()
-        openTour(running = true, scrollTo = "Aufzeichnung pausieren")
+        openTour(running = true, scrollTo = "Aufzeichnung pausieren", expandSection = false)
 
         compose.onNodeWithText("Aufzeichnung pausieren").performClick()
 
         assertNull(settings.activeRecording)
         assertEquals(1L, settings.trackedTourId)
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Track"))
+        compose.onNodeWithText("Track").performClick()
         compose.onNodeWithText("Aufzeichnung pausiert.").assertExists()
         compose.onNodeWithText("Aufzeichnung fortsetzen").assertExists()
     }
@@ -213,7 +221,7 @@ class TrackRecordingCardFlowTest {
         settings.trackedTourId = 1
         settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
         grantLocation()
-        openTour(running = true, scrollTo = "Aufzeichnung pausieren")
+        openTour(running = true)
 
         compose.onNodeWithText("Für diese Tour aufzeichnen").performClick()
 
