@@ -490,7 +490,7 @@ private fun TourDetails(
                     title = stringResource(R.string.section_checklists),
                     expanded = expanded,
                     onToggle = { expanded = !expanded },
-                    summary = null,
+                    summary = checklistsSummary(checklists),
                 ) {
                     ChecklistsSection(checklists = checklists, onOpenChecklist = onOpenChecklist, onStart = onStartChecklist)
                 }
@@ -503,7 +503,8 @@ private fun TourDetails(
                     title = stringResource(R.string.diary_section_title),
                     expanded = expanded,
                     onToggle = { expanded = !expanded },
-                    summary = null,
+                    summary = diaryEntries.takeIf { it.isNotEmpty() }
+                        ?.let { pluralStringResource(R.plurals.diary_entry_count, it.size, it.size) },
                 ) {
                     DiarySection(entries = diaryEntries, locale = locale, onOpenEntry = onOpenDiaryEntry, onAdd = onAddDiaryEntry)
                 }
@@ -662,6 +663,25 @@ private fun stationSupportingText(station: Station, locale: Locale): String {
     }
     val costs = station.effectiveCosts().map { it.amount }.sumByCurrency().takeIf { it.isNotEmpty() }?.let { formatAmounts(it, locale) }
     return listOfNotNull(dateTime, detail, costs).joinToString(" · ")
+}
+
+/**
+ * Kurzfassung für den eingeklappten Checklisten-Abschnitt: bei genau einer Checkliste ihr Titel
+ * mit Fortschritt (z. B. "Packliste · Erledigt: 12/20"), bei mehreren der Gesamtfortschritt.
+ */
+@Composable
+private fun checklistsSummary(checklists: List<Checklist>): String? {
+    if (checklists.isEmpty()) return null
+    val single = checklists.singleOrNull()
+    return if (single != null) {
+        stringResource(
+            R.string.checklist_summary_with_title,
+            single.title,
+            stringResource(R.string.checklist_progress, single.checkedCount, single.items.size),
+        )
+    } else {
+        stringResource(R.string.checklist_progress, checklists.sumOf { it.checkedCount }, checklists.sumOf { it.items.size })
+    }
 }
 
 @Composable

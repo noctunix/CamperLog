@@ -719,6 +719,10 @@
 
     <!-- Tagebuch -->
     <string name="diary_section_title">Tagebuch</string>
+    <plurals name="diary_entry_count">
+        <item quantity="one">%1$d Eintrag</item>
+        <item quantity="other">%1$d Einträge</item>
+    </plurals>
     <string name="diary_add_entry">Tagebucheintrag hinzufügen</string>
     <string name="diary_entry_deleted">Tagebucheintrag gelöscht</string>
     <string name="diary_delete_failed">Tagebucheintrag konnte nicht gelöscht werden.</string>
@@ -1021,6 +1025,7 @@
     <string name="checklist_delete_action">Checkliste löschen</string>
     <string name="checklist_not_found">Diese Checkliste gibt es nicht mehr.</string>
     <string name="checklist_progress">Erledigt: %1$d/%2$d</string>
+    <string name="checklist_summary_with_title">%1$s · %2$s</string>
     <string name="checklist_progress_cd">%1$s, erledigt: %2$d/%3$d</string>
     <string name="checklist_done">Erledigt</string>
     <string name="checklist_deleted">Checkliste gelöscht</string>

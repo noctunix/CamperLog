@@ -162,13 +162,13 @@ fun CollapsibleSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall)
+                Text(title, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleSmall)
                 if (!expanded && summary != null) {
                     Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Icon(
-                painterResource(R.drawable.ic_arrow_drop_down),
+                painterResource(R.drawable.ic_expand_more),
                 contentDescription = stringResource(if (expanded) R.string.cd_collapse_section else R.string.cd_expand_section, title),
                 modifier = Modifier.rotate(if (expanded) 180f else 0f),
                 tint = MaterialTheme.colorScheme.outline,

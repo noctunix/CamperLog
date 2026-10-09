@@ -730,6 +730,10 @@
 
     <!-- Diary -->
     <string name="diary_section_title">Diary</string>
+    <plurals name="diary_entry_count">
+        <item quantity="one">%1$d entry</item>
+        <item quantity="other">%1$d entries</item>
+    </plurals>
     <string name="diary_add_entry">Add diary entry</string>
     <string name="diary_entry_deleted">Diary entry deleted</string>
     <string name="diary_delete_failed">Could not delete diary entry.</string>
@@ -1032,6 +1036,7 @@
     <string name="checklist_delete_action">Delete checklist</string>
     <string name="checklist_not_found">This checklist no longer exists.</string>
     <string name="checklist_progress">Done: %1$d/%2$d</string>
+    <string name="checklist_summary_with_title">%1$s · %2$s</string>
     <string name="checklist_progress_cd">%1$s, done: %2$d/%3$d</string>
     <string name="checklist_done">Done</string>
     <string name="checklist_deleted">Checklist deleted</string>
