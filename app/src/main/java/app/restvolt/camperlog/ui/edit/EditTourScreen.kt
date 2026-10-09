@@ -71,6 +71,7 @@ import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.messageRes
+import app.restvolt.camperlog.ui.settings.HomeLocationSettings
 import app.restvolt.camperlog.ui.settings.SwitchSettingRow
 import app.restvolt.camperlog.ui.settings.trackPermissions
 import app.restvolt.camperlog.ui.vehicleDisplayName
@@ -78,9 +79,16 @@ import app.restvolt.camperlog.ui.vehicleMenuLabel
 
 /** Formular zum Anlegen und Bearbeiten einer Tour. [onDone] verlässt es ohne, [onSaved] nach dem Speichern. */
 @Composable
-fun EditTourScreen(viewModel: EditTourViewModel, trackSettings: TrackRecordingSettings, onDone: () -> Unit, onSaved: () -> Unit) {
+fun EditTourScreen(
+    viewModel: EditTourViewModel,
+    trackSettings: TrackRecordingSettings,
+    homeLocationSettings: HomeLocationSettings,
+    onDone: () -> Unit,
+    onSaved: () -> Unit,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val trackPreferences by trackSettings.values.collectAsStateWithLifecycle()
+    val homeLocationPreferences by homeLocationSettings.values.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
@@ -145,6 +153,8 @@ fun EditTourScreen(viewModel: EditTourViewModel, trackSettings: TrackRecordingSe
                 state = state,
                 viewModel = viewModel,
                 showTrackSwitch = state.isNew && state.input.endDate == null && trackPreferences.enabled,
+                showHomeSwitch = state.isNew && homeLocationPreferences.hasLocation,
+                homeName = homeLocationPreferences.name.ifBlank { stringResource(R.string.home_location_default_name) },
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
@@ -165,7 +175,14 @@ fun EditTourScreen(viewModel: EditTourViewModel, trackSettings: TrackRecordingSe
 }
 
 @Composable
-private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, showTrackSwitch: Boolean, modifier: Modifier) {
+private fun TourForm(
+    state: EditUiState,
+    viewModel: EditTourViewModel,
+    showTrackSwitch: Boolean,
+    showHomeSwitch: Boolean,
+    homeName: String,
+    modifier: Modifier,
+) {
     val input = state.input
     val errors = state.errors.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
     val change = viewModel::onInputChange
@@ -215,6 +232,17 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, showTrack
                     supportingText = stringResource(R.string.edit_track_switch_support),
                     checked = state.trackSwitch,
                     onCheckedChange = viewModel::onTrackSwitchChange,
+                )
+            }
+            if (showHomeSwitch) {
+                SwitchSettingRow(
+                    title = stringResource(if (input.endDate != null) R.string.edit_home_switch_title_both else R.string.edit_home_switch_title_start),
+                    supportingText = stringResource(
+                        if (input.endDate != null) R.string.edit_home_switch_support_both else R.string.edit_home_switch_support_start,
+                        homeName,
+                    ),
+                    checked = state.homeSwitch,
+                    onCheckedChange = viewModel::onHomeSwitchChange,
                 )
             }
             FormTextField(

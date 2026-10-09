@@ -9,10 +9,13 @@ import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import app.restvolt.camperlog.domain.ALL_CURRENCIES
 import app.restvolt.camperlog.domain.ChecklistRepository
+import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostInput
 import app.restvolt.camperlog.domain.QUICK_CURRENCIES
 import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
+import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourError
@@ -27,6 +30,7 @@ import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toTour
 import app.restvolt.camperlog.domain.travelDaysBetween
 import app.restvolt.camperlog.domain.validation
+import app.restvolt.camperlog.ui.settings.HomeLocationSettings
 import java.time.Instant
 import java.time.LocalDate
 import java.util.Currency
@@ -63,6 +67,8 @@ data class EditUiState(
     val rejectedSaves: Int = 0,
     /** Schalter "GPS-Track aufzeichnen"; nur für neue, offene Touren überhaupt sichtbar/wirksam. */
     val trackSwitch: Boolean = false,
+    /** Schalter "Beginnt zu Hause"; nur für neue Touren mit gesetzter Zuhause-Koordinate überhaupt sichtbar/wirksam. */
+    val homeSwitch: Boolean = false,
     /** Die id der gerade neu angelegten Tour, sobald [isSaved] gesetzt ist. */
     val savedTourId: Long? = null,
 )
@@ -81,10 +87,13 @@ internal data class TourDraft(
  * Geänderte Eingaben liegen zusätzlich in [savedStateHandle] und werden nach einem Neustart
  * des Prozesses statt der gespeicherten Tour angezeigt.
  *
- * @param stations zieht die Stationen der Tour mit, wenn sie das Fahrzeug wechselt
+ * @param stations zieht die Stationen der Tour mit, wenn sie das Fahrzeug wechselt, und legt die
+ *   Zuhause-Stationen des Schalters "Beginnt zu Hause" an
  * @param checklists zieht die Checklisten der Tour mit, wenn sie das Fahrzeug wechselt
  * @param locale liefert die aktuelle Sprache für Beträge; wird bei jedem Zugriff neu gelesen,
  *   damit ein Sprachwechsel bei laufendem ViewModel greift
+ * @param homeLocationSettings liefert die Zuhause-Koordinate für den Schalter "Beginnt zu Hause"; `null` blendet ihn aus
+ * @param defaultHomeStationName liefert den Anzeigenamen der Zuhause-Station, falls [homeLocationSettings] keinen eigenen Namen trägt
  */
 class EditTourViewModel(
     private val repository: TourRepository,
@@ -95,6 +104,8 @@ class EditTourViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val locale: () -> Locale = { app.restvolt.camperlog.domain.supportedLocale(Locale.getDefault()) },
     private val tracks: TrackRepository? = null,
+    private val homeLocationSettings: HomeLocationSettings? = null,
+    private val defaultHomeStationName: () -> String = { "" },
 ) : ViewModel() {
 
     private val draft: TourDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)?.let { decodeFromSavedState(it) }
@@ -214,6 +225,11 @@ class EditTourViewModel(
         _uiState.update { it.copy(trackSwitch = value) }
     }
 
+    /** Übernimmt den Schalter "Beginnt zu Hause" im Formular einer neuen Tour. */
+    fun onHomeSwitchChange(value: Boolean) {
+        _uiState.update { it.copy(homeSwitch = value) }
+    }
+
     /** Validiert und speichert; bei Erfolg wird [EditUiState.isSaved] gesetzt. */
     fun save() {
         val state = _uiState.value
@@ -246,6 +262,7 @@ class EditTourViewModel(
                     stations.moveTourToVehicle(id, tour.vehicleId)
                     checklists.moveTourToVehicle(id, tour.vehicleId)
                 }
+                if (state.isNew && state.homeSwitch) createHomeStations(tour, id)
                 savedStateHandle.remove<SavedState>(DRAFT_KEY)
                 _uiState.update { it.copy(isSaving = false, isSaved = true, savedTourId = id) }
             } catch (_: RunningTourAlreadyExistsException) {
@@ -255,6 +272,33 @@ class EditTourViewModel(
                 _uiState.update { it.copy(isSaving = false, saveFailed = true) }
             }
         }
+    }
+
+    /**
+     * Legt beim ersten Speichern einer neuen Tour mit aktiviertem Schalter "Beginnt zu Hause" eine
+     * Übernachtungs-Station am Zuhause-Ort zu [tour].startDate an; ist [tour].endDate gesetzt, zusätzlich
+     * eine zweite dazu. `nights` bleibt für beide ungesetzt, damit sie die Übernachtungsstatistik nicht
+     * verzerren. Ohne Enddatum bleibt es bei der Start-Station - ein späteres Beenden der Tour legt keine nach.
+     */
+    private suspend fun createHomeStations(tour: Tour, tourId: Long) {
+        val home = homeLocationSettings?.values?.value ?: return
+        val latitude = home.latitude ?: return
+        val longitude = home.longitude ?: return
+        val name = home.name.ifBlank { defaultHomeStationName() }
+        fun homeStation(date: LocalDate) = Station(
+            vehicleId = tour.vehicleId,
+            tourId = tourId,
+            type = StationType.OVERNIGHT,
+            date = date,
+            name = name,
+            latitude = latitude,
+            longitude = longitude,
+            coordinateSource = CoordinateSource.ENTERED,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        stations.save(homeStation(tour.startDate))
+        tour.endDate?.let { stations.save(homeStation(it)) }
     }
 
     /** Die Fehlermeldung zu [EditUiState.saveFailed] wurde angezeigt. */

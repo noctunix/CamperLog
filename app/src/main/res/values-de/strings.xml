@@ -197,6 +197,10 @@
     <string name="edit_running_tour_conflict">Für dieses Fahrzeug läuft bereits eine Tour.</string>
     <string name="edit_track_switch_title">GPS-Track aufzeichnen</string>
     <string name="edit_track_switch_support">Startet die Aufzeichnung, sobald die Tour gespeichert ist.</string>
+    <string name="edit_home_switch_title_start">Beginnt zu Hause</string>
+    <string name="edit_home_switch_title_both">Beginnt und endet zu Hause</string>
+    <string name="edit_home_switch_support_start">Legt beim Speichern eine Station bei %1$s an.</string>
+    <string name="edit_home_switch_support_both">Legt beim Speichern je eine Station bei %1$s für Start und Ende an.</string>
     <string name="tour_metrics_title">Kennzahlen</string>
     <string name="tour_metrics_automatic_hint">Werden beim Beenden automatisch aus Zeitraum, Stationen und GPS-Track berechnet.</string>
     <string name="tour_metrics_editable_hint">Automatisch berechnet. Die gespeicherten Werte können angepasst werden.</string>

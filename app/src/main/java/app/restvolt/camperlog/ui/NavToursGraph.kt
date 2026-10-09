@@ -79,6 +79,7 @@ internal fun NavGraphBuilder.toursGraph(
     }
     composable<EditRoute> { entry ->
         val tourId = entry.toRoute<EditRoute>().tourId
+        val resources = LocalResources.current
         val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations, tracks)
         EditTourScreen(
             viewModel = viewModel {
@@ -90,9 +91,12 @@ internal fun NavGraphBuilder.toursGraph(
                     tourId,
                     createSavedStateHandle(),
                     tracks = tracks,
+                    homeLocationSettings = homeLocationSettings,
+                    defaultHomeStationName = { resources.getString(R.string.home_location_default_name) },
                 )
             },
             trackSettings = trackSettings,
+            homeLocationSettings = homeLocationSettings,
             onDone = { navController.popFrom(entry) },
             onSaved = {
                 if (tourId == 0L) toursViewModel.onTourCreated()
