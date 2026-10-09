@@ -87,6 +87,16 @@ class TrackRecordingBarFlowTest {
     }
 
     @Test
+    fun pausedByReboot_showsTheRebootHintInsteadOfTheNormalPausedText() {
+        settings.trackedTourId = 1
+        settings.pausedByReboot = true
+        start(lofoten())
+
+        compose.onNodeWithText("GPS-Track unterbrochen").assertExists()
+        compose.onNodeWithText("GPS-Track pausiert").assertDoesNotExist()
+    }
+
+    @Test
     fun pausingFromTheBar_clearsTheActiveRecordingButKeepsTheMarker() {
         settings.trackedTourId = 1
         settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)

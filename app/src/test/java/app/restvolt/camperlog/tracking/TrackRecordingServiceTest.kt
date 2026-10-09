@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -32,6 +33,14 @@ class TrackRecordingServiceTest {
     private fun startIntent(): Intent {
         TrackRecordingService.start(app, 1L)
         return shadowOf(app).nextStartedService
+    }
+
+    private fun grantLocation() {
+        shadowOf(app).grantPermissions(
+            "android.permission.ACCESS_FINE_LOCATION",
+            "android.permission.ACCESS_COARSE_LOCATION",
+            "android.permission.POST_NOTIFICATIONS",
+        )
     }
 
     @Test
@@ -90,6 +99,53 @@ class TrackRecordingServiceTest {
         assertEquals(0, service.lastForegroundNotificationId)
         assertTrue(service.isStoppedBySelf)
         assertEquals(1L, TrackRecordingSettings.get(app).trackedTourId)
+    }
+
+    @Test
+    fun resumeIfNeeded_restartsSilentlyWithoutADetectedReboot() {
+        grantLocation()
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        settings.lastActiveElapsedRealtime = 1L // derselbe Boot-Zyklus: der gespeicherte Wert ist winzig.
+
+        TrackRecordingService.resumeIfNeeded(app)
+
+        val started = shadowOf(app).nextStartedService
+        assertEquals(TrackRecordingService::class.java.name, started?.component?.className)
+        assertEquals(1L, started?.getLongExtra("tour_id", -1))
+        assertEquals(ActiveRecording(1, 1), settings.activeRecording)
+        assertFalse(settings.pausedByReboot)
+    }
+
+    @Test
+    fun resumeIfNeeded_marksPausedByRebootInsteadOfRestartingSilently() {
+        grantLocation()
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        // Weit in der Zukunft gespeichert: nach einem echten Neustart ist die aktuelle elapsedRealtime winzig.
+        settings.lastActiveElapsedRealtime = Long.MAX_VALUE / 2
+
+        TrackRecordingService.resumeIfNeeded(app)
+
+        assertNull(shadowOf(app).nextStartedService)
+        assertNull(settings.activeRecording)
+        assertEquals(1L, settings.trackedTourId)
+        assertTrue(settings.pausedByReboot)
+    }
+
+    @Test
+    fun resumingAfterAPausedByRebootClearsTheMarker() {
+        val settings = TrackRecordingSettings.get(app)
+        settings.trackedTourId = 1
+        settings.pausedByReboot = true
+
+        TrackRecordingService.start(app, 1)
+
+        assertFalse(settings.pausedByReboot)
     }
 
     @Test

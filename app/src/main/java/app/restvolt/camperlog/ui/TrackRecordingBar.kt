@@ -58,6 +58,7 @@ internal fun TrackRecordingBar(
     val lengthMeters by remember(tracks, tourId) { tracks.observeForTour(tourId).map { trackLengthMeters(it) } }
         .collectAsStateWithLifecycle(initialValue = 0.0)
     val active by settings.active.collectAsStateWithLifecycle()
+    val pausedByReboot by settings.pausedByRebootFlow.collectAsStateWithLifecycle()
     val isRunning = active?.tourId == tourId
     val locale = currentLocale()
     val fallbackTitle = stringResource(R.string.detail_fallback_title)
@@ -84,7 +85,13 @@ internal fun TrackRecordingBar(
             )
             Column(Modifier.weight(1f)) {
                 Text(
-                    stringResource(if (isRunning) R.string.tours_track_recording else R.string.tours_track_paused),
+                    stringResource(
+                        when {
+                            isRunning -> R.string.tours_track_recording
+                            pausedByReboot -> R.string.tours_track_paused_by_reboot
+                            else -> R.string.tours_track_paused
+                        },
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 )

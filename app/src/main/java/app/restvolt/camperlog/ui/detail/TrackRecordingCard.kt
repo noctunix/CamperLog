@@ -72,6 +72,7 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
     val trackedTourId by settings.tracked.collectAsStateWithLifecycle()
     val preferences by settings.values.collectAsStateWithLifecycle()
     val startFailed by settings.startFailed.collectAsStateWithLifecycle()
+    val pausedByReboot by settings.pausedByRebootFlow.collectAsStateWithLifecycle()
     var showBatteryHint by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var permissionDenied by rememberSaveable { mutableStateOf(false) }
@@ -127,7 +128,7 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
                     color = MaterialTheme.colorScheme.primary,
                 )
                 isPaused -> Text(
-                    stringResource(R.string.tour_track_paused),
+                    stringResource(if (pausedByReboot) R.string.tour_track_paused_by_reboot else R.string.tour_track_paused),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.tracking
 
 import android.content.Context
+import android.os.SystemClock
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.edit
 import app.restvolt.camperlog.data.AndroidLocationPermissionRevoker
@@ -31,6 +32,7 @@ data class ActiveRecording(val tourId: Long, val segment: Int)
 class TrackRecordingSettings(
     context: Context,
     private val revoker: LocationPermissionRevoker = AndroidLocationPermissionRevoker(context),
+    private val elapsedRealtime: () -> Long = { SystemClock.elapsedRealtime() },
     private val locationEnabled: () -> Boolean = { isLocationSwitchOn(context) },
 ) {
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
@@ -39,6 +41,7 @@ class TrackRecordingSettings(
     private val activeState = MutableStateFlow(readActive())
     private val trackedState = MutableStateFlow(readTracked())
     private val startFailedState = MutableStateFlow(false)
+    private val pausedByRebootState = MutableStateFlow(readPausedByReboot())
 
     val values: StateFlow<TrackRecordingPreferences> = state.asStateFlow()
 
@@ -54,6 +57,12 @@ class TrackRecordingSettings(
 
     /** Einmaliges Signal, dass der letzte Start nicht in den Vordergrund kam (z. B. keine Standortquelle). */
     val startFailed: StateFlow<Boolean> = startFailedState.asStateFlow()
+
+    /**
+     * Ob die pausierte Aufzeichnung durch einen erkannten Geräteneustart unterbrochen wurde statt
+     * durch den Nutzer, damit die Oberfläche einen eigenen Hinweis statt "pausiert" zeigen kann.
+     */
+    val pausedByRebootFlow: StateFlow<Boolean> = pausedByRebootState.asStateFlow()
 
     var enabled: Boolean
         get() = state.value.enabled
@@ -111,6 +120,33 @@ class TrackRecordingSettings(
             trackedState.value = value
         }
 
+    /** Zeitstempel ([SystemClock.elapsedRealtime]) des letzten erfolgreichen Starts im Vordergrund, oder `null`. */
+    var lastActiveElapsedRealtime: Long?
+        get() = if (!preferences.contains(KEY_LAST_ACTIVE_ELAPSED_REALTIME)) null else preferences.getLong(KEY_LAST_ACTIVE_ELAPSED_REALTIME, 0)
+        set(value) {
+            preferences.edit {
+                if (value == null) remove(KEY_LAST_ACTIVE_ELAPSED_REALTIME) else putLong(KEY_LAST_ACTIVE_ELAPSED_REALTIME, value)
+            }
+        }
+
+    /** Ob die pausierte Aufzeichnung durch einen erkannten Geräteneustart unterbrochen wurde statt durch den Nutzer. */
+    var pausedByReboot: Boolean
+        get() = pausedByRebootState.value
+        set(value) {
+            preferences.edit { putBoolean(KEY_PAUSED_BY_REBOOT, value) }
+            pausedByRebootState.value = value
+        }
+
+    /**
+     * Ob zwischen [lastActiveElapsedRealtime] und jetzt ein Neustart des Geräts stattgefunden hat.
+     * `elapsedRealtime()` läuft nur innerhalb eines Boot-Zyklus und fällt nach einem Neustart auf
+     * nahe 0 zurück; ein gespeicherter Wert größer als der aktuelle beweist also einen Reboot dazwischen.
+     */
+    fun rebootDetectedSinceLastActive(): Boolean {
+        val last = lastActiveElapsedRealtime ?: return false
+        return last > elapsedRealtime()
+    }
+
     /** Von [TrackRecordingService] gesetzt, wenn der Start scheiterte. */
     fun reportStartFailed() {
         startFailedState.value = true
@@ -126,6 +162,7 @@ class TrackRecordingSettings(
         state.value = read()
         activeState.value = readActive()
         trackedState.value = readTracked()
+        pausedByRebootState.value = readPausedByReboot()
     }
 
     private fun read() = TrackRecordingPreferences(
@@ -142,6 +179,8 @@ class TrackRecordingSettings(
     private fun readTracked(): Long? =
         if (!preferences.contains(KEY_TRACKED_TOUR)) null else preferences.getLong(KEY_TRACKED_TOUR, 0)
 
+    private fun readPausedByReboot(): Boolean = preferences.getBoolean(KEY_PAUSED_BY_REBOOT, false)
+
     companion object {
         const val PREFERENCES_NAME = "track_recording"
         private const val KEY_ENABLED = "enabled"
@@ -151,6 +190,8 @@ class TrackRecordingSettings(
         private const val KEY_ACTIVE_TOUR = "active_tour_id"
         private const val KEY_ACTIVE_SEGMENT = "active_segment"
         private const val KEY_TRACKED_TOUR = "tracked_tour_id"
+        private const val KEY_LAST_ACTIVE_ELAPSED_REALTIME = "last_active_elapsed_realtime"
+        private const val KEY_PAUSED_BY_REBOOT = "paused_by_reboot"
 
         @Volatile
         private var shared: TrackRecordingSettings? = null

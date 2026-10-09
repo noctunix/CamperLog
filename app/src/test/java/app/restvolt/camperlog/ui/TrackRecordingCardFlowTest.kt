@@ -26,6 +26,7 @@ import java.time.Instant
 import java.time.LocalDate
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -170,6 +171,29 @@ class TrackRecordingCardFlowTest {
         val started = shadowOf(compose.activity.application).nextStartedService
         assertEquals(TrackRecordingService::class.java.name, started.component?.className)
         assertEquals(1L, started.getLongExtra("tour_id", -1))
+    }
+
+    @Test
+    fun pausedByReboot_showsTheRebootHintInsteadOfTheNormalPausedText() {
+        settings.trackedTourId = 1
+        settings.pausedByReboot = true
+        grantLocation()
+        openTour(running = true, scrollTo = "Aufzeichnung fortsetzen")
+
+        compose.onNodeWithText("Durch einen Geräteneustart unterbrochen.").assertExists()
+        compose.onNodeWithText("Aufzeichnung pausiert.").assertDoesNotExist()
+    }
+
+    @Test
+    fun resumingAfterPausedByReboot_clearsTheRebootMarker() {
+        settings.trackedTourId = 1
+        settings.pausedByReboot = true
+        grantLocation()
+        openTour(running = true, scrollTo = "Aufzeichnung fortsetzen")
+
+        compose.onNodeWithText("Aufzeichnung fortsetzen").performClick()
+
+        assertFalse(settings.pausedByReboot)
     }
 
     @Test

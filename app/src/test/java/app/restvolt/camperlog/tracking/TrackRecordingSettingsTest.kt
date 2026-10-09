@@ -106,6 +106,29 @@ class TrackRecordingSettingsTest {
     }
 
     @Test
+    fun rebootDetectedSinceLastActiveComparesStoredAgainstCurrentElapsedRealtime() {
+        var now = 5_000L
+        val settings = TrackRecordingSettings(context, CountingRevoker(), elapsedRealtime = { now })
+        assertFalse(settings.rebootDetectedSinceLastActive())
+
+        // Gespeicherter Wert aus einem früheren Boot-Zyklus, größer als der aktuelle: ein Reboot liegt dazwischen.
+        settings.lastActiveElapsedRealtime = 10_000L
+        assertTrue(settings.rebootDetectedSinceLastActive())
+
+        // Derselbe Boot-Zyklus läuft weiter hoch: kein Reboot.
+        now = 20_000L
+        assertFalse(settings.rebootDetectedSinceLastActive())
+    }
+
+    @Test
+    fun pausedByRebootPersistsAcrossInstances() {
+        TrackRecordingSettings(context, CountingRevoker()).pausedByReboot = true
+
+        assertTrue(TrackRecordingSettings(context, CountingRevoker()).pausedByReboot)
+        assertTrue(TrackRecordingSettings(context, CountingRevoker()).pausedByRebootFlow.value)
+    }
+
+    @Test
     fun locationSwitchKeepsPermissionWhileTrackRecordingIsOn() {
         TrackRecordingSettings(context, CountingRevoker()).enabled = true
         val revoker = CountingRevoker()

@@ -16,6 +16,7 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.BatteryManager
 import android.os.IBinder
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -146,6 +147,7 @@ class TrackRecordingService : Service() {
     @SuppressLint("InlinedApi") // ServiceCompat ignoriert den Diensttyp unter API 29.
     private fun enterForeground(): Boolean = try {
         ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
+        settings.lastActiveElapsedRealtime = SystemClock.elapsedRealtime()
         true
     } catch (e: RuntimeException) {
         // ForegroundServiceStartNotAllowedException oder SecurityException ohne Berechtigung.
@@ -347,6 +349,7 @@ class TrackRecordingService : Service() {
 
         /** Startet die Aufzeichnung für [tourId]; nur aus der sichtbaren Oberfläche aufrufen. */
         fun start(context: Context, tourId: Long) {
+            TrackRecordingSettings.get(context).pausedByReboot = false
             val intent = Intent(context, TrackRecordingService::class.java).setAction(ACTION_START).putExtra(EXTRA_TOUR_ID, tourId)
             ContextCompat.startForegroundService(context, intent)
         }
@@ -363,12 +366,22 @@ class TrackRecordingService : Service() {
             start(context, tourId)
         }
 
-        /** Setzt eine gespeicherte, durch Prozessende unterbrochene Aufzeichnung fort. */
+        /**
+         * Setzt eine gespeicherte, durch Prozessende unterbrochene Aufzeichnung fort. Wurde seit dem
+         * letzten aktiven Zeitstempel ein Geräteneustart erkannt, lief der Dienst nachweislich nicht
+         * mehr weiter: dann kein stiller Neustart, sondern [TrackRecordingSettings.pausedByReboot]
+         * markiert die Tour als durch den Neustart unterbrochen, die Oberfläche zeigt das an.
+         */
         fun resumeIfNeeded(context: Context) {
             val settings = TrackRecordingSettings.get(context)
             val active = settings.activeRecording ?: return
             if (!settings.enabled || !hasLocationPermission(context)) {
                 settings.activeRecording = null
+                return
+            }
+            if (settings.rebootDetectedSinceLastActive()) {
+                settings.activeRecording = null
+                settings.pausedByReboot = true
                 return
             }
             start(context, active.tourId)
@@ -385,6 +398,7 @@ class TrackRecordingService : Service() {
             TrackRecordingSettings.get(context).apply {
                 activeRecording = null
                 trackedTourId = null
+                pausedByReboot = false
             }
             sendAction(context, ACTION_STOP)
         }
