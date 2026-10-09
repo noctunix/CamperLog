@@ -5,6 +5,7 @@ import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.tracking.TrackRecordingService
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -18,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -59,6 +61,8 @@ import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.LocationProvider
+import app.restvolt.camperlog.domain.guide.GuideController
+import app.restvolt.camperlog.domain.guide.GuidePhase
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Station
@@ -90,6 +94,8 @@ import app.restvolt.camperlog.ui.data.BackupSettings
 import app.restvolt.camperlog.ui.detail.StationDetailViewModel
 import app.restvolt.camperlog.ui.detail.AndroidTourExportFiles
 import app.restvolt.camperlog.ui.detail.TourDetailViewModel
+import app.restvolt.camperlog.ui.guide.GuideHost
+import app.restvolt.camperlog.ui.guide.GuideProgressStore
 import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
 import app.restvolt.camperlog.ui.onboarding.IntroductionTourScreen
 import app.restvolt.camperlog.ui.stations.StationsViewModel
@@ -260,6 +266,8 @@ internal class NavDependencies(
     val backupSettings: BackupSettings,
     val backupFolderWriter: AndroidBackupFolderWriter,
     val homeLocationSettings: HomeLocationSettings,
+    val guideController: GuideController,
+    val guideProgressStore: GuideProgressStore,
 )
 
 /** Navigationsgraph der App mit Start auf der Tourenliste. */
@@ -348,6 +356,19 @@ fun CamperLogNavHost(
     val introductionSettings = remember { IntroductionSettings(context) }
     var showIntroductionTour by rememberSaveable { mutableStateOf(false) }
 
+    // Geteilter Controller für künftige geführte Touren; Lebensdauer wie die übrigen hier
+    // erzeugten Einstellungen-Objekte, also solange diese Komposition bestehen bleibt.
+    val guideScope = rememberCoroutineScope()
+    val guideController = remember { GuideController(guideScope) }
+    val guideProgressStore = remember { GuideProgressStore(context) }
+    val guideState by guideController.state.collectAsStateWithLifecycle()
+    LaunchedEffect(guideState.phase, guideState.tour?.id) {
+        val tour = guideState.tour
+        if (guideState.phase == GuidePhase.ENDED && tour != null) {
+            guideProgressStore.markCompleted(tour.id, tour.version)
+        }
+    }
+
     val keepAndroidOpenSettings = remember { KeepAndroidOpenSettings(context) }
     var showStartupKeepAndroidOpen by rememberSaveable { mutableStateOf(false) }
     if (canShowStartDialogs) {
@@ -424,7 +445,7 @@ fun CamperLogNavHost(
         repository, vehicles, logbook, stations, exchangeRates, documents, diaryEntries, checklists, checklistTemplates,
         attachments, attachmentFileStore, backupImporter, locationProvider, weatherProvider, placeSearchProvider, tileLoader,
         countryLookup, attachmentPickers, tracks, reminderSettings, locationSettings, trackSettings, weatherSettings,
-        notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings,
+        notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings, guideController, guideProgressStore,
     )
     NavHost(navController, startDestination = ToursRoute) {
         toursGraph(navController, deps, bottomBar)
@@ -440,6 +461,7 @@ fun CamperLogNavHost(
             onShowIntroductionAgain = { showIntroductionTour = true },
         )
     }
+    GuideHost(guideController, modifier = Modifier.fillMaxSize())
 
     geoLocationForPicker?.let { location ->
         StationTypePickerSheet(
