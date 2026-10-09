@@ -151,15 +151,18 @@ class AttachmentsFlowTest {
         assertEquals(13.1023, attachments.attachments.single().longitude)
     }
 
-    @Test
-    fun newStation_hidesAddButtonUntilSaved() {
-        val attachments = start(emptyList(), listOf(lofoten()))
+    private fun openNewOvernightStationForm() {
         compose.onNodeWithText("Lofoten").performClick()
         compose.onAllNodesWithText("Station hinzufügen").onFirst().performClick()
         compose.onNode(hasText("Schlafplatz") and hasClickAction() and hasAnyAncestor(isDialog())).performClick()
+    }
 
-        compose.onNodeWithText("Speichern schaltet Fotos frei.").assertExists()
-        compose.onNodeWithContentDescription("Foto hinzufügen").assertDoesNotExist()
-        assertEquals(0, attachments.attachments.size)
+    @Test
+    fun newStation_offersAddingAPhotoInsteadOfTheSaveFirstHint() {
+        start(emptyList(), listOf(lofoten()))
+        openNewOvernightStationForm()
+
+        compose.onNodeWithContentDescription("Foto hinzufügen").assertExists()
+        compose.onNodeWithText("Speichern schaltet Fotos frei.").assertDoesNotExist()
     }
 }

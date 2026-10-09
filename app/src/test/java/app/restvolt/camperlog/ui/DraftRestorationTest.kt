@@ -2,6 +2,7 @@ package app.restvolt.camperlog.ui
 
 import android.os.Bundle
 import android.os.Parcel
+import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.ElectricityBilling
@@ -362,6 +363,8 @@ class DraftRestorationTest {
             repository = FakeStationRepository(),
             tours = FakeTourRepository(),
             vehicles = vehicles,
+            attachments = FakeAttachmentRepository(),
+            fileStore = FakeAttachmentFileStore(),
             stationId = 0,
             savedStateHandle = handle,
         )
@@ -372,6 +375,8 @@ class DraftRestorationTest {
             repository = FakeStationRepository(),
             tours = FakeTourRepository(),
             vehicles = vehicles,
+            attachments = FakeAttachmentRepository(),
+            fileStore = FakeAttachmentFileStore(),
             stationId = 0,
             savedStateHandle = handle.afterProcessDeath(),
         )
@@ -390,6 +395,8 @@ class DraftRestorationTest {
             repository = FakeStationRepository(),
             tours = FakeTourRepository(),
             vehicles = vehicles,
+            attachments = FakeAttachmentRepository(),
+            fileStore = FakeAttachmentFileStore(),
             stationId = 0,
             savedStateHandle = handle,
         )
@@ -411,6 +418,8 @@ class DraftRestorationTest {
             repository = FakeStationRepository(),
             tours = FakeTourRepository(),
             vehicles = vehicles,
+            attachments = FakeAttachmentRepository(),
+            fileStore = FakeAttachmentFileStore(),
             stationId = 0,
             savedStateHandle = handle.afterProcessDeath(),
         )
@@ -419,13 +428,45 @@ class DraftRestorationTest {
     }
 
     @Test
+    fun newStationPendingPhotoSurvivesProcessDeath() {
+        val handle = SavedStateHandle()
+        val fileStore = FakeAttachmentFileStore()
+        val before = EditStationViewModel(
+            repository = FakeStationRepository(),
+            tours = FakeTourRepository(),
+            vehicles = vehicles,
+            attachments = FakeAttachmentRepository(),
+            fileStore = fileStore,
+            stationId = 0,
+            savedStateHandle = handle,
+        )
+        before.onAddPendingPhoto("content://fake/photo.jpg".toUri())
+
+        val after = EditStationViewModel(
+            repository = FakeStationRepository(),
+            tours = FakeTourRepository(),
+            vehicles = vehicles,
+            attachments = FakeAttachmentRepository(),
+            fileStore = fileStore,
+            stationId = 0,
+            savedStateHandle = handle.afterProcessDeath(),
+        )
+
+        assertEquals(before.uiState.value.pendingPhotos, after.uiState.value.pendingPhotos)
+        assertTrue(after.uiState.value.isDirty)
+    }
+
+    @Test
     fun stationDraftWinsOverStoredStation() {
         val stations = FakeStationRepository(listOf(station()))
         val handle = SavedStateHandle()
-        EditStationViewModel(stations, FakeTourRepository(), vehicles, 1, savedStateHandle = handle)
+        EditStationViewModel(stations, FakeTourRepository(), vehicles, FakeAttachmentRepository(), FakeAttachmentFileStore(), 1, savedStateHandle = handle)
             .onInputChange { it.copy(name = "Anderer Name") }
 
-        val after = EditStationViewModel(stations, FakeTourRepository(), vehicles, 1, savedStateHandle = handle.afterProcessDeath())
+        val after = EditStationViewModel(
+            stations, FakeTourRepository(), vehicles, FakeAttachmentRepository(), FakeAttachmentFileStore(), 1,
+            savedStateHandle = handle.afterProcessDeath(),
+        )
 
         val state = after.uiState.value
         assertFalse(state.isLoading)
@@ -436,11 +477,17 @@ class DraftRestorationTest {
     @Test
     fun stationVisibleErrorsSurviveProcessDeath() {
         val handle = SavedStateHandle()
-        val before = EditStationViewModel(FakeStationRepository(), FakeTourRepository(), vehicles, 0, savedStateHandle = handle)
+        val before = EditStationViewModel(
+            FakeStationRepository(), FakeTourRepository(), vehicles, FakeAttachmentRepository(), FakeAttachmentFileStore(), 0,
+            savedStateHandle = handle,
+        )
         before.onInputChange { it.copy(date = null) }
         before.save()
 
-        val after = EditStationViewModel(FakeStationRepository(), FakeTourRepository(), vehicles, 0, savedStateHandle = handle.afterProcessDeath())
+        val after = EditStationViewModel(
+            FakeStationRepository(), FakeTourRepository(), vehicles, FakeAttachmentRepository(), FakeAttachmentFileStore(), 0,
+            savedStateHandle = handle.afterProcessDeath(),
+        )
 
         assertEquals(StationError.REQUIRED, after.uiState.value.errors[StationField.DATE])
         after.onInputChange { it.copy(date = LocalDate.of(2026, 7, 4)) }
@@ -451,7 +498,10 @@ class DraftRestorationTest {
     fun savedStationLeavesNoDraft() {
         val stations = FakeStationRepository(listOf(station()))
         val handle = SavedStateHandle()
-        val before = EditStationViewModel(stations, FakeTourRepository(), vehicles, 1, savedStateHandle = handle)
+        val before = EditStationViewModel(
+            stations, FakeTourRepository(), vehicles, FakeAttachmentRepository(), FakeAttachmentFileStore(), 1,
+            savedStateHandle = handle,
+        )
         before.onInputChange { it.copy(name = "Neu") }
         before.save()
 

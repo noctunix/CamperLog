@@ -6,6 +6,8 @@ import app.restvolt.camperlog.domain.FakeLocationPermissionGate
 import app.restvolt.camperlog.domain.FakeLocationProvider
 import app.restvolt.camperlog.domain.LocationCaptureState
 import app.restvolt.camperlog.domain.LocationFix
+import app.restvolt.camperlog.ui.FakeAttachmentFileStore
+import app.restvolt.camperlog.ui.FakeAttachmentRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
 import app.restvolt.camperlog.ui.FakeTourRepository
 import app.restvolt.camperlog.ui.FakeVehicleRepository
@@ -47,6 +49,8 @@ class EditStationViewModelLocationTest {
         repository = FakeStationRepository(),
         tours = FakeTourRepository(),
         vehicles = FakeVehicleRepository(),
+        attachments = FakeAttachmentRepository(),
+        fileStore = FakeAttachmentFileStore(),
         stationId = 0,
         locationProvider = provider,
         locationPermissionGate = gate,

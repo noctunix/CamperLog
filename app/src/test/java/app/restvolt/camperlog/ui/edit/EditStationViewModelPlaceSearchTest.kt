@@ -6,6 +6,8 @@ import app.restvolt.camperlog.domain.FakePlaceSearchProvider
 import app.restvolt.camperlog.domain.PlaceSearchHit
 import app.restvolt.camperlog.domain.PlaceSearchResult
 import app.restvolt.camperlog.domain.PlaceSearchState
+import app.restvolt.camperlog.ui.FakeAttachmentFileStore
+import app.restvolt.camperlog.ui.FakeAttachmentRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
 import app.restvolt.camperlog.ui.FakeTourRepository
 import app.restvolt.camperlog.ui.FakeVehicleRepository
@@ -54,6 +56,8 @@ class EditStationViewModelPlaceSearchTest {
         repository = FakeStationRepository(),
         tours = FakeTourRepository(),
         vehicles = FakeVehicleRepository(),
+        attachments = FakeAttachmentRepository(),
+        fileStore = FakeAttachmentFileStore(),
         stationId = 0,
         placeSearchProvider = provider,
         savedStateHandle = SavedStateHandle(),
