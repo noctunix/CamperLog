@@ -80,7 +80,7 @@ class TourTextTest {
 
         assertEquals("Kosten: 60,00 €", lines[3])
         assertEquals("Stellplatz: 20,00 €", lines[4])
-        assertEquals("Tanken/Laden: 40,00 €", lines[5])
+        assertEquals("Tanken & Laden: 40,00 €", lines[5])
     }
 
     @Test

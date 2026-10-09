@@ -571,7 +571,7 @@ private fun StationExtrasSection(
     locationEnabled: Boolean,
     weatherEnabled: Boolean,
     viewModel: EditStationViewModel,
-    odometerModifier: Modifier,
+    modifier: Modifier,
     temperatureModifier: Modifier,
 ) {
     SectionCard {
@@ -582,7 +582,7 @@ private fun StationExtrasSection(
             error = errors[StationField.ODOMETER_KM],
             onValueChange = { value -> change { it.copy(odometerKm = value) } },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-            modifier = odometerModifier,
+            modifier = modifier,
         )
         FormTextField(
             label = stringResource(R.string.field_manual_temperature),
