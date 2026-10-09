@@ -1164,4 +1164,13 @@
     <string name="track_battery_message">Android darf Apps, die im Hintergrund weiterarbeiten, zum Stromsparen pausieren. Eine Aufzeichnung kann dann mitten in der Fahrt enden, ohne dass du es merkst. Wenn du CamperLog von der Akkuoptimierung ausnimmst, zeichnet die App weiter auf, bis du selbst stoppst. Eingeschaltet ist die Aufzeichnung so oder so.</string>
     <string name="track_battery_open">Akkueinstellungen öffnen</string>
     <string name="track_battery_later">Jetzt nicht</string>
+
+    <!-- Guided tour engine -->
+    <string name="guide_step_counter">Schritt %1$d von %2$d</string>
+    <string name="guide_next">Weiter</string>
+    <string name="guide_finish">Fertig</string>
+    <string name="guide_back">Zurück</string>
+    <string name="guide_pause">Pause</string>
+    <string name="guide_resume">Fortsetzen</string>
+    <string name="guide_end">Beenden</string>
 </resources>

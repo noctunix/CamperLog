@@ -1175,4 +1175,13 @@
     <string name="track_battery_message">To save power, Android is allowed to pause apps that keep working in the background. A recording can then end mid-drive without telling you. If you exempt CamperLog from battery optimization, it keeps recording until you stop it. Recording is switched on either way.</string>
     <string name="track_battery_open">Open battery settings</string>
     <string name="track_battery_later">Not now</string>
+
+    <!-- Guided tour engine -->
+    <string name="guide_step_counter">Step %1$d of %2$d</string>
+    <string name="guide_next">Next</string>
+    <string name="guide_finish">Done</string>
+    <string name="guide_back">Back</string>
+    <string name="guide_pause">Pause</string>
+    <string name="guide_resume">Resume</string>
+    <string name="guide_end">End</string>
 </resources>
