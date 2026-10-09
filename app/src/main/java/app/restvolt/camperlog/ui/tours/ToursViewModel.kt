@@ -104,7 +104,8 @@ class ToursViewModel(
             isLoading = false,
             hasAnyTour = visible.isNotEmpty(),
             tours = visible.filter { tour ->
-                tour.destination.contains(query.trim(), ignoreCase = true) &&
+                val trimmedQuery = query.trim()
+                (tour.name.contains(trimmedQuery, ignoreCase = true) || tour.destination.contains(trimmedQuery, ignoreCase = true)) &&
                     (activeYear == null || tour.year == activeYear)
             },
             years = years,

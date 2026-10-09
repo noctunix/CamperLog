@@ -38,7 +38,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalResources
@@ -46,6 +45,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
@@ -54,6 +54,7 @@ import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.displayTitle
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.period
+import app.restvolt.camperlog.domain.travelDaysBetween
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.FinishTourDialog
 import app.restvolt.camperlog.ui.TabTopBar
@@ -61,6 +62,7 @@ import app.restvolt.camperlog.ui.VehicleSwitcherTitle
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.vehicleDisplayName
+import java.time.LocalDate
 
 /** Startseite: Tourenliste mit Suche, Jahresfilter und Einstieg in Eingabe, Übersicht und Datenverwaltung. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,7 +76,6 @@ fun ToursScreen(
     onOpenSettings: () -> Unit,
     onOpenTour: (Long) -> Unit,
     onOpenVehicles: () -> Unit,
-    activeRecordingTourId: Long? = null,
     bottomBar: @Composable () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -147,7 +148,6 @@ fun ToursScreen(
                         tour = tour,
                         vehicleName = vehicleName,
                         stationCount = state.stationCounts[tour.id] ?: 0,
-                        recording = activeRecordingTourId == tour.id,
                         finishing = finishingTourId == tour.id,
                         onClick = { onOpenTour(tour.id) },
                         onFinish = { finishTourId = tour.id },
@@ -263,60 +263,76 @@ private fun TourCard(
     tour: Tour,
     vehicleName: String?,
     stationCount: Int,
-    recording: Boolean,
     finishing: Boolean,
     onClick: () -> Unit,
     onFinish: () -> Unit,
 ) {
+    val running = tour.endDate == null
+    // Dieselbe Hervorhebung wie die globale TrackRecordingBar, damit "läuft gerade" app-weit eine Farbe hat.
+    val metaColor = if (running) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        colors = CardDefaults.cardColors(
+            containerColor = if (running) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLowest,
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClickLabel = stringResource(R.string.tours_open_details), onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(tour.displayTitle(stringResource(R.string.detail_fallback_title)), style = MaterialTheme.typography.titleMedium)
-                val periodText = if (tour.endDate == null) {
-                    stringResource(R.string.tours_running_since, formatDate(tour.startDate, currentLocale()))
-                } else {
-                    tour.period(currentLocale())
-                }
-                val daysText = pluralStringResource(R.plurals.share_travel_days, tour.travelDays, tour.travelDays)
-                Text(
-                    "$periodText · $daysText",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (recording) {
-                    Text(
-                        stringResource(R.string.tours_track_recording),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                val meta = if (vehicleName != null) {
-                    stringResource(R.string.tours_row_meta_vehicle, tour.year, stringResource(tour.tourType.labelRes), vehicleName)
-                } else {
-                    stringResource(R.string.tours_row_meta, tour.year, stringResource(tour.tourType.labelRes))
-                }
-                // Stationsanzahl nur bei > 0 anfügen.
-                val metaWithStations = if (stationCount > 0) {
-                    "$meta · ${pluralStringResource(R.plurals.tours_row_station_count, stationCount, stationCount)}"
-                } else {
-                    meta
-                }
-                Text(metaWithStations, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                tour.displayTitle(stringResource(R.string.detail_fallback_title)),
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val periodText = if (running) {
+                stringResource(R.string.tours_running_since, formatDate(tour.startDate, currentLocale()))
+            } else {
+                tour.period(currentLocale())
             }
-            if (tour.endDate == null) {
-                TextButton(onClick = onFinish, enabled = !finishing) {
-                    Text(stringResource(R.string.tour_finish))
+            // Für laufende Touren live berechnet statt des gespeicherten Werts, der bei neuen Touren 0 ist.
+            val travelDays = if (running) {
+                travelDaysBetween(tour.startDate, LocalDate.now()).toInt().coerceAtLeast(1)
+            } else {
+                tour.travelDays
+            }
+            val daysText = pluralStringResource(R.plurals.share_travel_days, travelDays, travelDays)
+            Text(
+                "$periodText · $daysText",
+                style = MaterialTheme.typography.bodyMedium,
+                color = metaColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val meta = if (vehicleName != null) {
+                stringResource(R.string.tours_row_meta_vehicle, stringResource(tour.tourType.labelRes), vehicleName)
+            } else {
+                stringResource(R.string.tours_row_meta, stringResource(tour.tourType.labelRes))
+            }
+            // Stationsanzahl nur bei > 0 anfügen.
+            val metaWithStations = if (stationCount > 0) {
+                "$meta · ${pluralStringResource(R.plurals.tours_row_station_count, stationCount, stationCount)}"
+            } else {
+                meta
+            }
+            Text(
+                metaWithStations,
+                style = MaterialTheme.typography.bodyMedium,
+                color = metaColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (running) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onFinish, enabled = !finishing) {
+                        Text(stringResource(R.string.tour_finish))
+                    }
                 }
             }
         }

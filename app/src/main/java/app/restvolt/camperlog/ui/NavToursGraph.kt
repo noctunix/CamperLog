@@ -45,7 +45,6 @@ internal fun NavGraphBuilder.toursGraph(
 ) = with(deps) {
     composable<ToursRoute> {
         val context = LocalContext.current
-        val activeRecording by trackSettings.active.collectAsStateWithLifecycle()
         ToursScreen(
             viewModel = viewModel {
                 ToursViewModel(
@@ -73,7 +72,6 @@ internal fun NavGraphBuilder.toursGraph(
             onOpenSettings = { navController.navigate(SettingsRoute) },
             onOpenTour = { navController.navigate(DetailRoute(it)) },
             onOpenVehicles = { navController.navigate(VehiclesRoute) },
-            activeRecordingTourId = activeRecording?.tourId,
             bottomBar = bottomBar,
         )
     }

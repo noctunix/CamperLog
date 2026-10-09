@@ -255,12 +255,12 @@ class TourFlowTest {
         val repository = start(running)
 
         compose.onNodeWithText("Unterwegs seit", substring = true).assertExists()
-        compose.onNodeWithText("GPS-Track läuft").assertExists()
         compose.onNodeWithText("Tour beenden").performClick()
         compose.onNode(hasText("Tour beenden") and hasAnyAncestor(isDialog())).performClick()
 
         compose.onNodeWithText("Tour beendet").assertExists()
         assertEquals(today, repository.tours.single().endDate)
+        // Beenden aus der Liste stoppt eine laufende Aufzeichnung ebenso wie aus der Detailseite.
         assertNull(settings.activeRecording)
         TrackRecordingSettings.resetShared()
     }
@@ -575,7 +575,7 @@ class TourFlowTest {
     @Test
     fun createTour_resetsSearchAndConfirmsSaving() {
         start(tour(id = 1, destination = "Gardasee"))
-        compose.onNode(hasSetTextAction() and hasText("Ziel suchen")).performTextInput("garda")
+        compose.onNode(hasSetTextAction() and hasText("Name oder Ziel suchen")).performTextInput("garda")
 
         compose.onNodeWithText("Neue Tour").performClick()
         pickDay("Startdatum", 10)
@@ -665,10 +665,23 @@ class TourFlowTest {
     fun search_filtersListByDestination() {
         start(tour(id = 1, destination = "Gardasee"), tour(id = 2, destination = "Ostsee"))
 
-        compose.onNode(hasSetTextAction() and hasText("Ziel suchen")).performTextInput("ost")
+        compose.onNode(hasSetTextAction() and hasText("Name oder Ziel suchen")).performTextInput("ost")
 
         compose.onNodeWithText("Ostsee").assertExists()
         compose.onNodeWithText("Gardasee").assertDoesNotExist()
+    }
+
+    @Test
+    fun search_filtersListByName() {
+        start(
+            tour(id = 1, destination = "Gardasee").copy(name = "Familienurlaub"),
+            tour(id = 2, destination = "Ostsee"),
+        )
+
+        compose.onNode(hasSetTextAction() and hasText("Name oder Ziel suchen")).performTextInput("familien")
+
+        compose.onNodeWithText("Familienurlaub").assertExists()
+        compose.onNodeWithText("Ostsee").assertDoesNotExist()
     }
 
     @Test
@@ -682,8 +695,22 @@ class TourFlowTest {
         )
         start(FakeVehicleRepository(), stations, lofoten, ostsee)
 
-        compose.onNodeWithText("Jahr 2025 · Wochenende · 2 Stationen").assertExists()
-        compose.onNodeWithText("Jahr 2025 · Wochenende").assertExists()
+        compose.onNodeWithText("Wochenende · 2 Stationen").assertExists()
+        compose.onNodeWithText("Wochenende").assertExists()
+        compose.onNodeWithText("Jahr 2025", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun runningTour_showsLiveComputedTravelDaysInList() {
+        val running = tour(id = 1, destination = "Lofoten").copy(
+            startDate = LocalDate.now().minusDays(2),
+            endDate = null,
+            travelDays = 0,
+        )
+        start(running)
+
+        // Der gespeicherte Wert ist 0 (frisch angelegte laufende Tour); die Karte zeigt live 3 Tage.
+        compose.onNodeWithText("3 Reisetage", substring = true).assertExists()
     }
 
     private fun station(id: Long, tourId: Long?) = Station(

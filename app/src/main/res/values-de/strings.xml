@@ -87,7 +87,7 @@
     <string name="tours_new">Neue Tour</string>
     <string name="tours_overview">Übersicht</string>
     <string name="tours_export_csv">Als CSV exportieren</string>
-    <string name="tours_search">Ziel suchen</string>
+    <string name="tours_search">Name oder Ziel suchen</string>
     <string name="tours_all_years">Alle Jahre</string>
     <string name="tours_open_details">Details öffnen</string>
     <string name="tours_running_since">Unterwegs seit %1$s</string>
@@ -95,8 +95,8 @@
     <string name="tours_track_paused">GPS-Track pausiert</string>
     <string name="tours_track_paused_by_reboot">GPS-Track unterbrochen</string>
     <string name="tours_track_resumed_after_boot">GPS-Track nach Neustart fortgesetzt</string>
-    <string name="tours_row_meta">Jahr %1$d · %2$s</string>
-    <string name="tours_row_meta_vehicle">Jahr %1$d · %2$s · %3$s</string>
+    <string name="tours_row_meta">%1$s</string>
+    <string name="tours_row_meta_vehicle">%1$s · %2$s</string>
     <plurals name="tours_row_station_count">
         <item quantity="one">%1$d Station</item>
         <item quantity="other">%1$d Stationen</item>
