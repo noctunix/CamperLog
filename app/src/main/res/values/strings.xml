@@ -91,6 +91,7 @@
     <string name="tours_open_details">Open details</string>
     <string name="tours_running_since">On the road since %1$s</string>
     <string name="tours_track_recording">GPS track recording</string>
+    <string name="tours_track_paused">GPS track paused</string>
     <string name="tours_row_meta">Year %1$d · %2$s</string>
     <string name="tours_row_meta_vehicle">Year %1$d · %2$s · %3$s</string>
     <plurals name="tours_row_station_count">
@@ -191,6 +192,8 @@
     <string name="edit_cost_remove">Remove amount in %1$s</string>
     <string name="edit_map_link_placeholder">https://…</string>
     <string name="edit_running_tour_conflict">This vehicle already has an ongoing tour.</string>
+    <string name="edit_track_switch_title">Record GPS track</string>
+    <string name="edit_track_switch_support">Starts recording once the tour is saved.</string>
     <string name="tour_metrics_title">Trip metrics</string>
     <string name="tour_metrics_automatic_hint">Calculated automatically from dates, stops, and the GPS track when the tour ends.</string>
     <string name="tour_metrics_editable_hint">Calculated automatically. You can adjust the saved values.</string>
@@ -1112,8 +1115,9 @@
     <string name="track_notification_title">Recording track</string>
     <string name="track_notification_text">Position every %1$s</string>
     <string name="track_notification_stop">Stop</string>
+    <string name="track_notification_pause">Pause</string>
     <string name="settings_track_switch_title">Track recording</string>
-    <string name="settings_track_switch_support">Lets you record a tour\'s route from the tour screen. Positions are only read while a recording runs, also with the screen off, and a notification is shown the whole time. Stays on your device.</string>
+    <string name="settings_track_switch_support">Lets you record a tour\'s route from the tour screen. Positions are only read while a recording runs, also with the screen off, and a notification is shown the whole time. Stays on your device. You can also start it from the new tour form or the switch on the tour page.</string>
     <string name="settings_track_interval">Position every</string>
     <string name="settings_track_charging_title">More often while charging</string>
     <string name="settings_track_charging_support">Every 2 minutes while the phone is charging, e.g. on the vehicle\'s USB socket.</string>
@@ -1132,8 +1136,13 @@
         <item quantity="other">%1$d recordings</item>
     </plurals>
     <string name="tour_track_recording">Recording, position every %1$s.</string>
+    <string name="tour_track_paused">Recording paused.</string>
     <string name="tour_track_other_tour">A recording is running for another tour. Starting here ends it.</string>
-    <string name="tour_track_start">Start recording</string>
+    <string name="tour_track_switch_title">Record for this tour</string>
+    <string name="tour_track_switch_support">Records this tour\'s route in the background.</string>
+    <string name="tour_track_pause">Pause recording</string>
+    <string name="tour_track_resume">Resume recording</string>
+    <string name="tour_track_start_failed">Recording could not be started – check location</string>
     <string name="tour_track_stop">Stop recording</string>
     <string name="tour_track_delete">Delete track</string>
     <string name="tour_track_delete_title">Delete track?</string>

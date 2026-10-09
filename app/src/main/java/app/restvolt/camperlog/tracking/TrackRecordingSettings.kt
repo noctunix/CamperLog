@@ -37,11 +37,23 @@ class TrackRecordingSettings(
 
     private val state = MutableStateFlow(read())
     private val activeState = MutableStateFlow(readActive())
+    private val trackedState = MutableStateFlow(readTracked())
+    private val startFailedState = MutableStateFlow(false)
 
     val values: StateFlow<TrackRecordingPreferences> = state.asStateFlow()
 
     /** Gerade laufende Aufzeichnung oder `null`. */
     val active: StateFlow<ActiveRecording?> = activeState.asStateFlow()
+
+    /**
+     * Die Tour, die gerade aufgezeichnet oder pausiert ist, oder `null`. Anders als [active] bleibt
+     * dieser Wert auch gesetzt, während die Aufzeichnung pausiert ist ([active] dann `null`), damit
+     * Oberfläche und Benachrichtigung zwischen "pausiert" und "nichts markiert" unterscheiden können.
+     */
+    val tracked: StateFlow<Long?> = trackedState.asStateFlow()
+
+    /** Einmaliges Signal, dass der letzte Start nicht in den Vordergrund kam (z. B. keine Standortquelle). */
+    val startFailed: StateFlow<Boolean> = startFailedState.asStateFlow()
 
     var enabled: Boolean
         get() = state.value.enabled
@@ -90,10 +102,30 @@ class TrackRecordingSettings(
             activeState.value = value
         }
 
+    var trackedTourId: Long?
+        get() = trackedState.value
+        set(value) {
+            preferences.edit {
+                if (value == null) remove(KEY_TRACKED_TOUR) else putLong(KEY_TRACKED_TOUR, value)
+            }
+            trackedState.value = value
+        }
+
+    /** Von [TrackRecordingService] gesetzt, wenn der Start scheiterte. */
+    fun reportStartFailed() {
+        startFailedState.value = true
+    }
+
+    /** Die Oberfläche hat den Fehlschlag angezeigt. */
+    fun clearStartFailed() {
+        startFailedState.value = false
+    }
+
     /** Liest die gespeicherten Werte neu, z. B. wenn eine andere Instanz sie geändert hat. */
     fun reload() {
         state.value = read()
         activeState.value = readActive()
+        trackedState.value = readTracked()
     }
 
     private fun read() = TrackRecordingPreferences(
@@ -107,6 +139,9 @@ class TrackRecordingSettings(
         return ActiveRecording(preferences.getLong(KEY_ACTIVE_TOUR, 0), preferences.getInt(KEY_ACTIVE_SEGMENT, 1))
     }
 
+    private fun readTracked(): Long? =
+        if (!preferences.contains(KEY_TRACKED_TOUR)) null else preferences.getLong(KEY_TRACKED_TOUR, 0)
+
     companion object {
         const val PREFERENCES_NAME = "track_recording"
         private const val KEY_ENABLED = "enabled"
@@ -115,6 +150,7 @@ class TrackRecordingSettings(
         private const val KEY_BATTERY_HINT_SHOWN = "battery_hint_shown"
         private const val KEY_ACTIVE_TOUR = "active_tour_id"
         private const val KEY_ACTIVE_SEGMENT = "active_segment"
+        private const val KEY_TRACKED_TOUR = "tracked_tour_id"
 
         @Volatile
         private var shared: TrackRecordingSettings? = null

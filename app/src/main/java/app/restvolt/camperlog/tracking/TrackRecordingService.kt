@@ -92,6 +92,12 @@ class TrackRecordingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             settings.activeRecording = null
+            settings.trackedTourId = null
+            shutDown()
+            return START_NOT_STICKY
+        }
+        if (intent?.action == ACTION_PAUSE) {
+            settings.activeRecording = null
             shutDown()
             return START_NOT_STICKY
         }
@@ -109,6 +115,7 @@ class TrackRecordingService : Service() {
         if (recording?.tourId == tourId || startingTourId == tourId) return START_STICKY
         if (!enterForeground()) {
             // Android lässt einen Standortdienst nicht aus dem Hintergrund starten; die Oberfläche setzt fort.
+            settings.reportStartFailed()
             stopSelf()
             return START_NOT_STICKY
         }
@@ -293,9 +300,15 @@ class TrackRecordingService : Service() {
             Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val stop = PendingIntent.getService(
+        val pause = PendingIntent.getService(
             this,
             1,
+            Intent(this, TrackRecordingService::class.java).setAction(ACTION_PAUSE),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val stop = PendingIntent.getService(
+            this,
+            2,
             Intent(this, TrackRecordingService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -308,6 +321,7 @@ class TrackRecordingService : Service() {
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(open)
+            .addAction(0, getString(R.string.track_notification_pause), pause)
             .addAction(0, getString(R.string.track_notification_stop), stop)
             .build()
     }
@@ -317,6 +331,7 @@ class TrackRecordingService : Service() {
         private const val CHANNEL_ID = "track_recording"
         private const val NOTIFICATION_ID = 4711
         private const val ACTION_START = "app.restvolt.camperlog.tracking.START"
+        private const val ACTION_PAUSE = "app.restvolt.camperlog.tracking.PAUSE"
         private const val ACTION_STOP = "app.restvolt.camperlog.tracking.STOP"
         private const val EXTRA_TOUR_ID = "tour_id"
 
@@ -336,6 +351,18 @@ class TrackRecordingService : Service() {
             ContextCompat.startForegroundService(context, intent)
         }
 
+        /**
+         * Schaltet die Aufzeichnung ein, markiert [tourId] als zugeordnete Tour und startet sie.
+         * Einziger Einstiegspunkt aus Tourformular und Tourdetail, damit beide denselben Zustand setzen.
+         */
+        fun startForTour(context: Context, tourId: Long) {
+            TrackRecordingSettings.get(context).apply {
+                enabled = true
+                trackedTourId = tourId
+            }
+            start(context, tourId)
+        }
+
         /** Setzt eine gespeicherte, durch Prozessende unterbrochene Aufzeichnung fort. */
         fun resumeIfNeeded(context: Context) {
             val settings = TrackRecordingSettings.get(context)
@@ -347,13 +374,27 @@ class TrackRecordingService : Service() {
             start(context, active.tourId)
         }
 
-        fun stop(context: Context) {
+        /** Pausiert die Aufzeichnung: Dienst stoppt, die zugeordnete Tour bleibt markiert ([TrackRecordingSettings.trackedTourId]). */
+        fun pause(context: Context) {
             TrackRecordingSettings.get(context).activeRecording = null
+            sendAction(context, ACTION_PAUSE)
+        }
+
+        /** Beendet die Aufzeichnung endgültig: Dienst stoppt, die zugeordnete Tour wird entmarkiert. */
+        fun stop(context: Context) {
+            TrackRecordingSettings.get(context).apply {
+                activeRecording = null
+                trackedTourId = null
+            }
+            sendAction(context, ACTION_STOP)
+        }
+
+        private fun sendAction(context: Context, action: String) {
             try {
-                context.startService(Intent(context, TrackRecordingService::class.java).setAction(ACTION_STOP))
+                context.startService(Intent(context, TrackRecordingService::class.java).setAction(action))
             } catch (e: IllegalStateException) {
                 // Aus dem Hintergrund verboten; dann läuft auch kein Vordergrunddienst, der zu stoppen wäre.
-                Log.w(TAG, "Stopp der Trackaufzeichnung nicht zugestellt", e)
+                Log.w(TAG, "Aktion der Trackaufzeichnung nicht zugestellt: $action", e)
             }
         }
 

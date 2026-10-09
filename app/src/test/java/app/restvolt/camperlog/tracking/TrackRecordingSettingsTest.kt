@@ -39,6 +39,7 @@ class TrackRecordingSettingsTest {
         val values = TrackRecordingSettings(context, CountingRevoker()).values.value
         assertEquals(TrackRecordingPreferences(false, TrackInterval.MINUTES_15, false), values)
         assertNull(TrackRecordingSettings(context, CountingRevoker()).activeRecording)
+        assertNull(TrackRecordingSettings(context, CountingRevoker()).trackedTourId)
     }
 
     @Test
@@ -49,13 +50,41 @@ class TrackRecordingSettingsTest {
             fasterWhileCharging = true
             batteryHintShown = true
             activeRecording = ActiveRecording(tourId = 7, segment = 3)
+            trackedTourId = 7
         }
 
         val again = TrackRecordingSettings(context, CountingRevoker())
         assertEquals(TrackRecordingPreferences(true, TrackInterval.SECONDS_30, true), again.values.value)
         assertTrue(again.batteryHintShown)
         assertEquals(ActiveRecording(7, 3), again.activeRecording)
+        assertEquals(7L, again.trackedTourId)
         assertTrue(TrackRecordingSettings.isSwitchOn(context))
+    }
+
+    @Test
+    fun trackedTourIdStaysSetWhileTheRecordingItselfIsPausedAndClearsExplicitly() {
+        val settings = TrackRecordingSettings(context, CountingRevoker())
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+
+        // Pausieren: der Dienst stoppt und löscht nur die laufende Aufzeichnung, nicht die Markierung.
+        settings.activeRecording = null
+        assertEquals(1L, settings.trackedTourId)
+
+        settings.trackedTourId = null
+        assertNull(settings.trackedTourId)
+    }
+
+    @Test
+    fun startFailedIsAOneShotSignal() {
+        val settings = TrackRecordingSettings(context, CountingRevoker())
+        assertFalse(settings.startFailed.value)
+
+        settings.reportStartFailed()
+        assertTrue(settings.startFailed.value)
+
+        settings.clearStartFailed()
+        assertFalse(settings.startFailed.value)
     }
 
     @Test
