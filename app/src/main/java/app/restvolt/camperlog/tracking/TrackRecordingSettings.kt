@@ -42,6 +42,7 @@ class TrackRecordingSettings(
     private val trackedState = MutableStateFlow(readTracked())
     private val startFailedState = MutableStateFlow(false)
     private val pausedByRebootState = MutableStateFlow(readPausedByReboot())
+    private val resumedAfterBootState = MutableStateFlow(readResumedAfterBoot())
 
     val values: StateFlow<TrackRecordingPreferences> = state.asStateFlow()
 
@@ -63,6 +64,13 @@ class TrackRecordingSettings(
      * durch den Nutzer, damit die Oberfläche einen eigenen Hinweis statt "pausiert" zeigen kann.
      */
     val pausedByRebootFlow: StateFlow<Boolean> = pausedByRebootState.asStateFlow()
+
+    /**
+     * Einmaliges Signal, dass [TrackRecordingService.resumeAfterBoot] die Aufzeichnung automatisch
+     * nach einem Geräteneustart fortgesetzt hat, damit die Oberfläche das einmal anzeigen kann statt
+     * lautlos weiterzulaufen.
+     */
+    val resumedAfterBootFlow: StateFlow<Boolean> = resumedAfterBootState.asStateFlow()
 
     var enabled: Boolean
         get() = state.value.enabled
@@ -137,6 +145,14 @@ class TrackRecordingSettings(
             pausedByRebootState.value = value
         }
 
+    /** Ob die Aufzeichnung gerade automatisch nach einem Geräteneustart fortgesetzt wurde (noch nicht angezeigt). */
+    var resumedAfterBoot: Boolean
+        get() = resumedAfterBootState.value
+        set(value) {
+            preferences.edit { putBoolean(KEY_RESUMED_AFTER_BOOT, value) }
+            resumedAfterBootState.value = value
+        }
+
     /**
      * Ob zwischen [lastActiveElapsedRealtime] und jetzt ein Neustart des Geräts stattgefunden hat.
      * `elapsedRealtime()` läuft nur innerhalb eines Boot-Zyklus und fällt nach einem Neustart auf
@@ -163,6 +179,7 @@ class TrackRecordingSettings(
         activeState.value = readActive()
         trackedState.value = readTracked()
         pausedByRebootState.value = readPausedByReboot()
+        resumedAfterBootState.value = readResumedAfterBoot()
     }
 
     private fun read() = TrackRecordingPreferences(
@@ -181,6 +198,8 @@ class TrackRecordingSettings(
 
     private fun readPausedByReboot(): Boolean = preferences.getBoolean(KEY_PAUSED_BY_REBOOT, false)
 
+    private fun readResumedAfterBoot(): Boolean = preferences.getBoolean(KEY_RESUMED_AFTER_BOOT, false)
+
     companion object {
         const val PREFERENCES_NAME = "track_recording"
         private const val KEY_ENABLED = "enabled"
@@ -192,6 +211,7 @@ class TrackRecordingSettings(
         private const val KEY_TRACKED_TOUR = "tracked_tour_id"
         private const val KEY_LAST_ACTIVE_ELAPSED_REALTIME = "last_active_elapsed_realtime"
         private const val KEY_PAUSED_BY_REBOOT = "paused_by_reboot"
+        private const val KEY_RESUMED_AFTER_BOOT = "resumed_after_boot"
 
         @Volatile
         private var shared: TrackRecordingSettings? = null

@@ -93,6 +93,7 @@
     <string name="tours_track_recording">GPS track recording</string>
     <string name="tours_track_paused">GPS track paused</string>
     <string name="tours_track_paused_by_reboot">GPS track interrupted</string>
+    <string name="tours_track_resumed_after_boot">GPS track resumed after restart</string>
     <string name="tours_row_meta">Year %1$d · %2$s</string>
     <string name="tours_row_meta_vehicle">Year %1$d · %2$s · %3$s</string>
     <plurals name="tours_row_station_count">
@@ -1156,6 +1157,7 @@
     <string name="tour_track_recording">Recording, position every %1$s.</string>
     <string name="tour_track_paused">Recording paused.</string>
     <string name="tour_track_paused_by_reboot">Interrupted by a device restart.</string>
+    <string name="tour_track_resumed_after_boot">Automatically resumed after a device restart.</string>
     <string name="tour_track_other_tour">A recording is running for another tour. Starting here ends it.</string>
     <string name="tour_track_switch_title">Record for this tour</string>
     <string name="tour_track_switch_support">Records this tour\'s route in the background.</string>

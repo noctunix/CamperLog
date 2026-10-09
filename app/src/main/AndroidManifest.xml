@@ -12,14 +12,19 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Nur abgefragt, wenn Benachrichtigungen eingeschaltet werden. Der tägliche Check ist ein
-         periodischer WorkManager-Job ohne exakte Alarme; WAKE_LOCK und RECEIVE_BOOT_COMPLETED bringt
-         WorkManager dafür selbst mit. -->
+         periodischer WorkManager-Job ohne exakte Alarme; WAKE_LOCK bringt WorkManager dafür selbst mit. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Nur für die eingeschaltete Trackaufzeichnung: ein aus der App gestarteter Vordergrunddienst
          mit sichtbarer Benachrichtigung; weiterhin kein ACCESS_BACKGROUND_LOCATION. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <!-- Setzt eine beim Neustart aktive Trackaufzeichnung automatisch fort, ohne auf das nächste
+         Öffnen der App zu warten. Normale Berechtigung ohne Laufzeitabfrage; der Vordergrunddienst
+         startet nur, wenn beim Neustart schon aufgezeichnet wurde und die Standortberechtigung noch
+         besteht – weiterhin kein ACCESS_BACKGROUND_LOCATION. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- WorkManager deklariert dies nur für Netzwerk-Constraints; der Check nutzt keine, und die
          Berechtigungsliste soll nichts Ungenutztes zeigen. -->
@@ -57,6 +62,15 @@
             android:name=".tracking.TrackRecordingService"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <!-- Boot-Broadcasts kommen vom System; kein Export an andere Apps nötig. -->
+        <receiver
+            android:name=".tracking.BootResumeReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"

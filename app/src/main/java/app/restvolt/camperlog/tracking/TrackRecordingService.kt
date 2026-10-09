@@ -362,6 +362,7 @@ class TrackRecordingService : Service() {
             TrackRecordingSettings.get(context).apply {
                 enabled = true
                 trackedTourId = tourId
+                resumedAfterBoot = false
             }
             start(context, tourId)
         }
@@ -371,6 +372,10 @@ class TrackRecordingService : Service() {
          * letzten aktiven Zeitstempel ein Geräteneustart erkannt, lief der Dienst nachweislich nicht
          * mehr weiter: dann kein stiller Neustart, sondern [TrackRecordingSettings.pausedByReboot]
          * markiert die Tour als durch den Neustart unterbrochen, die Oberfläche zeigt das an.
+         *
+         * Dient als Rückfallebene für [resumeAfterBoot]: Lief dessen Empfänger aus irgendeinem Grund
+         * nicht oder scheiterte er, trifft diese Methode beim nächsten Öffnen der App auf dieselbe
+         * Situation und markiert sie zumindest als unterbrochen statt sie zu verschweigen.
          */
         fun resumeIfNeeded(context: Context) {
             val settings = TrackRecordingSettings.get(context)
@@ -387,9 +392,27 @@ class TrackRecordingService : Service() {
             start(context, active.tourId)
         }
 
+        /**
+         * Setzt eine beim Neustart aktive Aufzeichnung direkt wieder in Gang, aufgerufen vom
+         * Boot-Empfänger. Anders als [resumeIfNeeded] prüft dies nicht auf einen Neustart seit dem
+         * letzten aktiven Zeitstempel – der Neustart ist hier per Definition gerade erst passiert –
+         * sondern startet unconditional neu und setzt [TrackRecordingSettings.resumedAfterBoot], damit
+         * die Oberfläche das beim nächsten Anzeigen kurz meldet statt es lautlos zu tun.
+         */
+        fun resumeAfterBoot(context: Context) {
+            val settings = TrackRecordingSettings.get(context)
+            val active = settings.activeRecording ?: return
+            if (!settings.enabled || !hasLocationPermission(context)) return
+            settings.resumedAfterBoot = true
+            start(context, active.tourId)
+        }
+
         /** Pausiert die Aufzeichnung: Dienst stoppt, die zugeordnete Tour bleibt markiert ([TrackRecordingSettings.trackedTourId]). */
         fun pause(context: Context) {
-            TrackRecordingSettings.get(context).activeRecording = null
+            TrackRecordingSettings.get(context).apply {
+                activeRecording = null
+                resumedAfterBoot = false
+            }
             sendAction(context, ACTION_PAUSE)
         }
 
@@ -399,6 +422,7 @@ class TrackRecordingService : Service() {
                 activeRecording = null
                 trackedTourId = null
                 pausedByReboot = false
+                resumedAfterBoot = false
             }
             sendAction(context, ACTION_STOP)
         }

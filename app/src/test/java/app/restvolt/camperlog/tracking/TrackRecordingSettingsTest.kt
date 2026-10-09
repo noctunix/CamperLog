@@ -129,6 +129,14 @@ class TrackRecordingSettingsTest {
     }
 
     @Test
+    fun resumedAfterBootPersistsAcrossInstances() {
+        TrackRecordingSettings(context, CountingRevoker()).resumedAfterBoot = true
+
+        assertTrue(TrackRecordingSettings(context, CountingRevoker()).resumedAfterBoot)
+        assertTrue(TrackRecordingSettings(context, CountingRevoker()).resumedAfterBootFlow.value)
+    }
+
+    @Test
     fun locationSwitchKeepsPermissionWhileTrackRecordingIsOn() {
         TrackRecordingSettings(context, CountingRevoker()).enabled = true
         val revoker = CountingRevoker()

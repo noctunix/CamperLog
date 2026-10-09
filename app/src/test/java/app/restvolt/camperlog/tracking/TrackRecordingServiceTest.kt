@@ -138,6 +138,58 @@ class TrackRecordingServiceTest {
     }
 
     @Test
+    fun resumeAfterBoot_startsDirectlyWhenActiveEnabledAndPermissionGranted() {
+        grantLocation()
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+
+        TrackRecordingService.resumeAfterBoot(app)
+
+        val started = shadowOf(app).nextStartedService
+        assertEquals(TrackRecordingService::class.java.name, started?.component?.className)
+        assertEquals(1L, started?.getLongExtra("tour_id", -1))
+        assertTrue(settings.resumedAfterBoot)
+    }
+
+    @Test
+    fun resumeAfterBoot_doesNothingWithoutAnActiveRecording() {
+        grantLocation()
+        TrackRecordingSettings.get(app).enabled = true
+
+        TrackRecordingService.resumeAfterBoot(app)
+
+        assertNull(shadowOf(app).nextStartedService)
+    }
+
+    @Test
+    fun resumeAfterBoot_doesNothingWhileTheGlobalSwitchIsOff() {
+        grantLocation()
+        val settings = TrackRecordingSettings.get(app)
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+
+        TrackRecordingService.resumeAfterBoot(app)
+
+        assertNull(shadowOf(app).nextStartedService)
+        assertFalse(settings.resumedAfterBoot)
+    }
+
+    @Test
+    fun resumeAfterBoot_doesNothingWithoutLocationPermission() {
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+
+        TrackRecordingService.resumeAfterBoot(app)
+
+        assertNull(shadowOf(app).nextStartedService)
+        assertFalse(settings.resumedAfterBoot)
+    }
+
+    @Test
     fun resumingAfterAPausedByRebootClearsTheMarker() {
         val settings = TrackRecordingSettings.get(app)
         settings.trackedTourId = 1
@@ -146,6 +198,23 @@ class TrackRecordingServiceTest {
         TrackRecordingService.start(app, 1)
 
         assertFalse(settings.pausedByReboot)
+    }
+
+    @Test
+    fun pauseAndStopAndStartForTour_clearTheResumedAfterBootMarker() {
+        val settings = TrackRecordingSettings.get(app)
+        settings.trackedTourId = 1
+        settings.resumedAfterBoot = true
+        TrackRecordingService.pause(app)
+        assertFalse(settings.resumedAfterBoot)
+
+        settings.resumedAfterBoot = true
+        TrackRecordingService.stop(app)
+        assertFalse(settings.resumedAfterBoot)
+
+        settings.resumedAfterBoot = true
+        TrackRecordingService.startForTour(app, 1)
+        assertFalse(settings.resumedAfterBoot)
     }
 
     @Test

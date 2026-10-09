@@ -59,6 +59,7 @@ internal fun TrackRecordingBar(
         .collectAsStateWithLifecycle(initialValue = 0.0)
     val active by settings.active.collectAsStateWithLifecycle()
     val pausedByReboot by settings.pausedByRebootFlow.collectAsStateWithLifecycle()
+    val resumedAfterBoot by settings.resumedAfterBootFlow.collectAsStateWithLifecycle()
     val isRunning = active?.tourId == tourId
     val locale = currentLocale()
     val fallbackTitle = stringResource(R.string.detail_fallback_title)
@@ -87,6 +88,7 @@ internal fun TrackRecordingBar(
                 Text(
                     stringResource(
                         when {
+                            isRunning && resumedAfterBoot -> R.string.tours_track_resumed_after_boot
                             isRunning -> R.string.tours_track_recording
                             pausedByReboot -> R.string.tours_track_paused_by_reboot
                             else -> R.string.tours_track_paused

@@ -97,6 +97,16 @@ class TrackRecordingBarFlowTest {
     }
 
     @Test
+    fun resumedAfterBoot_showsTheResumedHintWhileRunning() {
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        settings.resumedAfterBoot = true
+        start(lofoten())
+
+        compose.onNode(barNode("GPS-Track nach Neustart fortgesetzt")).assertExists()
+    }
+
+    @Test
     fun pausingFromTheBar_clearsTheActiveRecordingButKeepsTheMarker() {
         settings.trackedTourId = 1
         settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)

@@ -197,6 +197,18 @@ class TrackRecordingCardFlowTest {
     }
 
     @Test
+    fun resumedAfterBoot_showsTheHintOnceAndClearsTheFlag() {
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        settings.resumedAfterBoot = true
+        grantLocation()
+        openTour(running = true, scrollTo = "Aufzeichnung pausieren")
+
+        compose.onNodeWithText("Nach einem Geräteneustart automatisch fortgesetzt.").assertExists()
+        assertFalse(settings.resumedAfterBoot)
+    }
+
+    @Test
     fun switchingOffEndsTheRecordingAndClearsTheMarker() {
         settings.trackedTourId = 1
         settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)

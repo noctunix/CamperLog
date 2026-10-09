@@ -73,10 +73,12 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
     val preferences by settings.values.collectAsStateWithLifecycle()
     val startFailed by settings.startFailed.collectAsStateWithLifecycle()
     val pausedByReboot by settings.pausedByRebootFlow.collectAsStateWithLifecycle()
+    val resumedAfterBoot by settings.resumedAfterBootFlow.collectAsStateWithLifecycle()
     var showBatteryHint by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var permissionDenied by rememberSaveable { mutableStateOf(false) }
     var showStartFailedHint by rememberSaveable { mutableStateOf(false) }
+    var showResumedAfterBootHint by rememberSaveable { mutableStateOf(false) }
     val isTrackedHere = trackedTourId == tourId
     val isRunning = isTrackedHere && active?.tourId == tourId
     val isPaused = isTrackedHere && !isRunning
@@ -88,6 +90,14 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
         if (startFailed) {
             showStartFailedHint = true
             settings.clearStartFailed()
+        }
+    }
+
+    // Einmaliger Hinweis: nach dem Anzeigen hier gilt der automatische Neustart als gesehen.
+    LaunchedEffect(resumedAfterBoot) {
+        if (resumedAfterBoot) {
+            showResumedAfterBootHint = true
+            settings.resumedAfterBoot = false
         }
     }
 
@@ -138,6 +148,13 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            if (showResumedAfterBootHint) {
+                Text(
+                    stringResource(R.string.tour_track_resumed_after_boot),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (permissionDenied) {
                 Text(
                     stringResource(R.string.settings_track_denied_hint),
@@ -161,6 +178,7 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
                 checked = isTrackedHere,
                 onCheckedChange = { wantsOn ->
                     showStartFailedHint = false
+                    showResumedAfterBootHint = false
                     if (wantsOn) {
                         if (TrackRecordingService.hasLocationPermission(context)) {
                             permissionDenied = false
@@ -174,10 +192,14 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
                 },
             )
             if (isRunning) {
-                Button(onClick = { TrackRecordingService.pause(context) }) { Text(stringResource(R.string.tour_track_pause)) }
+                Button(onClick = {
+                    showResumedAfterBootHint = false
+                    TrackRecordingService.pause(context)
+                }) { Text(stringResource(R.string.tour_track_pause)) }
             } else if (isPaused) {
                 Button(onClick = {
                     showStartFailedHint = false
+                    showResumedAfterBootHint = false
                     if (TrackRecordingService.hasLocationPermission(context)) {
                         startRecording()
                     } else {
