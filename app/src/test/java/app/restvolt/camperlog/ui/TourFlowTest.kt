@@ -232,6 +232,20 @@ class TourFlowTest {
     }
 
     @Test
+    fun runningTourWithoutTrackShowsEstimatedDistanceFromStationCoordinates() {
+        val today = LocalDate.now()
+        val running = tour(id = 1, destination = "Lofoten").copy(startDate = today.minusDays(2), endDate = null)
+        // 1° Breite sind etwa 111 km Luftlinie, mit dem Umrechnungsfaktor 1,3 geschätzt 145 km.
+        val first = station(id = 1, tourId = running.id).copy(date = today.minusDays(2), latitude = 50.0, longitude = 10.0)
+        val second = station(id = 2, tourId = running.id).copy(date = today.minusDays(1), latitude = 51.0, longitude = 10.0)
+        start(FakeVehicleRepository(), listOf(first, second), running)
+
+        compose.onNodeWithText("Lofoten").performClick()
+
+        compose.onNodeWithText("≈ 145 km (geschätzt)").assertExists()
+    }
+
+    @Test
     fun runningTourCardShowsStatusAndCanFinishActiveRecording() {
         TrackRecordingSettings.resetShared()
         val settings = TrackRecordingSettings.get(ApplicationProvider.getApplicationContext<Context>())

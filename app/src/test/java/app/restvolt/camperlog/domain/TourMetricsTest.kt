@@ -1,9 +1,12 @@
 package app.restvolt.camperlog.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
+import kotlin.math.roundToInt
 
 class TourMetricsTest {
 
@@ -80,18 +83,75 @@ class TourMetricsTest {
         assertEquals(0, tour.derivedMetrics(emptyList(), emptyList(), today).distanceKm)
     }
 
+    @Test
+    fun estimatedRouteDistanceMetersAppliesCircuityFactorToConsecutiveLocatedStations() {
+        // 0.01° Breite sind etwa 1112 m.
+        val stations = listOf(
+            station(tourId = 1, latitude = 50.0, longitude = 10.0, createdAt = Instant.ofEpochSecond(1)),
+            station(tourId = 1, latitude = 50.01, longitude = 10.0, createdAt = Instant.ofEpochSecond(2)),
+        )
+
+        assertEquals(1111.95 * ROUTE_CIRCUITY_FACTOR, estimatedRouteDistanceMeters(stations), 1.0)
+    }
+
+    @Test
+    fun estimatedRouteDistanceMetersIgnoresUnlocatedStationsAndNeedsAtLeastTwoLocated() {
+        val oneLocated = listOf(
+            station(tourId = 1, latitude = 50.0, longitude = 10.0),
+            station(tourId = 1),
+        )
+        assertEquals(0.0, estimatedRouteDistanceMeters(oneLocated), 0.0)
+        assertEquals(0.0, estimatedRouteDistanceMeters(emptyList()), 0.0)
+    }
+
+    @Test
+    fun derivedMetricsEstimatesDistanceFromStationsWhenThereIsNoTrack() {
+        val stations = listOf(
+            station(tourId = 1, latitude = 50.0, longitude = 10.0, createdAt = Instant.ofEpochSecond(1)),
+            station(tourId = 1, latitude = 50.01, longitude = 10.0, createdAt = Instant.ofEpochSecond(2)),
+        )
+
+        val metrics = tour.derivedMetrics(stations, emptyList(), today)
+
+        assertEquals((1111.95 * ROUTE_CIRCUITY_FACTOR / 1_000.0).roundToInt(), metrics.distanceKm)
+        assertTrue(metrics.distanceIsEstimated)
+    }
+
+    @Test
+    fun derivedMetricsPrefersTrackLengthOverEstimateEvenWithStations() {
+        // Stationen liegen 2° Breite auseinander (geschätzt ~289 km), der Track nur 0.01° (~1 km).
+        val stations = listOf(
+            station(tourId = 1, latitude = 50.0, longitude = 10.0, createdAt = Instant.ofEpochSecond(1)),
+            station(tourId = 1, latitude = 52.0, longitude = 10.0, createdAt = Instant.ofEpochSecond(2)),
+        )
+        val points = listOf(
+            point(tourId = 1, segment = 1, second = 1, latitude = 0.0, longitude = 0.0),
+            point(tourId = 1, segment = 1, second = 2, latitude = 0.01, longitude = 0.0),
+        )
+
+        val metrics = tour.derivedMetrics(stations, points, today)
+
+        assertEquals(1, metrics.distanceKm)
+        assertFalse(metrics.distanceIsEstimated)
+    }
+
     private fun station(
         tourId: Long?,
         type: StationType = StationType.OVERNIGHT,
-        nights: Int?,
+        nights: Int? = null,
+        latitude: Double? = null,
+        longitude: Double? = null,
+        createdAt: Instant = Instant.EPOCH,
     ) = Station(
         vehicleId = 1,
         tourId = tourId,
         type = type,
         date = today,
         nights = nights,
-        createdAt = Instant.EPOCH,
-        updatedAt = Instant.EPOCH,
+        latitude = latitude,
+        longitude = longitude,
+        createdAt = createdAt,
+        updatedAt = createdAt,
     )
 
     private fun point(tourId: Long, segment: Int, second: Long, latitude: Double, longitude: Double) = TrackPoint(

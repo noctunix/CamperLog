@@ -419,7 +419,8 @@ private fun TourDetails(
                 LabeledValue(stringResource(R.string.field_tour_type), stringResource(tour.tourType.labelRes))
                 LabeledValue(stringResource(R.string.field_travel_days), metrics.travelDays.toString())
                 LabeledValue(stringResource(R.string.field_overnight_stays), metrics.overnightStays.toString())
-                LabeledValue(stringResource(R.string.label_distance), stringResource(R.string.distance_km, metrics.distanceKm))
+                val distanceRes = if (metrics.distanceIsEstimated) R.string.distance_km_estimated else R.string.distance_km
+                LabeledValue(stringResource(R.string.label_distance), stringResource(distanceRes, metrics.distanceKm))
                 if (tour.endDate == null) {
                     Button(onClick = onFinish, enabled = !finishing, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.tour_finish))

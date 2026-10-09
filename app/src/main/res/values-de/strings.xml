@@ -12,6 +12,7 @@
     <string name="tour_not_found">Diese Tour gibt es nicht mehr.</string>
     <string name="no_share_app">Keine App zum Teilen gefunden</string>
     <string name="distance_km">%1$,d km</string>
+    <string name="distance_km_estimated">≈ %1$,d km (geschätzt)</string>
     <string name="action_undo">Rückgängig</string>
 
     <!-- Untere Navigation -->
