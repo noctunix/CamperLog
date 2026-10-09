@@ -655,7 +655,7 @@
     <string name="cost_category_pitch">Stellplatz</string>
     <string name="cost_category_electricity">Strom</string>
     <string name="cost_category_supply">Ver-/Entsorgung</string>
-    <string name="cost_category_fuel">Tanken/Laden</string>
+    <string name="cost_category_fuel">Tanken &amp; Laden</string>
     <string name="cost_category_toll">Maut</string>
     <string name="cost_category_ferry">Fähre</string>
     <string name="cost_category_food">Essen</string>
