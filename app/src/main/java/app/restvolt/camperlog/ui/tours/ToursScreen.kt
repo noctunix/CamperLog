@@ -258,6 +258,29 @@ private fun YearFilter(years: List<Int>, selected: Int?, onSelect: (Int?) -> Uni
     }
 }
 
+/**
+ * Anzeigbares Feld der Kennzahlenzeile einer Tourkarte. Eine künftige Einstellung
+ * ("Tours overview configurability") filtert nur noch [DEFAULT_TOUR_CARD_METRICS], ohne die
+ * Darstellung in [tourCardMetricsLine] anzufassen.
+ */
+private enum class TourCardMetric { TRAVEL_DAYS, STATIONS, VEHICLE, TOUR_TYPE }
+
+/** Standard-Reihenfolge der Kennzahlenzeile; die Tourart fehlt bewusst, sie ergibt sich meist schon aus dem Datum. */
+private val DEFAULT_TOUR_CARD_METRICS = listOf(TourCardMetric.TRAVEL_DAYS, TourCardMetric.STATIONS, TourCardMetric.VEHICLE)
+
+/** Baut die Kennzahlenzeile einer Tourkarte aus [DEFAULT_TOUR_CARD_METRICS]; Felder ohne Wert (z. B. 0 Stationen) fallen weg. */
+@Composable
+private fun tourCardMetricsLine(tour: Tour, vehicleName: String?, stationCount: Int, travelDays: Int): String =
+    DEFAULT_TOUR_CARD_METRICS.mapNotNull { metric ->
+        when (metric) {
+            TourCardMetric.TRAVEL_DAYS -> pluralStringResource(R.plurals.share_travel_days, travelDays, travelDays)
+            TourCardMetric.STATIONS -> stationCount.takeIf { it > 0 }
+                ?.let { pluralStringResource(R.plurals.tours_row_station_count, it, it) }
+            TourCardMetric.VEHICLE -> vehicleName
+            TourCardMetric.TOUR_TYPE -> stringResource(tour.tourType.labelRes)
+        }
+    }.joinToString(" · ")
+
 @Composable
 private fun TourCard(
     tour: Tour,
@@ -296,33 +319,21 @@ private fun TourCard(
             } else {
                 tour.period(currentLocale())
             }
+            Text(
+                periodText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = metaColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             // Für laufende Touren live berechnet statt des gespeicherten Werts, der bei neuen Touren 0 ist.
             val travelDays = if (running) {
                 travelDaysBetween(tour.startDate, LocalDate.now()).toInt().coerceAtLeast(1)
             } else {
                 tour.travelDays
             }
-            val daysText = pluralStringResource(R.plurals.share_travel_days, travelDays, travelDays)
             Text(
-                "$periodText · $daysText",
-                style = MaterialTheme.typography.bodyMedium,
-                color = metaColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            val meta = if (vehicleName != null) {
-                stringResource(R.string.tours_row_meta_vehicle, stringResource(tour.tourType.labelRes), vehicleName)
-            } else {
-                stringResource(R.string.tours_row_meta, stringResource(tour.tourType.labelRes))
-            }
-            // Stationsanzahl nur bei > 0 anfügen.
-            val metaWithStations = if (stationCount > 0) {
-                "$meta · ${pluralStringResource(R.plurals.tours_row_station_count, stationCount, stationCount)}"
-            } else {
-                meta
-            }
-            Text(
-                metaWithStations,
+                tourCardMetricsLine(tour, vehicleName, stationCount, travelDays),
                 style = MaterialTheme.typography.bodyMedium,
                 color = metaColor,
                 maxLines = 1,

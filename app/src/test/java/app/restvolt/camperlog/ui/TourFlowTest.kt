@@ -742,8 +742,9 @@ class TourFlowTest {
         )
         start(FakeVehicleRepository(), stations, lofoten, ostsee)
 
-        compose.onNodeWithText("Wochenende · 2 Stationen").assertExists()
-        compose.onNodeWithText("Wochenende").assertExists()
+        // Die Tourart steht bewusst nicht in der Kennzahlenzeile, sie ergibt sich meist schon aus dem Datum.
+        compose.onNodeWithText("3 Reisetage · 2 Stationen").assertExists()
+        compose.onNodeWithText("Wochenende").assertDoesNotExist()
         compose.onNodeWithText("Jahr 2025", substring = true).assertDoesNotExist()
     }
 
