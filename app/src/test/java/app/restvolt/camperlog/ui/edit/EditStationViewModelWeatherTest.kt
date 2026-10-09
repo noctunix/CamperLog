@@ -136,4 +136,46 @@ class EditStationViewModelWeatherTest {
 
         assertNull(viewModel.uiState.value.input.weather)
     }
+
+    @Test
+    fun onFetchTemperature_success_fillsOnlyTheTemperatureFieldAsWholeDegrees() = runTest(dispatcher) {
+        val viewModel = viewModel(FakeWeatherProvider(WeatherResult.Success(snapshot)))
+
+        viewModel.onFetchTemperature()
+        advanceUntilIdle()
+
+        assertEquals("14", viewModel.uiState.value.input.manualTemperatureC)
+        assertNull(viewModel.uiState.value.input.weather)
+        assertEquals(WeatherCaptureState.Ready, viewModel.temperatureCapture.state.value)
+    }
+
+    @Test
+    fun onFetchTemperature_passesTheInputCoordinates() = runTest(dispatcher) {
+        val provider = FakeWeatherProvider(WeatherResult.Success(snapshot))
+        val viewModel = viewModel(provider)
+
+        viewModel.onFetchTemperature()
+        advanceUntilIdle()
+
+        assertEquals(listOf(68.0912 to 13.1023), provider.requests)
+    }
+
+    @Test
+    fun onFetchTemperature_withoutCoordinates_doesNothing() = runTest(dispatcher) {
+        val provider = FakeWeatherProvider(WeatherResult.Success(snapshot))
+        val viewModel = EditStationViewModel(
+            repository = FakeStationRepository(),
+            tours = FakeTourRepository(),
+            vehicles = FakeVehicleRepository(),
+            stationId = 0,
+            weatherProvider = provider,
+            savedStateHandle = SavedStateHandle(),
+        )
+
+        viewModel.onFetchTemperature()
+        advanceUntilIdle()
+
+        assertEquals(0, provider.requests.size)
+        assertEquals("", viewModel.uiState.value.input.manualTemperatureC)
+    }
 }

@@ -33,7 +33,7 @@ val STATION_CSV_HEADER = listOf(
     "geaendert",
     "tour",
     "fahrzeug",
-) + CostCategory.entries.map { "kosten_${it.csvValue}" } + "strom_kwh"
+) + CostCategory.entries.map { "kosten_${it.csvValue}" } + listOf("strom_kwh", "bewertung", "kilometerstand_km", "temperatur_c", "link")
 
 /** Englische Kopfzeile des Stationen-CSV-Exports, Spalte für Spalte wie [STATION_CSV_HEADER]. */
 private val ENGLISH_STATION_CSV_HEADER = listOf(
@@ -62,7 +62,8 @@ private val ENGLISH_STATION_CSV_HEADER = listOf(
     "updated_at",
     "tour",
     "vehicle",
-) + CostCategory.entries.map { "costs_${it.csvValue(CsvVocabulary.ENGLISH)}" } + "electricity_kwh"
+) + CostCategory.entries.map { "costs_${it.csvValue(CsvVocabulary.ENGLISH)}" } +
+    listOf("electricity_kwh", "rating", "odometer_km", "temperature_c", "link")
 
 /** Kopfzeile des Stationen-CSV-Exports in [vocabulary]. */
 fun stationCsvHeader(vocabulary: CsvVocabulary): List<String> = when (vocabulary) {
@@ -77,8 +78,9 @@ fun stationCsvHeader(vocabulary: CsvVocabulary): List<String> = when (vocabulary
  * Anzeigenamen aus [vehicleNames], ein leeres oder fehlendes Fahrzeug ergibt [defaultVehicleName].
  * Die Kostenspalten `kosten_*` enthalten die [Station.effectiveCosts] der jeweiligen Kategorie
  * (inklusive abgeleiteter Stromkosten) als Beträge mit ISO-Code wie im Touren-Export, `strom_kwh`
- * die abgeleitete kWh-Menge. Freitextfelder werden per [neutralizeFormula] gegen Formel-Injection
- * entschärft, wie beim Touren-Export.
+ * die abgeleitete kWh-Menge. `temperatur_c` rundet [Station.manualTemperatureDeciC] auf ganze Grad.
+ * Freitextfelder werden per [neutralizeFormula] gegen Formel-Injection entschärft, wie beim
+ * Touren-Export.
  */
 fun stationsToCsv(
     stations: List<Station>,
@@ -127,7 +129,13 @@ private fun Station.csvFields(
     updatedAt.toString(),
     neutralizeFormula(tourId?.let { tourNames[it] }.orEmpty()),
     neutralizeFormula(vehicleNames[vehicleId]?.takeIf(String::isNotBlank) ?: defaultVehicleName),
-) + CostCategory.entries.map { category -> costColumn(category) } + (electricityKwh(this)?.toPlainString().orEmpty())
+) + CostCategory.entries.map { category -> costColumn(category) } + listOf(
+    electricityKwh(this)?.toPlainString().orEmpty(),
+    rating?.toString().orEmpty(),
+    odometerKm?.toString().orEmpty(),
+    manualTemperatureDeciC?.let { Math.round(it / 10.0).toString() }.orEmpty(),
+    neutralizeFormula(link.orEmpty()),
+)
 
 private fun Station.costColumn(category: CostCategory): String =
     effectiveCosts().filter { it.category == category }

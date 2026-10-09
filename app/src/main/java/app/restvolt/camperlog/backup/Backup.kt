@@ -32,6 +32,7 @@ import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
 import app.restvolt.camperlog.domain.MAX_POWER_KW
 import app.restvolt.camperlog.domain.MAX_PRICE_PER_KWH
 import app.restvolt.camperlog.domain.MAX_SOLAR_WP
+import app.restvolt.camperlog.domain.MAX_STATION_LINK_LENGTH
 import app.restvolt.camperlog.domain.MAX_STATION_MAP_LINK_LENGTH
 import app.restvolt.camperlog.domain.MAX_DOCUMENT_BYTES
 import app.restvolt.camperlog.domain.MAX_STATION_NAME_LENGTH
@@ -87,7 +88,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 12
+const val BACKUP_SCHEMA_VERSION = 13
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -1086,6 +1087,15 @@ private fun StationDto.toStation(): Station? {
     val stationServices = services.map { enumOrNull<StationService>(it) ?: return null }.toSet()
     if (!allowed.containsAll(stationServices)) return null
     val weatherSnapshot = weather?.let { it.toWeather() ?: return null }
+    if (rating != null && rating !in 1..5) return null
+    if (!odometerKm.inBounds(MAX_ODOMETER_KM)) return null
+    if (manualTemperatureDeciC != null && manualTemperatureDeciC !in -MAX_WEATHER_TEMPERATURE_DECI_C..MAX_WEATHER_TEMPERATURE_DECI_C) {
+        return null
+    }
+    val stationLink = this.link?.trim()?.ifEmpty { null }
+    if (stationLink != null && (stationLink.length > MAX_STATION_LINK_LENGTH || !isWebUrl(stationLink) || stationType != StationType.OVERNIGHT)) {
+        return null
+    }
     return Station(
         uuid = uuid,
         vehicleId = 0,
@@ -1128,6 +1138,10 @@ private fun StationDto.toStation(): Station? {
         services = stationServices,
         weather = weatherSnapshot,
         favorite = favorite,
+        rating = rating,
+        odometerKm = odometerKm,
+        manualTemperatureDeciC = manualTemperatureDeciC,
+        link = stationLink,
         createdAt = parseInstant(createdAt) ?: return null,
         updatedAt = parseInstant(updatedAt) ?: return null,
     )
@@ -1390,6 +1404,10 @@ private fun Station.toDto(vehicleUuid: String, tourUuid: String?) = StationDto(
     services = services.map { it.name },
     weather = weather?.toDto(),
     favorite = favorite,
+    rating = rating,
+    odometerKm = odometerKm,
+    manualTemperatureDeciC = manualTemperatureDeciC,
+    link = link,
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
     vehicleUuid = vehicleUuid,

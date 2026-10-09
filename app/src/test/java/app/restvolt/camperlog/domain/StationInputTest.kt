@@ -115,6 +115,53 @@ class StationInputTest {
     }
 
     @Test
+    fun odometerKmMustNotBeNegative() {
+        assertTrue(valid.copy(odometerKm = "").validate().isEmpty())
+        assertTrue(valid.copy(odometerKm = "0").validate().isEmpty())
+        assertEquals(StationError.NEGATIVE_NUMBER, valid.copy(odometerKm = "-1").validate()[StationField.ODOMETER_KM])
+        assertEquals(StationError.INVALID_NUMBER, valid.copy(odometerKm = "abc").validate()[StationField.ODOMETER_KM])
+    }
+
+    @Test
+    fun manualTemperatureMustBeAWholeNumberButMayBeNegative() {
+        assertTrue(valid.copy(manualTemperatureC = "").validate().isEmpty())
+        assertTrue(valid.copy(manualTemperatureC = "-12").validate().isEmpty())
+        assertEquals(StationError.INVALID_NUMBER, valid.copy(manualTemperatureC = "zwölf").validate()[StationField.MANUAL_TEMPERATURE])
+    }
+
+    @Test
+    fun linkMustBeAWebUrlAndIsOnlyCheckedForOvernightStations() {
+        assertEquals(StationError.NOT_A_WEB_LINK, valid.copy(link = "javascript:alert(1)").validate()[StationField.LINK])
+        assertTrue(valid.copy(link = "https://example.org/platz").validate().isEmpty())
+        assertTrue(valid.copy(type = StationType.FUEL, nights = "", link = "javascript:alert(1)").validate().isEmpty())
+    }
+
+    @Test
+    fun toStationKeepsRatingOnlyInRange() {
+        assertEquals(1, valid.copy(rating = 1).toStation(null).rating)
+        assertEquals(5, valid.copy(rating = 5).toStation(null).rating)
+        assertNull(valid.copy(rating = 0).toStation(null).rating)
+        assertNull(valid.copy(rating = 6).toStation(null).rating)
+        assertNull(valid.toStation(null).rating)
+    }
+
+    @Test
+    fun toStationParsesOdometerAndConvertsTemperatureToDeciDegrees() {
+        val station = valid.copy(odometerKm = "54000", manualTemperatureC = "-7").toStation(null)
+        assertEquals(54_000, station.odometerKm)
+        assertEquals(-70, station.manualTemperatureDeciC)
+    }
+
+    @Test
+    fun toStationKeepsLinkOnlyForOvernightStations() {
+        val input = valid.copy(link = "https://example.org/platz")
+        assertEquals("https://example.org/platz", input.toStation(null).link)
+
+        val notOvernight = input.copy(type = StationType.FUEL, nights = "")
+        assertNull(notOvernight.toStation(null).link)
+    }
+
+    @Test
     fun toStationDropsMapLinkWhenCoordinatesArePresent() {
         val input = valid.copy(latitude = 68.09, longitude = 13.10, mapLink = "https://example.org/platz")
         assertNull(input.toStation(null).mapLink)
@@ -144,6 +191,17 @@ class StationInputTest {
     @Test
     fun roundTripThroughInputIsLossless() {
         val station = valid.toStation(null)
+        assertEquals(station, station.toInput().toStation(station))
+    }
+
+    @Test
+    fun roundTripThroughInputIsLosslessWithRatingOdometerTemperatureAndLink() {
+        val station = valid.toStation(null).copy(
+            rating = 3,
+            odometerKm = 54_000,
+            manualTemperatureDeciC = -70,
+            link = "https://example.org/platz",
+        )
         assertEquals(station, station.toInput().toStation(station))
     }
 

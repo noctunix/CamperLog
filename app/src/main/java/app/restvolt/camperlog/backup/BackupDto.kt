@@ -216,6 +216,14 @@ internal data class StationDto(
     val services: List<String> = emptyList(),
     val weather: WeatherDto? = null,
     val favorite: Boolean = false,
+    /** Fehlt in Sicherungen vor Formatversion 13. */
+    val rating: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 13. */
+    val odometerKm: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 13. */
+    val manualTemperatureDeciC: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 13. */
+    val link: String? = null,
     val createdAt: String,
     val updatedAt: String,
     /** uuid des Fahrzeugs dieser Station; anders als bei Touren immer gesetzt. */

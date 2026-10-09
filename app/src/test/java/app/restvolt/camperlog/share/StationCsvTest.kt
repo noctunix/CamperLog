@@ -31,7 +31,8 @@ class StationCsvTest {
     @Test
     fun costAndKwhColumnsAreAppendedAfterTheVehicleColumn() {
         assertEquals(24, STATION_CSV_HEADER.indexOf("fahrzeug"))
-        assertEquals("strom_kwh", STATION_CSV_HEADER.last())
+        assertEquals("link", STATION_CSV_HEADER.last())
+        assertEquals("strom_kwh", STATION_CSV_HEADER[STATION_CSV_HEADER.indexOf("link") - 4])
     }
 
     @Test
@@ -40,7 +41,7 @@ class StationCsvTest {
             "id,datum,uhrzeit,typ,name,ort,breitengrad,laengengrad,koordinatenquelle,genauigkeit_m,kartenlink,naechte," +
                 "platzart,stellplatz_zugewiesen,strompauschale,lte,neigung,keile_genutzt,versorgung,gerne_wieder,notizen," +
                 "angelegt,geaendert,tour,fahrzeug,kosten_stellplatz,kosten_strom,kosten_ver_entsorgung,kosten_tanken_laden," +
-                "kosten_maut,kosten_faehre,kosten_essen,kosten_sonstiges,strom_kwh",
+                "kosten_maut,kosten_faehre,kosten_essen,kosten_sonstiges,strom_kwh,bewertung,kilometerstand_km,temperatur_c,link",
             STATION_CSV_HEADER.joinToString(","),
         )
         assertEquals(STATION_CSV_HEADER, stationCsvHeader(CsvVocabulary.GERMAN))
@@ -52,7 +53,7 @@ class StationCsvTest {
             "id,date,time,type,name,place,latitude,longitude,coordinate_source,accuracy_m,map_link,nights,site_kind," +
                 "pitch_assigned,electricity_billing,lte_quality,pitch_slope,leveling_blocks_used,services,favorite,notes," +
                 "created_at,updated_at,tour,vehicle,costs_pitch,costs_electricity,costs_supply_disposal,costs_fuel_charging," +
-                "costs_toll,costs_ferry,costs_food,costs_other,electricity_kwh",
+                "costs_toll,costs_ferry,costs_food,costs_other,electricity_kwh,rating,odometer_km,temperature_c,link",
             stationCsvHeader(CsvVocabulary.ENGLISH).joinToString(","),
         )
 
@@ -96,7 +97,7 @@ class StationCsvTest {
                 "68.0912,13.1023,entered,,,2,campsite,yes," +
                 "metered,good,level,no," +
                 "\"fresh_water; cassette_toilet\",yes,Nice view," +
-                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,10",
+                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,10,,,,",
             row,
         )
     }
@@ -145,7 +146,7 @@ class StationCsvTest {
                 "68.0912,13.1023,${CoordinateSource.ENTERED.csvValue},,,2,${SiteKind.CAMPSITE.csvValue},ja," +
                 "${ElectricityBilling.METERED.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
                 "\"${StationService.FRESH_WATER.csvValue}; ${StationService.CASSETTE.csvValue}\",ja,Schöner Blick," +
-                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,10",
+                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,10,,,,",
             lines[1],
         )
         assertEquals("", lines[2])
@@ -185,6 +186,18 @@ class StationCsvTest {
 
         assertEquals("'-2+3", row.split(",")[STATION_CSV_HEADER.indexOf("fahrzeug")])
         assertEquals("\"'=HYPERLINK(\"\"x\"\")\"", row.split(",")[STATION_CSV_HEADER.indexOf("tour")])
+    }
+
+    @Test
+    fun ratingOdometerTemperatureAndLinkAreExportedInTheirOwnColumns() {
+        val station = minimalStation().copy(rating = 4, odometerKm = 54_000, manualTemperatureDeciC = 183, link = "https://example.org/platz")
+
+        val row = stationsToCsv(listOf(station), emptyMap(), emptyMap(), DEFAULT_NAME).split("\r\n")[1].split(",")
+
+        assertEquals("4", row[STATION_CSV_HEADER.indexOf("bewertung")])
+        assertEquals("54000", row[STATION_CSV_HEADER.indexOf("kilometerstand_km")])
+        assertEquals("18", row[STATION_CSV_HEADER.indexOf("temperatur_c")])
+        assertEquals("https://example.org/platz", row[STATION_CSV_HEADER.indexOf("link")])
     }
 
     private fun minimalStation(tourId: Long? = null, vehicleId: Long = 0) = Station(

@@ -80,6 +80,10 @@ data class StationEntity(
     @ColumnInfo(name = "weather_wind_direction_deg") val weatherWindDirectionDeg: Int?,
     @ColumnInfo(name = "weather_observed_at") val weatherObservedAtMillis: Long?,
     val favorite: Boolean,
+    val rating: Int? = null,
+    @ColumnInfo(name = "odometer_km") val odometerKm: Int? = null,
+    @ColumnInfo(name = "manual_temperature_deci_c") val manualTemperatureDeciC: Int? = null,
+    val link: String? = null,
     @ColumnInfo(name = "created_at") val createdAtMillis: Long,
     @ColumnInfo(name = "updated_at") val updatedAtMillis: Long,
 )

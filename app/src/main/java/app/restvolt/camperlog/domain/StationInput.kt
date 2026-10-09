@@ -14,6 +14,7 @@ const val MAX_STATION_NAME_LENGTH = 500
 const val MAX_STATION_PLACE_LENGTH = 500
 const val MAX_STATION_NOTES_LENGTH = 20_000
 const val MAX_STATION_MAP_LINK_LENGTH = 4_000
+const val MAX_STATION_LINK_LENGTH = 4_000
 const val MAX_TOLL_PAYMENT_METHOD_LENGTH = 500
 const val MAX_FERRY_BOOKING_REFERENCE_LENGTH = 500
 const val MAX_STATION_COST_NOTE_LENGTH = 500
@@ -88,6 +89,13 @@ data class StationInput(
     val costs: List<StationCostInput> = emptyList(),
     val services: Set<StationService> = emptySet(),
     val favorite: Boolean = false,
+    /** 1–5, für jeden Stationstyp; `null` bedeutet "keine Bewertung". Direkt gesetzt, kein Freitext. */
+    val rating: Int? = null,
+    val odometerKm: String = "",
+    /** Eingabe in ganzen Grad Celsius; siehe [Station.manualTemperatureDeciC] für die interne Einheit. */
+    val manualTemperatureC: String = "",
+    /** Nur bei [StationType.OVERNIGHT] genutzt. */
+    val link: String = "",
     /** Rohtext des Felds "Koordinaten oder Kartenlink"; nur fürs Formular, nicht Teil der Station. */
     val locationText: String = "",
     val weather: WeatherSnapshot? = null,
@@ -97,12 +105,14 @@ data class StationInput(
 enum class StationField {
     DATE, COORDINATES, NIGHTS, NAME, PLACE, NOTES, MAP_LINK, SERVICES, ELECTRICITY,
     TOLL_COUNTRY, TOLL_VALID_UNTIL, TOLL_PAYMENT_METHOD, FERRY_BOOKING_REFERENCE, COST,
+    ODOMETER_KM, MANUAL_TEMPERATURE, LINK,
 }
 
 /** Grund eines Validierungsfehlers. Den Text dazu liefert die UI aus den String-Ressourcen. */
 enum class StationError {
     REQUIRED,
     INVALID_NUMBER,
+    NEGATIVE_NUMBER,
     TOO_SMALL,
     COORDINATES_INCOMPLETE,
     COORDINATES_OUT_OF_RANGE,
@@ -180,6 +190,30 @@ internal fun StationInput.validation(today: LocalDate = LocalDate.now(), locale:
 
         if (type == StationType.FERRY && ferryBookingReference.length > MAX_FERRY_BOOKING_REFERENCE_LENGTH) {
             put(StationField.FERRY_BOOKING_REFERENCE, StationError.TOO_LONG)
+        }
+
+        val odometerText = odometerKm.trim()
+        if (odometerText.isNotEmpty()) {
+            val value = odometerText.toIntOrNull()
+            when {
+                value == null -> put(StationField.ODOMETER_KM, StationError.INVALID_NUMBER)
+                value < 0 -> put(StationField.ODOMETER_KM, StationError.NEGATIVE_NUMBER)
+            }
+        }
+
+        val temperatureText = manualTemperatureC.trim()
+        if (temperatureText.isNotEmpty() && temperatureText.toIntOrNull() == null) {
+            put(StationField.MANUAL_TEMPERATURE, StationError.INVALID_NUMBER)
+        }
+
+        if (type == StationType.OVERNIGHT) {
+            val trimmedLink = this@validation.link.trim()
+            if (trimmedLink.isNotEmpty()) {
+                when {
+                    trimmedLink.length > MAX_STATION_LINK_LENGTH -> put(StationField.LINK, StationError.TOO_LONG)
+                    !isWebUrl(trimmedLink) -> put(StationField.LINK, StationError.NOT_A_WEB_LINK)
+                }
+            }
         }
 
         costErrs.values.firstOrNull()?.let { put(StationField.COST, it) }
@@ -326,6 +360,10 @@ fun StationInput.toStation(original: Station?, locale: Locale = Locale.getDefaul
         services = services.intersect(type.allowedServices),
         weather = weather,
         favorite = favorite && isOvernight,
+        rating = rating?.takeIf { it in 1..5 },
+        odometerKm = odometerKm.trim().toIntOrNull()?.takeIf { it >= 0 },
+        manualTemperatureDeciC = manualTemperatureC.trim().toIntOrNull()?.let { it * 10 },
+        link = link.trim().ifEmpty { null }?.takeIf { isOvernight },
         createdAt = original?.createdAt ?: Instant.EPOCH,
         updatedAt = original?.updatedAt ?: Instant.EPOCH,
     )
@@ -372,6 +410,10 @@ fun Station.toInput(locale: Locale = Locale.getDefault()): StationInput = Statio
     costs = costs.map { StationCostInput(it.category, amountToInput(it.amount.minor, it.amount.currency, locale), it.amount.currency, it.note) },
     services = services,
     favorite = favorite,
+    rating = rating,
+    odometerKm = odometerKm?.toString().orEmpty(),
+    manualTemperatureC = manualTemperatureDeciC?.let { Math.round(it / 10.0).toString() }.orEmpty(),
+    link = link.orEmpty(),
     locationText = mapLink ?: if (latitude != null && longitude != null) "$latitude, $longitude" else "",
     weather = weather,
 )

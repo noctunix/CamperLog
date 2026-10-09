@@ -97,6 +97,10 @@ class BackupTest {
         costs = listOf(StationCost(CostCategory.PITCH, Money(1500, eur), "Zwei Nächte")),
         services = setOf(StationService.CASSETTE, StationService.FRESH_WATER),
         favorite = true,
+        rating = 4,
+        odometerKm = 54_000,
+        manualTemperatureDeciC = 183,
+        link = "https://example.org/platz",
         createdAt = Instant.parse("2026-07-04T18:00:00Z"),
         updatedAt = Instant.parse("2026-07-05T08:00:00Z"),
     )
@@ -252,7 +256,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 12" in text)
+        assert("\"schemaVersion\": 13" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -262,7 +266,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 12" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 13" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -355,7 +359,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 12" in text)
+        assert("\"schemaVersion\": 13" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -390,13 +394,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 12", "\"schemaVersion\": 13"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 13", "\"schemaVersion\": 14"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 12", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 13", it))?.error)
         }
     }
 
@@ -910,6 +914,54 @@ class BackupTest {
         val result = failure(stationEncodedWith("\"latitude\": 68.0912", "\"latitude\": 91.0"))
 
         assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = 1), result)
+    }
+
+    @Test
+    fun decode_rejectsStationRatingOutOfRange() {
+        val result = failure(stationEncodedWith("\"rating\": 4", "\"rating\": 6"))
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = 1), result)
+    }
+
+    @Test
+    fun decode_rejectsStationOdometerAboveTheBound() {
+        val result = failure(stationEncodedWith("\"odometerKm\": 54000", "\"odometerKm\": ${MAX_ODOMETER_KM + 1}"))
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = 1), result)
+    }
+
+    @Test
+    fun decode_rejectsStationManualTemperatureOutOfRange() {
+        val result = failure(stationEncodedWith("\"manualTemperatureDeciC\": 183", "\"manualTemperatureDeciC\": 1500"))
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = 1), result)
+    }
+
+    @Test
+    fun decode_rejectsStationLinkOnANonOvernightType() {
+        val mismatched = station().copy(
+            type = StationType.SIGHT,
+            nights = null,
+            siteKind = null,
+            pitchAssigned = null,
+            lteQuality = null,
+            pitchSlope = null,
+            levelingBlocksUsed = null,
+            electricityBilling = null,
+            electricityCurrency = null,
+            electricityBaseFee = null,
+            electricityPricePerKwh = null,
+            electricityMeterStart = null,
+            electricityMeterEnd = null,
+            costs = emptyList(),
+        )
+        val mismatchedBackup = vehicleBackup.copy(
+            stations = listOf(mismatched),
+            stationVehicleUuid = mapOf(stationUuid to vehicleUuid),
+            stationTourUuid = emptyMap(),
+        )
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = 1), failure(encodeBackup(mismatchedBackup)))
     }
 
     @Test

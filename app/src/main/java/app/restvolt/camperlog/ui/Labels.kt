@@ -425,6 +425,9 @@ val StationField.labelRes: Int
         StationField.TOLL_PAYMENT_METHOD -> R.string.field_toll_payment_method
         StationField.FERRY_BOOKING_REFERENCE -> R.string.field_ferry_booking_reference
         StationField.COST -> R.string.field_cost
+        StationField.ODOMETER_KM -> R.string.field_odometer_km
+        StationField.MANUAL_TEMPERATURE -> R.string.field_manual_temperature
+        StationField.LINK -> R.string.field_link
     }
 
 /** Fehlermeldung zu [this] am Feld [field]; der Betrag von [StationError.AMOUNT_TOO_LARGE] braucht die Währung der Kostenzeile, siehe [StationCostFields]. */
@@ -432,6 +435,7 @@ val StationField.labelRes: Int
 fun StationError.messageRes(field: StationField): Int = when (this) {
     StationError.REQUIRED -> R.string.error_date_required
     StationError.INVALID_NUMBER -> R.string.error_invalid_number
+    StationError.NEGATIVE_NUMBER -> R.string.error_negative_number
     StationError.TOO_SMALL -> R.string.error_nights_too_small
     StationError.COORDINATES_INCOMPLETE -> R.string.error_coordinates_incomplete
     StationError.COORDINATES_OUT_OF_RANGE -> R.string.error_coordinates_out_of_range

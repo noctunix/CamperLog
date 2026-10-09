@@ -79,6 +79,10 @@ private fun StationEntity.toDomain(costs: List<StationCost>): Station {
             )
         },
         favorite = favorite,
+        rating = rating,
+        odometerKm = odometerKm,
+        manualTemperatureDeciC = manualTemperatureDeciC,
+        link = link,
         createdAt = Instant.ofEpochMilli(createdAtMillis),
         updatedAt = Instant.ofEpochMilli(updatedAtMillis),
     )
@@ -131,6 +135,10 @@ internal fun Station.toEntity(): StationEntity = StationEntity(
     weatherWindDirectionDeg = weather?.windDirectionDeg,
     weatherObservedAtMillis = weather?.observedAt?.toEpochMilli(),
     favorite = favorite,
+    rating = rating,
+    odometerKm = odometerKm,
+    manualTemperatureDeciC = manualTemperatureDeciC,
+    link = link,
     createdAtMillis = createdAt.toEpochMilli(),
     updatedAtMillis = updatedAt.toEpochMilli(),
 )

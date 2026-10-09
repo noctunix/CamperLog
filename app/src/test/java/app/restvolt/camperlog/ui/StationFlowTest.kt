@@ -599,6 +599,114 @@ class StationFlowTest {
         compose.onNodeWithText(formatAmount(49_650, EUR, locale)).assertExists()
     }
 
+    @Test
+    fun rating_tapOnIconSetsValue_tapAgainClearsIt_andWorksForFoodToo() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Essen").performClick()
+        compose.onNodeWithContentDescription("4 von 5 Campern").performScrollTo().performClick()
+        clickSave()
+
+        assertEquals(4, stationRepository.stations.single().rating)
+        compose.onNodeWithContentDescription("4 von 5 Campern").assertExists()
+    }
+
+    @Test
+    fun odometer_isSavedAsEnteredNumber_andShownInDetail() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNode(hasSetTextAction() and hasText("km-Stand")).performScrollTo().performTextInput("54000")
+        clickSave()
+
+        assertEquals(54_000, stationRepository.stations.single().odometerKm)
+        compose.onNodeWithText("54.000 km").assertExists()
+    }
+
+    @Test
+    fun temperatureAutoFetchButton_needsBothSwitchesAndCoordinates() {
+        setLocationEnabled(true)
+        setWeatherEnabled(true)
+        start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Temperatur automatisch abfragen").assertDoesNotExist()
+
+        compose.onNodeWithText("Koordinaten eingeben").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Koordinaten oder Kartenlink")).performTextInput("68.0912, 13.1023")
+        compose.onNodeWithText("Temperatur automatisch abfragen").assertExists()
+    }
+
+    @Test
+    fun temperatureAutoFetchButton_hiddenWhenTheWeatherSwitchIsOff() {
+        setLocationEnabled(true)
+        setWeatherEnabled(false)
+        start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Koordinaten eingeben").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Koordinaten oder Kartenlink")).performTextInput("68.0912, 13.1023")
+
+        compose.onNodeWithText("Temperatur automatisch abfragen").assertDoesNotExist()
+    }
+
+    @Test
+    fun temperatureAutoFetch_success_isSavedAsWholeDegreesConvertedToDeciDegrees() {
+        setLocationEnabled(true)
+        setWeatherEnabled(true)
+        val snapshot = WeatherSnapshot(temperatureDeciC = 143, weatherCode = 1, windKmh = 18, observedAt = Instant.EPOCH)
+        val (_, stationRepository) = start(listOf(lofoten()), weatherProvider = FakeWeatherProvider(WeatherResult.Success(snapshot)))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Koordinaten eingeben").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Koordinaten oder Kartenlink")).performTextInput("68.0912, 13.1023")
+        compose.onNodeWithText("Temperatur automatisch abfragen").performScrollTo().performClick()
+        clickSave()
+
+        assertEquals(140, stationRepository.stations.single().manualTemperatureDeciC)
+    }
+
+    @Test
+    fun link_isOnlyShownForOvernightStations() {
+        start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Link").assertExists()
+
+        compose.onNode(hasText("Art") and hasClickAction()).performClick()
+        compose.onNodeWithText("Tanken & Laden").performClick()
+        compose.onNodeWithText("Link").assertDoesNotExist()
+    }
+
+    @Test
+    fun link_isSavedWhenValid() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Link")).performScrollTo().performTextInput("https://example.org/platz")
+        clickSave()
+
+        assertEquals("https://example.org/platz", stationRepository.stations.single().link)
+        compose.onNodeWithText("Link öffnen").performScrollTo().performClick()
+        val started = shadowOf(compose.activity).nextStartedActivity
+        assertEquals(Intent.ACTION_VIEW, started.action)
+        assertEquals("https://example.org/platz", started.dataString)
+    }
+
     /**
      * Die Länderauswahl selbst (Dialog mit Suche über alle ISO-Codes) wird gesondert in
      * [CountryPickerTest] abgedeckt; hier reicht die Vignetten-Art mit Gültigkeitsdaten und

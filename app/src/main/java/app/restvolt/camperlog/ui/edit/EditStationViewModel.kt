@@ -128,6 +128,13 @@ class EditStationViewModel(
     /** Wetterabfrage für die "Wetter"-Karte, nur sichtbar, wenn die Oberfläche den Wetter-Schalter an sieht. */
     val weatherCapture = WeatherCaptureController(weatherProvider, viewModelScope)
 
+    /**
+     * Abfrage für den Temperatur-Button bei [StationInput.manualTemperatureC]: derselbe Mechanismus
+     * wie [weatherCapture], aber mit eigenem Zustand, damit sie das volle Wetter der "Wetter"-Karte
+     * nicht mit befüllt.
+     */
+    val temperatureCapture = WeatherCaptureController(weatherProvider, viewModelScope)
+
     /** Ortssuche für "Ort suchen" im Platzabschnitt, nur sichtbar, wenn die Oberfläche den Wetter-Schalter an sieht. */
     val placeSearch = PlaceSearchController(placeSearchProvider, viewModelScope)
 
@@ -180,6 +187,15 @@ class EditStationViewModel(
                 if (captureState is WeatherCaptureState.Success) {
                     onInputChange { input -> input.copy(weather = captureState.snapshot) }
                     weatherCapture.reset()
+                }
+            }
+        }
+        viewModelScope.launch {
+            temperatureCapture.state.collect { captureState ->
+                if (captureState is WeatherCaptureState.Success) {
+                    val wholeDegrees = Math.round(captureState.snapshot.temperatureDeciC / 10.0)
+                    onInputChange { input -> input.copy(manualTemperatureC = wholeDegrees.toString()) }
+                    temperatureCapture.reset()
                 }
             }
         }
@@ -288,6 +304,14 @@ class EditStationViewModel(
 
     /** "Entfernen" im Erfolgszustand der Wetterkarte. */
     fun onRemoveWeather() = onInputChange { it.copy(weather = null) }
+
+    /** Tastendruck auf "Temperatur automatisch abfragen"; ohne Koordinaten passiert nichts. */
+    fun onFetchTemperature() {
+        val input = _uiState.value.input
+        val latitude = input.latitude ?: return
+        val longitude = input.longitude ?: return
+        temperatureCapture.fetch(latitude, longitude)
+    }
 
     /** Tastendruck auf "Suchen" in der Ortssuche; eine leere Eingabe tut nichts. */
     fun onSearchPlace(query: String) = placeSearch.search(query, locale().language)

@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui.detail
 
+import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.AttachmentFileStore
@@ -56,6 +58,7 @@ import app.restvolt.camperlog.domain.formatCoordinates
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.formatKwh
 import app.restvolt.camperlog.share.openInMaps
+import app.restvolt.camperlog.share.tryStart
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
@@ -146,6 +149,7 @@ fun StationDetailScreen(
                         scope.launch { snackbar.showSnackbar(resources.getString(R.string.station_detail_no_maps_app)) }
                     }
                 },
+                onOpenLink = { current.station.link?.let { context.tryStart(Intent(Intent.ACTION_VIEW, it.toUri())) } },
             )
         }
     }
@@ -162,6 +166,7 @@ private fun StationDetails(
     modifier: Modifier,
     onOpenTour: () -> Unit,
     onOpenMaps: () -> Unit,
+    onOpenLink: () -> Unit,
 ) {
     val locale = currentLocale()
     Column(
@@ -205,6 +210,15 @@ private fun StationDetails(
             pitchDetailsText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
             servicesText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
             station.weather?.let { WeatherSummary(it) }
+            station.rating?.let { RatingDisplay(it) }
+            station.odometerKm?.let { Text(stringResource(R.string.distance_km, it), style = MaterialTheme.typography.bodyLarge) }
+            station.manualTemperatureDeciC?.let {
+                val whole = Math.round(it / 10.0).toInt()
+                Text(stringResource(R.string.weather_temperature_c, whole), style = MaterialTheme.typography.bodyLarge)
+            }
+            if (station.link != null) {
+                OutlinedButton(onClick = onOpenLink) { Text(stringResource(R.string.station_detail_open_link)) }
+            }
         }
         if (station.electricityBilling != null) {
             SectionCard {
@@ -293,6 +307,22 @@ private fun StationDetails(
             stopLocation = if (station.latitude != null && station.longitude != null) station.latitude to station.longitude else null,
             pickers = attachmentPickers,
         )
+    }
+}
+
+/** Fünf Camper-Symbole, gefüllt bis [rating]; nur lesend, eine Sprechform für alle fünf zusammen. */
+@Composable
+private fun RatingDisplay(rating: Int) {
+    val description = stringResource(R.string.station_rating_content_description, rating)
+    Row(modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = description }) {
+        (1..5).forEach { value ->
+            Icon(
+                painterResource(if (value <= rating) R.drawable.ic_rv_hookup_filled else R.drawable.ic_rv_hookup),
+                contentDescription = null,
+                tint = if (value <= rating) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 4.dp),
+            )
+        }
     }
 }
 

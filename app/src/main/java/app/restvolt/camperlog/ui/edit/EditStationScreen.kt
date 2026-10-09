@@ -242,6 +242,9 @@ private fun StationForm(
             StationField.TOLL_PAYMENT_METHOD to FocusRequester(),
             StationField.FERRY_BOOKING_REFERENCE to FocusRequester(),
             StationField.COST to FocusRequester(),
+            StationField.ODOMETER_KM to FocusRequester(),
+            StationField.MANUAL_TEMPERATURE to FocusRequester(),
+            StationField.LINK to FocusRequester(),
         )
     }
     fun focusOf(field: StationField) = Modifier.focusRequester(focus.getValue(field))
@@ -360,9 +363,11 @@ private fun StationForm(
                 input,
                 change,
                 focusOf(StationField.NIGHTS),
+                focusOf(StationField.LINK),
                 errors[StationField.NIGHTS],
                 servicesError,
                 errors[StationField.ELECTRICITY],
+                errors[StationField.LINK],
                 viewModel::onElectricityBillingChange,
             )
             StationType.SUPPLY -> SectionCard {
@@ -374,6 +379,16 @@ private fun StationForm(
             StationType.FERRY -> FerrySection(input, errors[StationField.FERRY_BOOKING_REFERENCE], change)
             StationType.SIGHT, StationType.FOOD, StationType.OTHER -> Unit
         }
+        StationExtrasSection(
+            input,
+            errors,
+            change,
+            locationEnabled,
+            weatherEnabled,
+            viewModel,
+            focusOf(StationField.ODOMETER_KM),
+            focusOf(StationField.MANUAL_TEMPERATURE),
+        )
         if (weatherEnabled && input.latitude != null && input.longitude != null) {
             WeatherSection(input, viewModel)
         }
@@ -437,9 +452,11 @@ private fun OvernightSection(
     input: StationInput,
     change: ((StationInput) -> StationInput) -> Unit,
     modifier: Modifier,
+    linkModifier: Modifier,
     nightsError: String?,
     servicesError: String?,
     electricityError: String?,
+    linkError: String?,
     onElectricityBillingChange: (ElectricityBilling?) -> Unit,
 ) {
     val locale = currentLocale()
@@ -455,6 +472,14 @@ private fun OvernightSection(
         )
         SiteKindField(input.siteKind) { kind -> change { it.copy(siteKind = kind) } }
         FavoriteRow(input.favorite) { value -> change { it.copy(favorite = value) } }
+        FormTextField(
+            label = stringResource(R.string.field_link),
+            value = input.link,
+            error = linkError,
+            onValueChange = { value -> change { it.copy(link = value) } },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next),
+            modifier = linkModifier,
+        )
 
         var pitchExpanded by rememberSaveable(input.type) {
             mutableStateOf(
@@ -529,6 +554,74 @@ private fun FuelSection(input: StationInput, change: ((StationInput) -> StationI
             summary = servicesSummary(SUPPLY_SERVICES, input.services),
         ) {
             ServicesChips(SUPPLY_SERVICES, input.services, servicesError) { service -> change { it.copy(services = it.services.toggled(service)) } }
+        }
+    }
+}
+
+/**
+ * Bewertung, Kilometerstand und Temperatur; gelten für jeden Stationstyp. Der
+ * Temperatur-Automatik-Button erscheint nur, wenn Standort- und Wetter-Schalter beide an sind und
+ * Koordinaten vorliegen - sonst kein toter Button, der ohnehin nichts abfragen könnte.
+ */
+@Composable
+private fun StationExtrasSection(
+    input: StationInput,
+    errors: Map<StationField, String>,
+    change: ((StationInput) -> StationInput) -> Unit,
+    locationEnabled: Boolean,
+    weatherEnabled: Boolean,
+    viewModel: EditStationViewModel,
+    odometerModifier: Modifier,
+    temperatureModifier: Modifier,
+) {
+    SectionCard {
+        RatingRow(input.rating) { value -> change { it.copy(rating = value) } }
+        FormTextField(
+            label = stringResource(R.string.field_odometer_km),
+            value = input.odometerKm,
+            error = errors[StationField.ODOMETER_KM],
+            onValueChange = { value -> change { it.copy(odometerKm = value) } },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+            modifier = odometerModifier,
+        )
+        FormTextField(
+            label = stringResource(R.string.field_manual_temperature),
+            value = input.manualTemperatureC,
+            error = errors[StationField.MANUAL_TEMPERATURE],
+            onValueChange = { value -> change { it.copy(manualTemperatureC = value) } },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+            modifier = temperatureModifier,
+        )
+        if (locationEnabled && weatherEnabled && input.latitude != null && input.longitude != null) {
+            WeatherFetchRow(viewModel.temperatureCapture, stringResource(R.string.station_temperature_fetch_button), onFetch = viewModel::onFetchTemperature)
+        }
+    }
+}
+
+/**
+ * Fünf antippbare Camper-Symbole statt Sternen: gefüllt bis [rating], ein erneuter Tipp auf den
+ * aktuellen Wert setzt auf "keine Bewertung" zurück.
+ */
+@Composable
+private fun RatingRow(rating: Int?, onRatingChange: (Int?) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            stringResource(R.string.field_rating),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row {
+            (1..5).forEach { value ->
+                val filled = rating != null && value <= rating
+                val description = stringResource(R.string.station_rating_content_description, value)
+                IconButton(onClick = { onRatingChange(if (rating == value) null else value) }) {
+                    Icon(
+                        painterResource(if (filled) R.drawable.ic_rv_hookup_filled else R.drawable.ic_rv_hookup),
+                        contentDescription = description,
+                        tint = if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
     }
 }

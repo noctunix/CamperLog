@@ -110,7 +110,9 @@ data class WeatherSnapshot(
  * (siehe [electricityCost] und [electricityKwh]). Die Maut-Felder ([tollKind] bis [tollValidUntil])
  * gelten nur bei [StationType.TOLL], [ferryBookingReference] nur bei [StationType.FERRY]. [costs] sind
  * manuell erfasste Kostenposten unabhängig vom Stationstyp (siehe [CostCategory]); die Stromkosten
- * zählen nicht doppelt dazu, siehe [effectiveCosts].
+ * zählen nicht doppelt dazu, siehe [effectiveCosts]. [rating] (1–5) und [odometerKm] gelten für
+ * jeden Stationstyp. [manualTemperatureDeciC] ist eine manuell erfasste Temperatur in Zehntelgrad,
+ * unabhängig von [weather]. [link] ist bislang nur bei [StationType.OVERNIGHT] nutzbar.
  */
 data class Station(
     val id: Long = 0,
@@ -155,6 +157,10 @@ data class Station(
     val services: Set<StationService> = emptySet(),
     val weather: WeatherSnapshot? = null,
     val favorite: Boolean = false,
+    val rating: Int? = null,
+    val odometerKm: Int? = null,
+    val manualTemperatureDeciC: Int? = null,
+    val link: String? = null,
     val createdAt: Instant,
     val updatedAt: Instant,
 )

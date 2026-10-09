@@ -743,6 +743,11 @@
     <string name="field_toll_valid_until">Valid until</string>
     <string name="field_toll_payment_method">Payment method</string>
     <string name="field_ferry_booking_reference">Booking reference</string>
+    <string name="field_rating">Rating</string>
+    <string name="field_manual_temperature">Temperature (°C)</string>
+    <string name="field_link">Link</string>
+    <string name="station_rating_content_description">%1$d of 5 campers</string>
+    <string name="station_temperature_fetch_button">Fetch temperature automatically</string>
     <string name="field_cost_category">Category</string>
     <string name="field_cost_note">Note (optional)</string>
     <string name="field_electricity_currency">Currency</string>
@@ -798,6 +803,7 @@
     <string name="station_detail_edit">Edit stop</string>
     <string name="station_detail_open_maps">Open in maps app</string>
     <string name="station_detail_no_maps_app">No maps app found</string>
+    <string name="station_detail_open_link">Open link</string>
     <string name="station_not_found">This stop no longer exists.</string>
     <string name="station_open_tour">%1$s · %2$s</string>
     <string name="station_deleted">\"%1$s\" deleted</string>
