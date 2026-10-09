@@ -13,6 +13,7 @@ import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Rule
 import org.junit.Test
@@ -42,9 +43,11 @@ class SearchFlowTest {
                     FakeExchangeRateRepository(),
                     FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
+                    AccentColor.AZURE,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
                     tracks = FakeTrackRepository(),
+                    onAccentColorChange = { },
                 ) { }
             }
         }

@@ -2,6 +2,7 @@ package app.restvolt.camperlog.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
@@ -18,20 +19,26 @@ private val AzureOnLight = Color(0xFF0A63C0)
 private val DeepNavy = Color(0xFF0D1B2A)
 private val GreyBlue = Color(0xFF55657A)
 
-internal val LightColors = lightColorScheme(
-    primary = AzureOnLight,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFD3E6FF),
-    onPrimaryContainer = Color(0xFF00305E),
+/** Primär-Rollen (inkl. Container) einer [AccentColor] für einen Hell- oder Dunkelmodus. */
+private data class PrimaryRoles(val primary: Color, val onPrimary: Color, val primaryContainer: Color, val onPrimaryContainer: Color)
+
+// Bernstein für „bald fällig“, bewusst unabhängig von der Akzentfarbe (siehe KDoc AccentColor).
+private val TertiaryLight = PrimaryRoles(Color(0xFF7A5900), Color.White, Color(0xFFFFE6B8), Color(0xFF3D2A00))
+private val TertiaryDark = PrimaryRoles(Color(0xFFF2C46B), Color(0xFF402D00), Color(0xFF5C4300), Color(0xFFFFE6B8))
+
+private fun buildLightColors(primary: PrimaryRoles) = lightColorScheme(
+    primary = primary.primary,
+    onPrimary = primary.onPrimary,
+    primaryContainer = primary.primaryContainer,
+    onPrimaryContainer = primary.onPrimaryContainer,
     secondary = GreyBlue,
     onSecondary = Color.White,
     secondaryContainer = Color(0xFFDCE6F2),
     onSecondaryContainer = DeepNavy,
-    // Bernstein für „bald fällig“, damit es sich von Fehlern (rot) und der Markenfarbe abhebt.
-    tertiary = Color(0xFF7A5900),
-    onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFFFE6B8),
-    onTertiaryContainer = Color(0xFF3D2A00),
+    tertiary = TertiaryLight.primary,
+    onTertiary = TertiaryLight.onPrimary,
+    tertiaryContainer = TertiaryLight.primaryContainer,
+    onTertiaryContainer = TertiaryLight.onPrimaryContainer,
     background = Color(0xFFF4F7FB),
     onBackground = DeepNavy,
     surface = Color(0xFFF4F7FB),
@@ -48,20 +55,19 @@ internal val LightColors = lightColorScheme(
     error = Color(0xFFB3261E),
 )
 
-/** Dunkles Gegenstück mit der Markenfarbe selbst als Akzent; Karten heben sich leicht vom Hintergrund ab. */
-internal val DarkColors = darkColorScheme(
-    primary = Azure,
-    onPrimary = Color(0xFF001E3C),
-    primaryContainer = Color(0xFF004A86),
-    onPrimaryContainer = Color(0xFFD3E6FF),
+private fun buildDarkColors(primary: PrimaryRoles) = darkColorScheme(
+    primary = primary.primary,
+    onPrimary = primary.onPrimary,
+    primaryContainer = primary.primaryContainer,
+    onPrimaryContainer = primary.onPrimaryContainer,
     secondary = Color(0xFFB8C6D8),
     onSecondary = Color(0xFF22303F),
     secondaryContainer = Color(0xFF384757),
     onSecondaryContainer = Color(0xFFDCE6F2),
-    tertiary = Color(0xFFF2C46B),
-    onTertiary = Color(0xFF402D00),
-    tertiaryContainer = Color(0xFF5C4300),
-    onTertiaryContainer = Color(0xFFFFE6B8),
+    tertiary = TertiaryDark.primary,
+    onTertiary = TertiaryDark.onPrimary,
+    tertiaryContainer = TertiaryDark.primaryContainer,
+    onTertiaryContainer = TertiaryDark.onPrimaryContainer,
     background = Color(0xFF0E141B),
     onBackground = Color(0xFFE0E6EE),
     surface = Color(0xFF0E141B),
@@ -78,6 +84,46 @@ internal val DarkColors = darkColorScheme(
     onError = Color(0xFF601410),
 )
 
+/**
+ * Feste Auswahl an Akzentfarben für die Primär-Rolle des Themes (keine freie Farbwahl); jede
+ * Option ist in Hell- und Dunkelmodus auf WCAG-AA-Kontrast geprüft. Die Tertiär-Rolle bleibt bei
+ * jeder Akzentfarbe das Bernstein aus [TertiaryLight]/[TertiaryDark], da sie den Status „bald
+ * fällig“ trägt und sich von Fehlern (Rot) und jeder Akzentfarbe abheben muss.
+ */
+enum class AccentColor(lightPrimary: PrimaryRoles, darkPrimary: PrimaryRoles) {
+    AZURE(
+        PrimaryRoles(AzureOnLight, Color.White, Color(0xFFD3E6FF), Color(0xFF00305E)),
+        PrimaryRoles(Azure, Color(0xFF001E3C), Color(0xFF004A86), Color(0xFFD3E6FF)),
+    ),
+    FOREST(
+        PrimaryRoles(Color(0xFF0B8734), Color.White, Color(0xFFD7F4E1), Color(0xFF0D4A21)),
+        PrimaryRoles(Color(0xFF0DA640), Color(0xFF0A2E16), Color(0xFF1E6736), Color(0xFFD7F4E1)),
+    ),
+    TEAL(
+        PrimaryRoles(Color(0xFF0C8092), Color.White, Color(0xFFD7F0F4), Color(0xFF0D424A)),
+        PrimaryRoles(Color(0xFF0E9BB0), Color(0xFF0A292E), Color(0xFF1E5D67), Color(0xFFD7F0F4)),
+    ),
+    PLUM(
+        PrimaryRoles(Color(0xFF9311D4), Color.White, Color(0xFFEAD7F4), Color(0xFF350D4A)),
+        PrimaryRoles(Color(0xFFB94AF0), Color(0xFF220A2E), Color(0xFF4E1E67), Color(0xFFEAD7F4)),
+    ),
+    BERRY(
+        PrimaryRoles(Color(0xFFD4116C), Color.White, Color(0xFFF4D7E5), Color(0xFF4A0D29)),
+        PrimaryRoles(Color(0xFFEE3088), Color(0xFF2E0A1B), Color(0xFF671E40), Color(0xFFF4D7E5)),
+    ),
+    GRAPHITE(
+        PrimaryRoles(Color(0xFF5A6A8C), Color.White, Color(0xFFE1E4EA), Color(0xFF212836)),
+        PrimaryRoles(Color(0xFF7084AA), Color(0xFF161A22), Color(0xFF353E50), Color(0xFFE1E4EA)),
+    ),
+    ;
+
+    internal val light: ColorScheme = buildLightColors(lightPrimary)
+    internal val dark: ColorScheme = buildDarkColors(darkPrimary)
+
+    /** Repräsentative Farbe für die Auswahl-Kreise in den Einstellungen, unabhängig vom Theme-Modus. */
+    internal val swatch: Color = darkPrimary.primary
+}
+
 private val baseTypography = Typography()
 
 private val typography = baseTypography.copy(
@@ -93,11 +139,15 @@ private val shapes = Shapes(
     large = RoundedCornerShape(20.dp),
 )
 
-/** App-Theme in der Markenfarbe Azurblau; folgt standardmäßig dem hellen/dunklen Systemmodus. */
+/** App-Theme mit wählbarer Akzentfarbe; folgt standardmäßig dem hellen/dunklen Systemmodus. */
 @Composable
-fun CamperLogTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun CamperLogTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    accentColor: AccentColor = AccentColor.AZURE,
+    content: @Composable () -> Unit,
+) {
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
+        colorScheme = if (darkTheme) accentColor.dark else accentColor.light,
         typography = typography,
         shapes = shapes,
         content = content,

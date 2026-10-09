@@ -50,6 +50,7 @@ import app.restvolt.camperlog.domain.WeatherSnapshot
 import java.math.BigDecimal
 import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -92,6 +93,7 @@ class StationFlowTest {
                     FakeExchangeRateRepository(),
                     FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
+                    AccentColor.AZURE,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
                     pendingGeoIntent = pendingGeoIntent,
@@ -99,6 +101,7 @@ class StationFlowTest {
                     weatherProvider = weatherProvider,
                     placeSearchProvider = placeSearchProvider,
                     tracks = FakeTrackRepository(),
+                    onAccentColorChange = { },
                 ) { }
             }
         }

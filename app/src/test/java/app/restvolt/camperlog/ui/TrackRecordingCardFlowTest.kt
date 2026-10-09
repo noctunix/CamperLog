@@ -18,6 +18,7 @@ import app.restvolt.camperlog.tracking.ActiveRecording
 import app.restvolt.camperlog.tracking.TrackRecordingService
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import java.time.Instant
 import java.time.LocalDate
@@ -64,7 +65,7 @@ class TrackRecordingCardFlowTest {
         val firstTour = lofoten(1).let { if (running) it.copy(endDate = null) else it }
         compose.setContent {
             CamperLogTheme {
-                CamperLogNavHost(FakeTourRepository(listOf(firstTour, lofoten(2).copy(destination = "Dolomiten"))), FakeVehicleRepository(), FakeLogRepository(), FakeStationRepository(), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = tracks) { }
+                CamperLogNavHost(FakeTourRepository(listOf(firstTour, lofoten(2).copy(destination = "Dolomiten"))), FakeVehicleRepository(), FakeLogRepository(), FakeStationRepository(), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, AccentColor.AZURE, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = tracks, onAccentColorChange = { }) { }
             }
         }
         compose.onNodeWithText("Lofoten").performClick()

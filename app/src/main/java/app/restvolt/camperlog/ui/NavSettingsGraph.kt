@@ -20,6 +20,7 @@ import app.restvolt.camperlog.ui.rates.RatesViewModel
 import app.restvolt.camperlog.ui.search.SearchScreen
 import app.restvolt.camperlog.ui.search.SearchViewModel
 import app.restvolt.camperlog.ui.settings.SettingsScreen
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
@@ -29,6 +30,8 @@ internal fun NavGraphBuilder.settingsGraph(
     deps: NavDependencies,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    accentColor: AccentColor,
+    onAccentColorChange: (AccentColor) -> Unit,
     onShowIntroductionAgain: () -> Unit,
 ) = with(deps) {
     composable<SearchRoute> { entry ->
@@ -119,6 +122,8 @@ internal fun NavGraphBuilder.settingsGraph(
             viewModel = viewModel { RatesViewModel(exchangeRates, repository) },
             themeMode = themeMode,
             onThemeModeChange = onThemeModeChange,
+            accentColor = accentColor,
+            onAccentColorChange = onAccentColorChange,
             reminderSettings = reminderSettings,
             notificationSettings = notificationSettings,
             locationSettings = locationSettings,

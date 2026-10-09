@@ -92,6 +92,7 @@ import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
 import app.restvolt.camperlog.ui.onboarding.IntroductionTourScreen
 import app.restvolt.camperlog.ui.stations.StationsViewModel
 import app.restvolt.camperlog.ui.stations.StationsWhatsNewSettings
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import app.restvolt.camperlog.ui.tours.ToursViewModel
@@ -274,6 +275,7 @@ fun CamperLogNavHost(
     attachmentFileStore: AttachmentFileStore,
     backupImporter: BackupImporter,
     themeMode: ThemeMode,
+    accentColor: AccentColor,
     canShowStartDialogs: Boolean = true,
     /** Aus einem eingehenden `geo:`-Link gelesener Ort; `null` außerhalb dieses Starts. */
     pendingGeoIntent: GeoIntentLocation? = null,
@@ -305,6 +307,7 @@ fun CamperLogNavHost(
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     /** Aufgezeichnete Trackpunkte; in Tests ein Fake. */
     tracks: TrackRepository = (LocalContext.current.applicationContext as CamperLogApp).tracks,
+    onAccentColorChange: (AccentColor) -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -415,7 +418,15 @@ fun CamperLogNavHost(
         toursGraph(navController, deps, bottomBar)
         vehicleGraph(navController, deps, bottomBar)
         stationsGraph(navController, deps, bottomBar)
-        settingsGraph(navController, deps, themeMode, onThemeModeChange, onShowIntroductionAgain = { showIntroductionTour = true })
+        settingsGraph(
+            navController,
+            deps,
+            themeMode,
+            onThemeModeChange,
+            accentColor,
+            onAccentColorChange,
+            onShowIntroductionAgain = { showIntroductionTour = true },
+        )
     }
 
     geoLocationForPicker?.let { location ->

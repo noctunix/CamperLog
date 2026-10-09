@@ -38,8 +38,10 @@ class ThemeContrastTest {
     }
 
     @Test
-    fun lightScheme_meetsContrastMinimums() = assertSchemeContrasts(LightColors)
-
-    @Test
-    fun darkScheme_meetsContrastMinimums() = assertSchemeContrasts(DarkColors)
+    fun everyAccentColor_meetsContrastMinimumsInLightAndDarkMode() {
+        AccentColor.entries.forEach { accent ->
+            assertSchemeContrasts(accent.light)
+            assertSchemeContrasts(accent.dark)
+        }
+    }
 }

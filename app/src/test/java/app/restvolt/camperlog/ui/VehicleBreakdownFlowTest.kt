@@ -13,6 +13,7 @@ import app.restvolt.camperlog.domain.LocationFix
 import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -53,10 +54,12 @@ class VehicleBreakdownFlowTest {
                     FakeExchangeRateRepository(),
                     FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
+                    AccentColor.AZURE,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
                     tracks = FakeTrackRepository(),
                     locationProvider = locationProvider,
+                    onAccentColorChange = { },
                 ) { }
             }
         }

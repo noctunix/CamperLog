@@ -22,6 +22,7 @@ import app.restvolt.camperlog.reminders.EXTRA_OPEN_VEHICLE_ID
 import app.restvolt.camperlog.tracking.TrackRecordingService
 import app.restvolt.camperlog.share.cleanUpExports
 import app.restvolt.camperlog.ui.CamperLogNavHost
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeSettings
 import kotlinx.coroutines.launch
@@ -53,13 +54,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeSettings = remember { ThemeSettings(this) }
             var themeMode by remember { mutableStateOf(themeSettings.mode) }
+            var accentColor by remember { mutableStateOf(themeSettings.accentColor) }
             val darkTheme = themeMode.isDark(isSystemInDarkTheme())
             SideEffect {
                 val barStyle = if (darkTheme) SystemBarStyle.dark(Color.TRANSPARENT)
                 else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
                 enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
             }
-            CamperLogTheme(darkTheme = darkTheme) {
+            CamperLogTheme(darkTheme = darkTheme, accentColor = accentColor) {
                 CamperLogNavHost(
                     repository = app.repository,
                     vehicles = app.vehicles,
@@ -86,6 +88,11 @@ class MainActivity : ComponentActivity() {
                     onThemeModeChange = { selected ->
                         themeSettings.mode = selected
                         themeMode = selected
+                    },
+                    accentColor = accentColor,
+                    onAccentColorChange = { selected ->
+                        themeSettings.accentColor = selected
+                        accentColor = selected
                     },
                 )
             }

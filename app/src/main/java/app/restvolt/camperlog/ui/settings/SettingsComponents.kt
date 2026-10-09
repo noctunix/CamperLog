@@ -1,15 +1,20 @@
 package app.restvolt.camperlog.ui.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +33,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
@@ -37,12 +45,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.TileHttpCache
 import app.restvolt.camperlog.domain.tileCacheMegabytes
 import app.restvolt.camperlog.share.openNotificationSettings
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -54,6 +64,16 @@ internal val ThemeMode.label: Int
         ThemeMode.SYSTEM -> R.string.settings_theme_system
         ThemeMode.LIGHT -> R.string.settings_theme_light
         ThemeMode.DARK -> R.string.settings_theme_dark
+    }
+
+internal val AccentColor.label: Int
+    get() = when (this) {
+        AccentColor.AZURE -> R.string.settings_accent_azure
+        AccentColor.FOREST -> R.string.settings_accent_forest
+        AccentColor.TEAL -> R.string.settings_accent_teal
+        AccentColor.PLUM -> R.string.settings_accent_plum
+        AccentColor.BERRY -> R.string.settings_accent_berry
+        AccentColor.GRAPHITE -> R.string.settings_accent_graphite
     }
 
 /** Auswahl des Erscheinungsbilds; geteilt zwischen den Einstellungen und der Einführungstour. */
@@ -70,6 +90,54 @@ internal fun ThemeModeRadioGroup(themeMode: ThemeMode, onThemeModeChange: (Theme
             ) {
                 RadioButton(selected = mode == themeMode, onClick = null)
                 Text(stringResource(mode.label), modifier = Modifier.padding(start = 12.dp))
+            }
+        }
+    }
+}
+
+/** Farbige Kreis-Swatches zur Auswahl der Akzentfarbe. */
+@Composable
+internal fun AccentColorSwatchRow(accentColor: AccentColor, onAccentColorChange: (AccentColor) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        AccentColor.entries.forEach { option ->
+            val selected = option == accentColor
+            val name = stringResource(option.label)
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .selectable(selected = selected, role = Role.RadioButton) { onAccentColorChange(option) }
+                    .semantics {
+                        contentDescription = name
+                        this.selected = selected
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(option.swatch)
+                        .then(
+                            if (selected) {
+                                Modifier.border(2.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
+                            } else {
+                                Modifier
+                            },
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (selected) {
+                        Icon(
+                            painterResource(R.drawable.ic_check),
+                            contentDescription = null,
+                            tint = if (option.swatch.luminance() > 0.5f) Color.Black else Color.White,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
             }
         }
     }

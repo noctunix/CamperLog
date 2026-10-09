@@ -16,6 +16,7 @@ import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -55,10 +56,12 @@ class AttachmentsFlowTest {
                     FakeAttachmentFileStore(),
                     FakeBackupImporter(),
                     ThemeMode.SYSTEM,
+                    AccentColor.AZURE,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
                     attachmentPickers = FakeAttachmentPickers(),
                     tracks = FakeTrackRepository(),
+                    onAccentColorChange = { },
                 ) { }
             }
         }

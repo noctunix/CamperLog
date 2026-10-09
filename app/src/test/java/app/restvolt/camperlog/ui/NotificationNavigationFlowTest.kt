@@ -6,6 +6,7 @@ import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleDocument
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -44,10 +45,12 @@ class NotificationNavigationFlowTest {
                     FakeExchangeRateRepository(),
                     FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
+                    AccentColor.AZURE,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
                     tracks = FakeTrackRepository(),
                     pendingVehicleId = 2,
+                    onAccentColorChange = { },
                 ) {}
             }
         }
@@ -70,10 +73,12 @@ class NotificationNavigationFlowTest {
                     FakeExchangeRateRepository(),
                     FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
+                    AccentColor.AZURE,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
                     tracks = FakeTrackRepository(),
                     pendingOpenData = true,
+                    onAccentColorChange = { },
                 ) {}
             }
         }
@@ -105,10 +110,12 @@ class NotificationNavigationFlowTest {
                     FakeExchangeRateRepository(),
                     FakeVehicleDocumentRepository(listOf(document)), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
+                    AccentColor.AZURE,
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
                     tracks = FakeTrackRepository(),
                     pendingDocumentId = 7,
+                    onAccentColorChange = { },
                 ) {}
             }
         }

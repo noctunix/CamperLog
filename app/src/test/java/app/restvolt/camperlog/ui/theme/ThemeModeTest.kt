@@ -29,11 +29,11 @@ class ThemeModeTest {
     }
 
     @Test
-    fun dayMode_usesLightColors() = assertSame(LightColors, appliedScheme())
+    fun dayMode_usesLightColors() = assertSame(AccentColor.AZURE.light, appliedScheme())
 
     @Test
     @Config(qualifiers = "+night")
-    fun nightMode_usesDarkColors() = assertSame(DarkColors, appliedScheme())
+    fun nightMode_usesDarkColors() = assertSame(AccentColor.AZURE.dark, appliedScheme())
 
     @Test
     fun chosenThemeSurvivesNewSettingsInstance() {
@@ -50,5 +50,27 @@ class ThemeModeTest {
         } finally {
             preferences.edit().clear().commit()
         }
+    }
+
+    @Test
+    fun chosenAccentColorSurvivesNewSettingsInstance() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val preferences = context.getSharedPreferences("appearance", Context.MODE_PRIVATE)
+        preferences.edit().clear().commit()
+        try {
+            assertEquals(AccentColor.AZURE, ThemeSettings(context).accentColor)
+            ThemeSettings(context).accentColor = AccentColor.FOREST
+            assertEquals(AccentColor.FOREST, ThemeSettings(context).accentColor)
+        } finally {
+            preferences.edit().clear().commit()
+        }
+    }
+
+    @Test
+    fun accentColorAppliesItsOwnPrimaryRoleToTheScheme() {
+        lateinit var scheme: ColorScheme
+        compose.setContent { CamperLogTheme(accentColor = AccentColor.FOREST) { scheme = MaterialTheme.colorScheme } }
+        compose.waitForIdle()
+        assertSame(AccentColor.FOREST.light, scheme)
     }
 }

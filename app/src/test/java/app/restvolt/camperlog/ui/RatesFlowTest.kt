@@ -32,6 +32,7 @@ import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
@@ -63,7 +64,7 @@ class RatesFlowTest {
         compose.setContent {
             var mode by remember { mutableStateOf(ThemeMode.SYSTEM) }
             CamperLogTheme(darkTheme = mode.isDark(isSystemInDarkTheme())) {
-                CamperLogNavHost(tours, FakeVehicleRepository(), FakeLogRepository(), FakeStationRepository(), rates, FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), mode, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = FakeTrackRepository()) { mode = it }
+                CamperLogNavHost(tours, FakeVehicleRepository(), FakeLogRepository(), FakeStationRepository(), rates, FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), mode, AccentColor.AZURE, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = FakeTrackRepository(), onAccentColorChange = { }) { mode = it }
             }
         }
         compose.onNodeWithContentDescription("Übersicht").performClick()

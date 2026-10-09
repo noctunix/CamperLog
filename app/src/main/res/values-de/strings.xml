@@ -115,6 +115,13 @@
     <string name="settings_theme_system">Systemeinstellung</string>
     <string name="settings_theme_light">Hell</string>
     <string name="settings_theme_dark">Dunkel</string>
+    <string name="settings_accent_color">Akzentfarbe</string>
+    <string name="settings_accent_azure">Azurblau</string>
+    <string name="settings_accent_forest">Waldgrün</string>
+    <string name="settings_accent_teal">Petrol</string>
+    <string name="settings_accent_plum">Violett</string>
+    <string name="settings_accent_berry">Beere</string>
+    <string name="settings_accent_graphite">Graphit</string>
     <string name="settings_open_rates">Wechselkurse verwalten</string>
     <string name="settings_reminders">Erinnerungen</string>
     <string name="settings_reminders_hint">Erinnerungen werden immer in der App angezeigt. Schalte unten Benachrichtigungen ein, um sie zusätzlich als täglichen Hintergrund-Check zu bekommen.</string>

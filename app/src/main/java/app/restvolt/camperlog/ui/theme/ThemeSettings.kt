@@ -22,4 +22,11 @@ class ThemeSettings(context: Context) {
         set(value) {
             preferences.edit { putString("theme_mode", value.name) }
         }
+
+    /** Default [AccentColor.AZURE], damit bestehende Installationen optisch unverändert bleiben. */
+    var accentColor: AccentColor
+        get() = AccentColor.entries.firstOrNull { it.name == preferences.getString("accent_color", null) } ?: AccentColor.AZURE
+        set(value) {
+            preferences.edit { putString("accent_color", value.name) }
+        }
 }

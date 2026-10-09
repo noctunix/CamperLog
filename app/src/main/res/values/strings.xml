@@ -115,6 +115,13 @@
     <string name="settings_theme_system">System default</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
+    <string name="settings_accent_color">Accent color</string>
+    <string name="settings_accent_azure">Azure</string>
+    <string name="settings_accent_forest">Forest</string>
+    <string name="settings_accent_teal">Teal</string>
+    <string name="settings_accent_plum">Plum</string>
+    <string name="settings_accent_berry">Berry</string>
+    <string name="settings_accent_graphite">Graphite</string>
     <string name="settings_open_rates">Manage exchange rates</string>
     <string name="settings_reminders">Reminders</string>
     <string name="settings_reminders_hint">Reminders are always shown inside the app. Turn on notifications below to also get a daily background check.</string>

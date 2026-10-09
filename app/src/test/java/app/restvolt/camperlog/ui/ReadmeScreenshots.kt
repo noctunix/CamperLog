@@ -25,6 +25,7 @@ import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import org.junit.Assume.assumeTrue
@@ -77,8 +78,10 @@ class ReadmeScreenshots {
                     FakeExchangeRateRepository(rates),
                     FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.LIGHT,
+                    AccentColor.AZURE,
                     canShowStartDialogs = false,
                     tracks = FakeTrackRepository(),
+                    onAccentColorChange = { },
                 ) { }
             }
         }

@@ -17,6 +17,7 @@ import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
 import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.settings.WeatherSettings
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
@@ -77,8 +78,10 @@ class IntroductionTourFlowTest {
                     FakeExchangeRateRepository(),
                     FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM,
+                    AccentColor.AZURE,
                     countryLookup = FakeCountryLookupRepository(),
                     tracks = FakeTrackRepository(),
+                    onAccentColorChange = { },
                     onThemeModeChange = onThemeModeChange,
                 )
             }

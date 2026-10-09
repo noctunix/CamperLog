@@ -40,6 +40,7 @@ import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.rates.MainCurrencyCard
 import app.restvolt.camperlog.ui.rates.RatesViewModel
+import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
@@ -49,6 +50,8 @@ fun SettingsScreen(
     viewModel: RatesViewModel,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    accentColor: AccentColor,
+    onAccentColorChange: (AccentColor) -> Unit,
     reminderSettings: ReminderSettings,
     notificationSettings: NotificationSettings,
     locationSettings: LocationSettings,
@@ -98,6 +101,12 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.primary,
                     )
                     ThemeModeRadioGroup(themeMode, onThemeModeChange)
+                    Text(
+                        stringResource(R.string.settings_accent_color),
+                        modifier = Modifier.padding(top = 8.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    AccentColorSwatchRow(accentColor, onAccentColorChange)
                 }
             }
             if (!state.isLoading) {
