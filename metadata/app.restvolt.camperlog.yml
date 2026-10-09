@@ -64,6 +64,22 @@ Builds:
       - rm ne.geojson
     gradleprops:
       - unsignedRelease
+  - versionName: 1.18.0
+    versionCode: 11800
+    commit: v1.18.0
+    subdir: app
+    gradle:
+      - yes
+    rm:
+      - app/src/main/assets/countries.bin
+    build:
+      - curl -sSfL -o ne.geojson https://raw.githubusercontent.com/nvkelso/natural-earth-vector/9380cca83db5f9aef52d5e762765100745f84b27/geojson/ne_50m_admin_0_countries.geojson
+      - echo "3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb  ne.geojson"
+        | sha256sum -c
+      - python3 ../scripts/build-country-shapes.py --input ne.geojson --output src/main/assets/countries.bin
+      - rm ne.geojson
+    gradleprops:
+      - unsignedRelease
 
 AllowedAPKSigningKeys: b25e7004ac94e051497e7076256c4ad90401dc06fd0a10079480ce96f3b2b4e4
 
@@ -71,5 +87,5 @@ AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
 UpdateCheckData: app/build.gradle.kts|val appVersionCode = (\d+)|.|val appVersion
   = "(.+)"
-CurrentVersion: 1.17.1
-CurrentVersionCode: 11701
+CurrentVersion: 1.18.0
+CurrentVersionCode: 11800

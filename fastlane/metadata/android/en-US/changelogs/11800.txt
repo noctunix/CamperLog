@@ -1,0 +1,4 @@
+• Home location: auto-add start/end stops when a tour begins and ends at home
+• Clearer icon for the data/backup screen
+• Vehicle: dimensions in cm, PS next to kW, optional displacement & transmission, odometer at sale
+• GPS track recording survives a device restart and resumes automatically

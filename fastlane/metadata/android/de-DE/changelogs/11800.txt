@@ -1,0 +1,4 @@
+• Zuhause-Ort: Start-/Ende-Stationen werden automatisch angelegt, wenn die Tour dort beginnt/endet
+• Klareres Icon für den Daten-/Sicherungsbildschirm
+• Fahrzeug: Maße in cm, PS neben kW, optional Hubraum & Schaltung, Kilometerstand beim Verkauf
+• GPS-Aufzeichnung überlebt einen Geräteneustart und läuft automatisch weiter
