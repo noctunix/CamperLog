@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.AccentColor
@@ -67,6 +68,22 @@ class EditVehicleFlowTest {
         compose.onNodeWithText("636 cm").assertExists()
         compose.onNodeWithText("120 kW (163 PS)").assertExists()
         compose.onNodeWithText("90 l").assertExists()
+    }
+
+    @Test
+    fun poweredField_showsLiveUpdatingPsHintBelowKwField() {
+        start()
+        compose.onNodeWithText("Fahrzeug").performClick()
+        compose.onNodeWithText("Details hinzufügen").performClick()
+
+        val powerField = compose.onNode(hasSetTextAction() and hasText("Leistung")).performScrollTo()
+        powerField.performTextInput("120")
+        compose.onNodeWithText("≈ 163 PS").assertExists()
+
+        powerField.performTextClearance()
+        powerField.performTextInput("60")
+        compose.onNodeWithText("≈ 82 PS").assertExists()
+        compose.onNodeWithText("≈ 163 PS").assertDoesNotExist()
     }
 
     @Test

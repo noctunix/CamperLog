@@ -54,6 +54,7 @@ import app.restvolt.camperlog.domain.VehicleError
 import app.restvolt.camperlog.domain.VehicleField
 import app.restvolt.camperlog.domain.allowsAny
 import app.restvolt.camperlog.domain.formatAmount
+import app.restvolt.camperlog.domain.formatApproxPs
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CurrencyPicker
 import app.restvolt.camperlog.ui.DateField
@@ -353,6 +354,7 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 stringResource(R.string.field_power), input.powerKw, "kW", KeyboardType.Number,
                 errorOf(VehicleField.POWER_KW), focusOf(VehicleField.POWER_KW),
             ) { value -> change { it.copy(powerKw = value) } }
+            PowerPsHint(input.powerKw)
         }
         SectionCard {
             SectionHeading(stringResource(R.string.section_tires))
@@ -512,6 +514,18 @@ private fun EnergyTypesField(selected: Set<EnergyType>, onToggle: (EnergyType) -
 }
 
 private fun Set<EnergyType>.toggled(type: EnergyType): Set<EnergyType> = if (type in this) this - type else this + type
+
+/** Nicht editierbare "≈ X PS"-Anzeige unterhalb des kW-Felds; aktualisiert sich live mit der Eingabe. */
+@Composable
+private fun PowerPsHint(powerKw: String) {
+    val kw = powerKw.trim().toIntOrNull()?.takeIf { it > 0 } ?: return
+    Text(
+        formatApproxPs(kw, currentLocale()),
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
 
 @Composable
 private fun FormTextField(

@@ -12,11 +12,15 @@ fun formatCm(cm: Int, locale: Locale): String = "${integerFormat(locale).format(
 /** Formatiert ein Gewicht in kg mit Tausendertrennzeichen, z. B. `3.500 kg`. */
 fun formatKg(kg: Int, locale: Locale): String = "${integerFormat(locale).format(kg)} kg"
 
+/** Rechnet eine Motorleistung von kW kaufmännisch gerundet in PS um (1 kW ≈ 1,35962 PS). */
+fun kwToPs(kw: Int): Int = (kw * 1.35962).roundToInt()
+
 /** Formatiert eine Motorleistung mit der abgeleiteten PS-Zahl, z. B. `120 kW (163 PS)`. */
-fun formatPower(kw: Int, locale: Locale): String {
-    val ps = (kw * 1.35962).roundToInt()
-    return "${integerFormat(locale).format(kw)} kW (${integerFormat(locale).format(ps)} PS)"
-}
+fun formatPower(kw: Int, locale: Locale): String =
+    "${integerFormat(locale).format(kw)} kW (${integerFormat(locale).format(kwToPs(kw))} PS)"
+
+/** Formatiert die aus einer Motorleistung in kW abgeleitete PS-Zahl als Näherungswert, z. B. `≈ 163 PS`. */
+fun formatApproxPs(kw: Int, locale: Locale): String = "≈ ${integerFormat(locale).format(kwToPs(kw))} PS"
 
 /** Formatiert einen in Millibar gespeicherten Reifendruck als bar mit 2 Nachkommastellen, z. B. `2,80 bar`. */
 fun formatBar(mbar: Int, locale: Locale): String = "${decimalFormat(locale, 2).format(BigDecimal.valueOf(mbar.toLong(), 3))} bar"
