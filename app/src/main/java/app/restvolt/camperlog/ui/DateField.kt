@@ -2,8 +2,10 @@ package app.restvolt.camperlog.ui
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
@@ -23,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -35,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.formatDate
 import java.time.LocalDate
@@ -43,7 +47,8 @@ import java.time.LocalDate
  * Schreibgeschütztes Datumsfeld, das per Tippen, Tastatur oder Screenreader einen Kalender öffnet.
  * [initialDate] ist der vorausgewählte Tag, solange [date] leer ist; [minDate] sperrt frühere Tage.
  * [hint] steht unter dem Feld, solange kein [error] angezeigt wird. Wenn [onClear] gesetzt ist,
- * kann ein vorhandenes Datum über eine eigene, barrierefreie Aktion entfernt werden.
+ * kann ein vorhandenes Datum über eine eigene, barrierefreie Aktion entfernt werden; [onQuickFill]
+ * stellt daneben einen Schnellausfüll-Button mit der Beschriftung [quickFillLabel] bereit, z. B. "Heute".
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +62,8 @@ internal fun DateField(
     minDate: LocalDate? = null,
     hint: String? = null,
     onClear: (() -> Unit)? = null,
+    quickFillLabel: String? = null,
+    onQuickFill: (() -> Unit)? = null,
 ) {
     var showPicker by rememberSaveable { mutableStateOf(false) }
     val pickLabel = stringResource(R.string.edit_pick_date, label)
@@ -86,7 +93,24 @@ internal fun DateField(
             },
         label = { Text(label) },
         isError = error != null,
-        supportingText = (error ?: hint)?.let { { Text(it) } },
+        supportingText = if (error != null || hint != null || (quickFillLabel != null && onQuickFill != null)) {
+            {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text((error ?: hint).orEmpty())
+                    if (quickFillLabel != null && onQuickFill != null) {
+                        TextButton(onClick = onQuickFill, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Text(quickFillLabel)
+                        }
+                    }
+                }
+            }
+        } else {
+            null
+        },
         trailingIcon = {
             Row {
                 if (date != null && onClear != null) {

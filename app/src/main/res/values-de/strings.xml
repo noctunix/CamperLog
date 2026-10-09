@@ -7,6 +7,7 @@
     <string name="action_cancel">Abbrechen</string>
     <string name="action_close">Schließen</string>
     <string name="action_ok">OK</string>
+    <string name="action_today">Heute</string>
     <string name="yes">ja</string>
     <string name="no">nein</string>
     <string name="tour_not_found">Diese Tour gibt es nicht mehr.</string>

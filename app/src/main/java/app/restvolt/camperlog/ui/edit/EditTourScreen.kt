@@ -80,6 +80,7 @@ import app.restvolt.camperlog.ui.settings.HomeLocationSettings
 import app.restvolt.camperlog.ui.settings.trackPermissions
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.vehicleMenuLabel
+import java.time.LocalDate
 
 /** Formular zum Anlegen und Bearbeiten einer Tour. [onDone] verlässt es ohne, [onSaved] nach dem Speichern. */
 @Composable
@@ -197,6 +198,7 @@ private fun TourForm(
     val errors = state.errors.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
     val change = viewModel::onInputChange
     val required = stringResource(R.string.edit_required)
+    val today = stringResource(R.string.action_today)
     val focus = remember { TourField.entries.associateWith { FocusRequester() } }
     fun focusOf(field: TourField) = Modifier.focusRequester(focus.getValue(field))
 
@@ -267,6 +269,12 @@ private fun TourForm(
                 viewModel::onStartDateChange,
                 modifier = focusOf(TourField.START_DATE),
                 hint = required,
+                quickFillLabel = if (state.isNew && input.startDate == null) today else null,
+                onQuickFill = if (state.isNew && input.startDate == null) {
+                    { viewModel.onStartDateChange(LocalDate.now()) }
+                } else {
+                    null
+                },
             )
             DateField(
                 stringResource(R.string.field_end_date),

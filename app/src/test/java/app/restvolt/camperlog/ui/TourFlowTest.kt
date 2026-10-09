@@ -176,6 +176,18 @@ class TourFlowTest {
     }
 
     @Test
+    fun newTour_todayButtonFillsTheStartDate() {
+        val repository = start()
+        compose.onNodeWithText("Neue Tour").performClick()
+
+        compose.onNodeWithText("Heute").performClick()
+        destinationField().performTextInput("Gardasee")
+        clickSave()
+
+        assertEquals(LocalDate.now(), repository.tours.single().startDate)
+    }
+
+    @Test
     fun saveWithoutRequiredFields_showsErrorsAndStaysOnForm() {
         val repository = start()
         compose.onNodeWithText("Neue Tour").performClick()
