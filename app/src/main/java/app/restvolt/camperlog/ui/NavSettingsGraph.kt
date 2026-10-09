@@ -9,9 +9,16 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.AndroidLocationPermissionGate
+import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_ID
+import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_VERSION
+import app.restvolt.camperlog.domain.guide.INTRODUCTION_TOUR_ID
+import app.restvolt.camperlog.domain.guide.INTRODUCTION_TOUR_VERSION
+import app.restvolt.camperlog.domain.guide.createFirstTourTour
 import app.restvolt.camperlog.domain.guide.introductionTour
 import app.restvolt.camperlog.ui.about.AboutScreen
+import app.restvolt.camperlog.ui.about.GuidedTourEntry
 import app.restvolt.camperlog.ui.data.AndroidDataFiles
 import app.restvolt.camperlog.ui.data.DataScreen
 import app.restvolt.camperlog.ui.data.DataViewModel
@@ -144,7 +151,21 @@ internal fun NavGraphBuilder.settingsGraph(
     composable<AboutRoute> { entry ->
         AboutScreen(
             onBack = { navController.popFrom(entry) },
-            onShowIntroductionAgain = { guideController.start(introductionTour()) },
+            guidedTours = listOf(
+                GuidedTourEntry(
+                    titleRes = R.string.guide_tour_introduction_title,
+                    completed = guideProgressStore.isCompleted(INTRODUCTION_TOUR_ID, INTRODUCTION_TOUR_VERSION),
+                    onStart = { guideController.start(introductionTour()) },
+                ),
+                GuidedTourEntry(
+                    titleRes = R.string.guide_tour_create_first_title,
+                    completed = guideProgressStore.isCompleted(CREATE_FIRST_TOUR_ID, CREATE_FIRST_TOUR_VERSION),
+                    onStart = {
+                        guideController.start(createFirstTourTour())
+                        navController.navigateToToursTabRoot()
+                    },
+                ),
+            ),
         )
     }
     composable<RateEditRoute> { entry ->

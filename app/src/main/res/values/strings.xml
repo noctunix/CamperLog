@@ -614,7 +614,6 @@
     <string name="about_action_support">Support development</string>
     <string name="about_donate_uri" translatable="false">https://liberapay.com/noctunix/donate</string>
     <string name="about_action_keep_android_open">Keep Android Open</string>
-    <string name="about_action_show_intro">Show introduction again</string>
     <string name="about_no_app_available">No app available</string>
     <string name="about_section_source">Source code</string>
     <string name="about_source_body">CamperLog is free software: every line of code is open for inspection. Contributions, bug reports and suggestions are welcome.</string>
@@ -1206,4 +1205,10 @@
     <string name="guide_step_fab_body">Tap here to start a new tour.</string>
     <string name="guide_step_name_body">Enter the tour\'s name or destination here.</string>
     <string name="guide_step_save_body">Tap Save to create the tour.</string>
+    <string name="guide_tour_introduction_title">Introduction tour</string>
+    <string name="guide_tour_create_first_title">Create your first tour</string>
+    <string name="guide_entry_start">Start</string>
+    <string name="guide_entry_repeat">Repeat</string>
+    <string name="guide_entry_completed">Completed</string>
+    <string name="about_guided_tours_title">Guided tours</string>
 </resources>

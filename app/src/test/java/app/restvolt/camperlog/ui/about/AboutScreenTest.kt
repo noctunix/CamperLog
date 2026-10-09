@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import app.restvolt.camperlog.BuildConfig
+import app.restvolt.camperlog.R
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -25,10 +26,10 @@ class AboutScreenTest {
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
-    private fun start(onShowIntroductionAgain: () -> Unit = {}) {
+    private fun start(guidedTours: List<GuidedTourEntry> = emptyList()) {
         compose.setContent {
             CamperLogTheme {
-                AboutScreen(onBack = {}, onShowIntroductionAgain = onShowIntroductionAgain)
+                AboutScreen(onBack = {}, guidedTours = guidedTours)
             }
         }
     }
@@ -125,12 +126,30 @@ class AboutScreenTest {
     }
 
     @Test
-    fun showIntroductionAgainRowInvokesCallback() {
+    fun guidedTourRow_startButtonInvokesCallback() {
         var invoked = false
-        start(onShowIntroductionAgain = { invoked = true })
+        start(
+            guidedTours = listOf(
+                GuidedTourEntry(titleRes = R.string.guide_tour_introduction_title, completed = false, onStart = { invoked = true }),
+            ),
+        )
 
-        compose.onNodeWithText("Einführung erneut anzeigen").performScrollTo().performClick()
+        compose.onNodeWithText("Rundgang").performScrollTo().assertExists()
+        compose.onNodeWithText("Starten").performScrollTo().performClick()
 
         assertTrue(invoked)
+    }
+
+    @Test
+    fun guidedTourRow_completedShowsCheckmarkAndRepeatLabel() {
+        start(
+            guidedTours = listOf(
+                GuidedTourEntry(titleRes = R.string.guide_tour_create_first_title, completed = true, onStart = {}),
+            ),
+        )
+
+        compose.onNodeWithText("Erste Tour anlegen").performScrollTo().assertExists()
+        compose.onNodeWithText("Abgeschlossen").assertExists()
+        compose.onNodeWithText("Wiederholen").assertExists()
     }
 }

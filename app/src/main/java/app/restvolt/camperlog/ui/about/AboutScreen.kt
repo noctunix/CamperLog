@@ -2,6 +2,7 @@ package app.restvolt.camperlog.ui.about
 
 import android.content.Context
 import android.content.Intent
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -64,12 +66,22 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
+ * Ein Eintrag der Liste "Geführte Touren" in [AboutScreen]: [titleRes] bezeichnet die Tour,
+ * [completed] zeigt das Häkchen, [onStart] startet sie (erneut).
+ */
+data class GuidedTourEntry(
+    @StringRes val titleRes: Int,
+    val completed: Boolean,
+    val onStart: () -> Unit,
+)
+
+/**
  * Über-Bildschirm: Version, Kontakt- und Unterstützungsaktionen sowie aufklappbare Abschnitte zu
- * Quellcode, Lizenz, Drittanbieter-Bibliotheken und Datenschutz. [onShowIntroductionAgain] zeigt
- * die Einführungstour erneut an.
+ * Quellcode, Lizenz, Drittanbieter-Bibliotheken und Datenschutz. [guidedTours] listet die geführten
+ * Touren der App mit Start/Wiederholen-Button und Abschluss-Hinweis.
  */
 @Composable
-fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
+fun AboutScreen(onBack: () -> Unit, guidedTours: List<GuidedTourEntry>) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
@@ -173,9 +185,15 @@ fun AboutScreen(onBack: () -> Unit, onShowIntroductionAgain: () -> Unit) {
                 }
             }
             item {
-                OutlinedButton(onClick = onShowIntroductionAgain, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.about_action_show_intro))
-                }
+                Text(
+                    stringResource(R.string.about_guided_tours_title),
+                    modifier = Modifier.semantics { heading() },
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleSmall,
+                )
+            }
+            items(guidedTours) { tour ->
+                GuidedTourRow(tour)
             }
             item {
                 AboutSection(
@@ -341,6 +359,38 @@ private fun AboutSection(
 @Composable
 private fun AboutLink(label: String, onClick: () -> Unit) {
     TextButton(onClick = onClick) { Text(label) }
+}
+
+/** Eine Zeile der Liste "Geführte Touren": Titel mit Abschluss-Hinweis links, Start/Wiederholen rechts. */
+@Composable
+private fun GuidedTourRow(tour: GuidedTourEntry) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(tour.titleRes), style = MaterialTheme.typography.bodyLarge)
+            if (tour.completed) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(
+                        painterResource(R.drawable.ic_check),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        stringResource(R.string.guide_entry_completed),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        OutlinedButton(onClick = tour.onStart) {
+            Text(stringResource(if (tour.completed) R.string.guide_entry_repeat else R.string.guide_entry_start))
+        }
+    }
 }
 
 @Composable

@@ -557,11 +557,25 @@ private fun NavLabel(text: String) {
 private inline fun <reified T : Any> NavDestination?.isOnTab(): Boolean = this?.hierarchy?.any { it.hasRoute<T>() } == true
 
 /** Navigiert zu einem Hauptreiter nach dem üblichen Material-Muster für Bottom-Navigation. */
-private inline fun <reified T : Any> NavController.navigateToTab(route: T) {
+internal inline fun <reified T : Any> NavController.navigateToTab(route: T) {
     navigate(route) {
         popUpTo(graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true
         restoreState = true
+    }
+}
+
+/**
+ * Verlässt alle Bildschirme oberhalb des Touren-Reiters, z. B. um von "Über CamperLog" aus eine
+ * Tour auf der Tourenliste zu starten. Bewusst ohne `restoreState` wie bei [navigateToTab]: Die
+ * Tourenliste als Startziel wird nie aus dem Stapel entfernt, es gibt also nichts wiederherzustellen
+ * - mit `restoreState` bleibt diese Navigation sonst wirkungslos, wenn der Touren-Reiter seit dem
+ * App-Start noch nie durch einen Reiterwechsel verlassen wurde.
+ */
+internal fun NavController.navigateToToursTabRoot() {
+    navigate(ToursRoute) {
+        popUpTo(ToursRoute) { inclusive = false }
+        launchSingleTop = true
     }
 }
 
