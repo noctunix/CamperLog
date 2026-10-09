@@ -97,8 +97,6 @@
     <string name="tours_track_paused">GPS-Track pausiert</string>
     <string name="tours_track_paused_by_reboot">GPS-Track unterbrochen</string>
     <string name="tours_track_resumed_after_boot">GPS-Track nach Neustart fortgesetzt</string>
-    <string name="tours_row_meta">%1$s</string>
-    <string name="tours_row_meta_vehicle">%1$s · %2$s</string>
     <plurals name="tours_row_station_count">
         <item quantity="one">%1$d Station</item>
         <item quantity="other">%1$d Stationen</item>
@@ -202,6 +200,11 @@
     <string name="edit_cost_remove">Betrag in %1$s entfernen</string>
     <string name="edit_map_link_placeholder">https://…</string>
     <string name="edit_running_tour_conflict">Für dieses Fahrzeug läuft bereits eine Tour.</string>
+    <string name="edit_section_tour">Tour</string>
+    <string name="edit_section_period">Zeitraum</string>
+    <string name="edit_section_on_save">Beim Speichern</string>
+    <string name="edit_section_advanced">Erweitert</string>
+    <string name="edit_end_date_hint">Leer lassen, solange du unterwegs bist.</string>
     <string name="edit_track_switch_title">GPS-Track aufzeichnen</string>
     <string name="edit_track_switch_support">Startet die Aufzeichnung, sobald die Tour gespeichert ist.</string>
     <string name="edit_home_switch_title_start">Beginnt zu Hause</string>

@@ -177,6 +177,8 @@ fun EditTourScreen(
     }
 }
 
+private val METRICS_FIELDS = setOf(TourField.TRAVEL_DAYS, TourField.OVERNIGHT_STAYS, TourField.DISTANCE_KM)
+
 @Composable
 private fun TourForm(
     state: EditUiState,
@@ -190,11 +192,24 @@ private fun TourForm(
     val errors = state.errors.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
     val change = viewModel::onInputChange
     val required = stringResource(R.string.edit_required)
-    var metricsExpanded by rememberSaveable { mutableStateOf(false) }
     val focus = remember { TourField.entries.associateWith { FocusRequester() } }
     fun focusOf(field: TourField) = Modifier.focusRequester(focus.getValue(field))
 
-    // Nach einem abgelehnten Speichern zum ersten fehlerhaften Feld springen; der Fokus scrollt es ins Bild.
+    // Initial aufgeklappt, wenn der Abschnitt schon Inhalt hat; ein Fehler klappt ihn zusätzlich
+    // reaktiv auf, auch nachträglich - siehe den Fokus-Sprung unten.
+    var metricsOverride by rememberSaveable {
+        mutableStateOf(input.travelDays.isNotBlank() || input.overnightStays.isNotBlank() || input.distanceKm.isNotBlank())
+    }
+    var costsOverride by rememberSaveable { mutableStateOf(input.costs.any { it.amount.isNotBlank() }) }
+    var advancedOverride by rememberSaveable {
+        mutableStateOf(input.slug.isNotBlank() || (state.showLegacyMapLink && input.mapLink.isNotBlank()))
+    }
+    val metricsExpanded = metricsOverride || state.errors.keys.any { it in METRICS_FIELDS }
+    val costsExpanded = costsOverride || TourField.COST in state.errors
+    val advancedExpanded = advancedOverride || TourField.MAP_LINK in state.errors
+
+    // Nach einem abgelehnten Speichern zum ersten fehlerhaften Feld springen; der Fokus scrollt es
+    // ins Bild. Ein eingeklappter Abschnitt ist zu diesem Zeitpunkt schon aufgeklappt, siehe oben.
     LaunchedEffect(state.rejectedSaves) {
         if (state.rejectedSaves > 0) {
             errors.keys.minByOrNull(TourField::ordinal)?.let { focus.getValue(it).requestFocus() }
@@ -208,45 +223,9 @@ private fun TourForm(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionCard {
+            SectionHeading(stringResource(R.string.edit_section_tour))
             if (state.vehicles.size > 1) {
                 VehicleField(state.vehicles, input.vehicleId, viewModel::onVehicleChange)
-            }
-            DateField(
-                stringResource(R.string.field_start_date),
-                input.startDate,
-                errors[TourField.START_DATE],
-                viewModel::onStartDateChange,
-                modifier = focusOf(TourField.START_DATE),
-                hint = required,
-            )
-            DateField(
-                stringResource(R.string.field_end_date),
-                input.endDate,
-                errors[TourField.END_DATE],
-                viewModel::onEndDateChange,
-                initialDate = input.startDate,
-                minDate = input.startDate,
-                modifier = focusOf(TourField.END_DATE),
-                onClear = { viewModel.onEndDateChange(null) },
-            )
-            if (showTrackSwitch) {
-                CheckboxSettingRow(
-                    title = stringResource(R.string.edit_track_switch_title),
-                    supportingText = stringResource(R.string.edit_track_switch_support),
-                    checked = state.trackSwitch,
-                    onCheckedChange = viewModel::onTrackSwitchChange,
-                )
-            }
-            if (showHomeSwitch) {
-                CheckboxSettingRow(
-                    title = stringResource(if (input.endDate != null) R.string.edit_home_switch_title_both else R.string.edit_home_switch_title_start),
-                    supportingText = stringResource(
-                        if (input.endDate != null) R.string.edit_home_switch_support_both else R.string.edit_home_switch_support_start,
-                        homeName,
-                    ),
-                    checked = state.homeSwitch,
-                    onCheckedChange = viewModel::onHomeSwitchChange,
-                )
             }
             FormTextField(
                 label = stringResource(R.string.field_name),
@@ -269,37 +248,53 @@ private fun TourForm(
                 ),
                 modifier = focusOf(TourField.DESTINATION),
             )
-            FormTextField(
-                label = stringResource(R.string.field_slug),
-                value = input.slug,
-                error = null,
-                onValueChange = viewModel::onSlugChange,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.None,
-                    imeAction = ImeAction.Next,
-                ),
-                hint = stringResource(R.string.edit_slug_hint),
-            )
             ChoiceField(stringResource(R.string.field_tour_type), TourType.entries, input.tourType, TourType::labelRes) { value ->
                 change { it.copy(tourType = value) }
             }
         }
         SectionCard {
-            val metricsHint = stringResource(
-                if (input.endDate == null) R.string.tour_metrics_automatic_hint else R.string.tour_metrics_editable_hint,
+            SectionHeading(stringResource(R.string.edit_section_period))
+            DateField(
+                stringResource(R.string.field_start_date),
+                input.startDate,
+                errors[TourField.START_DATE],
+                viewModel::onStartDateChange,
+                modifier = focusOf(TourField.START_DATE),
+                hint = required,
             )
-            CollapsibleSection(
-                title = stringResource(R.string.tour_metrics_title),
-                expanded = metricsExpanded,
-                onToggle = { metricsExpanded = !metricsExpanded },
-                summary = metricsHint,
-            ) {
+            DateField(
+                stringResource(R.string.field_end_date),
+                input.endDate,
+                errors[TourField.END_DATE],
+                viewModel::onEndDateChange,
+                initialDate = input.startDate,
+                minDate = input.startDate,
+                modifier = focusOf(TourField.END_DATE),
+                onClear = { viewModel.onEndDateChange(null) },
+                hint = stringResource(R.string.edit_end_date_hint),
+            )
+            if (input.endDate == null) {
                 Text(
-                    metricsHint,
+                    stringResource(R.string.tour_metrics_automatic_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (input.endDate != null) {
+            }
+        }
+        if (input.endDate != null) {
+            SectionCard {
+                val metricsHint = stringResource(R.string.tour_metrics_editable_hint)
+                CollapsibleSection(
+                    title = stringResource(R.string.tour_metrics_title),
+                    expanded = metricsExpanded,
+                    onToggle = { metricsOverride = !metricsExpanded },
+                    summary = metricsHint,
+                ) {
+                    Text(
+                        metricsHint,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     NumberField(
                         stringResource(R.string.field_travel_days),
                         input.travelDays,
@@ -321,21 +316,83 @@ private fun TourForm(
                 }
             }
         }
+        if (state.isNew && (showTrackSwitch || showHomeSwitch)) {
+            SectionCard {
+                SectionHeading(stringResource(R.string.edit_section_on_save))
+                if (showTrackSwitch) {
+                    CheckboxSettingRow(
+                        title = stringResource(R.string.edit_track_switch_title),
+                        supportingText = stringResource(R.string.edit_track_switch_support),
+                        checked = state.trackSwitch,
+                        onCheckedChange = viewModel::onTrackSwitchChange,
+                    )
+                }
+                if (showHomeSwitch) {
+                    CheckboxSettingRow(
+                        title = stringResource(if (input.endDate != null) R.string.edit_home_switch_title_both else R.string.edit_home_switch_title_start),
+                        supportingText = stringResource(
+                            if (input.endDate != null) R.string.edit_home_switch_support_both else R.string.edit_home_switch_support_start,
+                            homeName,
+                        ),
+                        checked = state.homeSwitch,
+                        onCheckedChange = viewModel::onHomeSwitchChange,
+                    )
+                }
+            }
+        }
         SectionCard {
-            Text(
-                stringResource(R.string.tour_section_other_costs),
-                modifier = Modifier.semantics { heading() },
-                style = MaterialTheme.typography.titleSmall,
-            )
-            CostFields(
-                costs = input.costs,
-                errors = state.costErrors,
-                focusRequester = focus.getValue(TourField.COST),
-                onAmountChange = viewModel::onCostAmountChange,
-                onCurrencyChange = viewModel::onCostCurrencyChange,
-                onAdd = viewModel::onAddCost,
-                onRemove = viewModel::onRemoveCost,
-            )
+            CollapsibleSection(
+                title = stringResource(R.string.tour_section_other_costs),
+                expanded = costsExpanded,
+                onToggle = { costsOverride = !costsExpanded },
+                summary = input.costs.filter { it.amount.isNotBlank() }
+                    .joinToString(", ") { "${it.amount} ${it.currency.currencyCode}" }
+                    .ifBlank { null },
+            ) {
+                CostFields(
+                    costs = input.costs,
+                    errors = state.costErrors,
+                    focusRequester = focus.getValue(TourField.COST),
+                    onAmountChange = viewModel::onCostAmountChange,
+                    onCurrencyChange = viewModel::onCostCurrencyChange,
+                    onAdd = viewModel::onAddCost,
+                    onRemove = viewModel::onRemoveCost,
+                )
+            }
+        }
+        SectionCard {
+            CollapsibleSection(
+                title = stringResource(R.string.edit_section_advanced),
+                expanded = advancedExpanded,
+                onToggle = { advancedOverride = !advancedExpanded },
+                summary = listOfNotNull(
+                    input.slug.takeIf(String::isNotBlank),
+                    input.mapLink.takeIf { state.showLegacyMapLink && it.isNotBlank() },
+                ).joinToString(" · ").ifBlank { null },
+            ) {
+                FormTextField(
+                    label = stringResource(R.string.field_slug),
+                    value = input.slug,
+                    error = null,
+                    onValueChange = viewModel::onSlugChange,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        imeAction = ImeAction.Next,
+                    ),
+                    hint = stringResource(R.string.edit_slug_hint),
+                )
+                if (state.showLegacyMapLink) {
+                    FormTextField(
+                        label = stringResource(R.string.field_map_link),
+                        value = input.mapLink,
+                        error = errors[TourField.MAP_LINK],
+                        onValueChange = { value -> change { it.copy(mapLink = value) } },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
+                        placeholder = stringResource(R.string.edit_map_link_placeholder),
+                        modifier = focusOf(TourField.MAP_LINK),
+                    )
+                }
+            }
         }
         SectionCard {
             FormTextField(
@@ -346,17 +403,6 @@ private fun TourForm(
                 singleLine = false,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             )
-            if (state.showLegacyMapLink) {
-                FormTextField(
-                    label = stringResource(R.string.field_map_link),
-                    value = input.mapLink,
-                    error = errors[TourField.MAP_LINK],
-                    onValueChange = { value -> change { it.copy(mapLink = value) } },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
-                    placeholder = stringResource(R.string.edit_map_link_placeholder),
-                    modifier = focusOf(TourField.MAP_LINK),
-                )
-            }
         }
         Button(
             onClick = viewModel::save,
@@ -376,6 +422,17 @@ private fun TourForm(
             )
         }
     }
+}
+
+/** Überschrift einer nicht aufklappbaren Formulargruppe, z. B. "Tour" oder "Zeitraum". */
+@Composable
+private fun SectionHeading(text: String) {
+    Text(
+        text,
+        modifier = Modifier.semantics { heading() },
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+    )
 }
 
 @Composable

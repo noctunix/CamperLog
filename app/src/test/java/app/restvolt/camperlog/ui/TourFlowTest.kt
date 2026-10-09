@@ -359,6 +359,7 @@ class TourFlowTest {
         compose.onNodeWithText("Neue Tour").performClick()
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
+        compose.onNodeWithText("Sonstige Kosten").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performTextInput("abc")
 
         clickSave()
@@ -366,6 +367,23 @@ class TourFlowTest {
         compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).assertIsFocused().assertIsDisplayed()
         compose.onNodeWithText("Bitte diese Felder prüfen: Kosten")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+    }
+
+    @Test
+    fun saveRejected_reExpandsACollapsedSectionBeforeFocusingItsField() {
+        start()
+        compose.onNodeWithText("Neue Tour").performClick()
+        pickDay("Startdatum", 10)
+        pickDay("Enddatum", 12)
+        compose.onNodeWithText("Sonstige Kosten").performScrollTo().performClick()
+        compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performTextInput("abc")
+        // Wieder einklappen: Der Fehler muss den Abschnitt beim Speichern erneut aufklappen.
+        compose.onNodeWithText("Sonstige Kosten").performScrollTo().performClick()
+        compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).assertDoesNotExist()
+
+        clickSave()
+
+        compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).assertIsFocused().assertIsDisplayed()
     }
 
     @Test
@@ -494,17 +512,22 @@ class TourFlowTest {
     }
 
     @Test
-    fun completedTourMetricsAreCollapsedAndEndDateCanBeCleared() {
+    fun completedTourMetricsAreExpandedWhenAlreadyFilledAndEndDateCanBeCleared() {
         val repository = start(tour(id = 1, destination = "Ostsee"))
         compose.onNodeWithText("Ostsee").performClick()
         compose.onNodeWithContentDescription("Bearbeiten").performClick()
 
+        // Schon gespeicherte Kennzahlen sind sofort sichtbar, kein Aufklappen nötig.
         compose.onNodeWithText("Automatisch berechnet. Die gespeicherten Werte können angepasst werden.").assertExists()
+        compose.onNode(hasSetTextAction() and hasText("Reisetage")).assertExists()
+        // Lässt sich trotzdem einklappen.
+        compose.onNodeWithText("Kennzahlen").performClick()
         compose.onNode(hasSetTextAction() and hasText("Reisetage")).assertDoesNotExist()
         compose.onNodeWithText("Kennzahlen").performClick()
         compose.onNode(hasSetTextAction() and hasText("Reisetage")).assertExists()
 
         compose.onNodeWithContentDescription("Enddatum löschen").performClick()
+        // Ohne Enddatum sind die Felder nicht mehr editierbar, nur noch der statische Hinweis.
         compose.onNode(hasSetTextAction() and hasText("Reisetage")).assertDoesNotExist()
         clickSave()
 
@@ -644,6 +667,7 @@ class TourFlowTest {
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Lofoten")
+        compose.onNodeWithText("Sonstige Kosten").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performScrollTo().performTextInput("12.50")
         compose.onNodeWithContentDescription("Betrag in EUR entfernen").assertDoesNotExist()
 
@@ -667,6 +691,7 @@ class TourFlowTest {
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Lofoten")
+        compose.onNodeWithText("Sonstige Kosten").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performScrollTo().performTextInput("100000000000,01")
         clickSave()
 
@@ -678,6 +703,7 @@ class TourFlowTest {
     fun newTour_startsWithLastUsedCurrency() {
         start(tour(id = 1, destination = "Lofoten").copy(costs = listOf(Money(10_000, Currency.getInstance("NOK")))))
         compose.onNodeWithText("Neue Tour").performClick()
+        compose.onNodeWithText("Sonstige Kosten").performScrollTo().performClick()
 
         compose.onNode(hasSetTextAction() and hasText("Kosten (NOK)")).performScrollTo().assertIsDisplayed()
     }

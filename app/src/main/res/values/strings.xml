@@ -97,8 +97,6 @@
     <string name="tours_track_paused">GPS track paused</string>
     <string name="tours_track_paused_by_reboot">GPS track interrupted</string>
     <string name="tours_track_resumed_after_boot">GPS track resumed after restart</string>
-    <string name="tours_row_meta">%1$s</string>
-    <string name="tours_row_meta_vehicle">%1$s · %2$s</string>
     <plurals name="tours_row_station_count">
         <item quantity="one">%1$d stop</item>
         <item quantity="other">%1$d stops</item>
@@ -202,6 +200,11 @@
     <string name="edit_cost_remove">Remove amount in %1$s</string>
     <string name="edit_map_link_placeholder">https://…</string>
     <string name="edit_running_tour_conflict">This vehicle already has an ongoing tour.</string>
+    <string name="edit_section_tour">Tour</string>
+    <string name="edit_section_period">Dates</string>
+    <string name="edit_section_on_save">When saving</string>
+    <string name="edit_section_advanced">Advanced</string>
+    <string name="edit_end_date_hint">Leave empty while you\'re still travelling.</string>
     <string name="edit_track_switch_title">Record GPS track</string>
     <string name="edit_track_switch_support">Starts recording once the tour is saved.</string>
     <string name="edit_home_switch_title_start">Starts at home</string>
