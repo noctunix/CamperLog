@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -38,6 +40,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -45,6 +48,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -72,7 +76,6 @@ import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.messageRes
 import app.restvolt.camperlog.ui.settings.HomeLocationSettings
-import app.restvolt.camperlog.ui.settings.SwitchSettingRow
 import app.restvolt.camperlog.ui.settings.trackPermissions
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.vehicleMenuLabel
@@ -227,7 +230,7 @@ private fun TourForm(
                 onClear = { viewModel.onEndDateChange(null) },
             )
             if (showTrackSwitch) {
-                SwitchSettingRow(
+                CheckboxSettingRow(
                     title = stringResource(R.string.edit_track_switch_title),
                     supportingText = stringResource(R.string.edit_track_switch_support),
                     checked = state.trackSwitch,
@@ -235,7 +238,7 @@ private fun TourForm(
                 )
             }
             if (showHomeSwitch) {
-                SwitchSettingRow(
+                CheckboxSettingRow(
                     title = stringResource(if (input.endDate != null) R.string.edit_home_switch_title_both else R.string.edit_home_switch_title_start),
                     supportingText = stringResource(
                         if (input.endDate != null) R.string.edit_home_switch_support_both else R.string.edit_home_switch_support_start,
@@ -400,6 +403,29 @@ private fun FormTextField(
         keyboardOptions = keyboardOptions,
         shape = MaterialTheme.shapes.medium,
     )
+}
+
+/**
+ * Formularoption mit Checkbox statt Schalter: Anders als ein Schalter wirkt sie erst beim Speichern
+ * des Formulars, nicht sofort (siehe Material-Konvention für Schalter vs. Checkbox).
+ */
+@Composable
+private fun CheckboxSettingRow(title: String, supportingText: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f).padding(end = 16.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(supportingText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Checkbox(checked = checked, onCheckedChange = null)
+    }
 }
 
 /** Fahrzeugauswahl des Formulars; wird nur bei mehr als einem Fahrzeug angezeigt. */

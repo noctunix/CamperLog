@@ -14,6 +14,8 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -505,6 +507,23 @@ class TourFlowTest {
         clickSave()
 
         assertEquals(null, repository.tours.single().endDate)
+    }
+
+    @Test
+    fun trackOption_isACheckboxThatTogglesImmediatelyInTheForm() {
+        TrackRecordingSettings.resetShared()
+        val settings = TrackRecordingSettings.get(ApplicationProvider.getApplicationContext<Context>())
+        settings.enabled = true
+        start()
+        compose.onNodeWithText("Neue Tour").performClick()
+
+        // Wie bei "Gerne wieder" bei Stationen ist die ganze Zeile der Umschalter, keine separate Switch-Wirkung erst beim Speichern.
+        val trackRow = compose.onNode(hasText("GPS-Track aufzeichnen") and hasClickAction())
+        trackRow.assertIsOff()
+        trackRow.performClick()
+        trackRow.assertIsOn()
+
+        TrackRecordingSettings.resetShared()
     }
 
     @Test
