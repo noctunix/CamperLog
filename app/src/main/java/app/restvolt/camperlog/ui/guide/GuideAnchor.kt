@@ -37,12 +37,8 @@ private class GuideAnchorNode(var id: String) : Modifier.Node(), GlobalPositionA
 
     private var registry: GuideAnchorRegistry? = null
 
-    override fun onAttach() {
-        registry = currentValueOf(LocalGuideAnchors)
-    }
-
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-        registry?.register(id, coordinates.boundsInWindow())
+        registry = currentValueOf(LocalGuideAnchors).also { it.register(id, coordinates.boundsInWindow()) }
     }
 
     override fun onDetach() {
