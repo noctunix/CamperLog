@@ -63,6 +63,25 @@ val SUPPLY_SERVICES: Set<StationService> = setOf(StationService.FRESH_WATER, Sta
 /** Die "Tanken"-Gruppe, auch für die UI-Sektion "Getankt". */
 val FUEL_SERVICES: Set<StationService> = setOf(StationService.DIESEL, StationService.PETROL, StationService.ADBLUE, StationService.LPG, StationService.ELECTRICITY)
 
+/** [StationService] der [FUEL_SERVICES]-Gruppe → zugehörige [EnergyType]. */
+private val FUEL_SERVICE_ENERGY_TYPES: Map<StationService, EnergyType> = mapOf(
+    StationService.PETROL to EnergyType.PETROL,
+    StationService.DIESEL to EnergyType.DIESEL,
+    StationService.ADBLUE to EnergyType.ADBLUE,
+    StationService.LPG to EnergyType.GAS,
+    StationService.ELECTRICITY to EnergyType.ELECTRICITY,
+)
+
+/**
+ * Einschränkung der [FUEL_SERVICES]-Auswahl beim Tanken auf die Energiearten des einzigen
+ * Fahrzeugs, wenn genau eines existiert und dessen [Vehicle.requiredEnergyTypes] nicht leer ist;
+ * sonst (mehrere Fahrzeuge oder nicht konfiguriert) bleiben alle Dienste wählbar.
+ */
+fun fuelServicesFor(vehicles: List<Vehicle>): Set<StationService> {
+    val required = vehicles.singleOrNull()?.requiredEnergyTypes?.takeIf { it.isNotEmpty() } ?: return FUEL_SERVICES
+    return FUEL_SERVICES.filterTo(mutableSetOf()) { service -> FUEL_SERVICE_ENERGY_TYPES[service] in required }
+}
+
 /** An diesem [StationType] erlaubte [StationService]-Werte; leer, wenn der Typ keine Versorgung kennt. */
 val StationType.allowedServices: Set<StationService>
     get() = when (this) {

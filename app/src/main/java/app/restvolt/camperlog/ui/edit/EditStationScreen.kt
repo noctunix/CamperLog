@@ -77,7 +77,7 @@ import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.displayTitle
 import app.restvolt.camperlog.domain.ElectricityBilling
-import app.restvolt.camperlog.domain.FUEL_SERVICES
+import app.restvolt.camperlog.domain.fuelServicesFor
 import app.restvolt.camperlog.domain.LocationFix
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.PitchSlope
@@ -376,7 +376,7 @@ private fun StationForm(
                 SectionHeading(stringResource(R.string.station_section_used_here))
                 ServicesChips(SUPPLY_SERVICES, input.services, servicesError) { service -> change { it.copy(services = it.services.toggled(service)) } }
             }
-            StationType.FUEL -> FuelSection(input, change, servicesError)
+            StationType.FUEL -> FuelSection(input, state.vehicles, change, servicesError)
             StationType.TOLL -> TollSection(input, errors, change)
             StationType.FERRY -> FerrySection(input, errors[StationField.FERRY_BOOKING_REFERENCE], change)
             StationType.SIGHT, StationType.FOOD, StationType.OTHER -> Unit
@@ -551,10 +551,10 @@ private fun OvernightSection(
 }
 
 @Composable
-private fun FuelSection(input: StationInput, change: ((StationInput) -> StationInput) -> Unit, servicesError: String?) {
+private fun FuelSection(input: StationInput, vehicles: List<Vehicle>, change: ((StationInput) -> StationInput) -> Unit, servicesError: String?) {
     SectionCard {
         SectionHeading(stringResource(R.string.station_section_fuelled))
-        ServicesChips(FUEL_SERVICES, input.services, error = null) { service -> change { it.copy(services = it.services.toggled(service)) } }
+        ServicesChips(fuelServicesFor(vehicles), input.services, error = null) { service -> change { it.copy(services = it.services.toggled(service)) } }
 
         var usedHereExpanded by rememberSaveable(input.type) { mutableStateOf(input.services.any { it in SUPPLY_SERVICES }) }
         CollapsibleSection(

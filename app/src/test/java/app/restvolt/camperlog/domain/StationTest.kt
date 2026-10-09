@@ -68,4 +68,34 @@ class StationTest {
         val stations = listOf(station(LocalDate.of(2026, 7, 17), type = StationType.OVERNIGHT, nights = 5))
         assertEquals(tour.endDate, defaultStationDate(tour, stations, today))
     }
+
+    private fun vehicle(requiredEnergyTypes: Set<EnergyType> = emptySet()) = Vehicle(
+        requiredEnergyTypes = requiredEnergyTypes,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
+
+    @Test
+    fun fuelServicesForShowsEverythingWithoutExactlyOneConfiguredVehicle() {
+        assertEquals(FUEL_SERVICES, fuelServicesFor(emptyList()))
+        assertEquals(FUEL_SERVICES, fuelServicesFor(listOf(vehicle(), vehicle())))
+        assertEquals(FUEL_SERVICES, fuelServicesFor(listOf(vehicle(setOf(EnergyType.DIESEL)), vehicle(setOf(EnergyType.ELECTRICITY)))))
+    }
+
+    @Test
+    fun fuelServicesForShowsEverythingWhenTheSingleVehicleIsNotConfigured() {
+        assertEquals(FUEL_SERVICES, fuelServicesFor(listOf(vehicle())))
+    }
+
+    @Test
+    fun fuelServicesForFiltersToTheSingleVehiclesEnergyTypes() {
+        val services = fuelServicesFor(listOf(vehicle(setOf(EnergyType.DIESEL, EnergyType.ELECTRICITY))))
+        assertEquals(setOf(StationService.DIESEL, StationService.ELECTRICITY), services)
+    }
+
+    @Test
+    fun fuelServicesForMapsGasToLpg() {
+        val services = fuelServicesFor(listOf(vehicle(setOf(EnergyType.GAS))))
+        assertEquals(setOf(StationService.LPG), services)
+    }
 }

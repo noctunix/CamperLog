@@ -26,6 +26,7 @@ import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.electricityCost
 import app.restvolt.camperlog.domain.electricityKwh
+import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.formatAmount
 import app.restvolt.camperlog.domain.formatKwh
 import app.restvolt.camperlog.domain.FakeLocationProvider
@@ -80,6 +81,7 @@ class StationFlowTest {
         stations: List<Station> = emptyList(),
         pendingGeoIntent: GeoIntentLocation? = null,
         logs: FakeLogRepository = FakeLogRepository(),
+        vehicles: FakeVehicleRepository = FakeVehicleRepository(),
         locationProvider: LocationProvider = FakeLocationProvider(),
         weatherProvider: WeatherProvider = FakeWeatherProvider(WeatherResult.Error),
         placeSearchProvider: PlaceSearchProvider = FakePlaceSearchProvider(PlaceSearchResult.Error),
@@ -90,7 +92,7 @@ class StationFlowTest {
             CamperLogTheme {
                 CamperLogNavHost(
                     tourRepository,
-                    FakeVehicleRepository(),
+                    vehicles,
                     logs,
                     stationRepository,
                     FakeExchangeRateRepository(),
@@ -240,6 +242,58 @@ class StationFlowTest {
 
         compose.onNodeWithText("Getankt").assertExists()
         compose.onNodeWithText("Nächte").assertDoesNotExist()
+    }
+
+    @Test
+    fun fuelServices_filterToTheSingleConfiguredVehiclesEnergyTypes() {
+        val vehicles = FakeVehicleRepository(listOf(defaultVehicle(requiredEnergyTypes = setOf(EnergyType.DIESEL))))
+        start(listOf(lofoten()), vehicles = vehicles)
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Tanken & Laden").performClick()
+
+        compose.onNodeWithText("Diesel").assertExists()
+        compose.onNodeWithText("Benzin").assertDoesNotExist()
+        compose.onNodeWithText("AdBlue").assertDoesNotExist()
+        compose.onNodeWithText("Flüssiggas").assertDoesNotExist()
+        compose.onNodeWithText("Strom").assertDoesNotExist()
+    }
+
+    @Test
+    fun fuelServices_showAllWhenTheVehicleIsNotConfigured() {
+        start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Tanken & Laden").performClick()
+
+        compose.onNodeWithText("Diesel").assertExists()
+        compose.onNodeWithText("Benzin").assertExists()
+        compose.onNodeWithText("AdBlue").assertExists()
+        compose.onNodeWithText("Flüssiggas").assertExists()
+        compose.onNodeWithText("Strom").assertExists()
+    }
+
+    @Test
+    fun fuelServices_showAllWhenMultipleVehiclesExistEvenIfOneIsConfigured() {
+        val vehicles = FakeVehicleRepository(
+            listOf(
+                defaultVehicle(id = 1, name = "Camper 1", requiredEnergyTypes = setOf(EnergyType.DIESEL)),
+                defaultVehicle(id = 2, name = "Camper 2"),
+            ),
+        )
+        start(listOf(lofoten()), vehicles = vehicles)
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Tanken & Laden").performClick()
+
+        compose.onNodeWithText("Diesel").assertExists()
+        compose.onNodeWithText("Benzin").assertExists()
+        compose.onNodeWithText("AdBlue").assertExists()
+        compose.onNodeWithText("Flüssiggas").assertExists()
+        compose.onNodeWithText("Strom").assertExists()
     }
 
     @Test
