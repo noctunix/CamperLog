@@ -71,6 +71,15 @@ val LteQuality.labelRes: Int
         LteQuality.BAD -> R.string.lte_bad
     }
 
+/** Smiley-Symbol der Netzqualität, amtliche Material-Symbols-Pfaddaten auf das 24-Einheiten-Raster skaliert. */
+@get:DrawableRes
+val LteQuality.iconRes: Int
+    get() = when (this) {
+        LteQuality.GOOD -> R.drawable.ic_sentiment_satisfied
+        LteQuality.OK -> R.drawable.ic_sentiment_neutral
+        LteQuality.BAD -> R.drawable.ic_sentiment_dissatisfied
+    }
+
 /** Anzeigetext der Platzneigung. */
 @get:StringRes
 val PitchSlope.labelRes: Int

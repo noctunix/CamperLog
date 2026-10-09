@@ -503,9 +503,7 @@ private fun OvernightSection(
             NullableChoiceField(stringResource(R.string.field_pitch_assigned), listOf(true, false), input.pitchAssigned, ::yesNoRes) { value ->
                 change { it.copy(pitchAssigned = value) }
             }
-            NullableChoiceField(stringResource(R.string.field_lte), LteQuality.entries, input.lteQuality, LteQuality::labelRes) { value ->
-                change { it.copy(lteQuality = value) }
-            }
+            LteQualityRow(input.lteQuality) { value -> change { it.copy(lteQuality = value) } }
             NullableChoiceField(stringResource(R.string.field_pitch_slope), PitchSlope.entries, input.pitchSlope, PitchSlope::labelRes) { value ->
                 change { it.copy(pitchSlope = value) }
             }
@@ -620,6 +618,33 @@ private fun RatingRow(rating: Int?, onRatingChange: (Int?) -> Unit) {
                         painterResource(if (filled) R.drawable.ic_rv_hookup_filled else R.drawable.ic_rv_hookup),
                         contentDescription = description,
                         tint = if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Drei antippbare Smileys statt Text-Chips, ein erneuter Tipp auf den aktuellen Wert setzt auf
+ * "keine Angabe" zurück.
+ */
+@Composable
+private fun LteQualityRow(selected: LteQuality?, onSelect: (LteQuality?) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            stringResource(R.string.field_lte),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row {
+            LteQuality.entries.forEach { quality ->
+                val isSelected = quality == selected
+                IconButton(onClick = { onSelect(if (isSelected) null else quality) }) {
+                    Icon(
+                        painterResource(quality.iconRes),
+                        contentDescription = stringResource(quality.labelRes),
+                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

@@ -36,6 +36,7 @@ import app.restvolt.camperlog.domain.LocationFix
 import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
+import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PlaceSearchHit
 import app.restvolt.camperlog.domain.PlaceSearchProvider
@@ -631,6 +632,36 @@ class StationFlowTest {
 
         assertEquals(4, stationRepository.stations.single().rating)
         compose.onNodeWithContentDescription("4 von 5 Campern").assertExists()
+    }
+
+    @Test
+    fun lteQuality_tapOnSmiley_savesIt() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Stellplatz-Details").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("gut").performScrollTo().performClick()
+        clickSave()
+
+        assertEquals(LteQuality.GOOD, stationRepository.stations.single().lteQuality)
+    }
+
+    @Test
+    fun lteQuality_tappingTheSelectedSmileyAgain_resetsToNoValue() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Stellplatz-Details").performScrollTo().performClick()
+        val good = compose.onNodeWithContentDescription("gut")
+        good.performScrollTo().performClick()
+        good.performClick()
+        clickSave()
+
+        assertEquals(null, stationRepository.stations.single().lteQuality)
     }
 
     @Test
