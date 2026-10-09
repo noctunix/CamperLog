@@ -17,6 +17,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +43,7 @@ import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.tracking.trackIntervalLabel
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.settings.SwitchSettingRow
 import app.restvolt.camperlog.ui.settings.trackPermissions
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -49,12 +51,15 @@ import java.text.NumberFormat
 import java.util.Locale
 
 /**
- * Karte "Track" im Tourdetail: Zusammenfassung, Start/Stopp der Aufzeichnung für [tourId] und Löschen
- * des Tracks. Fehlt die Standortberechtigung, wird sie beim Start angefragt. Vor dem ersten Start
- * erscheint einmalig der Hinweis zur Akkuoptimierung, sofern CamperLog nicht schon ausgenommen ist.
+ * Karte "Track" im Tourdetail. Für offene Touren (kein Enddatum) schaltet ein Schalter die
+ * Aufzeichnung dieser Tour ein, dazu Pausieren/Fortsetzen und Löschen des Tracks. Für beendete
+ * Touren zeigt sie nur noch die Zusammenfassung und "Track löschen", sofern bereits Punkte
+ * aufgezeichnet wurden. Fehlt die Standortberechtigung, wird sie beim Einschalten angefragt. Vor
+ * dem ersten Start erscheint einmalig der Hinweis zur Akkuoptimierung, sofern CamperLog nicht
+ * schon ausgenommen ist.
  */
 @Composable
-internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings: TrackRecordingSettings) {
+internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings: TrackRecordingSettings, hasEndDate: Boolean) {
     val context = LocalContext.current
     val resources = LocalResources.current
     val scope = rememberCoroutineScope()
@@ -64,21 +69,33 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
     val lengthMeters by lengthFlow.collectAsStateWithLifecycle(initialValue = 0.0)
     val locale = currentLocale()
     val active by settings.active.collectAsStateWithLifecycle()
+    val trackedTourId by settings.tracked.collectAsStateWithLifecycle()
     val preferences by settings.values.collectAsStateWithLifecycle()
+    val startFailed by settings.startFailed.collectAsStateWithLifecycle()
     var showBatteryHint by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var permissionDenied by rememberSaveable { mutableStateOf(false) }
-    val recordingHere = active?.tourId == tourId
-    val recordingElsewhere = active != null && !recordingHere
+    var showStartFailedHint by rememberSaveable { mutableStateOf(false) }
+    val isTrackedHere = trackedTourId == tourId
+    val isRunning = isTrackedHere && active?.tourId == tourId
+    val isPaused = isTrackedHere && !isRunning
+    val recordingElsewhere = trackedTourId != null && !isTrackedHere
+
+    if (hasEndDate && summary.points == 0) return
+
+    LaunchedEffect(startFailed) {
+        if (startFailed) {
+            showStartFailedHint = true
+            settings.clearStartFailed()
+        }
+    }
 
     fun startRecording() {
-        // Ein bewusster Start aus einer laufenden Tour schaltet die Aufzeichnung zugleich global ein.
-        settings.enabled = true
         if (!settings.batteryHintShown && !isIgnoringBatteryOptimizations(context)) {
             settings.batteryHintShown = true
             showBatteryHint = true
         }
-        TrackRecordingService.start(context, tourId)
+        TrackRecordingService.startForTour(context, tourId)
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -102,44 +119,75 @@ internal fun TrackRecordingCard(tourId: Long, tracks: TrackRepository, settings:
             },
             style = MaterialTheme.typography.bodyMedium,
         )
-        if (recordingHere) {
-            Text(
-                stringResource(R.string.tour_track_recording, trackIntervalLabel(resources, preferences.interval)),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        } else if (recordingElsewhere) {
-            Text(
-                stringResource(R.string.tour_track_other_tour),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (permissionDenied) {
-            Text(
-                stringResource(R.string.settings_track_denied_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
-            TextButton(onClick = { context.openAppDetailsSettings() }) {
-                Text(stringResource(R.string.settings_track_open_app_settings))
+        if (!hasEndDate) {
+            when {
+                isRunning -> Text(
+                    stringResource(R.string.tour_track_recording, trackIntervalLabel(resources, preferences.interval)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                isPaused -> Text(
+                    stringResource(R.string.tour_track_paused),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                recordingElsewhere -> Text(
+                    stringResource(R.string.tour_track_other_tour),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-        }
-        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (recordingHere) {
-                Button(onClick = { TrackRecordingService.stop(context) }) { Text(stringResource(R.string.tour_track_stop)) }
-            } else {
+            if (permissionDenied) {
+                Text(
+                    stringResource(R.string.settings_track_denied_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                TextButton(onClick = { context.openAppDetailsSettings() }) {
+                    Text(stringResource(R.string.settings_track_open_app_settings))
+                }
+            }
+            if (showStartFailedHint) {
+                Text(
+                    stringResource(R.string.tour_track_start_failed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            SwitchSettingRow(
+                title = stringResource(R.string.tour_track_switch_title),
+                supportingText = stringResource(R.string.tour_track_switch_support),
+                checked = isTrackedHere,
+                onCheckedChange = { wantsOn ->
+                    showStartFailedHint = false
+                    if (wantsOn) {
+                        if (TrackRecordingService.hasLocationPermission(context)) {
+                            permissionDenied = false
+                            startRecording()
+                        } else {
+                            permissionLauncher.launch(trackPermissions())
+                        }
+                    } else {
+                        TrackRecordingService.stop(context)
+                    }
+                },
+            )
+            if (isRunning) {
+                Button(onClick = { TrackRecordingService.pause(context) }) { Text(stringResource(R.string.tour_track_pause)) }
+            } else if (isPaused) {
                 Button(onClick = {
+                    showStartFailedHint = false
                     if (TrackRecordingService.hasLocationPermission(context)) {
-                        permissionDenied = false
                         startRecording()
                     } else {
                         permissionLauncher.launch(trackPermissions())
                     }
-                }) { Text(stringResource(R.string.tour_track_start)) }
+                }) { Text(stringResource(R.string.tour_track_resume)) }
             }
-            if (summary.points > 0) {
-                OutlinedButton(onClick = { confirmDelete = true }, enabled = !recordingHere) {
+        }
+        if (summary.points > 0) {
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { confirmDelete = true }, enabled = !isRunning) {
                     Text(stringResource(R.string.tour_track_delete))
                 }
             }

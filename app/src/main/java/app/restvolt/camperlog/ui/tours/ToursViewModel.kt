@@ -76,6 +76,7 @@ class ToursViewModel(
     private val filterSettings: VehicleScopeSettings,
     private val today: () -> LocalDate = LocalDate::now,
     private val onTourFinished: (Long) -> Unit = {},
+    private val onTourDeleted: (Long) -> Unit = {},
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
@@ -179,6 +180,7 @@ class ToursViewModel(
                 val linkedEntryIds = tourStations.associate { it.id to stations.linkedLogEntries(it.id).map(LogEntry::id) }
                 tourStations.forEach { stations.delete(it.id) }
                 repository.delete(tour.id)
+                onTourDeleted(tour.id)
                 ToursMessage.Deleted(tour, tourStations, linkedEntryIds)
             } catch (_: SQLException) {
                 ToursMessage.Failed(R.string.tours_delete_failed)

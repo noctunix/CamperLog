@@ -17,6 +17,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.TrackSummary
 import app.restvolt.camperlog.domain.displayTitle
 import app.restvolt.camperlog.ui.checklists.suggestedChecklistTemplates
 import app.restvolt.camperlog.ui.detail.AndroidTourExportFiles
@@ -54,7 +55,12 @@ internal fun NavGraphBuilder.toursGraph(
                     tracks,
                     VehicleScopeSettings(context),
                     onTourFinished = { tourId ->
-                        if (trackSettings.activeRecording?.tourId == tourId) {
+                        if (trackSettings.trackedTourId == tourId || trackSettings.activeRecording?.tourId == tourId) {
+                            app.restvolt.camperlog.tracking.TrackRecordingService.stop(context)
+                        }
+                    },
+                    onTourDeleted = { tourId ->
+                        if (trackSettings.trackedTourId == tourId || trackSettings.activeRecording?.tourId == tourId) {
                             app.restvolt.camperlog.tracking.TrackRecordingService.stop(context)
                         }
                     },
@@ -86,6 +92,7 @@ internal fun NavGraphBuilder.toursGraph(
                     tracks = tracks,
                 )
             },
+            trackSettings = trackSettings,
             onDone = { navController.popFrom(entry) },
             onSaved = {
                 if (tourId == 0L) toursViewModel.onTourCreated()
@@ -102,9 +109,12 @@ internal fun NavGraphBuilder.toursGraph(
         val checklistTemplateList by remember(checklistTemplates) { checklistTemplates.observeAll() }
             .collectAsStateWithLifecycle(initialValue = emptyList())
         val scope = rememberCoroutineScope()
-        val trackPreferences by trackSettings.values.collectAsStateWithLifecycle()
         val detailTour by remember(repository, tourId) { repository.observeTour(tourId) }
             .collectAsStateWithLifecycle(initialValue = null)
+        // Eigene, schlanke Abfrage statt die Karte immer einzuhängen: eine beendete Tour ohne
+        // aufgezeichnete Punkte soll in der Liste gar keinen (auch keinen leeren) Platz belegen.
+        val trackSummary by remember(tracks, tourId) { tracks.observeSummary(tourId) }
+            .collectAsStateWithLifecycle(initialValue = TrackSummary.EMPTY)
         TourDetailScreen(
             viewModel = viewModel {
                 TourDetailViewModel(
@@ -121,7 +131,7 @@ internal fun NavGraphBuilder.toursGraph(
                     tracks,
                     tourId,
                     onTourFinished = {
-                        if (trackSettings.activeRecording?.tourId == tourId) {
+                        if (trackSettings.trackedTourId == tourId || trackSettings.activeRecording?.tourId == tourId) {
                             app.restvolt.camperlog.tracking.TrackRecordingService.stop(context)
                         }
                     },
@@ -129,10 +139,12 @@ internal fun NavGraphBuilder.toursGraph(
             },
             weatherMapEnabled = weatherMapEnabled,
             checklistTemplates = checklistTemplateList,
-            trackCard = if (trackPreferences.enabled || detailTour?.let { it.endDate == null } == true) {
-                { TrackRecordingCard(tourId, tracks, trackSettings) }
-            } else {
-                null
+            trackCard = detailTour?.let { tour ->
+                if (tour.endDate != null && trackSummary.points == 0) {
+                    null
+                } else {
+                    { TrackRecordingCard(tourId, tracks, trackSettings, hasEndDate = tour.endDate != null) }
+                }
             },
             onBack = { navController.popFrom(entry) },
             onEdit = { navController.navigate(EditRoute(tourId)) },

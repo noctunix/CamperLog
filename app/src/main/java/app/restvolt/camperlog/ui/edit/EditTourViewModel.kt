@@ -61,6 +61,10 @@ data class EditUiState(
     val showLegacyMapLink: Boolean = false,
     /** Zählt an der Validierung gescheiterte Speicherversuche; jede Erhöhung fokussiert das erste fehlerhafte Feld. */
     val rejectedSaves: Int = 0,
+    /** Schalter "GPS-Track aufzeichnen"; nur für neue, offene Touren überhaupt sichtbar/wirksam. */
+    val trackSwitch: Boolean = false,
+    /** Die id der gerade neu angelegten Tour, sobald [isSaved] gesetzt ist. */
+    val savedTourId: Long? = null,
 )
 
 /** Ungespeicherte Formulareingaben, die ein Beenden des Prozesses im Hintergrund überstehen. */
@@ -200,7 +204,14 @@ class EditTourViewModel(
 
     fun onEndDateChange(date: LocalDate?) {
         onInputChange { prefillTravelDays(it.copy(endDate = date)) }
+        // Der Schalter ist nur für offene Touren sichtbar; ein gesetztes Enddatum blendet ihn aus.
+        if (date != null) _uiState.update { it.copy(trackSwitch = false) }
         if (date != null) refreshDerivedMetrics()
+    }
+
+    /** Übernimmt den Schalter "GPS-Track aufzeichnen" im Formular einer neuen Tour. */
+    fun onTrackSwitchChange(value: Boolean) {
+        _uiState.update { it.copy(trackSwitch = value) }
     }
 
     /** Validiert und speichert; bei Erfolg wird [EditUiState.isSaved] gesetzt. */
@@ -236,7 +247,7 @@ class EditTourViewModel(
                     checklists.moveTourToVehicle(id, tour.vehicleId)
                 }
                 savedStateHandle.remove<SavedState>(DRAFT_KEY)
-                _uiState.update { it.copy(isSaving = false, isSaved = true) }
+                _uiState.update { it.copy(isSaving = false, isSaved = true, savedTourId = id) }
             } catch (_: RunningTourAlreadyExistsException) {
                 _uiState.update { it.copy(isSaving = false, runningTourConflict = true) }
             } catch (_: SQLException) {

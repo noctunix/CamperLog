@@ -2,6 +2,8 @@ package app.restvolt.camperlog.ui
 
 import android.content.Context
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -34,7 +36,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
-/** Karte "Track" im Tourdetail: Sichtbarkeit, Start mit Akkuhinweis, Stopp, Löschen. */
+/** Karte "Track" im Tourdetail: Sichtbarkeit, Schalter mit Akkuhinweis, Pausieren/Fortsetzen, Löschen. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
 class TrackRecordingCardFlowTest {
@@ -59,7 +61,7 @@ class TrackRecordingCardFlowTest {
 
     private fun openTour(
         tracks: FakeTrackRepository = FakeTrackRepository(),
-        scrollTo: String? = "Aufzeichnung starten",
+        scrollTo: String? = "Für diese Tour aufzeichnen",
         running: Boolean = false,
     ) {
         val firstTour = lofoten(1).let { if (running) it.copy(endDate = null) else it }
@@ -68,7 +70,8 @@ class TrackRecordingCardFlowTest {
                 CamperLogNavHost(FakeTourRepository(listOf(firstTour, lofoten(2).copy(destination = "Dolomiten"))), FakeVehicleRepository(), FakeLogRepository(), FakeStationRepository(), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, AccentColor.AZURE, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = tracks, onAccentColorChange = { }) { }
             }
         }
-        compose.onNodeWithText("Lofoten").performClick()
+        // Mit gesetztem trackedTourId zeigt auch die Aufzeichnungsleiste den Tournamen; auf der Liste zählt nur die Karte.
+        compose.onNode(hasText("Lofoten") and hasAnyAncestor(hasScrollAction())).performClick()
         if (scrollTo != null) compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(scrollTo))
     }
 
@@ -81,34 +84,42 @@ class TrackRecordingCardFlowTest {
     }
 
     @Test
-    fun switchOff_hidesTheCard() {
+    fun finishedTourWithoutPoints_hidesTheCard() {
         openTour(scrollTo = null)
 
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Stationen", substring = true))
-        compose.onNodeWithText("Aufzeichnung starten").assertDoesNotExist()
+        compose.onNodeWithText("Für diese Tour aufzeichnen").assertDoesNotExist()
+        compose.onNodeWithText("Track").assertDoesNotExist()
     }
 
     @Test
-    fun runningTourOffersTrackAndExplicitStartEnablesRecording() {
-        settings.batteryHintShown = true
+    fun finishedTourWithPoints_onlyOffersDeleteWithoutASwitch() {
+        val tracks = FakeTrackRepository(listOf(point(1, 1, 0)))
+        openTour(tracks, scrollTo = "Track löschen")
+
+        compose.onNodeWithText("Für diese Tour aufzeichnen").assertDoesNotExist()
+    }
+
+    @Test
+    fun openTourOffersTheSwitchEvenWhileTheGlobalSwitchIsOff() {
         grantLocation()
         openTour(running = true)
 
-        compose.onNodeWithText("Aufzeichnung starten").performClick()
+        compose.onNodeWithText("Für diese Tour aufzeichnen").performClick()
 
         assertTrue(settings.enabled)
+        assertEquals(1L, settings.trackedTourId)
         val started = shadowOf(compose.activity.application).nextStartedService
         assertEquals(TrackRecordingService::class.java.name, started.component?.className)
     }
 
     @Test
-    fun firstStart_showsBatteryHintOnceAndStartsTheService() {
-        settings.enabled = true
+    fun firstSwitchOn_showsBatteryHintOnceAndStartsTheService() {
         grantLocation()
-        openTour()
+        openTour(running = true)
         compose.onNodeWithText("Noch kein Track aufgezeichnet.").assertExists()
 
-        compose.onNodeWithText("Aufzeichnung starten").performClick()
+        compose.onNodeWithText("Für diese Tour aufzeichnen").performClick()
 
         compose.onNodeWithText("Aufzeichnung im Hintergrund").assertExists()
         val started = shadowOf(compose.activity.application).nextStartedService
@@ -117,36 +128,74 @@ class TrackRecordingCardFlowTest {
         assertTrue(settings.batteryHintShown)
 
         compose.onNodeWithText("Jetzt nicht").performClick()
-        compose.onNodeWithText("Aufzeichnung starten").performClick()
+        // Aus- und wieder einschalten: der Hinweis erscheint beim zweiten Mal nicht mehr.
+        compose.onNodeWithText("Für diese Tour aufzeichnen").performClick()
+        compose.onNodeWithText("Für diese Tour aufzeichnen").performClick()
         compose.onNodeWithText("Aufzeichnung im Hintergrund").assertDoesNotExist()
     }
 
     @Test
-    fun runningRecording_showsIntervalAndStops() {
-        settings.enabled = true
+    fun runningRecording_showsIntervalAndOffersPause() {
+        settings.trackedTourId = 1
         settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
         grantLocation()
-        openTour(scrollTo = "Aufzeichnung beenden")
+        openTour(running = true, scrollTo = "Aufzeichnung pausieren")
 
         compose.onNodeWithText("Aufzeichnung läuft, Position alle 15 min.").assertExists()
-        compose.onNodeWithText("Aufzeichnung beenden").performClick()
+    }
 
-        compose.onNodeWithText("Aufzeichnung starten").assertExists()
+    @Test
+    fun pausing_keepsTheTourMarkedAndOffersResume() {
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        grantLocation()
+        openTour(running = true, scrollTo = "Aufzeichnung pausieren")
+
+        compose.onNodeWithText("Aufzeichnung pausieren").performClick()
+
         assertNull(settings.activeRecording)
+        assertEquals(1L, settings.trackedTourId)
+        compose.onNodeWithText("Aufzeichnung pausiert.").assertExists()
+        compose.onNodeWithText("Aufzeichnung fortsetzen").assertExists()
+    }
+
+    @Test
+    fun resuming_startsTheServiceAgainForTheSameTour() {
+        settings.trackedTourId = 1
+        grantLocation()
+        openTour(running = true, scrollTo = "Aufzeichnung fortsetzen")
+
+        compose.onNodeWithText("Aufzeichnung fortsetzen").performClick()
+
+        val started = shadowOf(compose.activity.application).nextStartedService
+        assertEquals(TrackRecordingService::class.java.name, started.component?.className)
+        assertEquals(1L, started.getLongExtra("tour_id", -1))
+    }
+
+    @Test
+    fun switchingOffEndsTheRecordingAndClearsTheMarker() {
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        grantLocation()
+        openTour(running = true, scrollTo = "Aufzeichnung pausieren")
+
+        compose.onNodeWithText("Für diese Tour aufzeichnen").performClick()
+
+        compose.onNodeWithText("Aufzeichnung läuft", substring = true).assertDoesNotExist()
+        assertNull(settings.activeRecording)
+        assertNull(settings.trackedTourId)
     }
 
     @Test
     fun recordingForAnotherTour_isMentioned() {
-        settings.enabled = true
-        settings.activeRecording = ActiveRecording(tourId = 2, segment = 1)
-        openTour()
+        settings.trackedTourId = 2
+        openTour(running = true)
 
         compose.onNodeWithText("Für eine andere Tour läuft gerade eine Aufzeichnung. Ein Start hier beendet sie.").assertExists()
     }
 
     @Test
     fun deletingTheTrack_asksFirstAndClearsIt() {
-        settings.enabled = true
         val tracks = FakeTrackRepository(listOf(point(1, 1, 0), point(1, 1, 60), point(1, 2, 120), point(2, 1, 0)))
         openTour(tracks, scrollTo = "Track löschen")
         compose.onNodeWithText("0,0 km · 3 Punkte · 2 Aufzeichnungen").assertExists()
@@ -159,13 +208,14 @@ class TrackRecordingCardFlowTest {
         compose.onNodeWithText("Track löschen").performClick()
         compose.onNode(hasText("Track löschen") and hasClickActionInDialog()).performClick()
 
-        compose.onNodeWithText("Noch kein Track aufgezeichnet.").assertExists()
+        // Enddatum gesetzt und keine Punkte mehr: Die Karte verschwindet jetzt ganz.
+        compose.onNodeWithText("Track").assertDoesNotExist()
         assertEquals(listOf(2L), tracks.points.map { it.tourId })
     }
 
     @Test
     fun deleteIsDisabledWhileRecordingThisTour() {
-        settings.enabled = true
+        settings.trackedTourId = 1
         settings.activeRecording = ActiveRecording(tourId = 1, segment = 2)
         grantLocation()
         openTour(FakeTrackRepository(listOf(point(1, 1, 0))), scrollTo = "Track löschen")
@@ -177,7 +227,6 @@ class TrackRecordingCardFlowTest {
 
     @Test
     fun trackLength_isShownWithoutJoiningSegments() {
-        settings.enabled = true
         // 0.01° Breite sind etwa 1112 m; der Sprung zwischen den Segmenten zählt nicht.
         val tracks = FakeTrackRepository(
             listOf(point(1, 1, 0), point(1, 1, 60, latitude = 68.21), point(1, 2, 120, latitude = 69.0), point(1, 2, 180, latitude = 69.01)),

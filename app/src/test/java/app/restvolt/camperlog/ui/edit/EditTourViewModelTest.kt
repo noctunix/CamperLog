@@ -126,6 +126,37 @@ class EditTourViewModelTest {
         assertEquals("sommerurlaub", viewModel.uiState.value.input.slug)
     }
 
+    @Test
+    fun settingAnEndDateResetsTheTrackSwitch() = runTest {
+        val viewModel = newViewModel()
+        viewModel.onTrackSwitchChange(true)
+        assertEquals(true, viewModel.uiState.value.trackSwitch)
+
+        viewModel.onEndDateChange(LocalDate.of(2026, 7, 4))
+
+        assertEquals(false, viewModel.uiState.value.trackSwitch)
+    }
+
+    @Test
+    fun savingANewTourExposesItsIdAsSavedTourId() = runTest {
+        val tours = FakeTourRepository()
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(),
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            locale,
+        )
+        viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
+        viewModel.onDestinationChange("Gardasee")
+
+        viewModel.save()
+
+        assertEquals(tours.tours.single().id, viewModel.uiState.value.savedTourId)
+    }
+
     private fun newViewModel() = EditTourViewModel(
         FakeTourRepository(),
         FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),

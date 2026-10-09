@@ -1,6 +1,8 @@
 package app.restvolt.camperlog.ui.edit
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -58,6 +61,8 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.tracking.TrackRecordingService
+import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.DateField
@@ -66,20 +71,41 @@ import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.messageRes
+import app.restvolt.camperlog.ui.settings.SwitchSettingRow
+import app.restvolt.camperlog.ui.settings.trackPermissions
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.vehicleMenuLabel
 
 /** Formular zum Anlegen und Bearbeiten einer Tour. [onDone] verlässt es ohne, [onSaved] nach dem Speichern. */
 @Composable
-fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: () -> Unit) {
+fun EditTourScreen(viewModel: EditTourViewModel, trackSettings: TrackRecordingSettings, onDone: () -> Unit, onSaved: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val trackPreferences by trackSettings.values.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
+    val context = LocalContext.current
+
+    val trackPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        val tourId = state.savedTourId
+        if (tourId != null && TrackRecordingService.hasLocationPermission(context)) {
+            TrackRecordingService.startForTour(context, tourId)
+        }
+    }
 
     LaunchedEffect(state.isSaved) {
-        if (state.isSaved) onSaved()
+        if (state.isSaved) {
+            val tourId = state.savedTourId
+            if (state.trackSwitch && tourId != null) {
+                if (TrackRecordingService.hasLocationPermission(context)) {
+                    TrackRecordingService.startForTour(context, tourId)
+                } else {
+                    trackPermissionLauncher.launch(trackPermissions())
+                }
+            }
+            onSaved()
+        }
     }
     LaunchedEffect(state.saveFailed) {
         if (state.saveFailed) {
@@ -118,6 +144,7 @@ fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: ()
             else -> TourForm(
                 state = state,
                 viewModel = viewModel,
+                showTrackSwitch = state.isNew && state.input.endDate == null && trackPreferences.enabled,
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
@@ -138,7 +165,7 @@ fun EditTourScreen(viewModel: EditTourViewModel, onDone: () -> Unit, onSaved: ()
 }
 
 @Composable
-private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier: Modifier) {
+private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, showTrackSwitch: Boolean, modifier: Modifier) {
     val input = state.input
     val errors = state.errors.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
     val change = viewModel::onInputChange
@@ -182,6 +209,14 @@ private fun TourForm(state: EditUiState, viewModel: EditTourViewModel, modifier:
                 modifier = focusOf(TourField.END_DATE),
                 onClear = { viewModel.onEndDateChange(null) },
             )
+            if (showTrackSwitch) {
+                SwitchSettingRow(
+                    title = stringResource(R.string.edit_track_switch_title),
+                    supportingText = stringResource(R.string.edit_track_switch_support),
+                    checked = state.trackSwitch,
+                    onCheckedChange = viewModel::onTrackSwitchChange,
+                )
+            }
             FormTextField(
                 label = stringResource(R.string.field_name),
                 value = input.name,

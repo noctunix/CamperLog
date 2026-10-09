@@ -4,6 +4,7 @@ import app.restvolt.camperlog.CamperLogApp
 import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.tracking.TrackRecordingService
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -331,7 +332,15 @@ fun CamperLogNavHost(
         dueReminders(vehicle, LocalDate.now(), reminderPreferences.leadDays, reminderPreferences.oilChangeIntervalMonths).size +
             documentReminders(currentVehicleDocuments, LocalDate.now(), reminderPreferences.leadDays).size
     } ?: 0
-    val bottomBar: @Composable () -> Unit = { CamperLogBottomBar(navController, currentDestination, reminderCount) }
+    val bottomBar: @Composable () -> Unit = {
+        Column {
+            val trackedTourId by trackSettings.tracked.collectAsStateWithLifecycle()
+            trackedTourId?.let { tourId ->
+                TrackRecordingBar(tourId, repository, tracks, trackSettings) { navController.navigate(DetailRoute(it)) }
+            }
+            CamperLogBottomBar(navController, currentDestination, reminderCount)
+        }
+    }
 
     val introductionSettings = remember { IntroductionSettings(context) }
     var showIntroductionTour by rememberSaveable { mutableStateOf(false) }
@@ -555,7 +564,10 @@ internal fun NavController.toursViewModel(
             tracks,
             VehicleScopeSettings(context),
             onTourFinished = { tourId ->
-                if (trackSettings.activeRecording?.tourId == tourId) TrackRecordingService.stop(context)
+                if (trackSettings.trackedTourId == tourId || trackSettings.activeRecording?.tourId == tourId) TrackRecordingService.stop(context)
+            },
+            onTourDeleted = { tourId ->
+                if (trackSettings.trackedTourId == tourId || trackSettings.activeRecording?.tourId == tourId) TrackRecordingService.stop(context)
             },
         )
     }
