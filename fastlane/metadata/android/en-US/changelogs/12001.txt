@@ -1,0 +1,7 @@
+• Sold vehicles no longer pre-selected for new tours
+• Track notification now shows the app name
+• Fixed the "create your first tour" tutorial getting stuck on step 1
+• Tutorials are easier to find, directly in Settings
+• Added a "Today" button to the tour start date
+• GPS track recording recovers automatically after a detected reboot
+• Fixed a rare "ghost" GPS recording pointing at an already-deleted tour

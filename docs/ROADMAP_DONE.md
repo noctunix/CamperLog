@@ -2,6 +2,8 @@
 
 Shipped features, newest first.
 
+- 1.20.1 – Device-testing fixes: sold vehicles no longer pre-selected for new tours, app name in the track notification, the "create your first tour" tutorial no longer gets stuck, tutorials moved up into Settings, "Today" button on the tour start date, automatic GPS recovery after a detected reboot, fixed a rare ghost GPS recording pointing at a deleted tour
+
 - 1.20.0 – Guided in-app tours: a walkthrough of the main screens and a step-by-step "create your first tour" guide, both repeatable from About CamperLog
 
 - 1.19.0 – Tour list and detail screen reworked (tinted header card, grouped form, configurable list metrics), rough distance estimate when a tour has no GPS track, tour-list search also matches the name, fixed travel-day count for ongoing tours in the list

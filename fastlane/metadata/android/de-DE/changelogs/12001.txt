@@ -1,0 +1,7 @@
+• Verkaufte Fahrzeuge werden bei neuen Touren nicht mehr vorausgewählt
+• Track-Benachrichtigung zeigt jetzt den App-Namen
+• Tutorial „Erste Tour anlegen" blieb auf Schritt 1 stehen – behoben
+• Tutorials jetzt einfacher zu finden, direkt in den Einstellungen
+• „Heute"-Button beim Tour-Startdatum ergänzt
+• GPS-Aufzeichnung läuft nach einem erkannten Neustart automatisch weiter
+• Seltener „Geister"-GPS-Mitschnitt auf eine bereits gelöschte Tour behoben
