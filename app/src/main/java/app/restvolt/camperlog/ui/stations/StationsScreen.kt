@@ -54,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
+import app.restvolt.camperlog.domain.displayTitle
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.formatMonthYear
 import app.restvolt.camperlog.domain.isMapAvailable
@@ -144,7 +145,7 @@ fun StationsScreen(
                 item { WhatsNewCard(onOpenSettings = onOpenSettings, onClose = viewModel::dismissWhatsNew) }
             }
             state.runningTour?.let { running ->
-                item { RunningTourCard(running, onClick = { onOpenTour(running.tourId) }) }
+                item { RunningTourCard(running, onClick = { onOpenTour(running.tour.id) }) }
             }
             if (state.hasAnyStation) {
                 item { SearchField(state.query, viewModel::onQueryChange) }
@@ -240,14 +241,12 @@ private fun RunningTourCard(runningTour: RunningTour, onClick: () -> Unit) {
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(R.string.stations_running_tour_meta, runningTour.destination, runningTour.dayNumber, runningTour.totalDays),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(painterResource(R.drawable.ic_arrow_drop_down), contentDescription = null)
-            }
+            val title = runningTour.tour.displayTitle(stringResource(R.string.detail_fallback_title))
+            Text(
+                stringResource(R.string.stations_running_tour_meta, title, runningTour.dayNumber, runningTour.totalDays),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

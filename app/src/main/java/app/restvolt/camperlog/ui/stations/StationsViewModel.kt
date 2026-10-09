@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 /** Die aktuell laufende Tour des aktuellen Fahrzeugs, für die Karte "Laufende Tour". */
-data class RunningTour(val tourId: Long, val destination: String, val dayNumber: Int, val totalDays: Int)
+data class RunningTour(val tour: Tour, val dayNumber: Int, val totalDays: Int)
 
 /** Zustand des Stationen-Reiters. [stations] ist bereits nach Fahrzeug, Suche und Filtern gefiltert. */
 data class StationsUiState(
@@ -132,7 +132,7 @@ class StationsViewModel(
         val dayNumber = java.time.temporal.ChronoUnit.DAYS.between(tour.startDate, date).toInt() + 1
         val totalDays = tour.endDate?.let { java.time.temporal.ChronoUnit.DAYS.between(tour.startDate, it).toInt() + 1 }
             ?: dayNumber
-        return RunningTour(tour.id, tour.destination, dayNumber, totalDays)
+        return RunningTour(tour, dayNumber, totalDays)
     }
 
     fun onQueryChange(value: String) {

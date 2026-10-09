@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performTextInput
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
@@ -196,6 +197,32 @@ class StationsFlowTest {
         compose.onNodeWithText("Camping Moskenes").performClick()
 
         compose.onNodeWithText("Schlafplatz").assertExists()
+    }
+
+    @Test
+    fun runningTourCard_showsTourNameInsteadOfDestination() {
+        val running = Tour(
+            id = 1,
+            vehicleId = 1,
+            startDate = LocalDate.now().minusDays(1),
+            endDate = null,
+            destination = "Lofoten",
+            name = "Sommerurlaub",
+            tourType = TourType.VACATION,
+            travelDays = 1,
+            overnightStays = 0,
+            distanceKm = 0,
+            costs = emptyList(),
+            notes = "",
+            mapLink = null,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        start(tours = listOf(running))
+        openStationsTab()
+
+        compose.onNodeWithText("Sommerurlaub", substring = true).assertExists()
+        compose.onNodeWithText("Lofoten", substring = true).assertDoesNotExist()
     }
 
     /** Der Einstellungen-Verweis war aus dem Hinweistext verschwunden und ist zurück. */
