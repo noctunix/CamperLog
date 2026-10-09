@@ -358,8 +358,8 @@ fun CamperLogNavHost(
     val introductionSettings = remember { IntroductionSettings(context) }
     var showFirstRunSetup by rememberSaveable { mutableStateOf(false) }
 
-    // Geteilter Controller für künftige geführte Touren; Lebensdauer wie die übrigen hier
-    // erzeugten Einstellungen-Objekte, also solange diese Komposition bestehen bleibt.
+    // Geteilter Controller für alle geführten Touren (Rundgang, Pilot-Tour); Lebensdauer wie die
+    // übrigen hier erzeugten Einstellungen-Objekte, also solange diese Komposition bestehen bleibt.
     val guideScope = rememberCoroutineScope()
     val guideController = remember { GuideController(guideScope) }
     val guideProgressStore = remember { GuideProgressStore(context) }
