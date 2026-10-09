@@ -1149,7 +1149,7 @@
     <string name="track_interval_minutes">%1$d min</string>
     <string name="track_notification_channel_name">Track recording</string>
     <string name="track_notification_channel_description">Shown while a tour track is being recorded.</string>
-    <string name="track_notification_title">Recording track</string>
+    <string name="track_notification_title">%1$s: Recording track</string>
     <string name="track_notification_text">Position every %1$s</string>
     <string name="track_notification_stop">Stop</string>
     <string name="track_notification_pause">Pause</string>

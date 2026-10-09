@@ -1138,7 +1138,7 @@
     <string name="track_interval_minutes">%1$d min</string>
     <string name="track_notification_channel_name">Trackaufzeichnung</string>
     <string name="track_notification_channel_description">Wird angezeigt, solange der Track einer Tour aufgezeichnet wird.</string>
-    <string name="track_notification_title">Track wird aufgezeichnet</string>
+    <string name="track_notification_title">%1$s: Track wird aufgezeichnet</string>
     <string name="track_notification_text">Position alle %1$s</string>
     <string name="track_notification_stop">Beenden</string>
     <string name="track_notification_pause">Pausieren</string>

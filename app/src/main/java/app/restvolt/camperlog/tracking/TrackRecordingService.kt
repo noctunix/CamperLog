@@ -316,7 +316,7 @@ class TrackRecordingService : Service() {
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_route)
-            .setContentTitle(getString(R.string.track_notification_title))
+            .setContentTitle(getString(R.string.track_notification_title, getString(R.string.app_name)))
             .setContentText(getString(R.string.track_notification_text, trackIntervalLabel(resources, interval)))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -370,25 +370,29 @@ class TrackRecordingService : Service() {
         /**
          * Setzt eine gespeicherte, durch Prozessende unterbrochene Aufzeichnung fort. Wurde seit dem
          * letzten aktiven Zeitstempel ein Geräteneustart erkannt, lief der Dienst nachweislich nicht
-         * mehr weiter: dann kein stiller Neustart, sondern [TrackRecordingSettings.pausedByReboot]
-         * markiert die Tour als durch den Neustart unterbrochen, die Oberfläche zeigt das an.
+         * mehr weiter: Das Öffnen der App ist hier schon die bewusste Nutzeraktion, daher startet dies
+         * genau wie [resumeAfterBoot] automatisch neu und markiert [TrackRecordingSettings.resumedAfterBoot],
+         * statt einen weiteren manuellen Tap zu verlangen. Nur wenn dafür die Standortberechtigung
+         * inzwischen entzogen wurde, bleibt es beim bisherigen [TrackRecordingSettings.pausedByReboot]
+         * mit manuellem Fortsetzen durch den Nutzer.
          *
-         * Dient als Rückfallebene für [resumeAfterBoot]: Lief dessen Empfänger aus irgendeinem Grund
-         * nicht oder scheiterte er, trifft diese Methode beim nächsten Öffnen der App auf dieselbe
-         * Situation und markiert sie zumindest als unterbrochen statt sie zu verschweigen.
+         * Dient außerdem als Rückfallebene für [resumeAfterBoot]: Lief dessen Empfänger aus irgendeinem
+         * Grund nicht, trifft diese Methode beim nächsten Öffnen der App auf dieselbe Situation.
          */
         fun resumeIfNeeded(context: Context) {
             val settings = TrackRecordingSettings.get(context)
             val active = settings.activeRecording ?: return
-            if (!settings.enabled || !hasLocationPermission(context)) {
+            if (!settings.enabled) {
                 settings.activeRecording = null
                 return
             }
-            if (settings.rebootDetectedSinceLastActive()) {
+            val rebootDetected = settings.rebootDetectedSinceLastActive()
+            if (!hasLocationPermission(context)) {
                 settings.activeRecording = null
-                settings.pausedByReboot = true
+                if (rebootDetected) settings.pausedByReboot = true
                 return
             }
+            if (rebootDetected) settings.resumedAfterBoot = true
             start(context, active.tourId)
         }
 

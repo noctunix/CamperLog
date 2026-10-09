@@ -1,7 +1,10 @@
 package app.restvolt.camperlog.tracking
 
 import android.app.Application
+import android.app.NotificationManager
 import android.content.Intent
+import android.os.Looper
+import androidx.core.app.NotificationCompat
 import androidx.test.core.app.ApplicationProvider
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -51,6 +54,20 @@ class TrackRecordingServiceTest {
         val service = shadowOf(controller.get())
         assertNotEquals(0, service.lastForegroundNotificationId)
         assertTrue(service.isStoppedBySelf)
+    }
+
+    @Test
+    fun notification_titleIncludesTheAppName() {
+        grantLocation()
+        TrackRecordingSettings.get(app).enabled = true
+        Robolectric.buildService(TrackRecordingService::class.java, startIntent()).create().startCommand(0, 1)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val notificationManager = app.getSystemService(NotificationManager::class.java)
+        val notification = shadowOf(notificationManager).allNotifications.single()
+        val title = NotificationCompat.getContentTitle(notification).toString()
+
+        assertTrue(title.contains("CamperLog"))
     }
 
     @Test
@@ -120,8 +137,27 @@ class TrackRecordingServiceTest {
     }
 
     @Test
-    fun resumeIfNeeded_marksPausedByRebootInsteadOfRestartingSilently() {
+    fun resumeIfNeeded_restartsAutomaticallyAfterADetectedReboot() {
         grantLocation()
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        // Weit in der Zukunft gespeichert: nach einem echten Neustart ist die aktuelle elapsedRealtime winzig.
+        settings.lastActiveElapsedRealtime = Long.MAX_VALUE / 2
+
+        TrackRecordingService.resumeIfNeeded(app)
+
+        val started = shadowOf(app).nextStartedService
+        assertEquals(TrackRecordingService::class.java.name, started?.component?.className)
+        assertEquals(1L, started?.getLongExtra("tour_id", -1))
+        assertEquals(ActiveRecording(1, 1), settings.activeRecording)
+        assertTrue(settings.resumedAfterBoot)
+        assertFalse(settings.pausedByReboot)
+    }
+
+    @Test
+    fun resumeIfNeeded_fallsBackToPausedByRebootWhenPermissionWasRevoked() {
         val settings = TrackRecordingSettings.get(app)
         settings.enabled = true
         settings.trackedTourId = 1
@@ -135,6 +171,7 @@ class TrackRecordingServiceTest {
         assertNull(settings.activeRecording)
         assertEquals(1L, settings.trackedTourId)
         assertTrue(settings.pausedByReboot)
+        assertFalse(settings.resumedAfterBoot)
     }
 
     @Test
