@@ -235,7 +235,7 @@ class DraftRestorationTest {
         val repository = FakeVehicleRepository()
         val handle = SavedStateHandle()
         val before = EditVehicleViewModel(repository, 0, handle, locale)
-        before.onInputChange { it.copy(name = "Wohnmobil", lengthM = "6.36") }
+        before.onInputChange { it.copy(name = "Wohnmobil", lengthCm = "636") }
 
         val after = EditVehicleViewModel(repository, 0, handle.afterProcessDeath(), locale)
 

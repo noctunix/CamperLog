@@ -25,9 +25,9 @@ class VehicleInputTest {
         insurancePolicyNumber = "POL-1",
         insurancePremiumPerYear = "600",
         vehicleTaxPerYear = "250",
-        lengthM = "6,36",
-        widthM = "2,30",
-        heightM = "2,80",
+        lengthCm = "636",
+        widthCm = "230",
+        heightCm = "280",
         grossWeightKg = "3500",
         measuredEmptyWeightKg = "3020",
         breakdownProvider = "ADAC",
@@ -82,9 +82,9 @@ class VehicleInputTest {
 
     @Test
     fun dimensionsMustBePositiveAndWithinBounds() {
-        assertEquals(VehicleError.NOT_POSITIVE, valid.copy(lengthM = "0").validate(de, isNew = true)[VehicleField.LENGTH])
-        assertEquals(VehicleError.TOO_LARGE, valid.copy(lengthM = "30,01").validate(de, isNew = true)[VehicleField.LENGTH])
-        assertTrue(valid.copy(lengthM = "30").validate(de, isNew = true).isEmpty())
+        assertEquals(VehicleError.NOT_POSITIVE, valid.copy(lengthCm = "0").validate(de, isNew = true)[VehicleField.LENGTH])
+        assertEquals(VehicleError.TOO_LARGE, valid.copy(lengthCm = "3001").validate(de, isNew = true)[VehicleField.LENGTH])
+        assertTrue(valid.copy(lengthCm = "3000").validate(de, isNew = true).isEmpty())
     }
 
     @Test
@@ -123,9 +123,8 @@ class VehicleInputTest {
     }
 
     @Test
-    fun decimalParsingFollowsLocale() {
-        assertEquals(636, valid.copy(lengthM = "6,36").toVehicle(null, de).lengthCm)
-        assertEquals(636, valid.copy(lengthM = "6.36").toVehicle(null, Locale.US).lengthCm)
+    fun lengthIsStoredAsEnteredInCentimetres() {
+        assertEquals(636, valid.copy(lengthCm = "636").toVehicle(null, de).lengthCm)
     }
 
     @Test

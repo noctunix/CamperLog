@@ -6,8 +6,8 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.roundToInt
 
-/** Formatiert eine in Zentimetern gespeicherte Länge als Meter mit 2 Nachkommastellen, z. B. `4,50 m`. */
-fun formatMetres(cm: Int, locale: Locale): String = "${decimalFormat(locale, 2).format(BigDecimal.valueOf(cm.toLong(), 2))} m"
+/** Formatiert eine in Zentimetern gespeicherte Länge mit Tausendertrennzeichen, z. B. `450 cm`. */
+fun formatCm(cm: Int, locale: Locale): String = "${integerFormat(locale).format(cm)} cm"
 
 /** Formatiert ein Gewicht in kg mit Tausendertrennzeichen, z. B. `3.500 kg`. */
 fun formatKg(kg: Int, locale: Locale): String = "${integerFormat(locale).format(kg)} kg"

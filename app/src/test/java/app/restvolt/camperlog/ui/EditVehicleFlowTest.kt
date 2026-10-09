@@ -58,13 +58,13 @@ class EditVehicleFlowTest {
         compose.onNodeWithText("Details hinzufügen").performClick()
 
         compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Wohnmobil")
-        compose.onNode(hasSetTextAction() and hasText("Länge")).performScrollTo().performTextInput("6,36")
+        compose.onNode(hasSetTextAction() and hasText("Länge")).performScrollTo().performTextInput("636")
         compose.onNode(hasSetTextAction() and hasText("Leistung")).performScrollTo().performTextInput("120")
         compose.onNode(hasSetTextAction() and hasText("Diesel")).performScrollTo().performTextInput("90")
 
         clickSave()
 
-        compose.onNodeWithText("6,36 m").assertExists()
+        compose.onNodeWithText("636 cm").assertExists()
         compose.onNodeWithText("120 kW (163 PS)").assertExists()
         compose.onNodeWithText("90 l").assertExists()
     }

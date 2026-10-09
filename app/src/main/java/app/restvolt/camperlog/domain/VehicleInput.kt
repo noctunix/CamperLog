@@ -8,7 +8,7 @@ import java.util.Currency
 import java.util.Locale
 
 /** Höchstwerte der Plausibilitätsprüfung, jeweils in der Einheit des Formularfelds. */
-const val MAX_DIMENSION_M = 30.0
+const val MAX_DIMENSION_CM = 3_000
 const val MAX_WEIGHT_KG = 100_000
 const val MAX_POWER_KW = 2_000
 const val MAX_TIRE_PRESSURE_BAR = 15.0
@@ -48,9 +48,9 @@ data class VehicleInput(
     @Serializable(with = CurrencySerializer::class) val insurancePremiumPerYearCurrency: Currency = EUR,
     val vehicleTaxPerYear: String = "",
     @Serializable(with = CurrencySerializer::class) val vehicleTaxPerYearCurrency: Currency = EUR,
-    val lengthM: String = "",
-    val widthM: String = "",
-    val heightM: String = "",
+    val lengthCm: String = "",
+    val widthCm: String = "",
+    val heightCm: String = "",
     val grossWeightKg: String = "",
     val measuredEmptyWeightKg: String = "",
     val breakdownProvider: String = "",
@@ -151,9 +151,9 @@ fun VehicleInput.validate(locale: Locale, isNew: Boolean, today: LocalDate = Loc
             ?.let { put(VehicleField.INSURANCE_PREMIUM_PER_YEAR, it) }
         amountError(vehicleTaxPerYear, vehicleTaxPerYearCurrency, locale)?.let { put(VehicleField.VEHICLE_TAX_PER_YEAR, it) }
         intError(purchaseOdometerKm, MAX_ODOMETER_KM)?.let { put(VehicleField.PURCHASE_ODOMETER_KM, it) }
-        positiveDecimalError(lengthM, locale, 2, MAX_DIMENSION_M)?.let { put(VehicleField.LENGTH, it) }
-        positiveDecimalError(widthM, locale, 2, MAX_DIMENSION_M)?.let { put(VehicleField.WIDTH, it) }
-        positiveDecimalError(heightM, locale, 2, MAX_DIMENSION_M)?.let { put(VehicleField.HEIGHT, it) }
+        positiveIntError(lengthCm, MAX_DIMENSION_CM)?.let { put(VehicleField.LENGTH, it) }
+        positiveIntError(widthCm, MAX_DIMENSION_CM)?.let { put(VehicleField.WIDTH, it) }
+        positiveIntError(heightCm, MAX_DIMENSION_CM)?.let { put(VehicleField.HEIGHT, it) }
         intError(grossWeightKg, MAX_WEIGHT_KG)?.let { put(VehicleField.GROSS_WEIGHT_KG, it) }
         intError(measuredEmptyWeightKg, MAX_WEIGHT_KG)?.let { put(VehicleField.MEASURED_EMPTY_WEIGHT_KG, it) }
         phoneError(breakdownPhone)?.let { put(VehicleField.BREAKDOWN_PHONE, it) }
@@ -202,9 +202,9 @@ fun VehicleInput.toVehicle(original: Vehicle?, locale: Locale): Vehicle = Vehicl
     insurancePolicyNumber = insurancePolicyNumber.trim(),
     insurancePremiumPerYear = parseMoney(insurancePremiumPerYear, insurancePremiumPerYearCurrency, locale),
     vehicleTaxPerYear = parseMoney(vehicleTaxPerYear, vehicleTaxPerYearCurrency, locale),
-    lengthCm = parseScaledDecimal(lengthM, locale, uiFractionDigits = 2, storageExponent = 2),
-    widthCm = parseScaledDecimal(widthM, locale, uiFractionDigits = 2, storageExponent = 2),
-    heightCm = parseScaledDecimal(heightM, locale, uiFractionDigits = 2, storageExponent = 2),
+    lengthCm = parseOptionalInt(lengthCm),
+    widthCm = parseOptionalInt(widthCm),
+    heightCm = parseOptionalInt(heightCm),
     grossWeightKg = parseOptionalInt(grossWeightKg),
     measuredEmptyWeightKg = parseOptionalInt(measuredEmptyWeightKg),
     breakdownProvider = breakdownProvider.trim(),
@@ -257,9 +257,9 @@ fun Vehicle.toInput(locale: Locale): VehicleInput = VehicleInput(
     insurancePremiumPerYearCurrency = insurancePremiumPerYear?.currency ?: EUR,
     vehicleTaxPerYear = vehicleTaxPerYear.toInput(locale),
     vehicleTaxPerYearCurrency = vehicleTaxPerYear?.currency ?: EUR,
-    lengthM = scaledToInput(lengthCm, locale, uiFractionDigits = 2, storageExponent = 2),
-    widthM = scaledToInput(widthCm, locale, uiFractionDigits = 2, storageExponent = 2),
-    heightM = scaledToInput(heightCm, locale, uiFractionDigits = 2, storageExponent = 2),
+    lengthCm = lengthCm?.toString().orEmpty(),
+    widthCm = widthCm?.toString().orEmpty(),
+    heightCm = heightCm?.toString().orEmpty(),
     grossWeightKg = grossWeightKg?.toString().orEmpty(),
     measuredEmptyWeightKg = measuredEmptyWeightKg?.toString().orEmpty(),
     breakdownProvider = breakdownProvider,
@@ -299,7 +299,7 @@ internal fun parseOptionalInt(text: String): Int? = text.trim().toIntOrNull()?.t
 
 /**
  * Wandelt einen Dezimalwert der Oberfläche (mit [uiFractionDigits] Nachkommastellen) in die
- * gespeicherte kleinste Einheit um, z. B. Meter (2 Nachkommastellen) in Zentimeter ([storageExponent] 2).
+ * gespeicherte kleinste Einheit um, z. B. Liter (1 Nachkommastelle) in Deziliter ([storageExponent] 1).
  */
 private fun parseScaledDecimal(text: String, locale: Locale, uiFractionDigits: Int, storageExponent: Int): Int? {
     if (text.isBlank()) return null
@@ -333,12 +333,12 @@ private fun decimalError(text: String, locale: Locale, fractionDigits: Int, max:
     return if (value > BigDecimal.valueOf(max)) VehicleError.TOO_LARGE else null
 }
 
-private fun positiveDecimalError(text: String, locale: Locale, fractionDigits: Int, max: Double): VehicleError? {
+private fun positiveIntError(text: String, max: Int): VehicleError? {
     if (text.isBlank()) return null
-    val value = parseDecimal(text, locale, maxFractionDigits = fractionDigits) ?: return VehicleError.INVALID_NUMBER
+    val value = text.trim().toIntOrNull() ?: return VehicleError.INVALID_NUMBER
     return when {
-        value <= BigDecimal.ZERO -> VehicleError.NOT_POSITIVE
-        value > BigDecimal.valueOf(max) -> VehicleError.TOO_LARGE
+        value <= 0 -> VehicleError.NOT_POSITIVE
+        value > max -> VehicleError.TOO_LARGE
         else -> null
     }
 }

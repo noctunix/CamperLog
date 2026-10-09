@@ -327,17 +327,17 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
         SectionCard {
             SectionHeading(stringResource(R.string.section_dimensions_weight))
             UnitField(
-                stringResource(R.string.field_length), input.lengthM, "m", KeyboardType.Decimal,
+                stringResource(R.string.field_length), input.lengthCm, "cm", KeyboardType.Number,
                 errorOf(VehicleField.LENGTH), focusOf(VehicleField.LENGTH),
-            ) { value -> change { it.copy(lengthM = value) } }
+            ) { value -> change { it.copy(lengthCm = value) } }
             UnitField(
-                stringResource(R.string.field_width), input.widthM, "m", KeyboardType.Decimal,
+                stringResource(R.string.field_width), input.widthCm, "cm", KeyboardType.Number,
                 errorOf(VehicleField.WIDTH), focusOf(VehicleField.WIDTH),
-            ) { value -> change { it.copy(widthM = value) } }
+            ) { value -> change { it.copy(widthCm = value) } }
             UnitField(
-                stringResource(R.string.field_height), input.heightM, "m", KeyboardType.Decimal,
+                stringResource(R.string.field_height), input.heightCm, "cm", KeyboardType.Number,
                 errorOf(VehicleField.HEIGHT), focusOf(VehicleField.HEIGHT),
-            ) { value -> change { it.copy(heightM = value) } }
+            ) { value -> change { it.copy(heightCm = value) } }
             UnitField(
                 stringResource(R.string.field_gross_weight), input.grossWeightKg, "kg", KeyboardType.Number,
                 errorOf(VehicleField.GROSS_WEIGHT_KG), focusOf(VehicleField.GROSS_WEIGHT_KG),

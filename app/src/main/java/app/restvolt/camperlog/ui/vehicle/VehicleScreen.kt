@@ -63,10 +63,10 @@ import app.restvolt.camperlog.domain.dueReminders
 import app.restvolt.camperlog.domain.formatAh
 import app.restvolt.camperlog.domain.formatAmount
 import app.restvolt.camperlog.domain.formatBar
+import app.restvolt.camperlog.domain.formatCm
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.formatKg
 import app.restvolt.camperlog.domain.formatLitres
-import app.restvolt.camperlog.domain.formatMetres
 import app.restvolt.camperlog.domain.formatPower
 import app.restvolt.camperlog.domain.formatWp
 import app.restvolt.camperlog.share.copyToClipboard
@@ -620,9 +620,9 @@ private fun insuranceTaxRows(vehicle: Vehicle, locale: Locale): List<Pair<String
 
 @Composable
 private fun dimensionsRows(vehicle: Vehicle, locale: Locale): List<Pair<String, String>> = buildList {
-    vehicle.lengthCm?.let { add(stringResource(R.string.field_length) to formatMetres(it, locale)) }
-    vehicle.widthCm?.let { add(stringResource(R.string.field_width) to formatMetres(it, locale)) }
-    vehicle.heightCm?.let { add(stringResource(R.string.field_height) to formatMetres(it, locale)) }
+    vehicle.lengthCm?.let { add(stringResource(R.string.field_length) to formatCm(it, locale)) }
+    vehicle.widthCm?.let { add(stringResource(R.string.field_width) to formatCm(it, locale)) }
+    vehicle.heightCm?.let { add(stringResource(R.string.field_height) to formatCm(it, locale)) }
     vehicle.grossWeightKg?.let { add(stringResource(R.string.field_gross_weight) to formatKg(it, locale)) }
     vehicle.measuredEmptyWeightKg?.let { add(stringResource(R.string.field_measured_empty_weight) to formatKg(it, locale)) }
     vehicle.remainingPayloadKg?.let { add(stringResource(R.string.field_remaining_payload) to formatKg(abs(it), locale)) }

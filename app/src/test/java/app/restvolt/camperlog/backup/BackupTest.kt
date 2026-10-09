@@ -9,7 +9,7 @@ import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.MAX_BATTERY_AH
-import app.restvolt.camperlog.domain.MAX_DIMENSION_M
+import app.restvolt.camperlog.domain.MAX_DIMENSION_CM
 import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
 import app.restvolt.camperlog.domain.MAX_PHONE_LENGTH
 import app.restvolt.camperlog.domain.MAX_POWER_KW
@@ -636,11 +636,10 @@ class BackupTest {
 
     @Test
     fun decode_rejectsVehicleFieldsOutOfBounds() {
-        val maxLengthCm = (MAX_DIMENSION_M * 100).toInt()
         val maxTireMbar = (MAX_TIRE_PRESSURE_BAR * 1000).toInt()
         val maxTankDl = (MAX_TANK_L * 10).toInt()
         listOf(
-            "\"lengthCm\": 500" to "\"lengthCm\": ${maxLengthCm + 1}",
+            "\"lengthCm\": 500" to "\"lengthCm\": ${MAX_DIMENSION_CM + 1}",
             "\"lengthCm\": 500" to "\"lengthCm\": -1",
             "\"grossWeightKg\": 3500" to "\"grossWeightKg\": ${MAX_WEIGHT_KG + 1}",
             "\"powerKw\": 130" to "\"powerKw\": ${MAX_POWER_KW + 1}",

@@ -18,7 +18,7 @@ import app.restvolt.camperlog.domain.LogRecency
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.MAX_BATTERY_AH
-import app.restvolt.camperlog.domain.MAX_DIMENSION_M
+import app.restvolt.camperlog.domain.MAX_DIMENSION_CM
 import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
 import app.restvolt.camperlog.domain.MAX_POWER_KW
 import app.restvolt.camperlog.domain.MAX_SOLAR_WP
@@ -211,7 +211,7 @@ val EnergyType.labelRes: Int
 
 /** Höchstwert und Einheit eines Feldes mit Obergrenze, für die Fehlermeldung zu [VehicleError.TOO_LARGE]. */
 private fun vehicleFieldBound(field: VehicleField): Pair<Double, String> = when (field) {
-    VehicleField.LENGTH, VehicleField.WIDTH, VehicleField.HEIGHT -> MAX_DIMENSION_M to "m"
+    VehicleField.LENGTH, VehicleField.WIDTH, VehicleField.HEIGHT -> MAX_DIMENSION_CM.toDouble() to "cm"
     VehicleField.GROSS_WEIGHT_KG, VehicleField.MEASURED_EMPTY_WEIGHT_KG -> MAX_WEIGHT_KG.toDouble() to "kg"
     VehicleField.POWER_KW -> MAX_POWER_KW.toDouble() to "kW"
     VehicleField.TIRE_PRESSURE_FRONT, VehicleField.TIRE_PRESSURE_REAR -> MAX_TIRE_PRESSURE_BAR to "bar"

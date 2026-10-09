@@ -25,7 +25,7 @@ import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.MAX_BATTERY_AH
-import app.restvolt.camperlog.domain.MAX_DIMENSION_M
+import app.restvolt.camperlog.domain.MAX_DIMENSION_CM
 import app.restvolt.camperlog.domain.MAX_ELECTRICITY_COINS
 import app.restvolt.camperlog.domain.MAX_ELECTRICITY_KWH
 import app.restvolt.camperlog.domain.MAX_FERRY_BOOKING_REFERENCE_LENGTH
@@ -137,7 +137,6 @@ private const val MAX_WEATHER_WIND_KMH = 500
 private const val MAX_WEATHER_WIND_DIRECTION_DEG = 359
 
 /** Höchstwerte der Fahrzeugfelder in der gespeicherten Einheit, abgeleitet von den Formulargrenzen. */
-private val MAX_LENGTH_CM = (MAX_DIMENSION_M * 100).toInt()
 private val MAX_TIRE_PRESSURE_MBAR = (MAX_TIRE_PRESSURE_BAR * 1000).toInt()
 private val MAX_TANK_DL = (MAX_TANK_L * 10).toInt()
 
@@ -757,7 +756,7 @@ private fun VehicleDto.toVehicle(): Vehicle? {
     val salePriceMoney = salePrice?.let { it.toMoney() ?: return null }
     val insurancePremium = insurancePremiumPerYear?.let { it.toMoney() ?: return null }
     val vehicleTax = vehicleTaxPerYear?.let { it.toMoney() ?: return null }
-    if (!lengthCm.inBounds(MAX_LENGTH_CM) || !widthCm.inBounds(MAX_LENGTH_CM) || !heightCm.inBounds(MAX_LENGTH_CM)) return null
+    if (!lengthCm.inBounds(MAX_DIMENSION_CM) || !widthCm.inBounds(MAX_DIMENSION_CM) || !heightCm.inBounds(MAX_DIMENSION_CM)) return null
     if (!grossWeightKg.inBounds(MAX_WEIGHT_KG) || !powerKw.inBounds(MAX_POWER_KW)) return null
     if (!measuredEmptyWeightKg.inBounds(MAX_WEIGHT_KG)) return null
     if (!tirePressureFrontMbar.inBounds(MAX_TIRE_PRESSURE_MBAR) || !tirePressureRearMbar.inBounds(MAX_TIRE_PRESSURE_MBAR)) return null
