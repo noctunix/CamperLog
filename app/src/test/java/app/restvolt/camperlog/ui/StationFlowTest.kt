@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.test.core.app.ApplicationProvider
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
@@ -316,6 +318,24 @@ class StationFlowTest {
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Bordbuch").performClick()
         compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(4)
+    }
+
+    @Test
+    fun favoriteRow_togglesByTappingTheHeartRow_withoutASeparateSwitch() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+
+        val favoriteRow = compose.onNode(hasText("Gerne wieder") and hasClickAction())
+        favoriteRow.assertIsOff()
+
+        favoriteRow.performClick()
+        favoriteRow.assertIsOn()
+
+        clickSave()
+        assertEquals(true, stationRepository.stations.single().favorite)
     }
 
     @Test

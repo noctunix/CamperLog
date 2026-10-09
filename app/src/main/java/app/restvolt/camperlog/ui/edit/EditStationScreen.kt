@@ -28,6 +28,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -36,7 +37,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -120,6 +120,7 @@ import app.restvolt.camperlog.ui.locationFixSummary
 import app.restvolt.camperlog.ui.messageRes
 import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.settings.WeatherSettings
+import app.restvolt.camperlog.ui.theme.HeartRed
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.yesNoRes
 import java.time.LocalDate
@@ -668,10 +669,14 @@ private fun FavoriteRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(painterResource(R.drawable.ic_favorite), contentDescription = null)
+        Icon(
+            painterResource(if (checked) R.drawable.ic_favorite_filled else R.drawable.ic_favorite),
+            contentDescription = null,
+            tint = if (checked) HeartRed else LocalContentColor.current,
+        )
         Text(
             stringResource(R.string.station_would_return),
             modifier = Modifier
@@ -679,7 +684,6 @@ private fun FavoriteRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
                 .padding(start = 12.dp),
             style = MaterialTheme.typography.bodyLarge,
         )
-        Switch(checked = checked, onCheckedChange = null)
     }
 }
 

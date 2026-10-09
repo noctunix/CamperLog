@@ -19,6 +19,9 @@ private val AzureOnLight = Color(0xFF0A63C0)
 private val DeepNavy = Color(0xFF0D1B2A)
 private val GreyBlue = Color(0xFF55657A)
 
+/** Herzrot für den „würde wiederkommen“-Favoriten; fest statt themenabhängig, gut sichtbar auf hellem und dunklem Grund. */
+val HeartRed = Color(0xFFE03C4D)
+
 /** Primär-Rollen (inkl. Container) einer [AccentColor] für einen Hell- oder Dunkelmodus. */
 private data class PrimaryRoles(val primary: Color, val onPrimary: Color, val primaryContainer: Color, val onPrimaryContainer: Color)
 
