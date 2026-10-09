@@ -137,6 +137,40 @@ class TrackRecordingSettingsTest {
     }
 
     @Test
+    fun forgetTourClearsOnlyAMatchingTour() {
+        val settings = TrackRecordingSettings(context, CountingRevoker())
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 2)
+        settings.pausedByReboot = true
+        settings.resumedAfterBoot = true
+
+        settings.forgetTour(2)
+        assertEquals(1L, settings.trackedTourId)
+        assertEquals(ActiveRecording(1, 2), settings.activeRecording)
+        assertTrue(settings.pausedByReboot)
+        assertTrue(settings.resumedAfterBoot)
+
+        settings.forgetTour(1)
+        assertNull(settings.trackedTourId)
+        assertNull(settings.activeRecording)
+        assertFalse(settings.pausedByReboot)
+        assertFalse(settings.resumedAfterBoot)
+    }
+
+    @Test
+    fun forgetTourAlsoClearsAnOnlyTrackedTourWithoutAnActiveRecording() {
+        val settings = TrackRecordingSettings(context, CountingRevoker())
+        settings.trackedTourId = 1
+        settings.pausedByReboot = true
+
+        settings.forgetTour(1)
+
+        assertNull(settings.trackedTourId)
+        assertNull(settings.activeRecording)
+        assertFalse(settings.pausedByReboot)
+    }
+
+    @Test
     fun locationSwitchKeepsPermissionWhileTrackRecordingIsOn() {
         TrackRecordingSettings(context, CountingRevoker()).enabled = true
         val revoker = CountingRevoker()

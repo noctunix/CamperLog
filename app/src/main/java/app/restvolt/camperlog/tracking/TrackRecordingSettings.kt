@@ -163,6 +163,19 @@ class TrackRecordingSettings(
         return last > elapsedRealtime()
     }
 
+    /**
+     * Vergisst [tourId], falls sie gerade als laufend oder zugeordnet markiert ist – etwa weil sie
+     * inzwischen gelöscht wurde. Zeigen [activeRecording] oder [trackedTourId] auf eine andere Tour,
+     * bleiben sie unangetastet.
+     */
+    fun forgetTour(tourId: Long) {
+        if (activeRecording?.tourId != tourId && trackedTourId != tourId) return
+        activeRecording = null
+        trackedTourId = null
+        pausedByReboot = false
+        resumedAfterBoot = false
+    }
+
     /** Von [TrackRecordingService] gesetzt, wenn der Start scheiterte. */
     fun reportStartFailed() {
         startFailedState.value = true

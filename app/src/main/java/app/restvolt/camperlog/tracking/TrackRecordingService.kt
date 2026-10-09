@@ -28,6 +28,7 @@ import app.restvolt.camperlog.CamperLogApp
 import app.restvolt.camperlog.MainActivity
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.LOCATION_PERMISSIONS
+import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TrackInterval
 import app.restvolt.camperlog.domain.TrackPoint
 import app.restvolt.camperlog.domain.TrackRepository
@@ -64,6 +65,7 @@ class TrackRecordingService : Service() {
     private val buffer = mutableListOf<TrackPoint>()
 
     private lateinit var settings: TrackRecordingSettings
+    private lateinit var tours: TourRepository
     private lateinit var tracks: TrackRepository
     private val locationManager get() = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
@@ -87,6 +89,7 @@ class TrackRecordingService : Service() {
     override fun onCreate() {
         super.onCreate()
         settings = TrackRecordingSettings.get(this)
+        tours = (application as CamperLogApp).repository
         tracks = (application as CamperLogApp).tracks
     }
 
@@ -123,6 +126,22 @@ class TrackRecordingService : Service() {
         startingTourId = tourId
         scope.launch {
             flush()
+            // Die Tour kann inzwischen gelöscht sein (z. B. Sicherung im Ersetzen-Modus eingespielt);
+            // ohne diese Prüfung würde nextSegment() trotzdem ein Segment liefern und der Dienst liefe
+            // als Geisteraufzeichnung weiter, bis ein Schreibzugriff am Fremdschlüssel scheitert.
+            if (tours.allTours().none { it.id == tourId }) {
+                val other = recording
+                if (other != null) {
+                    // Eine andere Tour wird bereits aufgezeichnet; die bleibt unangetastet.
+                    settings.activeRecording = other
+                    startingTourId = null
+                    if (settings.trackedTourId == tourId) settings.trackedTourId = other.tourId
+                } else {
+                    settings.forgetTour(tourId)
+                    shutDown()
+                }
+                return@launch
+            }
             // Jeder Start (auch die Fortsetzung nach einem Neustart) beginnt ein neues Segment.
             val segment = tracks.nextSegment(tourId)
             if (startingTourId != tourId) return@launch // Inzwischen gestoppt.

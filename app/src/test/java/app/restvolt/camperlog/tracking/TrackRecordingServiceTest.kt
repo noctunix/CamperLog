@@ -6,6 +6,15 @@ import android.content.Intent
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.CamperLogApp
+import app.restvolt.camperlog.backup.Backup
+import app.restvolt.camperlog.backup.ImportMode
+import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.TourType
+import java.time.Instant
+import java.time.LocalDate
+import java.util.Currency
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -33,8 +42,8 @@ class TrackRecordingServiceTest {
     @After
     fun tearDown() = TrackRecordingSettings.resetShared()
 
-    private fun startIntent(): Intent {
-        TrackRecordingService.start(app, 1L)
+    private fun startIntent(tourId: Long = 1L): Intent {
+        TrackRecordingService.start(app, tourId)
         return shadowOf(app).nextStartedService
     }
 
@@ -43,6 +52,41 @@ class TrackRecordingServiceTest {
             "android.permission.ACCESS_FINE_LOCATION",
             "android.permission.ACCESS_COARSE_LOCATION",
             "android.permission.POST_NOTIFICATIONS",
+        )
+    }
+
+    /**
+     * Pumpt den Hauptlooper, bis [condition] zutrifft oder die Zeit abläuft. Die Coroutine des
+     * Dienstes greift über echte Hintergrundthreads auf die Datenbank zu; ein einzelner `idle()`
+     * reicht dafür nicht zuverlässig, da der Hintergrundthread seine Antwort noch nicht gepostet
+     * haben muss.
+     */
+    private fun idleUntil(timeoutMillis: Long = 2_000, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        while (!condition() && System.currentTimeMillis() < deadline) {
+            shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(5)
+        }
+        assertTrue("Zeitüberschreitung beim Warten auf die Dienst-Coroutine", condition())
+    }
+
+    /** Legt eine echte Tour an, damit der Dienst sie beim Start als existierend vorfindet. */
+    private fun createTour(): Long = runBlocking {
+        (app as CamperLogApp).repository.save(
+            Tour(
+                startDate = LocalDate.parse("2026-01-01"),
+                endDate = null,
+                destination = "Ziel",
+                tourType = TourType.VACATION,
+                travelDays = 1,
+                overnightStays = 0,
+                distanceKm = 0,
+                costs = emptyList(),
+                notes = "",
+                mapLink = null,
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            ),
         )
     }
 
@@ -60,7 +104,8 @@ class TrackRecordingServiceTest {
     fun notification_titleIncludesTheAppName() {
         grantLocation()
         TrackRecordingSettings.get(app).enabled = true
-        Robolectric.buildService(TrackRecordingService::class.java, startIntent()).create().startCommand(0, 1)
+        val tourId = createTour()
+        Robolectric.buildService(TrackRecordingService::class.java, startIntent(tourId)).create().startCommand(0, 1)
         shadowOf(Looper.getMainLooper()).idle()
 
         val notificationManager = app.getSystemService(NotificationManager::class.java)
@@ -68,6 +113,90 @@ class TrackRecordingServiceTest {
         val title = NotificationCompat.getContentTitle(notification).toString()
 
         assertTrue(title.contains("CamperLog"))
+    }
+
+    @Test
+    fun stopIfTracking_onlyStopsAMatchingTour() {
+        val settings = TrackRecordingSettings.get(app)
+        settings.trackedTourId = 5
+        settings.activeRecording = ActiveRecording(tourId = 5, segment = 1)
+
+        TrackRecordingService.stopIfTracking(app, 9)
+        assertEquals(5L, settings.trackedTourId)
+        assertEquals(ActiveRecording(5, 1), settings.activeRecording)
+        assertNull(shadowOf(app).nextStartedService)
+
+        TrackRecordingService.stopIfTracking(app, 5)
+        assertNull(settings.trackedTourId)
+        assertNull(settings.activeRecording)
+    }
+
+    @Test
+    fun startingForANonexistentTour_shutsDownAndForgetsIt() {
+        grantLocation()
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 42
+        val controller = Robolectric.buildService(TrackRecordingService::class.java, startIntent(42)).create().startCommand(0, 1)
+        val service = shadowOf(controller.get())
+        idleUntil { service.isStoppedBySelf }
+
+        assertTrue(service.isStoppedBySelf)
+        assertNull(settings.activeRecording)
+        assertNull(settings.trackedTourId)
+    }
+
+    @Test
+    fun startingForANonexistentTour_whileAnotherRecordingIsRunning_leavesItUntouched() {
+        grantLocation()
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        val realTourId = createTour()
+        val controller = Robolectric.buildService(TrackRecordingService::class.java, startIntent(realTourId)).create()
+        controller.startCommand(0, 1)
+        idleUntil { settings.activeRecording != null }
+        assertEquals(ActiveRecording(realTourId, 1), settings.activeRecording)
+
+        // Fälschlich auf eine inzwischen verschwundene Tour gesetzt, z. B. durch eine verspätete Reaktion.
+        val missingTourId = realTourId + 1_000
+        settings.trackedTourId = missingTourId
+        val secondStart = Intent(app, TrackRecordingService::class.java)
+            .setAction("app.restvolt.camperlog.tracking.START")
+            .putExtra("tour_id", missingTourId)
+        controller.get().onStartCommand(secondStart, 0, 2)
+        idleUntil { settings.trackedTourId != missingTourId }
+
+        assertEquals(ActiveRecording(realTourId, 1), settings.activeRecording)
+        assertEquals(realTourId, settings.trackedTourId)
+    }
+
+    @Test
+    fun replaceImportDeletingTheTrackedTour_rejectsAGhostResume() {
+        grantLocation()
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        val tourId = createTour()
+        settings.trackedTourId = tourId
+        settings.activeRecording = ActiveRecording(tourId = tourId, segment = 1)
+        settings.lastActiveElapsedRealtime = 1L
+
+        // Sicherung im Ersetzen-Modus einspielen: löscht alle Touren, ohne den Aufzeichnungszustand zu kennen.
+        runBlocking {
+            (app as CamperLogApp).backupImporter.import(
+                Backup(exportedAt = Instant.EPOCH, mainCurrency = Currency.getInstance("EUR"), rates = emptyList(), tours = emptyList()),
+                ImportMode.REPLACE,
+            )
+        }
+
+        TrackRecordingService.resumeIfNeeded(app)
+        val resumed = shadowOf(app).nextStartedService
+        val controller = Robolectric.buildService(TrackRecordingService::class.java, resumed).create().startCommand(0, 1)
+        val service = shadowOf(controller.get())
+        idleUntil { service.isStoppedBySelf }
+
+        assertTrue(service.isStoppedBySelf)
+        assertNull(settings.activeRecording)
+        assertNull(settings.trackedTourId)
     }
 
     @Test
