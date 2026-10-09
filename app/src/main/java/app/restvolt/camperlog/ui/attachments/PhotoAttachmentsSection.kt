@@ -56,10 +56,11 @@ private val Attachment.isImage: Boolean get() = mimeType.startsWith("image/")
 /**
  * Streifen aus Foto-Vorschaubildern mit Hinzufügen-Knopf (Kamera/Galerie, bei [allowDocuments] auch
  * Dokument), Tippen öffnet den Vollbild-Betrachter. [ownerId] `0` bedeutet ein noch nicht gespeicherter
- * Eintrag: Statt des Hinzufügen-Knopfs zeigt der Streifen dann nur einen Hinweis, Fotos anzuhängen ist
- * erst nach dem ersten Speichern möglich (einfachste robuste Lösung gegen verwaiste Anhänge an einem
- * nie gespeicherten Eintrag). [stopLocation] sind die Koordinaten der Station, für "Standort der
- * Station übernehmen" im Betrachter; `null` außerhalb eines Stationskontexts oder ohne Koordinaten.
+ * Eintrag: Ohne [pending] zeigt der Streifen dann nur einen Hinweis, Fotos anzuhängen ist erst nach dem
+ * ersten Speichern möglich; mit [pending] können Fotos schon jetzt aufgenommen werden und hängen erst
+ * nach dem ersten Speichern an der dann bekannten id. [stopLocation] sind die Koordinaten der Station,
+ * für "Standort der Station übernehmen" im Betrachter; `null` außerhalb eines Stationskontexts oder
+ * ohne Koordinaten.
  */
 @Composable
 fun PhotoAttachmentsSection(
@@ -72,16 +73,21 @@ fun PhotoAttachmentsSection(
     allowDocuments: Boolean = false,
     stopLocation: Pair<Double, Double>? = null,
     pickers: AttachmentPickers = AndroidAttachmentPickers,
+    pending: PendingPhotosState? = null,
 ) {
     val resources = LocalResources.current
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.attachments_section_title), style = MaterialTheme.typography.titleSmall)
         if (ownerId == 0L) {
-            Text(
-                stringResource(R.string.attachments_save_first_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (pending != null) {
+                PendingPhotoStrip(ownerType, pending, fileStore, stopLocation, pickers)
+            } else {
+                Text(
+                    stringResource(R.string.attachments_save_first_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             return@Column
         }
         val viewModel = viewModel(key = "attachments_${ownerType}_$ownerId") {
@@ -196,6 +202,104 @@ fun PhotoAttachmentsSection(
                 onCaptionChange = viewModel::updateCaption,
             )
         }
+    }
+}
+
+/**
+ * Dieselbe Streifen-Optik wie der gespeicherte Fall, aber über [pending] statt über ein
+ * [AttachmentsViewModel]: Löschen hat kein Rückgängig, weil nichts in der Datenbank steht.
+ */
+@Composable
+private fun PendingPhotoStrip(
+    ownerType: AttachmentOwnerType,
+    pending: PendingPhotosState,
+    fileStore: AttachmentFileStore,
+    stopLocation: Pair<Double, Double>?,
+    pickers: AttachmentPickers,
+) {
+    val context = LocalContext.current
+    val settings = remember { AttachmentSettings(context) }
+    var showGalleryHint by remember { mutableStateOf(!settings.galleryLocationHintShown) }
+    var viewerIndex by rememberSaveable { mutableStateOf<Int?>(null) }
+    var menuExpanded by remember { mutableStateOf(false) }
+    val attachments = pending.photos.mapIndexed { index, photo -> photo.asAttachment(index, ownerType) }
+    fun pendingOf(attachment: Attachment) = pending.photos.first { it.fileName == attachment.fileName }
+
+    val launchCamera = pickers.rememberCameraLauncher(onPicked = pending.onAdd)
+    val launchGallery = pickers.rememberGalleryLauncher(onPicked = pending.onAdd)
+
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(attachments, key = Attachment::id) { attachment ->
+            Thumbnail(
+                attachment = attachment,
+                index = attachments.indexOf(attachment),
+                total = attachments.size,
+                file = fileStore.file(attachment.fileName),
+                onClick = { viewerIndex = attachments.indexOf(attachment) },
+            )
+        }
+        item {
+            Box {
+                AddButton(onClick = { menuExpanded = true })
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = {
+                        menuExpanded = false
+                        settings.galleryLocationHintShown = true
+                        showGalleryHint = false
+                    },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.attachments_add_camera)) },
+                        leadingIcon = { Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null) },
+                        onClick = { menuExpanded = false; launchCamera() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.attachments_add_gallery)) },
+                        leadingIcon = { Icon(painterResource(R.drawable.ic_image), contentDescription = null) },
+                        onClick = { menuExpanded = false; launchGallery() },
+                    )
+                    if (showGalleryHint) {
+                        Text(
+                            stringResource(R.string.attachments_gallery_no_location_hint),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+    if (pending.importing) {
+        ImportingRow(stringResource(R.string.attachments_importing))
+    }
+    pending.importError?.let { error ->
+        Text(
+            stringResource(importErrorTextRes(error)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+        LaunchedEffect(error) {
+            kotlinx.coroutines.delay(4000)
+            pending.onDismissImportError()
+        }
+    }
+
+    viewerIndex?.let { index ->
+        AttachmentViewerDialog(
+            photos = attachments,
+            startIndex = index.coerceIn(0, attachments.lastIndex.coerceAtLeast(0)),
+            stopLocation = stopLocation,
+            fileFor = { attachment -> fileStore.file(attachment.fileName) },
+            onDismiss = { viewerIndex = null },
+            onDelete = { attachment ->
+                pending.onRemove(pendingOf(attachment))
+                viewerIndex = null
+            },
+            onUseLocation = { attachment, latitude, longitude -> pending.onUseLocation(pendingOf(attachment), latitude, longitude) },
+            onCaptionChange = { attachment, caption -> pending.onCaptionChange(pendingOf(attachment), caption) },
+        )
     }
 }
 

@@ -1,12 +1,19 @@
 package app.restvolt.camperlog.ui.edit
 
 import android.database.SQLException
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.savedstate.SavedState
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
+import app.restvolt.camperlog.data.AttachmentFileStore
+import app.restvolt.camperlog.data.AttachmentImportError
+import app.restvolt.camperlog.data.AttachmentImportResult
+import app.restvolt.camperlog.data.ImportedAttachment
+import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.ElectricityBilling
@@ -47,13 +54,18 @@ import app.restvolt.camperlog.domain.toStation
 import app.restvolt.camperlog.domain.validate
 import app.restvolt.camperlog.domain.validation
 import app.restvolt.camperlog.domain.withElectricityBilling
+import app.restvolt.camperlog.ui.attachments.PendingPhoto
+import app.restvolt.camperlog.ui.attachments.toAttachment
+import app.restvolt.camperlog.ui.attachments.toPendingPhoto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.Currency
@@ -82,15 +94,19 @@ data class StationEditUiState(
     val rejectedSaves: Int = 0,
     /**
      * Die id dieser Station, sobald bekannt (bei einer bestehenden Station von Anfang an, bei einer
-     * neuen erst nach dem ersten Speichern); `0` bis dahin. Der Foto-Streifen hängt Fotos erst an diese
-     * id an, statt an eine noch nicht gespeicherte Station - einfachste robuste Lösung gegen verwaiste Anhänge.
+     * neuen erst nach dem ersten Speichern); `0` bis dahin. Fotos, die vor dem ersten Speichern
+     * aufgenommen wurden, stehen bis dahin in [pendingPhotos] statt in der Datenbank.
      */
     val savedStationId: Long = 0,
+    /** Vor dem ersten Speichern aufgenommene Fotos; [EditStationViewModel.save] übernimmt sie danach in die Datenbank. */
+    val pendingPhotos: List<PendingPhoto> = emptyList(),
+    val pendingPhotoImporting: Boolean = false,
+    val pendingPhotoImportError: AttachmentImportError? = null,
 )
 
 /** Ungespeicherte Formulareingaben, die ein Beenden des Prozesses im Hintergrund überstehen. */
 @Serializable
-internal data class StationDraft(val input: StationInput, val showErrors: Boolean)
+internal data class StationDraft(val input: StationInput, val showErrors: Boolean, val pendingPhotos: List<PendingPhoto> = emptyList())
 
 /**
  * Lädt, validiert und speichert eine Station. [stationId] 0 legt eine neue Station an; dafür
@@ -106,6 +122,8 @@ class EditStationViewModel(
     private val repository: StationRepository,
     private val tours: TourRepository,
     private val vehicles: VehicleRepository,
+    private val attachments: AttachmentRepository,
+    private val fileStore: AttachmentFileStore,
     stationId: Long,
     initialTourId: Long? = null,
     initialType: StationType? = null,
@@ -119,6 +137,7 @@ class EditStationViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val today: () -> LocalDate = LocalDate::now,
     private val timeNow: () -> LocalTime = LocalTime::now,
+    private val now: () -> Instant = Instant::now,
     private val locale: () -> Locale = { supportedLocale(Locale.getDefault()) },
 ) : ViewModel() {
 
@@ -143,7 +162,7 @@ class EditStationViewModel(
     private val _uiState = MutableStateFlow(
         StationEditUiState(isNew = stationId == 0L, isLoading = stationId != 0L, savedStationId = stationId).let { state ->
             when {
-                draft != null -> state.copy(input = draft.input, isDirty = true)
+                draft != null -> state.copy(input = draft.input, isDirty = true, pendingPhotos = draft.pendingPhotos)
                 stationId == 0L -> state.copy(
                     input = StationInput(
                         tourId = initialTourId,
@@ -373,8 +392,12 @@ class EditStationViewModel(
         viewModelScope.launch {
             try {
                 val id = repository.save(station)
+                val createdAt = now()
+                state.pendingPhotos.forEach { photo -> attachments.add(photo.toAttachment(AttachmentOwnerType.STATION, id, createdAt)) }
                 savedStateHandle.remove<SavedState>(DRAFT_KEY)
-                _uiState.update { it.copy(isSaving = false, isSaved = true, loggedServices = loggedServices, savedStationId = id) }
+                _uiState.update {
+                    it.copy(isSaving = false, isSaved = true, loggedServices = loggedServices, savedStationId = id, pendingPhotos = emptyList())
+                }
             } catch (_: SQLException) {
                 // Eingaben bleiben erhalten, damit der Nutzer es erneut versuchen kann.
                 _uiState.update { it.copy(isSaving = false, saveFailed = true) }
@@ -387,6 +410,63 @@ class EditStationViewModel(
         _uiState.update { it.copy(saveFailed = false) }
     }
 
+    /** Importiert ein vor dem ersten Speichern mit der Kamera aufgenommenes oder aus der Galerie gewähltes Foto. */
+    fun onAddPendingPhoto(source: Uri) {
+        _uiState.update { it.copy(pendingPhotoImporting = true, pendingPhotoImportError = null) }
+        viewModelScope.launch {
+            when (val result = fileStore.importPhoto(source)) {
+                is AttachmentImportResult.Success -> {
+                    val photo = (result.attachment as ImportedAttachment.Photo).toPendingPhoto()
+                    _uiState.update { it.copy(pendingPhotoImporting = false, pendingPhotos = it.pendingPhotos + photo) }
+                    saveDraft()
+                }
+                is AttachmentImportResult.Failure -> _uiState.update { it.copy(pendingPhotoImporting = false, pendingPhotoImportError = result.error) }
+            }
+        }
+    }
+
+    /** Die Fehlermeldung zu [StationEditUiState.pendingPhotoImportError] wurde angezeigt. */
+    fun onDismissPendingPhotoImportError() = _uiState.update { it.copy(pendingPhotoImportError = null) }
+
+    /** Verwirft ein vor dem ersten Speichern aufgenommenes Foto wieder; die Datei wird gleich mitgelöscht. */
+    fun onRemovePendingPhoto(photo: PendingPhoto) {
+        _uiState.update { state -> state.copy(pendingPhotos = state.pendingPhotos.filterNot { it.fileName == photo.fileName }) }
+        saveDraft()
+        viewModelScope.launch { fileStore.delete(photo.fileName) }
+    }
+
+    /** Bildunterschrift eines vor dem ersten Speichern aufgenommenen Fotos bearbeiten. */
+    fun onPendingPhotoCaptionChange(photo: PendingPhoto, caption: String) {
+        _uiState.update { state ->
+            state.copy(pendingPhotos = state.pendingPhotos.map { if (it.fileName == photo.fileName) it.copy(caption = caption) else it })
+        }
+        saveDraft()
+    }
+
+    /** "Standort der Station übernehmen" im Betrachter, für ein noch nicht gespeichertes Foto. */
+    fun onPendingPhotoUseLocation(photo: PendingPhoto, latitude: Double, longitude: Double) {
+        _uiState.update { state ->
+            state.copy(
+                pendingPhotos = state.pendingPhotos.map {
+                    if (it.fileName == photo.fileName) it.copy(latitude = latitude, longitude = longitude) else it
+                },
+            )
+        }
+        saveDraft()
+        viewModelScope.launch { fileStore.writeLocation(photo.fileName, latitude, longitude) }
+    }
+
+    /**
+     * Löscht die Dateien noch nicht übernommener [StationEditUiState.pendingPhotos], wenn das Formular
+     * ohne Speichern verlassen wird. `viewModelScope` ist zu diesem Zeitpunkt bereits abgebrochen (siehe
+     * `ViewModel.clear()`), daher blockierend statt über ihn - reines lokales Datei-I/O, unkritisch kurz.
+     */
+    override fun onCleared() {
+        val orphaned = _uiState.value.pendingPhotos
+        if (orphaned.isEmpty()) return
+        runBlocking { orphaned.forEach { fileStore.delete(it.fileName) } }
+    }
+
     private fun StationEditUiState.withErrors(): StationEditUiState {
         if (!showErrors) return copy(errors = emptyMap(), costErrors = emptyMap())
         val validation = input.validation(locale = locale())
@@ -394,8 +474,8 @@ class EditStationViewModel(
     }
 
     private fun saveDraft() {
-        val input = _uiState.value.input
-        savedStateHandle[DRAFT_KEY] = encodeToSavedState(StationDraft(input, showErrors))
+        val state = _uiState.value
+        savedStateHandle[DRAFT_KEY] = encodeToSavedState(StationDraft(state.input, showErrors, state.pendingPhotos))
     }
 }
 

@@ -111,6 +111,7 @@ import app.restvolt.camperlog.ui.WeatherRefreshRow
 import app.restvolt.camperlog.ui.WeatherSummary
 import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
 import app.restvolt.camperlog.ui.attachments.AttachmentPickers
+import app.restvolt.camperlog.ui.attachments.PendingPhotosState
 import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
@@ -416,6 +417,16 @@ private fun StationForm(
             snackbarHostState = snackbarHostState,
             stopLocation = if (input.latitude != null && input.longitude != null) input.latitude to input.longitude else null,
             pickers = attachmentPickers,
+            pending = PendingPhotosState(
+                photos = state.pendingPhotos,
+                importing = state.pendingPhotoImporting,
+                importError = state.pendingPhotoImportError,
+                onAdd = viewModel::onAddPendingPhoto,
+                onRemove = viewModel::onRemovePendingPhoto,
+                onCaptionChange = viewModel::onPendingPhotoCaptionChange,
+                onUseLocation = viewModel::onPendingPhotoUseLocation,
+                onDismissImportError = viewModel::onDismissPendingPhotoImportError,
+            ),
         )
         SectionCard {
             FormTextField(

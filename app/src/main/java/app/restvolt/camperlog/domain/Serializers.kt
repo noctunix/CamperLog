@@ -8,6 +8,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.Currency
 
@@ -27,6 +28,15 @@ object LocalTimeSerializer : KSerializer<LocalTime> {
     override fun serialize(encoder: Encoder, value: LocalTime) = encoder.encodeString(value.toString())
 
     override fun deserialize(decoder: Decoder): LocalTime = LocalTime.parse(decoder.decodeString())
+}
+
+/** Speichert ein Datum mit Uhrzeit als ISO-Text, z. B. `2026-07-04T18:30:00`. */
+object LocalDateTimeSerializer : KSerializer<LocalDateTime> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("app.restvolt.camperlog.LocalDateTime", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: LocalDateTime) = encoder.encodeString(value.toString())
+
+    override fun deserialize(decoder: Decoder): LocalDateTime = LocalDateTime.parse(decoder.decodeString())
 }
 
 /** Speichert einen Zeitpunkt als ISO-Text, z. B. `2026-07-04T18:30:00Z`. */

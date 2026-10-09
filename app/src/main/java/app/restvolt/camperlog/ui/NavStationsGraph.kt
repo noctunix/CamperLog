@@ -93,6 +93,8 @@ internal fun NavGraphBuilder.stationsGraph(
                 repository = stations,
                 tours = repository,
                 vehicles = vehicles,
+                attachments = attachments,
+                fileStore = attachmentFileStore,
                 stationId = route.stationId,
                 initialTourId = route.tourId,
                 initialType = route.initialType?.let(StationType::valueOf),
