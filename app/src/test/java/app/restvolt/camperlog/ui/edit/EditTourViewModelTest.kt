@@ -91,6 +91,24 @@ class EditTourViewModelTest {
     }
 
     @Test
+    fun newTour_preselectsTheFirstUnsoldVehicleInsteadOfASoldCurrentVehicle() = runTest {
+        val sold = defaultVehicle(id = 1, name = "A", sold = true)
+        val unsold = defaultVehicle(id = 2, name = "B")
+        val vehicles = FakeVehicleRepository(listOf(sold, unsold), currentVehicleId = 1)
+        val viewModel = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(), locale)
+
+        assertEquals(2L, viewModel.uiState.value.input.vehicleId)
+    }
+
+    @Test
+    fun newTour_preselectsNothingWhenAllVehiclesAreSold() = runTest {
+        val vehicles = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A", sold = true)), currentVehicleId = 1)
+        val viewModel = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(), locale)
+
+        assertEquals(0L, viewModel.uiState.value.input.vehicleId)
+    }
+
+    @Test
     fun settingEndDateDerivesAllMetricsFromTourData() = runTest {
         val running = tour(vehicleId = 1).copy(endDate = null, travelDays = 99, overnightStays = 99, distanceKm = 99)
         val stations = FakeStationRepository(listOf(station(vehicleId = 1, tourId = 1).copy(nights = 2)))

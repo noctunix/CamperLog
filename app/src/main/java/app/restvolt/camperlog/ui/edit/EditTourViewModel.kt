@@ -136,10 +136,17 @@ class EditTourViewModel(
                 }
             }
             viewModelScope.launch {
+                val vehicleList = vehicles.observeVehicles().first()
                 val currentVehicleId = vehicles.observeCurrentVehicle().first().id
-                // Nur vorbelegen, solange der Nutzer noch nichts eingegeben hat.
-                _uiState.update {
-                    if (it.isDirty) it else it.copy(input = it.input.copy(vehicleId = currentVehicleId))
+                // Das aktuelle Fahrzeug nur vorbelegen, wenn es nicht verkauft ist; sonst das erste
+                // nicht verkaufte, oder - sind alle verkauft - gar keine Vorauswahl.
+                val preselectedVehicleId = vehicleList.firstOrNull { it.id == currentVehicleId && !it.isSold }?.id
+                    ?: vehicleList.firstOrNull { !it.isSold }?.id
+                if (preselectedVehicleId != null) {
+                    // Nur vorbelegen, solange der Nutzer noch nichts eingegeben hat.
+                    _uiState.update {
+                        if (it.isDirty) it else it.copy(input = it.input.copy(vehicleId = preselectedVehicleId))
+                    }
                 }
             }
         } else {
