@@ -18,6 +18,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.TrackSummary
+import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_ID
+import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_SAVE_ACTION
 import app.restvolt.camperlog.domain.displayTitle
 import app.restvolt.camperlog.ui.checklists.suggestedChecklistTemplates
 import app.restvolt.camperlog.ui.detail.AndroidTourExportFiles
@@ -98,6 +100,12 @@ internal fun NavGraphBuilder.toursGraph(
             homeLocationSettings = homeLocationSettings,
             onDone = { navController.popFrom(entry) },
             onSaved = {
+                // Schaltet den letzten Schritt der Pilot-Tour frei, aber nur, wenn sie gerade läuft:
+                // normales Speichern ohne aktive Tour soll nicht an sie koppeln.
+                if (guideController.state.value.tour?.id == CREATE_FIRST_TOUR_ID) {
+                    guideController.completeAction(CREATE_FIRST_TOUR_SAVE_ACTION)
+                    guideController.next()
+                }
                 if (tourId == 0L) toursViewModel.onTourCreated()
                 navController.popFrom(entry)
             },

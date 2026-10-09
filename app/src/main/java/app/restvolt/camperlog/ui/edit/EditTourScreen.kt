@@ -73,6 +73,7 @@ import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.guide.guideAnchor
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.messageRes
 import app.restvolt.camperlog.ui.settings.HomeLocationSettings
@@ -141,7 +142,11 @@ fun EditTourScreen(
                 onBack = requestBack,
                 actions = {
                     if (!state.notFound && !state.isLoading) {
-                        TextButton(onClick = viewModel::save, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
+                        TextButton(
+                            onClick = viewModel::save,
+                            enabled = !state.isSaving,
+                            modifier = Modifier.guideAnchor("edit.tour.save"),
+                        ) { Text(stringResource(R.string.action_save)) }
                     }
                 },
             )
@@ -236,6 +241,7 @@ private fun TourForm(
                     capitalization = KeyboardCapitalization.Words,
                     imeAction = ImeAction.Next,
                 ),
+                modifier = Modifier.guideAnchor("edit.tour.name"),
             )
             FormTextField(
                 label = stringResource(R.string.field_destination),

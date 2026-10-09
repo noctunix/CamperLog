@@ -58,6 +58,7 @@ import app.restvolt.camperlog.domain.travelDaysBetween
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.FinishTourDialog
 import app.restvolt.camperlog.ui.TabTopBar
+import app.restvolt.camperlog.ui.guide.guideAnchor
 import app.restvolt.camperlog.ui.VehicleSwitcherTitle
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
@@ -107,7 +108,7 @@ fun ToursScreen(
         floatingActionButton = {
             // Content-Überladung statt text/icon: Letztere blendet den Text per
             // clearAndSetSemantics aus, dann hätte der FAB für TalkBack keinen Namen.
-            ExtendedFloatingActionButton(onClick = onAddTour) {
+            ExtendedFloatingActionButton(onClick = onAddTour, modifier = Modifier.guideAnchor("tours.fab.add")) {
                 Icon(painterResource(R.drawable.ic_add), contentDescription = null)
                 Spacer(Modifier.width(12.dp))
                 Text(stringResource(R.string.tours_new))

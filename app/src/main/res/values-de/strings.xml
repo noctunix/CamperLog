@@ -1192,4 +1192,7 @@
     <string name="guide_pause">Pause</string>
     <string name="guide_resume">Fortsetzen</string>
     <string name="guide_end">Beenden</string>
+    <string name="guide_step_fab_body">Tippe hier, um eine neue Tour anzulegen.</string>
+    <string name="guide_step_name_body">Trag hier den Namen oder das Ziel der Tour ein.</string>
+    <string name="guide_step_save_body">Tippe auf Speichern, um die Tour anzulegen.</string>
 </resources>

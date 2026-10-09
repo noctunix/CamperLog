@@ -1203,4 +1203,7 @@
     <string name="guide_pause">Pause</string>
     <string name="guide_resume">Resume</string>
     <string name="guide_end">End</string>
+    <string name="guide_step_fab_body">Tap here to start a new tour.</string>
+    <string name="guide_step_name_body">Enter the tour\'s name or destination here.</string>
+    <string name="guide_step_save_body">Tap Save to create the tour.</string>
 </resources>
