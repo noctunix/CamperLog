@@ -10,6 +10,7 @@ import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TrackRepository
+import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import kotlinx.coroutines.flow.first
@@ -34,9 +35,14 @@ suspend fun buildBackup(
     attachments: AttachmentRepository,
     exportedAt: Instant,
 ): Backup {
-    val tours = repository.allTours()
-    val allVehicles = vehicles.allVehicles()
-    val allStations = stations.allStations()
+    // Demo-Daten des Tutorials (siehe DemoTourSession) gehören nie in die Sicherung: ein beim
+    // Absturz zurückgelassener Rest soll nicht erst im nächtlichen Backup landen, bevor die nächste
+    // App-Öffnung ihn aufräumt.
+    val demoTourIds = repository.demoTourIds().toHashSet()
+    val demoVehicleIds = vehicles.allVehicles().filter(Vehicle::isDemo).mapTo(HashSet(), Vehicle::id)
+    val tours = repository.allTours().filterNot { it.isDemo }
+    val allVehicles = vehicles.allVehicles().filterNot { it.isDemo }
+    val allStations = stations.allStations().filterNot { it.vehicleId in demoVehicleIds || it.tourId in demoTourIds }
     val repairsByVehicle = vehicles.allRepairs().groupBy { it.vehicleId }
     val logEntriesByVehicle = logs.allEntries().groupBy { it.vehicleId }
     val allDocuments = documents.allDocuments()

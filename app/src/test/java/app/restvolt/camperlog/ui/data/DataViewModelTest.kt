@@ -124,6 +124,44 @@ class DataViewModelTest {
         assertEquals(VEHICLE_UUID, backup.currentVehicleUuid)
     }
 
+    @Test
+    fun backupJson_excludesTheDemoTourItsVehicleAndItsStation() = runBlocking {
+        val demoVehicleId = 2L
+        val demoTour = tour.copy(id = 2, uuid = "22222222-2222-4222-8222-222222222222", vehicleId = demoVehicleId, isDemo = true)
+        val demoVehicle = defaultVehicle(id = demoVehicleId, name = "Demo").copy(uuid = "33333333-3333-4333-8333-333333333333", isDemo = true)
+        val demoStation = Station(
+            vehicleId = demoVehicleId,
+            tourId = demoTour.id,
+            type = StationType.OVERNIGHT,
+            date = LocalDate.of(2026, 7, 1),
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        val viewModel = DataViewModel(
+            FakeTourRepository(listOf(tour.copy(id = 1), demoTour)),
+            FakeExchangeRateRepository(),
+            FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1).copy(uuid = VEHICLE_UUID), demoVehicle)),
+            FakeLogRepository(),
+            FakeStationRepository(listOf(demoStation)),
+            FakeVehicleDocumentRepository(),
+            FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(), FakeTrackRepository(),
+            FakeAttachmentRepository(),
+            FakeAttachmentFileStore(),
+            FakeBackupImporter(),
+            files,
+            folderWriter,
+            background = dispatcher,
+        )
+
+        val backup = (decodeBackup(viewModel.backupJson()) as BackupReadResult.Success).backup
+
+        // decodeBackup setzt id und vehicleId jeder Tour neu (ids sind lokal, vehicleId steckt in
+        // tourVehicleUuid) - der Vergleich gilt daher der ursprünglichen, noch ungespeicherten Tour.
+        assertEquals(listOf(tour), backup.tours)
+        assertEquals(listOf(VEHICLE_UUID), backup.vehicles.map { it.vehicle.uuid })
+        assertTrue(backup.stations.isEmpty())
+    }
+
     private val backupText = Backup(Instant.parse("2026-10-04T12:00:00Z"), nok, emptyList(), listOf(tour)).let(::encodeBackup)
 
     private fun viewModel(
@@ -226,6 +264,30 @@ class DataViewModelTest {
     }
 
     @Test
+    fun exportCsv_excludesTheDemoTour() {
+        val demoTour = tour.copy(id = 2, uuid = "22222222-2222-4222-8222-222222222222", isDemo = true)
+        val viewModel = DataViewModel(
+            FakeTourRepository(listOf(tour.copy(id = 1), demoTour)),
+            FakeExchangeRateRepository(),
+            FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1, name = "Standard").copy(uuid = VEHICLE_UUID))),
+            FakeLogRepository(),
+            FakeStationRepository(),
+            FakeVehicleDocumentRepository(),
+            FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(), FakeTrackRepository(),
+            FakeAttachmentRepository(),
+            FakeAttachmentFileStore(),
+            FakeBackupImporter(),
+            files,
+            folderWriter,
+            background = dispatcher,
+        )
+
+        viewModel.exportCsv(DEFAULT_VEHICLE_NAME)
+
+        assertEquals(listOf(tour.copy(id = 1, vehicleId = 1)), files.csvExports.single().tours)
+    }
+
+    @Test
     fun exportStationsCsv_withStations_requestsShare() {
         val station = Station(
             vehicleId = 1,
@@ -273,6 +335,44 @@ class DataViewModelTest {
         assertNull(viewModel.share.value)
         assertEquals(DataMessage.Text(R.string.export_stations_nothing), viewModel.message.value)
         assertTrue(files.stationsCsvExports.isEmpty())
+    }
+
+    @Test
+    fun exportStationsCsv_excludesTheStationOfTheDemoVehicle() {
+        val station = Station(
+            vehicleId = 1,
+            tourId = null,
+            type = StationType.SIGHT,
+            date = LocalDate.of(2026, 7, 2),
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        val demoVehicleId = 2L
+        val demoStation = station.copy(vehicleId = demoVehicleId)
+        val viewModel = DataViewModel(
+            FakeTourRepository(),
+            FakeExchangeRateRepository(),
+            FakeVehicleRepository(
+                initial = listOf(
+                    defaultVehicle(id = 1, name = "Standard").copy(uuid = VEHICLE_UUID),
+                    defaultVehicle(id = demoVehicleId, name = "Demo").copy(isDemo = true),
+                ),
+            ),
+            FakeLogRepository(),
+            FakeStationRepository(listOf(station, demoStation)),
+            FakeVehicleDocumentRepository(),
+            FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(), FakeTrackRepository(),
+            FakeAttachmentRepository(),
+            FakeAttachmentFileStore(),
+            FakeBackupImporter(),
+            files,
+            folderWriter,
+            background = dispatcher,
+        )
+
+        viewModel.exportStationsCsv(DEFAULT_VEHICLE_NAME)
+
+        assertEquals(listOf(station), files.stationsCsvExports.single().stations)
     }
 
     @Test

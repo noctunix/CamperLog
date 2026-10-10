@@ -27,6 +27,7 @@ import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
+import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TrackRepository
@@ -165,12 +166,12 @@ class DataViewModel(
      * [defaultVehicleName] gilt für Touren eines Fahrzeugs mit leerem Namen.
      */
     fun exportCsv(defaultVehicleName: String) = launchTask(R.string.export_failed) {
-        val tours = repository.allTours()
+        val tours = repository.allTours().filterNot { it.isDemo }
         if (tours.isEmpty()) {
             DataMessage.Text(R.string.export_nothing)
         } else {
-            val vehicleNames = vehicles.allVehicles().associate { it.id to it.name }
-            val allStations = stations.allStations()
+            val vehicleNames = vehicles.allVehicles().filterNot { it.isDemo }.associate { it.id to it.name }
+            val allStations = nonDemoStations()
             _share.value = ShareRequest.Csv(files.writeCsvExport(tours, allStations, vehicleNames, defaultVehicleName, vocabulary()))
             null
         }
@@ -181,15 +182,22 @@ class DataViewModel(
      * einen Hinweis. [defaultVehicleName] gilt für Stationen eines Fahrzeugs mit leerem Namen.
      */
     fun exportStationsCsv(defaultVehicleName: String) = launchTask(R.string.export_stations_failed) {
-        val allStations = stations.allStations()
+        val allStations = nonDemoStations()
         if (allStations.isEmpty()) {
             DataMessage.Text(R.string.export_stations_nothing)
         } else {
-            val vehicleNames = vehicles.allVehicles().associate { it.id to it.name }
-            val tourNames = repository.allTours().associate { it.id to it.destination }
+            val vehicleNames = vehicles.allVehicles().filterNot { it.isDemo }.associate { it.id to it.name }
+            val tourNames = repository.allTours().filterNot { it.isDemo }.associate { it.id to it.destination }
             _share.value = ShareRequest.StationsCsv(files.writeStationsCsvExport(allStations, tourNames, vehicleNames, defaultVehicleName, vocabulary()))
             null
         }
+    }
+
+    /** Alle Stationen ohne die der Demo-Tour des Tutorials (siehe [app.restvolt.camperlog.domain.guide.DemoTourSession]). */
+    private suspend fun nonDemoStations(): List<Station> {
+        val demoTourIds = repository.demoTourIds().toHashSet()
+        val demoVehicleIds = vehicles.allVehicles().filter { it.isDemo }.mapTo(HashSet()) { it.id }
+        return stations.allStations().filterNot { it.vehicleId in demoVehicleIds || it.tourId in demoTourIds }
     }
 
     /** Speichert eine Sicherung in die vom Nutzer gewählte Datei [target]; als ZIP, sofern [includeFiles]. */
