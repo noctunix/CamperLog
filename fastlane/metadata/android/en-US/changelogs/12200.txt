@@ -1,0 +1,1 @@
+• Pausing a GPS track now offers a duration (30 min / 1 h / 3 h / 8 h / 1 day) to resume automatically

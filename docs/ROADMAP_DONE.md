@@ -2,6 +2,8 @@
 
 Shipped features, newest first.
 
+- 1.22.0 – Pausing a GPS track recording can now schedule an automatic resume after a chosen duration (30 min / 1 h / 3 h / 8 h / 1 day), no new permission needed
+
 - 1.21.0 – Tutorial includes an auto-generated, clearly marked sample tour (own demo vehicle, 3 stations, simulated GPS track) to explore GPS tracking and the map before creating a real tour; sample data is swept automatically and never appears in backups/exports
 
 - 1.20.1 – Device-testing fixes: sold vehicles no longer pre-selected for new tours, app name in the track notification, the "create your first tour" tutorial no longer gets stuck, tutorials moved up into Settings, "Today" button on the tour start date, automatic GPS recovery after a detected reboot, fixed a rare ghost GPS recording pointing at a deleted tour

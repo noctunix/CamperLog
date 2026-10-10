@@ -1,0 +1,1 @@
+• Beim Pausieren einer GPS-Aufzeichnung lässt sich jetzt eine Dauer wählen (30 Min / 1 Std / 3 Std / 8 Std / 1 Tag), nach der automatisch fortgesetzt wird
