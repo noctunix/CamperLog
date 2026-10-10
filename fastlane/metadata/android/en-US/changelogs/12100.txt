@@ -1,0 +1,2 @@
+• The tutorial now includes a sample tour, so you can explore GPS tracking and the map before creating your own tour
+• Sample data is clearly marked and cleaned up automatically, never saved in your backups

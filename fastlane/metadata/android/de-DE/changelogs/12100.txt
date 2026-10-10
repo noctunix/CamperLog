@@ -1,0 +1,2 @@
+• Das Tutorial legt jetzt eine Beispiel-Tour an, damit du GPS-Aufzeichnung und Karte ausprobieren kannst, bevor du deine eigene Tour anlegst
+• Beispieldaten sind klar gekennzeichnet, werden automatisch aufgeräumt und landen nie in deiner Sicherung
