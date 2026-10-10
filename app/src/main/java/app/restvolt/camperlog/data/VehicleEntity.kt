@@ -96,6 +96,9 @@ data class RepairEntity(
     @ColumnInfo(name = "odometer_km") val odometerKm: Int? = null,
     @ColumnInfo(name = "cost_currency") val costCurrency: String? = null,
     @ColumnInfo(name = "cost_minor") val costMinor: Long? = null,
+    @ColumnInfo(name = "workshop_name", defaultValue = "") val workshopName: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     @ColumnInfo(name = "created_at") val createdAtMillis: Long,
     @ColumnInfo(name = "updated_at") val updatedAtMillis: Long,
 )

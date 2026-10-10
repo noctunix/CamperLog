@@ -135,6 +135,9 @@ internal fun RepairEntity.toDomain(): Repair = Repair(
     description = description,
     odometerKm = odometerKm,
     cost = moneyOf(costCurrency, costMinor),
+    workshopName = workshopName,
+    latitude = latitude,
+    longitude = longitude,
     createdAt = Instant.ofEpochMilli(createdAtMillis),
     updatedAt = Instant.ofEpochMilli(updatedAtMillis),
 )
@@ -148,6 +151,9 @@ internal fun Repair.toEntity(): RepairEntity = RepairEntity(
     odometerKm = odometerKm,
     costCurrency = cost?.currency?.currencyCode,
     costMinor = cost?.minor,
+    workshopName = workshopName,
+    latitude = latitude,
+    longitude = longitude,
     createdAtMillis = createdAt.toEpochMilli(),
     updatedAtMillis = updatedAt.toEpochMilli(),
 )

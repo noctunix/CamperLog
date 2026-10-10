@@ -475,6 +475,7 @@
     <string name="field_last_oil_change_odometer">km-Stand beim Ölwechsel</string>
     <string name="field_date">Datum</string>
     <string name="field_description">Beschreibung</string>
+    <string name="field_workshop_name">Werkstatt</string>
     <string name="field_odometer_km">km-Stand</string>
 
     <!-- Abschnitte des Fahrzeugformulars -->

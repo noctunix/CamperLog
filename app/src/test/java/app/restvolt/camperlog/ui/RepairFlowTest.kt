@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui
 
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
@@ -96,6 +97,21 @@ class RepairFlowTest {
 
         compose.onNodeWithText("Bremsen gewechselt").assertExists()
         compose.onNodeWithText("Reifen gewechselt").assertDoesNotExist()
+    }
+
+    @Test
+    fun addRepair_keepsWorkshopNameAfterReopening() {
+        start()
+        compose.onNodeWithText("Fahrzeug").performClick()
+        compose.onNodeWithText("Reparatur hinzufügen").performClick()
+
+        descriptionField().performTextInput("Ölwechsel")
+        compose.onNode(hasSetTextAction() and hasText("Werkstatt")).performTextInput("Werkstatt Meier")
+        clickSave()
+        compose.onNodeWithContentDescription("Zurück").performClick()
+
+        compose.onNodeWithText("Ölwechsel").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Werkstatt")).assertTextContains("Werkstatt Meier")
     }
 
     @Test

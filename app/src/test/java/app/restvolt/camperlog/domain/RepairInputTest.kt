@@ -92,4 +92,24 @@ class RepairInputTest {
         assertEquals("Ölwechsel", repair.description)
         assertEquals(9990L, repair.cost?.minor)
     }
+
+    @Test
+    fun workshopNameIsOptionalAndTrimmed() {
+        val withoutWorkshop = RepairInput(date = LocalDate.of(2026, 1, 1), description = "Service").toRepair(null, vehicleId = 1, de)
+        assertEquals("", withoutWorkshop.workshopName)
+
+        val withWorkshop = valid.copy(workshopName = "  Werkstatt Meier  ").toRepair(null, vehicleId = 1, de)
+        assertEquals("Werkstatt Meier", withWorkshop.workshopName)
+    }
+
+    @Test
+    fun coordinatesPassThroughUnchanged() {
+        val repair = valid.copy(latitude = 52.5219, longitude = 13.4132).toRepair(null, vehicleId = 1, de)
+        assertEquals(52.5219, repair.latitude)
+        assertEquals(13.4132, repair.longitude)
+
+        val withoutCoordinates = valid.toRepair(null, vehicleId = 1, de)
+        assertNull(withoutCoordinates.latitude)
+        assertNull(withoutCoordinates.longitude)
+    }
 }

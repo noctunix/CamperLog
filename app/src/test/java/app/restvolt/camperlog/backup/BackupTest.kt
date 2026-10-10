@@ -169,6 +169,9 @@ class BackupTest {
         description = "Bremsen erneuert",
         odometerKm = 60000,
         cost = Money(45000, eur),
+        workshopName = "Werkstatt Meier",
+        latitude = 52.5219,
+        longitude = 13.4132,
         createdAt = Instant.parse("2025-06-02T08:00:00Z"),
         updatedAt = Instant.parse("2025-06-02T08:00:00Z"),
     )
@@ -262,7 +265,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 15" in text)
+        assert("\"schemaVersion\": 16" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -272,7 +275,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 15" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 16" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -367,6 +370,35 @@ class BackupTest {
         assertEquals(emptySet<EnergyType>(), decoded.vehicles.single().vehicle.requiredEnergyTypes)
     }
 
+    @Test
+    fun read_importsOlderBackupsMissingTheWorkshopNameAndCoordinateFields() {
+        val text = applyAll(
+            encodeBackup(vehicleBackup),
+            listOf(
+                "\"workshopName\": \"Werkstatt Meier\"," to "",
+                "\"latitude\": 52.5219," to "",
+                "\"longitude\": 13.4132," to "",
+            ),
+        )
+
+        val decoded = success(text)
+
+        val repair = decoded.vehicles.single().repairs.single()
+        assertEquals("", repair.workshopName)
+        assertEquals(null, repair.latitude)
+        assertEquals(null, repair.longitude)
+    }
+
+    @Test
+    fun roundTrip_keepsRepairWorkshopNameAndCoordinates() {
+        val decoded = success(encodeBackup(vehicleBackup))
+
+        val repair = decoded.vehicles.single().repairs.single()
+        assertEquals("Werkstatt Meier", repair.workshopName)
+        assertEquals(52.5219, repair.latitude)
+        assertEquals(13.4132, repair.longitude)
+    }
+
     private fun vehicleBackupWithEnergyTypes(types: Set<EnergyType>) = vehicleBackup.copy(
         vehicles = listOf(BackupVehicle(fullVehicle().copy(requiredEnergyTypes = types), listOf(repair()), listOf(logEntry()))),
     )
@@ -396,7 +428,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 15" in text)
+        assert("\"schemaVersion\": 16" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -431,13 +463,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 15", "\"schemaVersion\": 16"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 16", "\"schemaVersion\": 17"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 15", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 16", it))?.error)
         }
     }
 
@@ -708,6 +740,10 @@ class BackupTest {
             "\"odometerKm\": 60000" to "\"odometerKm\": ${MAX_ODOMETER_KM + 1}",
             "\"odometerKm\": 60000" to "\"odometerKm\": -1",
             "\"date\": \"2025-06-01\"" to "\"date\": \"keingueltigesdatum\"",
+            "\"latitude\": 52.5219" to "\"latitude\": 91.0",
+            "\"longitude\": 13.4132" to "\"longitude\": 181.0",
+            "\"latitude\": 52.5219," to "",
+            "\"workshopName\": \"Werkstatt Meier\"" to "\"workshopName\": \"${"x".repeat(MAX_DESTINATION_LENGTH + 1)}\"",
         ).forEach { (old, new) ->
             assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1, repairNumber = 1), failure(vehicleEncodedWith(old, new)))
         }

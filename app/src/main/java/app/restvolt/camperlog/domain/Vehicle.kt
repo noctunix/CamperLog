@@ -106,7 +106,7 @@ data class Vehicle(
         ).any(String::isNotBlank)
 }
 
-/** Eine Reparatur an einem Fahrzeug. */
+/** Eine Reparatur an einem Fahrzeug. [latitude]/[longitude] sind nur über "Aktuellen Standort verwenden" gesetzt. */
 data class Repair(
     val id: Long = 0,
     val uuid: String = "",
@@ -115,6 +115,9 @@ data class Repair(
     val description: String,
     val odometerKm: Int? = null,
     val cost: Money? = null,
+    val workshopName: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val createdAt: Instant,
     val updatedAt: Instant,
 )

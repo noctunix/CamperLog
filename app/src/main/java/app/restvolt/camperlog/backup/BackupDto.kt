@@ -163,6 +163,12 @@ internal data class RepairDto(
     val description: String,
     val odometerKm: Int? = null,
     val cost: CostDto? = null,
+    /** Fehlt in Sicherungen vor Formatversion 16. */
+    val workshopName: String = "",
+    /** Fehlt in Sicherungen vor Formatversion 16. */
+    val latitude: Double? = null,
+    /** Fehlt in Sicherungen vor Formatversion 16. */
+    val longitude: Double? = null,
     val createdAt: String,
     val updatedAt: String,
 )

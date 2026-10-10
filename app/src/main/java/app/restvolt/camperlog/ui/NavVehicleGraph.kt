@@ -118,10 +118,17 @@ internal fun NavGraphBuilder.vehicleGraph(
     composable<RepairEditRoute> { entry ->
         val route = entry.toRoute<RepairEditRoute>()
         val vehicleViewModel = navController.vehicleViewModel(entry, vehicles, documents, checklists)
+        val repairContext = LocalContext.current
+        val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
         RepairEditScreen(
             viewModel = viewModel {
-                RepairEditViewModel(vehicles, exchangeRates, route.vehicleId, route.repairId, createSavedStateHandle())
+                RepairEditViewModel(
+                    vehicles, exchangeRates, route.vehicleId, route.repairId, createSavedStateHandle(),
+                    locationProvider = locationProvider,
+                    locationPermissionGate = AndroidLocationPermissionGate(repairContext),
+                )
             },
+            locationEnabled = locationEnabled,
             attachments = attachments,
             attachmentFileStore = attachmentFileStore,
             attachmentPickers = attachmentPickers,

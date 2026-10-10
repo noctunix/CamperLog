@@ -14,6 +14,9 @@ data class RepairInput(
     val odometerKm: String = "",
     val cost: String = "",
     @Serializable(with = CurrencySerializer::class) val costCurrency: Currency = EUR,
+    val workshopName: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
@@ -63,6 +66,9 @@ fun RepairInput.toRepair(original: Repair?, vehicleId: Long, locale: Locale): Re
     description = description.trim(),
     odometerKm = parseOptionalInt(odometerKm),
     cost = parseMoney(cost, costCurrency, locale),
+    workshopName = workshopName.trim(),
+    latitude = latitude,
+    longitude = longitude,
     createdAt = original?.createdAt ?: Instant.EPOCH,
     updatedAt = original?.updatedAt ?: Instant.EPOCH,
 )
@@ -74,4 +80,7 @@ fun Repair.toInput(locale: Locale): RepairInput = RepairInput(
     odometerKm = odometerKm?.toString().orEmpty(),
     cost = cost.toInput(locale),
     costCurrency = cost?.currency ?: EUR,
+    workshopName = workshopName,
+    latitude = latitude,
+    longitude = longitude,
 )

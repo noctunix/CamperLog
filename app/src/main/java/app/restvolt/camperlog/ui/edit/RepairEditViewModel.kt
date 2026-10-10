@@ -8,6 +8,11 @@ import androidx.savedstate.SavedState
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import app.restvolt.camperlog.domain.ExchangeRateRepository
+import app.restvolt.camperlog.domain.LocationCaptureController
+import app.restvolt.camperlog.domain.LocationCaptureState
+import app.restvolt.camperlog.domain.LocationFix
+import app.restvolt.camperlog.domain.LocationPermissionGate
+import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.RepairError
 import app.restvolt.camperlog.domain.RepairField
@@ -76,7 +81,12 @@ class RepairEditViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val locale: () -> Locale = { app.restvolt.camperlog.domain.supportedLocale(Locale.getDefault()) },
     private val today: () -> LocalDate = LocalDate::now,
+    locationProvider: LocationProvider = RepairNoOpLocationProvider,
+    locationPermissionGate: LocationPermissionGate = RepairNoOpLocationPermissionGate,
 ) : ViewModel() {
+
+    /** Standortbestimmung für den Werkstatt-Abschnitt, nur sichtbar, wenn die Oberfläche den Standort-Schalter an sieht. */
+    val locationCapture = LocationCaptureController(locationProvider, locationPermissionGate, viewModelScope)
 
     private val draft: RepairDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)?.let { decodeFromSavedState(it) }
 
@@ -95,6 +105,14 @@ class RepairEditViewModel(
 
     init {
         if (showErrors) _uiState.update { it.withErrors() }
+        viewModelScope.launch {
+            locationCapture.state.collect { captureState ->
+                if (captureState is LocationCaptureState.Found) {
+                    onInputChange { input -> input.copy(latitude = captureState.fix.latitude, longitude = captureState.fix.longitude) }
+                    locationCapture.clear()
+                }
+            }
+        }
         if (repairId != 0L) {
             viewModelScope.launch {
                 val repair = repository.observeRepairs(vehicleId).first().firstOrNull { it.id == repairId }
@@ -120,6 +138,9 @@ class RepairEditViewModel(
         _uiState.update { state -> state.copy(input = transform(state.input), isDirty = true).withErrors() }
         saveDraft()
     }
+
+    /** Entfernt eine per GPS gesetzte Koordinate wieder. */
+    fun onRemoveLocation() = onInputChange { it.copy(latitude = null, longitude = null) }
 
     /**
      * Validiert und speichert. Bei der ersten Speicherung einer neuen Reparatur bleibt das Formular
@@ -181,3 +202,17 @@ class RepairEditViewModel(
 }
 
 private const val DRAFT_KEY = "repair_draft"
+
+/** Platzhalter für Tests und Vorschauen ohne Standorthardware; liefert nie einen Fix. */
+private object RepairNoOpLocationProvider : LocationProvider {
+    override suspend fun requestFreshFix(): LocationFix? = null
+    override suspend fun lastKnownFix(maxAgeMillis: Long): LocationFix? = null
+    override fun isLocationEnabled(): Boolean = false
+}
+
+/** Platzhalter für Tests und Vorschauen ohne Standorthardware; hat nie eine Berechtigung. */
+private object RepairNoOpLocationPermissionGate : LocationPermissionGate {
+    override fun hasPermission(): Boolean = false
+    override fun hasRequestedBefore(): Boolean = false
+    override fun markRequested() = Unit
+}

@@ -56,15 +56,18 @@ import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.RepairError
 import app.restvolt.camperlog.domain.RepairField
 import app.restvolt.camperlog.domain.formatAmount
+import app.restvolt.camperlog.domain.formatCoordinates
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CurrencyPicker
 import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.LocationCaptureSection
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
 import app.restvolt.camperlog.ui.attachments.AttachmentPickers
 import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
+import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.messageRes
@@ -78,6 +81,7 @@ import java.util.Locale
 @Composable
 fun RepairEditScreen(
     viewModel: RepairEditViewModel,
+    locationEnabled: Boolean,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
@@ -138,6 +142,7 @@ fun RepairEditScreen(
             else -> RepairForm(
                 state = state,
                 viewModel = viewModel,
+                locationEnabled = locationEnabled,
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
                 attachmentPickers = attachmentPickers,
@@ -165,6 +170,7 @@ fun RepairEditScreen(
 private fun RepairForm(
     state: RepairEditUiState,
     viewModel: RepairEditViewModel,
+    locationEnabled: Boolean,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers,
@@ -209,6 +215,22 @@ private fun RepairForm(
                 error = errorOf(RepairField.DESCRIPTION),
                 hint = required,
             )
+            FormTextField(
+                label = stringResource(R.string.field_workshop_name),
+                value = input.workshopName,
+                onValueChange = { value -> change { it.copy(workshopName = value) } },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+            )
+            if (locationEnabled) {
+                if (input.latitude != null && input.longitude != null) {
+                    RepairLocationRow(latitude = input.latitude, longitude = input.longitude, onRemove = viewModel::onRemoveLocation)
+                } else {
+                    LocationCaptureSection(
+                        controller = viewModel.locationCapture,
+                        buttonLabel = stringResource(R.string.location_use_current_button),
+                    )
+                }
+            }
             UnitField(
                 label = stringResource(R.string.field_odometer_km),
                 value = input.odometerKm,
@@ -358,4 +380,21 @@ private fun MoneyField(
 private fun moneyErrorText(error: RepairError, currency: Currency, locale: Locale): String = when (error) {
     RepairError.AMOUNT_TOO_LARGE -> stringResource(R.string.error_amount_too_large, formatAmount(MAX_AMOUNT_MINOR, currency, locale))
     else -> stringResource(R.string.error_invalid_amount)
+}
+
+/** Gefundene GPS-Koordinate der Werkstatt mit der Möglichkeit, sie wieder zu entfernen. */
+@Composable
+private fun RepairLocationRow(latitude: Double, longitude: Double, onRemove: () -> Unit) {
+    val locale = currentLocale()
+    val description = coordinatesContentDescription(latitude, longitude, null, locale)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            formatCoordinates(latitude, longitude, locale),
+            modifier = Modifier.weight(1f).semantics { contentDescription = description },
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        IconButton(onClick = onRemove) {
+            Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.location_remove_coordinates))
+        }
+    }
 }

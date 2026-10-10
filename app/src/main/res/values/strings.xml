@@ -475,6 +475,7 @@
     <string name="field_last_oil_change_odometer">Odometer at oil change</string>
     <string name="field_date">Date</string>
     <string name="field_description">Description</string>
+    <string name="field_workshop_name">Workshop</string>
     <string name="field_odometer_km">Odometer</string>
 
     <!-- Vehicle form sections -->

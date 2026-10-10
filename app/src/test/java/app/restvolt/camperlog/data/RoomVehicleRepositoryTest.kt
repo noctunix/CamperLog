@@ -193,6 +193,20 @@ class RoomVehicleRepositoryTest {
     }
 
     @Test
+    fun savedRepairKeepsWorkshopNameAndCoordinates() = runTest {
+        val vehicleId = repository.save(vehicle(name = "Womo"))
+        val repairId = repository.saveRepair(
+            repair(vehicleId, "2026-01-01", "Bremsen").copy(workshopName = "Werkstatt Meier", latitude = 52.5219, longitude = 13.4132),
+        )
+
+        val stored = repository.observeRepairs(vehicleId).first().single { it.id == repairId }
+
+        assertEquals("Werkstatt Meier", stored.workshopName)
+        assertEquals(52.5219, stored.latitude)
+        assertEquals(13.4132, stored.longitude)
+    }
+
+    @Test
     fun lastUsedRepairCurrencyComesFromTheMostRecentlyChangedRepairWithCost() = runTest {
         assertNull(repository.lastUsedRepairCurrency())
         val vehicleId = repository.save(vehicle(name = "Womo"))

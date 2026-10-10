@@ -91,7 +91,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 15
+const val BACKUP_SCHEMA_VERSION = 16
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -835,6 +835,9 @@ private fun RepairDto.toRepair(): Repair? {
     val description = description.trim().takeIf { it.isNotEmpty() && it.length <= MAX_DESTINATION_LENGTH } ?: return null
     if (!odometerKm.inBounds(MAX_ODOMETER_KM)) return null
     val money = cost?.let { it.toMoney() ?: return null }
+    if (workshopName.length > MAX_DESTINATION_LENGTH) return null
+    if ((latitude == null) != (longitude == null)) return null
+    if (latitude != null && longitude != null && (latitude !in LATITUDE_RANGE || longitude !in LONGITUDE_RANGE)) return null
     return Repair(
         uuid = uuid,
         vehicleId = 0,
@@ -842,6 +845,9 @@ private fun RepairDto.toRepair(): Repair? {
         description = description,
         odometerKm = odometerKm,
         cost = money,
+        workshopName = workshopName.trim(),
+        latitude = latitude,
+        longitude = longitude,
         createdAt = parseInstant(createdAt) ?: return null,
         updatedAt = parseInstant(updatedAt) ?: return null,
     )
@@ -958,6 +964,9 @@ private fun Repair.toDto() = RepairDto(
     description = description,
     odometerKm = odometerKm,
     cost = cost?.toCostDto(),
+    workshopName = workshopName,
+    latitude = latitude,
+    longitude = longitude,
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
 )
