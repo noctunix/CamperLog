@@ -38,6 +38,7 @@ import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -135,19 +136,23 @@ class EditTourViewModel(
                     if (it.isDirty) it else it.copy(input = it.input.copy(costs = listOf(CostInput(currency = currency))))
                 }
             }
+            // Läuft dauerhaft statt nur einmal: Legt der Nutzer währenddessen (z. B. inline aus der
+            // Pilot-Tour heraus) das erste Fahrzeug überhaupt an, greift die Vorbelegung auch dann noch,
+            // nicht nur bei einem zufällig schon vorhandenen Fahrzeug im allerersten Zwischenstand.
             viewModelScope.launch {
-                val vehicleList = vehicles.observeVehicles().first()
-                val currentVehicleId = vehicles.observeCurrentVehicle().first().id
-                // Das aktuelle Fahrzeug nur vorbelegen, wenn es nicht verkauft ist; sonst das erste
-                // nicht verkaufte, oder - sind alle verkauft - gar keine Vorauswahl.
-                val preselectedVehicleId = vehicleList.firstOrNull { it.id == currentVehicleId && !it.isSold }?.id
-                    ?: vehicleList.firstOrNull { !it.isSold }?.id
-                if (preselectedVehicleId != null) {
-                    // Nur vorbelegen, solange der Nutzer noch nichts eingegeben hat.
-                    _uiState.update {
-                        if (it.isDirty) it else it.copy(input = it.input.copy(vehicleId = preselectedVehicleId))
+                combine(vehicles.observeVehicles(), vehicles.observeCurrentVehicle()) { list, current -> list to current }
+                    .collect { (vehicleList, current) ->
+                        _uiState.update { state ->
+                            // Nur vorbelegen, solange der Nutzer noch kein Fahrzeug gewählt hat.
+                            if (state.input.vehicleId != 0L) return@update state
+                            // Das aktuelle Fahrzeug nur vorbelegen, wenn es ein echtes, nicht verkauftes
+                            // ist; sonst das erste echte, nicht verkaufte, oder - gibt es keins - gar
+                            // keine Vorauswahl. Das Demo-Fahrzeug des Tutorials zählt nie.
+                            val preselectedVehicleId = vehicleList.firstOrNull { it.id == current.id && !it.isSold && !it.isDemo }?.id
+                                ?: vehicleList.firstOrNull { !it.isSold && !it.isDemo }?.id
+                            if (preselectedVehicleId != null) state.copy(input = state.input.copy(vehicleId = preselectedVehicleId)) else state
+                        }
                     }
-                }
             }
         } else {
             viewModelScope.launch {
