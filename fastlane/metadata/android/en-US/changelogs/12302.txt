@@ -1,0 +1,1 @@
+• Fixed saving a new tour with "Starts at home" enabled when no vehicle exists yet

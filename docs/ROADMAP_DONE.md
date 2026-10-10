@@ -2,6 +2,8 @@
 
 Shipped features, newest first.
 
+- 1.23.2 – Fixed saving a new tour with "Starts at home" enabled when no vehicle exists yet (the home station was created with an invalid vehicle reference, failing the save)
+
 - 1.23.1 – A scheduled GPS-track auto-resume now survives a device restart; the tutorial shows which vehicle a new tour is assigned to even with just one vehicle; cleared up a misdiagnosed "DatePicker doesn't open during a tutorial" report (it was a test bug, not an app bug)
 
 - 1.23.0 – The "create your first tour" tutorial now walks through every field step by step (14 real steps instead of 3): vehicle selection with inline vehicle creation if needed, period, GPS-track and home-location switches with location permission requested inline, other costs, slug, saving, adding a first station, and the finished track section with map
