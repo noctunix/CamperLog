@@ -88,6 +88,17 @@ fun EditTourScreen(
     viewModel: EditTourViewModel,
     trackSettings: TrackRecordingSettings,
     homeLocationSettings: HomeLocationSettings,
+    /**
+     * Nur innerhalb der Pilot-Tour "Erste Tour anlegen" `true`: fragt die Standortberechtigung schon
+     * beim Ankreuzen von "GPS-Track aufzeichnen" an statt erst beim Speichern. Außerhalb bleibt es
+     * beim normalen Verhalten (Anfrage beim Speichern, siehe unten).
+     */
+    requestTrackPermissionEarly: Boolean = false,
+    /** Pausiert bzw. setzt eine laufende geführte Tour rund um die vorgezogene Berechtigungsabfrage fort. */
+    onBeforeSystemDialog: () -> Unit = {},
+    onAfterSystemDialog: () -> Unit = {},
+    /** Bietet ein inline anlegbares Fahrzeug an; sichtbar, solange kein echtes (nicht als Demo markiertes) Fahrzeug existiert. */
+    onAddVehicle: () -> Unit = {},
     onDone: () -> Unit,
     onSaved: () -> Unit,
 ) {
@@ -105,6 +116,9 @@ fun EditTourScreen(
         if (tourId != null && TrackRecordingService.hasLocationPermission(context)) {
             TrackRecordingService.startForTour(context, tourId)
         }
+    }
+    val earlyTrackPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        onAfterSystemDialog()
     }
 
     LaunchedEffect(state.isSaved) {
@@ -164,6 +178,13 @@ fun EditTourScreen(
                 showTrackSwitch = state.isNew && state.input.endDate == null && trackPreferences.enabled,
                 showHomeSwitch = state.isNew && homeLocationPreferences.hasLocation,
                 homeName = homeLocationPreferences.name.ifBlank { stringResource(R.string.home_location_default_name) },
+                onTrackSwitchChecked = { checked ->
+                    if (checked && requestTrackPermissionEarly && !TrackRecordingService.hasLocationPermission(context)) {
+                        onBeforeSystemDialog()
+                        earlyTrackPermissionLauncher.launch(trackPermissions())
+                    }
+                },
+                onAddVehicle = onAddVehicle,
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
@@ -192,6 +213,8 @@ private fun TourForm(
     showTrackSwitch: Boolean,
     showHomeSwitch: Boolean,
     homeName: String,
+    onTrackSwitchChecked: (Boolean) -> Unit,
+    onAddVehicle: () -> Unit,
     modifier: Modifier,
 ) {
     val input = state.input
@@ -231,8 +254,11 @@ private fun TourForm(
     ) {
         SectionCard {
             SectionHeading(stringResource(R.string.edit_section_tour))
-            if (state.vehicles.size > 1) {
-                VehicleField(state.vehicles, input.vehicleId, viewModel::onVehicleChange)
+            val realVehicles = state.vehicles.filterNot { it.isDemo }
+            if (realVehicles.size > 1) {
+                VehicleField(realVehicles, input.vehicleId, viewModel::onVehicleChange, modifier = Modifier.guideAnchor("edit.tour.vehicle"))
+            } else if (realVehicles.isEmpty()) {
+                VehicleCreateHint(onAddVehicle, modifier = Modifier.guideAnchor("edit.tour.vehicle.create"))
             }
             FormTextField(
                 label = stringResource(R.string.field_name),
@@ -256,11 +282,17 @@ private fun TourForm(
                 ),
                 modifier = focusOf(TourField.DESTINATION),
             )
-            ChoiceField(stringResource(R.string.field_tour_type), TourType.entries, input.tourType, TourType::labelRes) { value ->
+            ChoiceField(
+                stringResource(R.string.field_tour_type),
+                TourType.entries,
+                input.tourType,
+                TourType::labelRes,
+                modifier = Modifier.guideAnchor("edit.tour.tourtype"),
+            ) { value ->
                 change { it.copy(tourType = value) }
             }
         }
-        SectionCard {
+        SectionCard(modifier = Modifier.guideAnchor("edit.tour.period")) {
             SectionHeading(stringResource(R.string.edit_section_period))
             DateField(
                 stringResource(R.string.field_start_date),
@@ -338,7 +370,11 @@ private fun TourForm(
                         title = stringResource(R.string.edit_track_switch_title),
                         supportingText = stringResource(R.string.edit_track_switch_support),
                         checked = state.trackSwitch,
-                        onCheckedChange = viewModel::onTrackSwitchChange,
+                        onCheckedChange = { checked ->
+                            viewModel.onTrackSwitchChange(checked)
+                            onTrackSwitchChecked(checked)
+                        },
+                        modifier = Modifier.guideAnchor("edit.tour.track.checkbox"),
                     )
                 }
                 if (showHomeSwitch) {
@@ -350,11 +386,12 @@ private fun TourForm(
                         ),
                         checked = state.homeSwitch,
                         onCheckedChange = viewModel::onHomeSwitchChange,
+                        modifier = Modifier.guideAnchor("edit.tour.home.checkbox"),
                     )
                 }
             }
         }
-        SectionCard {
+        SectionCard(modifier = Modifier.guideAnchor("edit.tour.other.costs")) {
             CollapsibleSection(
                 title = stringResource(R.string.tour_section_other_costs),
                 expanded = costsExpanded,
@@ -374,7 +411,7 @@ private fun TourForm(
                 )
             }
         }
-        SectionCard {
+        SectionCard(modifier = Modifier.guideAnchor("edit.tour.advanced")) {
             CollapsibleSection(
                 title = stringResource(R.string.edit_section_advanced),
                 expanded = advancedExpanded,
@@ -481,9 +518,15 @@ private fun FormTextField(
  * des Formulars, nicht sofort (siehe Material-Konvention für Schalter vs. Checkbox).
  */
 @Composable
-private fun CheckboxSettingRow(title: String, supportingText: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun CheckboxSettingRow(
+    title: String,
+    supportingText: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange)
@@ -499,14 +542,28 @@ private fun CheckboxSettingRow(title: String, supportingText: String, checked: B
     }
 }
 
-/** Fahrzeugauswahl des Formulars; wird nur bei mehr als einem Fahrzeug angezeigt. */
+/** Hinweis statt Fahrzeugauswahl, solange noch kein echtes Fahrzeug existiert; [onAdd] legt eines inline an. */
+@Composable
+private fun VehicleCreateHint(onAdd: () -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            stringResource(R.string.edit_vehicle_create_hint),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(onClick = onAdd) { Text(stringResource(R.string.vehicles_add)) }
+    }
+}
+
+/** Fahrzeugauswahl des Formulars; wird nur bei mehr als einem echten Fahrzeug angezeigt. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun VehicleField(vehicles: List<Vehicle>, selectedId: Long, onSelect: (Long) -> Unit) {
+private fun VehicleField(vehicles: List<Vehicle>, selectedId: Long, onSelect: (Long) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
     val selected = vehicles.firstOrNull { it.id == selectedId } ?: vehicles.first()
 
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }, modifier = modifier) {
         OutlinedTextField(
             value = vehicleDisplayName(selected),
             onValueChange = {},
@@ -557,9 +614,10 @@ private fun <T> ChoiceField(
     options: List<T>,
     selected: T,
     optionLabel: (T) -> Int,
+    modifier: Modifier = Modifier,
     onSelect: (T) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         // Die Überschrift steckt in jeder Option (siehe unten), sonst liest TalkBack sie doppelt.
         Text(
             label,

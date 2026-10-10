@@ -115,6 +115,7 @@ import app.restvolt.camperlog.ui.attachments.PendingPhotosState
 import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.guide.guideAnchor
 import app.restvolt.camperlog.ui.iconRes
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.locationFixSummary
@@ -170,7 +171,11 @@ fun EditStationScreen(
                 onBack = requestBack,
                 actions = {
                     if (!state.notFound && !state.isLoading) {
-                        TextButton(onClick = viewModel::save, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
+                        TextButton(
+                            onClick = viewModel::save,
+                            enabled = !state.isSaving,
+                            modifier = Modifier.guideAnchor("station.edit.save"),
+                        ) { Text(stringResource(R.string.action_save)) }
                     }
                 },
             )
@@ -272,7 +277,7 @@ private fun StationForm(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionCard {
-            TypeField(input.type, viewModel::onTypeChange)
+            TypeField(input.type, viewModel::onTypeChange, modifier = Modifier.guideAnchor("station.type"))
             FormTextField(
                 label = stringResource(R.string.field_name),
                 value = input.name,
@@ -883,9 +888,9 @@ private fun TimeField(label: String, time: LocalTime?, onTimeSelected: (LocalTim
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TypeField(selected: StationType, onSelect: (StationType) -> Unit) {
+private fun TypeField(selected: StationType, onSelect: (StationType) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }, modifier = modifier) {
         OutlinedTextField(
             value = stringResource(selected.labelRes),
             onValueChange = {},

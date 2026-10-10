@@ -96,6 +96,7 @@ import app.restvolt.camperlog.ui.LabeledValue
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.StationTypePickerSheet
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.guide.guideAnchor
 import app.restvolt.camperlog.ui.iconRes
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.stationSavedText
@@ -221,7 +222,7 @@ fun TourDetailScreen(
         floatingActionButton = {
             if (tour != null) {
                 // Content-Überladung statt text/icon, siehe ToursScreen: sonst hätte der FAB für TalkBack keinen Namen.
-                ExtendedFloatingActionButton(onClick = { showTypePicker = true }) {
+                ExtendedFloatingActionButton(onClick = { showTypePicker = true }, modifier = Modifier.guideAnchor("detail.station.fab")) {
                     Icon(painterResource(R.drawable.ic_add), contentDescription = null)
                     Spacer(Modifier.width(12.dp))
                     Text(stringResource(R.string.station_fab_add))
@@ -517,7 +518,7 @@ private fun TourDetails(
         if (trackSectionContent != null) {
             item {
                 var expanded by rememberSaveable { mutableStateOf(false) }
-                SectionCard {
+                SectionCard(modifier = Modifier.guideAnchor("detail.track.section")) {
                     CollapsibleSection(
                         title = stringResource(R.string.tour_track_title),
                         expanded = expanded,
