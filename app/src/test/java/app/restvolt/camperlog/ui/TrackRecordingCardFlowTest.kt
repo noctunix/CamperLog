@@ -27,6 +27,7 @@ import java.time.LocalDate
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -152,20 +153,71 @@ class TrackRecordingCardFlowTest {
     }
 
     @Test
-    fun pausing_keepsTheTourMarkedAndOffersResume() {
+    fun pausing_opensDurationDialogAndWithoutAChoiceKeepsTheTourMarkedAndOffersResume() {
         settings.trackedTourId = 1
         settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
         grantLocation()
         openTour(running = true, scrollTo = "Aufzeichnung pausieren", expandSection = false)
 
         compose.onNodeWithText("Aufzeichnung pausieren").performClick()
+        compose.onNodeWithText("Automatisch fortsetzen nach").assertExists()
+        compose.onNodeWithText("Ohne automatisches Fortsetzen").performClick()
 
         assertNull(settings.activeRecording)
+        assertNull(settings.scheduledResumeAtMillis)
         assertEquals(1L, settings.trackedTourId)
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Track"))
         compose.onNodeWithText("Track").performClick()
         compose.onNodeWithText("Aufzeichnung pausiert.").assertExists()
         compose.onNodeWithText("Aufzeichnung fortsetzen").assertExists()
+    }
+
+    @Test
+    fun pauseDurationDialog_offersAllDurationsAndCancelLeavesTheRecordingRunning() {
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        grantLocation()
+        openTour(running = true, scrollTo = "Aufzeichnung pausieren", expandSection = false)
+
+        compose.onNodeWithText("Aufzeichnung pausieren").performClick()
+        compose.onNodeWithText("Ohne automatisches Fortsetzen").assertExists()
+        compose.onNodeWithText("30 min").assertExists()
+        compose.onNodeWithText("1 h").assertExists()
+        compose.onNodeWithText("3 h").assertExists()
+        compose.onNodeWithText("8 h").assertExists()
+        compose.onNodeWithText("1 Tag").assertExists()
+        compose.onNodeWithText("Abbrechen").performClick()
+
+        assertEquals(ActiveRecording(1, 1), settings.activeRecording)
+    }
+
+    @Test
+    fun choosingADuration_pausesAndSchedulesAnAutoResumeHint() {
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        grantLocation()
+        openTour(running = true, scrollTo = "Aufzeichnung pausieren", expandSection = false)
+
+        compose.onNodeWithText("Aufzeichnung pausieren").performClick()
+        compose.onNodeWithText("1 h").performClick()
+
+        assertNull(settings.activeRecording)
+        assertNotNull(settings.scheduledResumeAtMillis)
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Track"))
+        compose.onNodeWithText("Track").performClick()
+        compose.onNodeWithText("Setzt automatisch um", substring = true).assertExists()
+    }
+
+    @Test
+    fun resumedAfterTimedPause_showsTheHintOnceAndClearsTheFlag() {
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        settings.resumedAfterTimedPause = true
+        grantLocation()
+        openTour(running = true, scrollTo = "Aufzeichnung pausieren")
+
+        compose.onNodeWithText("Nach der gewählten Pause automatisch fortgesetzt.").assertExists()
+        assertFalse(settings.resumedAfterTimedPause)
     }
 
     @Test

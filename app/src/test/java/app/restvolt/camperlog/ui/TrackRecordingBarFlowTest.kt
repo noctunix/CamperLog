@@ -22,6 +22,7 @@ import java.time.Instant
 import java.time.LocalDate
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
@@ -107,16 +108,43 @@ class TrackRecordingBarFlowTest {
     }
 
     @Test
-    fun pausingFromTheBar_clearsTheActiveRecordingButKeepsTheMarker() {
+    fun pausingFromTheBar_opensDurationDialogAndWithoutAChoiceClearsTheActiveRecordingButKeepsTheMarker() {
         settings.trackedTourId = 1
         settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
         start(lofoten())
 
         compose.onNodeWithContentDescription("Aufzeichnung pausieren").performClick()
+        compose.onNodeWithText("Automatisch fortsetzen nach").assertExists()
+        compose.onNodeWithText("Ohne automatisches Fortsetzen").performClick()
 
         assertNull(settings.activeRecording)
+        assertNull(settings.scheduledResumeAtMillis)
         assertEquals(1L, settings.trackedTourId)
         compose.onNodeWithText("GPS-Track pausiert").assertExists()
+    }
+
+    @Test
+    fun choosingADurationFromTheBar_pausesAndSchedulesAnAutoResumeHint() {
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        start(lofoten())
+
+        compose.onNodeWithContentDescription("Aufzeichnung pausieren").performClick()
+        compose.onNodeWithText("1 h").performClick()
+
+        assertNull(settings.activeRecording)
+        assertNotNull(settings.scheduledResumeAtMillis)
+        compose.onNodeWithText("Setzt automatisch um", substring = true).assertExists()
+    }
+
+    @Test
+    fun resumedAfterTimedPause_showsTheResumedHintWhileRunning() {
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        settings.resumedAfterTimedPause = true
+        start(lofoten())
+
+        compose.onNode(barNode("GPS-Track nach Pause fortgesetzt")).assertExists()
     }
 
     @Test

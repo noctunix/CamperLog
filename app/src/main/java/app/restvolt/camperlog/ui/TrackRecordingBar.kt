@@ -17,7 +17,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +37,7 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.displayTitle
+import app.restvolt.camperlog.domain.formatTimeOfDay
 import app.restvolt.camperlog.domain.trackLengthMeters
 import app.restvolt.camperlog.tracking.TrackRecordingService
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
@@ -60,6 +64,9 @@ internal fun TrackRecordingBar(
     val active by settings.active.collectAsStateWithLifecycle()
     val pausedByReboot by settings.pausedByRebootFlow.collectAsStateWithLifecycle()
     val resumedAfterBoot by settings.resumedAfterBootFlow.collectAsStateWithLifecycle()
+    val scheduledResumeAtMillis by settings.scheduledResumeAtMillisFlow.collectAsStateWithLifecycle()
+    val resumedAfterTimedPause by settings.resumedAfterTimedPauseFlow.collectAsStateWithLifecycle()
+    var showPauseDurationDialog by rememberSaveable { mutableStateOf(false) }
     val isRunning = active?.tourId == tourId
     val locale = currentLocale()
     val fallbackTitle = stringResource(R.string.detail_fallback_title)
@@ -88,6 +95,7 @@ internal fun TrackRecordingBar(
                 Text(
                     stringResource(
                         when {
+                            isRunning && resumedAfterTimedPause -> R.string.tours_track_resumed_after_timed_pause
                             isRunning && resumedAfterBoot -> R.string.tours_track_resumed_after_boot
                             isRunning -> R.string.tours_track_recording
                             pausedByReboot -> R.string.tours_track_paused_by_reboot
@@ -107,9 +115,16 @@ internal fun TrackRecordingBar(
                     )
                     Text(" · $kmText", style = MaterialTheme.typography.bodySmall)
                 }
+                val scheduledResumeAt = scheduledResumeAtMillis
+                if (!isRunning && scheduledResumeAt != null) {
+                    Text(
+                        stringResource(R.string.tour_track_pause_scheduled, formatTimeOfDay(scheduledResumeAt, locale)),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
             if (isRunning) {
-                IconButton(onClick = { TrackRecordingService.pause(context) }) {
+                IconButton(onClick = { showPauseDurationDialog = true }) {
                     Icon(painterResource(R.drawable.ic_pause), contentDescription = stringResource(R.string.tour_track_pause))
                 }
             } else {
@@ -121,5 +136,16 @@ internal fun TrackRecordingBar(
                 Icon(painterResource(R.drawable.ic_stop), contentDescription = stringResource(R.string.tour_track_stop))
             }
         }
+    }
+
+    if (showPauseDurationDialog) {
+        PauseDurationDialog(
+            onSelect = { minutes ->
+                showPauseDurationDialog = false
+                TrackRecordingService.pause(context)
+                if (minutes > 0) TrackRecordingService.scheduleAutoResume(context, System.currentTimeMillis() + minutes * 60_000L)
+            },
+            onDismiss = { showPauseDurationDialog = false },
+        )
     }
 }

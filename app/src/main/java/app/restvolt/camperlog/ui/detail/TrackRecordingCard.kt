@@ -41,11 +41,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.TrackSummary
+import app.restvolt.camperlog.domain.formatTimeOfDay
 import app.restvolt.camperlog.domain.trackLengthMeters
 import app.restvolt.camperlog.share.openAppDetailsSettings
 import app.restvolt.camperlog.tracking.TrackRecordingService
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.tracking.trackIntervalLabel
+import app.restvolt.camperlog.ui.PauseDurationDialog
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.settings.SwitchSettingRow
 import app.restvolt.camperlog.ui.settings.trackPermissions
@@ -67,6 +69,8 @@ internal fun TrackRecordingStatusRow(tourId: Long, settings: TrackRecordingSetti
     val active by settings.active.collectAsStateWithLifecycle()
     if (active?.tourId != tourId) return
     val resumedAfterBoot by settings.resumedAfterBootFlow.collectAsStateWithLifecycle()
+    val resumedAfterTimedPause by settings.resumedAfterTimedPauseFlow.collectAsStateWithLifecycle()
+    var showPauseDurationDialog by rememberSaveable { mutableStateOf(false) }
 
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
@@ -76,13 +80,30 @@ internal fun TrackRecordingStatusRow(tourId: Long, settings: TrackRecordingSetti
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
             Text(
-                stringResource(if (resumedAfterBoot) R.string.tours_track_resumed_after_boot else R.string.tours_track_recording),
+                stringResource(
+                    when {
+                        resumedAfterTimedPause -> R.string.tours_track_resumed_after_timed_pause
+                        resumedAfterBoot -> R.string.tours_track_resumed_after_boot
+                        else -> R.string.tours_track_recording
+                    },
+                ),
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
-        TextButton(onClick = { TrackRecordingService.pause(context) }) {
+        TextButton(onClick = { showPauseDurationDialog = true }) {
             Text(stringResource(R.string.tour_track_pause))
         }
+    }
+
+    if (showPauseDurationDialog) {
+        PauseDurationDialog(
+            onSelect = { minutes ->
+                showPauseDurationDialog = false
+                TrackRecordingService.pause(context)
+                if (minutes > 0) TrackRecordingService.scheduleAutoResume(context, System.currentTimeMillis() + minutes * 60_000L)
+            },
+            onDismiss = { showPauseDurationDialog = false },
+        )
     }
 }
 
@@ -111,11 +132,14 @@ internal fun TrackRecordingSection(tourId: Long, tracks: TrackRepository, settin
     val startFailed by settings.startFailed.collectAsStateWithLifecycle()
     val pausedByReboot by settings.pausedByRebootFlow.collectAsStateWithLifecycle()
     val resumedAfterBoot by settings.resumedAfterBootFlow.collectAsStateWithLifecycle()
+    val scheduledResumeAtMillis by settings.scheduledResumeAtMillisFlow.collectAsStateWithLifecycle()
+    val resumedAfterTimedPause by settings.resumedAfterTimedPauseFlow.collectAsStateWithLifecycle()
     var showBatteryHint by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var permissionDenied by rememberSaveable { mutableStateOf(false) }
     var showStartFailedHint by rememberSaveable { mutableStateOf(false) }
     var showResumedAfterBootHint by rememberSaveable { mutableStateOf(false) }
+    var showResumedAfterTimedPauseHint by rememberSaveable { mutableStateOf(false) }
     val isTrackedHere = trackedTourId == tourId
     val isRunning = isTrackedHere && active?.tourId == tourId
     val isPaused = isTrackedHere && !isRunning
@@ -135,6 +159,14 @@ internal fun TrackRecordingSection(tourId: Long, tracks: TrackRepository, settin
         if (resumedAfterBoot) {
             showResumedAfterBootHint = true
             settings.resumedAfterBoot = false
+        }
+    }
+
+    // Einmaliger Hinweis: nach dem Anzeigen hier gilt das automatische Fortsetzen nach der Pause als gesehen.
+    LaunchedEffect(resumedAfterTimedPause) {
+        if (resumedAfterTimedPause) {
+            showResumedAfterTimedPauseHint = true
+            settings.resumedAfterTimedPause = false
         }
     }
 
@@ -180,9 +212,24 @@ internal fun TrackRecordingSection(tourId: Long, tracks: TrackRepository, settin
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        val scheduledResumeAt = scheduledResumeAtMillis
+        if (isPaused && scheduledResumeAt != null) {
+            Text(
+                stringResource(R.string.tour_track_pause_scheduled, formatTimeOfDay(scheduledResumeAt, locale)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (showResumedAfterBootHint) {
             Text(
                 stringResource(R.string.tour_track_resumed_after_boot),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (showResumedAfterTimedPauseHint) {
+            Text(
+                stringResource(R.string.tour_track_resumed_after_timed_pause),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -211,6 +258,7 @@ internal fun TrackRecordingSection(tourId: Long, tracks: TrackRepository, settin
             onCheckedChange = { wantsOn ->
                 showStartFailedHint = false
                 showResumedAfterBootHint = false
+                showResumedAfterTimedPauseHint = false
                 if (wantsOn) {
                     if (TrackRecordingService.hasLocationPermission(context)) {
                         permissionDenied = false
@@ -227,6 +275,7 @@ internal fun TrackRecordingSection(tourId: Long, tracks: TrackRepository, settin
             Button(onClick = {
                 showStartFailedHint = false
                 showResumedAfterBootHint = false
+                showResumedAfterTimedPauseHint = false
                 if (TrackRecordingService.hasLocationPermission(context)) {
                     startRecording()
                 } else {
