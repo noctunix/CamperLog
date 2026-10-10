@@ -142,6 +142,22 @@ class RoomTourRepositoryTest {
     }
 
     @Test
+    fun savingAnExistingTourNeverGuessesTheVehicleFromTheSentinelZero() = runTest {
+        val otherVehicleId = db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-2", createdAtMillis = 0, updatedAtMillis = 0))
+        db.vehicleDao().setCurrentVehicleId(otherVehicleId)
+        val id = repository.save(tour(start = "2026-05-01").copy(endDate = null))
+        val stored = checkNotNull(repository.observeTour(id).first())
+
+        try {
+            repository.save(stored.copy(vehicleId = 0))
+            throw AssertionError("Expected the sentinel vehicle id to be rejected for an existing tour")
+        } catch (_: android.database.SQLException) {
+            // erwartet: kein Fahrzeug mit id 0, statt einer stillen Umverteilung auf das aktuelle Fahrzeug
+        }
+        assertEquals(vehicleId, repository.observeTour(id).first()?.vehicleId)
+    }
+
+    @Test
     fun restoreRejectsSecondRunningTour() = runTest {
         repository.save(tour(start = "2026-05-01").copy(endDate = null))
         val deletedId = repository.save(tour(start = "2026-06-01").copy(endDate = LocalDate.parse("2026-06-02")))

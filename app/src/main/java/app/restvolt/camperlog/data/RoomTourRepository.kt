@@ -54,16 +54,21 @@ class RoomTourRepository(
     override suspend fun save(tour: Tour): Long {
         val now = clock()
         return database.withTransaction {
-            val uuid = tour.uuid.ifEmpty { newUuid() }
-            val vehicleId = if (tour.vehicleId == 0L) vehicleDao.resolveCurrentVehicleId(now, newUuid) else tour.vehicleId
-            if (tour.endDate == null && dao.hasRunningTour(vehicleId, tour.id)) {
-                throw RunningTourAlreadyExistsException(vehicleId)
-            }
             if (tour.id == 0L) {
+                val uuid = tour.uuid.ifEmpty { newUuid() }
+                val vehicleId = if (tour.vehicleId == 0L) vehicleDao.resolveCurrentVehicleId(now, newUuid) else tour.vehicleId
+                if (tour.endDate == null && dao.hasRunningTour(vehicleId, tour.id)) {
+                    throw RunningTourAlreadyExistsException(vehicleId)
+                }
                 val resolved = tour.copy(uuid = uuid, vehicleId = vehicleId, createdAt = now, updatedAt = now)
                 dao.insertWithCosts(resolved.toEntity(), resolved.toCostEntities(), resolved.toCountryEntities())
             } else {
-                val resolved = tour.copy(vehicleId = vehicleId, updatedAt = now)
+                // Eine bestehende Tour behält ihr Fahrzeug unverändert, wenn es nicht explizit wechselt: anders
+                // als beim Anlegen (0 = „aktuelles Fahrzeug") darf hier nichts auf das aktuelle Fahrzeug raten.
+                if (tour.endDate == null && dao.hasRunningTour(tour.vehicleId, tour.id)) {
+                    throw RunningTourAlreadyExistsException(tour.vehicleId)
+                }
+                val resolved = tour.copy(updatedAt = now)
                 dao.updateWithCosts(resolved.toEntity(), resolved.toCostEntities(), resolved.toCountryEntities())
                 tour.id
             }
