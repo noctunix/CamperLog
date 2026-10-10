@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.tracking
 
+import android.app.AlarmManager
 import android.app.Application
 import android.app.NotificationManager
 import android.content.Intent
@@ -353,6 +354,53 @@ class TrackRecordingServiceTest {
 
         assertNull(shadowOf(app).nextStartedService)
         assertFalse(settings.resumedAfterBoot)
+    }
+
+    @Test
+    fun resumeAfterBoot_resumesImmediatelyWhenTheScheduledPauseAlreadyElapsed() {
+        grantLocation()
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 1
+        settings.scheduledResumeAtMillis = 1L // weit in der Vergangenheit.
+
+        TrackRecordingService.resumeAfterBoot(app)
+
+        val started = shadowOf(app).nextStartedService
+        assertEquals(TrackRecordingService::class.java.name, started?.component?.className)
+        assertEquals(1L, started?.getLongExtra("tour_id", -1))
+        assertTrue(settings.resumedAfterTimedPause)
+        assertNull(settings.scheduledResumeAtMillis)
+    }
+
+    @Test
+    fun resumeAfterBoot_reschedulesTheAlarmWhenTheScheduledPauseIsStillInTheFuture() {
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 1
+        val scheduledAt = System.currentTimeMillis() + 60 * 60_000L
+        settings.scheduledResumeAtMillis = scheduledAt
+
+        TrackRecordingService.resumeAfterBoot(app)
+
+        assertNull(shadowOf(app).nextStartedService)
+        assertEquals(scheduledAt, settings.scheduledResumeAtMillis)
+        val alarmManager = shadowOf(app.getSystemService(AlarmManager::class.java))
+        assertEquals(scheduledAt, alarmManager.peekNextScheduledAlarm()?.triggerAtMs)
+    }
+
+    @Test
+    fun resumeAfterBoot_doesNothingWithoutAScheduledPause() {
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 1
+
+        TrackRecordingService.resumeAfterBoot(app)
+
+        assertNull(shadowOf(app).nextStartedService)
+        assertNull(settings.scheduledResumeAtMillis)
+        val alarmManager = shadowOf(app.getSystemService(AlarmManager::class.java))
+        assertNull(alarmManager.peekNextScheduledAlarm())
     }
 
     @Test

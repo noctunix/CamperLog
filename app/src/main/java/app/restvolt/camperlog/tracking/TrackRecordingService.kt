@@ -428,13 +428,36 @@ class TrackRecordingService : Service() {
          * letzten aktiven Zeitstempel – der Neustart ist hier per Definition gerade erst passiert –
          * sondern startet unconditional neu und setzt [TrackRecordingSettings.resumedAfterBoot], damit
          * die Oberfläche das beim nächsten Anzeigen kurz meldet statt es lautlos zu tun.
+         *
+         * Läuft stattdessen gerade eine geplante Pause ([TrackRecordingSettings.scheduledResumeAtMillis]),
+         * überlebt deren Alarm den Neustart nicht: [resumeScheduledPauseAfterBoot] holt das nach.
          */
         fun resumeAfterBoot(context: Context) {
             val settings = TrackRecordingSettings.get(context)
-            val active = settings.activeRecording ?: return
+            val active = settings.activeRecording
+            if (active == null) {
+                resumeScheduledPauseAfterBoot(context, settings)
+                return
+            }
             if (!settings.enabled || !hasLocationPermission(context)) return
             settings.resumedAfterBoot = true
             start(context, active.tourId)
+        }
+
+        /**
+         * Holt beim Neustart nach, was der verlorene Alarm einer geplanten Pause sonst verpasst hätte:
+         * Ist die geplante Zeit schon verstrichen, wird direkt fortgesetzt ([resumeFromTimedPause]
+         * übernimmt dafür die üblichen Sicherheitsprüfungen); liegt sie noch in der Zukunft, wird der
+         * Alarm für die Restzeit neu geplant ([scheduleAutoResume]).
+         */
+        private fun resumeScheduledPauseAfterBoot(context: Context, settings: TrackRecordingSettings) {
+            val scheduledAt = settings.scheduledResumeAtMillis ?: return
+            val tourId = settings.trackedTourId ?: return
+            if (scheduledAt <= System.currentTimeMillis()) {
+                resumeFromTimedPause(context, tourId)
+            } else {
+                scheduleAutoResume(context, scheduledAt)
+            }
         }
 
         /** Pausiert die Aufzeichnung: Dienst stoppt, die zugeordnete Tour bleibt markiert ([TrackRecordingSettings.trackedTourId]). */
