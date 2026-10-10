@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
@@ -152,17 +153,13 @@ class GuidedTourNavigationTest {
     }
 
     /**
-     * Setzt das Startdatum über den echten Kalender-Dialog. Ein `DatePickerDialog` öffnet sich nicht,
-     * solange die Klick-Barriere der geführten Tour aktiv ist - unabhängig davon, ob das Datumsfeld
-     * innerhalb eines Ankers liegt; die Tour wird darum kurz pausiert (blendet die Barriere aus) und
-     * danach fortgesetzt, genau der dafür vorgesehene Weg.
+     * Setzt das Startdatum über den echten Kalender-Dialog, mit einem echten Klick durch das Loch
+     * der Barriere (das Datumsfeld liegt innerhalb des "period"-Ankers).
      */
-    private fun pickStartDateWhilePaused(day: Int) {
-        compose.onNodeWithText("Pause").performClick()
-        compose.onNodeWithContentDescription("Startdatum wählen").performClick()
+    private fun pickStartDate(day: Int) {
+        clickThrough(hasContentDescription("Startdatum wählen"))
         compose.onNode(dayCell(day)).performClick()
         compose.onNodeWithText("OK").performClick()
-        compose.onNodeWithText("Fortsetzen").performClick()
         compose.waitForIdle()
     }
 
@@ -317,7 +314,7 @@ class GuidedTourNavigationTest {
 
             // Schritt "period": das Startdatum ist unabhängig von der Tour Pflicht, sonst scheitert
             // das echte Speichern.
-            pickStartDateWhilePaused(10)
+            pickStartDate(10)
             clickWeiter()
 
             // Schritt "track-switch": der globale Schalter ist standardmäßig aus, die Checkbox bleibt
@@ -428,7 +425,7 @@ class GuidedTourNavigationTest {
 
             // Die weiterlaufende Vorbelegung hat das neue Fahrzeug übernommen, sichtbar am Ergebnis
             // nach dem echten Speichern.
-            pickStartDateWhilePaused(10)
+            pickStartDate(10)
             clickWeiter() // period
             clickWeiter() // track-switch
             clickWeiter() // home-switch
@@ -471,7 +468,7 @@ class GuidedTourNavigationTest {
             clickWeiter() // name
             clickWeiter() // tourtype
             clickWeiter() // vehicle
-            pickStartDateWhilePaused(10)
+            pickStartDate(10)
             clickWeiter() // period
 
             // Schritt "track-switch": der globale Schalter ist jetzt an, die Checkbox ist also real
