@@ -38,6 +38,8 @@ data class EditVehicleUiState(
     val saveFailed: Boolean = false,
     /** Zählt an der Validierung gescheiterte Speicherversuche; jede Erhöhung fokussiert das erste fehlerhafte Feld. */
     val rejectedSaves: Int = 0,
+    /** Die id des gerade neu angelegten Fahrzeugs, sobald [isSaved] gesetzt ist. */
+    val savedVehicleId: Long? = null,
 )
 
 /** Ungespeicherte Formulareingaben, die ein Beenden des Prozesses im Hintergrund überstehen. */
@@ -108,9 +110,9 @@ class EditVehicleViewModel(
         _uiState.update { it.copy(isSaving = true, errors = emptyMap(), saveFailed = false) }
         viewModelScope.launch {
             try {
-                repository.save(vehicle)
+                val id = repository.save(vehicle)
                 savedStateHandle.remove<SavedState>(DRAFT_KEY)
-                _uiState.update { it.copy(isSaving = false, isSaved = true) }
+                _uiState.update { it.copy(isSaving = false, isSaved = true, savedVehicleId = id) }
             } catch (_: SQLException) {
                 // Eingaben bleiben erhalten, damit der Nutzer es erneut versuchen kann.
                 _uiState.update { it.copy(isSaving = false, saveFailed = true) }

@@ -69,9 +69,9 @@ import app.restvolt.camperlog.ui.messageRes
 import java.util.Currency
 import java.util.Locale
 
-/** Formular zum Anlegen und Bearbeiten eines Fahrzeugs. [onDone] verlässt es ohne, [onSaved] nach dem Speichern. */
+/** Formular zum Anlegen und Bearbeiten eines Fahrzeugs. [onDone] verlässt es ohne, [onSaved] nach dem Speichern mit der gespeicherten id. */
 @Composable
-fun EditVehicleScreen(viewModel: EditVehicleViewModel, onDone: () -> Unit, onSaved: () -> Unit) {
+fun EditVehicleScreen(viewModel: EditVehicleViewModel, onDone: () -> Unit, onSaved: (Long) -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
@@ -79,7 +79,8 @@ fun EditVehicleScreen(viewModel: EditVehicleViewModel, onDone: () -> Unit, onSav
     val resources = LocalResources.current
 
     LaunchedEffect(state.isSaved) {
-        if (state.isSaved) onSaved()
+        val savedId = state.savedVehicleId
+        if (state.isSaved && savedId != null) onSaved(savedId)
     }
     LaunchedEffect(state.saveFailed) {
         if (state.saveFailed) {
