@@ -176,6 +176,14 @@ class TourFlowTest {
     }
 
     @Test
+    fun newTour_showsAssignedVehicleWhenExactlyOneRealVehicleExists() {
+        start(FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "Hymer B-Klasse"))))
+        compose.onNodeWithText("Neue Tour").performClick()
+
+        compose.onNodeWithText("Hymer B-Klasse").assertExists()
+    }
+
+    @Test
     fun newTour_todayButtonFillsTheStartDate() {
         val repository = start()
         compose.onNodeWithText("Neue Tour").performClick()

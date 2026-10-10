@@ -1214,7 +1214,7 @@
     <string name="guide_step_fab_body">Tap here to start a new tour.</string>
     <string name="guide_step_name_body">Enter the tour\'s name or destination here.</string>
     <string name="guide_step_tourtype_body">Choose what kind of trip this is – it shows up in lists and filters.</string>
-    <string name="guide_step_vehicle_body">Pick which vehicle this tour belongs to, if you have more than one.</string>
+    <string name="guide_step_vehicle_body">This tour is assigned to this vehicle; pick a different one here if you have more than one.</string>
     <string name="guide_step_vehicle_create_body">You don\'t have a vehicle yet. Tap here to add one – you can fill in the details later.</string>
     <string name="guide_step_period_body">Set the start date; tap \"Today\" to use the current date. Leave the end date empty while the tour is still running – an empty end date means an ongoing tour.</string>
     <string name="guide_step_track_switch_body_enabled">Check this to record a GPS track while you drive. CamperLog asks for the location permission right now, so recording can start the moment you save.</string>

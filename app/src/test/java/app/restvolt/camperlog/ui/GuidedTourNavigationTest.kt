@@ -307,9 +307,9 @@ class GuidedTourNavigationTest {
             compose.onNodeWithText("Tourart").assertExists()
             clickWeiter()
 
-            // Schritt "vehicle": nur ein echtes Fahrzeug vorhanden, die Auswahl bleibt also unsichtbar;
-            // die Erklärung gilt trotzdem und Weiter funktioniert ohne weitere Aktion.
-            compose.onNodeWithText("Fahrzeug").assertExists()
+            // Schritt "vehicle": nur ein echtes Fahrzeug vorhanden, die Auswahl bleibt also
+            // unsichtbar, stattdessen zeigt die reine Infozeile das zugeordnete Fahrzeug an.
+            compose.onNodeWithText("Mein Wohnmobil").assertExists()
             clickWeiter()
 
             // Schritt "period": das Startdatum ist unabhängig von der Tour Pflicht, sonst scheitert

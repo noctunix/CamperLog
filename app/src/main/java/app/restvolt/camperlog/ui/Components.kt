@@ -115,8 +115,8 @@ fun SectionCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.
 
 /** Zeile aus Bezeichnung links und Wert rechts. */
 @Composable
-fun LabeledValue(label: String, value: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+fun LabeledValue(label: String, value: String, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
             label,
             modifier = Modifier.weight(1f),

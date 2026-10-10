@@ -72,6 +72,7 @@ import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.LabeledValue
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.guide.guideAnchor
 import app.restvolt.camperlog.ui.labelRes
@@ -255,10 +256,17 @@ private fun TourForm(
         SectionCard {
             SectionHeading(stringResource(R.string.edit_section_tour))
             val realVehicles = state.vehicles.filterNot { it.isDemo }
-            if (realVehicles.size > 1) {
-                VehicleField(realVehicles, input.vehicleId, viewModel::onVehicleChange, modifier = Modifier.guideAnchor("edit.tour.vehicle"))
-            } else if (realVehicles.isEmpty()) {
-                VehicleCreateHint(onAddVehicle, modifier = Modifier.guideAnchor("edit.tour.vehicle.create"))
+            when {
+                realVehicles.size > 1 ->
+                    VehicleField(realVehicles, input.vehicleId, viewModel::onVehicleChange, modifier = Modifier.guideAnchor("edit.tour.vehicle"))
+                realVehicles.isEmpty() ->
+                    VehicleCreateHint(onAddVehicle, modifier = Modifier.guideAnchor("edit.tour.vehicle.create"))
+                else ->
+                    LabeledValue(
+                        stringResource(R.string.field_vehicle),
+                        vehicleDisplayName(realVehicles.single()),
+                        modifier = Modifier.guideAnchor("edit.tour.vehicle"),
+                    )
             }
             FormTextField(
                 label = stringResource(R.string.field_name),
