@@ -40,6 +40,7 @@
     <string name="vehicle_title">Vehicle</string>
     <string name="vehicles_manage_title">Manage vehicles</string>
     <string name="field_vehicle">Vehicle</string>
+    <string name="edit_vehicle_create_hint">You don\'t have a vehicle yet.</string>
 
     <!-- Field labels -->
     <string name="field_start_date">Start date</string>
@@ -1212,9 +1213,24 @@
     <string name="guide_end">End</string>
     <string name="guide_step_fab_body">Tap here to start a new tour.</string>
     <string name="guide_step_name_body">Enter the tour\'s name or destination here.</string>
+    <string name="guide_step_tourtype_body">Choose what kind of trip this is – it shows up in lists and filters.</string>
+    <string name="guide_step_vehicle_body">Pick which vehicle this tour belongs to, if you have more than one.</string>
+    <string name="guide_step_vehicle_create_body">You don\'t have a vehicle yet. Tap here to add one – you can fill in the details later.</string>
+    <string name="guide_step_period_body">Set the start date; tap \"Today\" to use the current date. Leave the end date empty while the tour is still running – an empty end date means an ongoing tour.</string>
+    <string name="guide_step_track_switch_body_enabled">Check this to record a GPS track while you drive. CamperLog asks for the location permission right now, so recording can start the moment you save.</string>
+    <string name="guide_step_track_switch_body_disabled">Recording a GPS track needs the location switch in Settings turned on first; once it is, this checkbox appears here for a running tour.</string>
+    <string name="guide_step_home_switch_title">Home location</string>
+    <string name="guide_step_home_switch_body_set">Check this to add a stop at your home location automatically once you save.</string>
+    <string name="guide_step_home_switch_body_unset">Once you set a home location in Settings → Home, a checkbox here adds a stop there automatically once you save.</string>
+    <string name="guide_step_other_costs_body">Add any extra costs for the whole tour here, like a toll bought in advance.</string>
+    <string name="guide_step_advanced_body">The slug is a short, file-name-safe label used for exports and reports; CamperLog suggests one automatically.</string>
     <string name="guide_step_save_body">Tap Save to create the tour.</string>
+    <string name="guide_step_station_fab_body">Add your first stop here – a campsite, a fuel stop, or anything else along the way.</string>
+    <string name="guide_step_station_fields_title">Stop details</string>
+    <string name="guide_step_station_fields_body">Pick the stop\'s type, then fill in its date and place. The other fields depend on the type you choose.</string>
+    <string name="guide_step_station_save_body">Tap Save to add the stop.</string>
     <string name="guide_step_track_title">GPS track</string>
-    <string name="guide_step_track_body">A tour can also record its GPS track while you drive. Recording is optional and off by default – see the sample tour marked \"Sample\" in your tour list for a preview of the track and map, even though yours isn\'t recording yet.</string>
+    <string name="guide_step_track_body">Your GPS track and map, once you have one, show up here. Want to see a finished example first? The tour marked \"Sample\" in your tour list always keeps its track and map ready to explore.</string>
     <string name="guide_tour_introduction_title">Introduction</string>
     <string name="guide_tour_create_first_title">Create your first tour</string>
     <string name="guide_entry_start">Start</string>

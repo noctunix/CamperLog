@@ -40,6 +40,7 @@
     <string name="vehicle_title">Fahrzeug</string>
     <string name="vehicles_manage_title">Fahrzeuge verwalten</string>
     <string name="field_vehicle">Fahrzeug</string>
+    <string name="edit_vehicle_create_hint">Du hast noch kein Fahrzeug.</string>
 
     <!-- Field labels -->
     <string name="field_start_date">Startdatum</string>
@@ -1201,9 +1202,24 @@
     <string name="guide_end">Beenden</string>
     <string name="guide_step_fab_body">Tippe hier, um eine neue Tour anzulegen.</string>
     <string name="guide_step_name_body">Trag hier den Namen oder das Ziel der Tour ein.</string>
+    <string name="guide_step_tourtype_body">Wähl die Art der Tour – sie taucht damit in Listen und Filtern auf.</string>
+    <string name="guide_step_vehicle_body">Wähl hier das Fahrzeug für diese Tour, falls du mehr als eins hast.</string>
+    <string name="guide_step_vehicle_create_body">Du hast noch kein Fahrzeug. Tippe hier, um eins anzulegen – die Details kannst du später ergänzen.</string>
+    <string name="guide_step_period_body">Setz das Startdatum; „Heute" übernimmt das aktuelle Datum. Lass das Enddatum leer, solange die Tour noch läuft – ein leeres Enddatum bedeutet eine laufende Tour.</string>
+    <string name="guide_step_track_switch_body_enabled">Kreuz das an, um während der Fahrt einen GPS-Track aufzuzeichnen. CamperLog fragt die Standortberechtigung direkt jetzt an, damit die Aufzeichnung mit dem Speichern starten kann.</string>
+    <string name="guide_step_track_switch_body_disabled">Ein GPS-Track braucht zuerst den Standort-Schalter in den Einstellungen; ist der an, steht diese Checkbox hier für eine laufende Tour.</string>
+    <string name="guide_step_home_switch_title">Zuhause-Ort</string>
+    <string name="guide_step_home_switch_body_set">Kreuz das an, um beim Speichern automatisch eine Station an deinem Zuhause-Ort anzulegen.</string>
+    <string name="guide_step_home_switch_body_unset">Legst du in den Einstellungen → Zuhause einen Ort fest, legt eine Checkbox hier beim Speichern automatisch eine Station dort an.</string>
+    <string name="guide_step_other_costs_body">Trag hier Kosten ein, die für die ganze Tour gelten, zum Beispiel eine vorab gekaufte Vignette.</string>
+    <string name="guide_step_advanced_body">Der Slug ist ein kurzer, dateinamensicherer Kurzname für Berichte und Exporte; CamperLog schlägt automatisch einen vor.</string>
     <string name="guide_step_save_body">Tippe auf Speichern, um die Tour anzulegen.</string>
+    <string name="guide_step_station_fab_body">Leg hier deine erste Station an – ein Campingplatz, eine Tankstelle oder irgendein anderer Stopp.</string>
+    <string name="guide_step_station_fields_title">Stationsdetails</string>
+    <string name="guide_step_station_fields_body">Wähl den Stationstyp und trag dann Datum und Ort ein. Die übrigen Felder hängen vom gewählten Typ ab.</string>
+    <string name="guide_step_station_save_body">Tippe auf Speichern, um die Station anzulegen.</string>
     <string name="guide_step_track_title">GPS-Track</string>
-    <string name="guide_step_track_body">Eine Tour kann während der Fahrt auch ihren GPS-Track aufzeichnen. Das ist optional und standardmäßig aus – wie Track und Karte aussehen, zeigt dir die mit „Beispiel" markierte Tour in deiner Liste schon jetzt, auch wenn deine eigene Aufzeichnung noch nicht läuft.</string>
+    <string name="guide_step_track_body">Dein GPS-Track und die Karte stehen hier, sobald du einen hast. Willst du vorher ein fertiges Beispiel sehen? Die mit „Beispiel" markierte Tour in deiner Liste hat Track und Karte immer bereit zum Erkunden.</string>
     <string name="guide_tour_introduction_title">Rundgang</string>
     <string name="guide_tour_create_first_title">Erste Tour anlegen</string>
     <string name="guide_entry_start">Starten</string>
