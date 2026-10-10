@@ -39,8 +39,12 @@ class FakeVehicleRepository(
 
     override fun observeVehicle(id: Long): Flow<Vehicle?> = state.map { list -> list.firstOrNull { it.id == id } }
 
+    // Wie die Room-Anbindung ist die Liste nie dauerhaft leer; anders als dort kann sie zwischen dem
+    // Aufräumen und dem Anlegen einer neuen Demo-Fahrzeugs (siehe DemoTourSession.begin()) aber kurz
+    // leer sein - firstOrNull() statt first() lässt diesen Zwischenstand einfach durchlaufen, statt
+    // den sonst immer laufenden Collector mit einer NoSuchElementException abzuschießen.
     override fun observeCurrentVehicle(): Flow<Vehicle> =
-        combine(state, current) { list, id -> list.firstOrNull { it.id == id } ?: list.first() }
+        combine(state, current) { list, id -> list.firstOrNull { it.id == id } ?: list.firstOrNull() ?: EMPTY_VEHICLE }
 
     override suspend fun setCurrentVehicle(id: Long) {
         current.value = id
@@ -95,6 +99,10 @@ class FakeVehicleRepository(
 
     override suspend fun lastUsedRepairCurrency(): Currency? =
         repairs.value.filter { it.cost != null }.maxByOrNull { it.updatedAt }?.cost?.currency
+
+    private companion object {
+        val EMPTY_VEHICLE = Vehicle(uuid = "", name = "", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+    }
 }
 
 /** Fahrzeug für Tests mit sinnvollen Zeitstempeln; [sold] setzt ein Verkaufsdatum. */

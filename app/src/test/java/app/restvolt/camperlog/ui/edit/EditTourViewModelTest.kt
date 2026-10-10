@@ -109,6 +109,34 @@ class EditTourViewModelTest {
     }
 
     @Test
+    fun newTour_ignoresTheDemoVehicleWhenPreselecting() = runTest {
+        val demo = defaultVehicle(id = 1, name = "Sample camper").copy(isDemo = true)
+        val vehicles = FakeVehicleRepository(listOf(demo), currentVehicleId = 1)
+        val viewModel = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(), locale)
+
+        assertEquals(0L, viewModel.uiState.value.input.vehicleId)
+    }
+
+    /**
+     * Deckt die Fahrzeug-Inline-Anlage der Pilot-Tour "Erste Tour anlegen" ab: Beim Erreichen des
+     * Fahrzeug-Schritts existiert nur das Demo-Fahrzeug, die Vorbelegung bleibt also zunächst leer.
+     * Das Tourformular bleibt während der ganzen Zeit geöffnet (die Fahrzeuganlage pausiert nur die
+     * geführte Tour, nicht dieses ViewModel) - die dauerhaft laufende Vorbelegung muss darum auch
+     * reagieren, wenn das neue Fahrzeug erst nach der Anlage dieses ViewModels gespeichert wird.
+     */
+    @Test
+    fun newTour_preselectsAVehicleCreatedWhileTheFormIsAlreadyOpen() = runTest {
+        val demo = defaultVehicle(id = 1, name = "Sample camper").copy(isDemo = true)
+        val vehicles = FakeVehicleRepository(listOf(demo), currentVehicleId = 1)
+        val viewModel = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(), locale)
+        assertEquals(0L, viewModel.uiState.value.input.vehicleId)
+
+        val newVehicleId = vehicles.save(defaultVehicle(id = 0, name = "Hymer"))
+
+        assertEquals(newVehicleId, viewModel.uiState.value.input.vehicleId)
+    }
+
+    @Test
     fun settingEndDateDerivesAllMetricsFromTourData() = runTest {
         val running = tour(vehicleId = 1).copy(endDate = null, travelDays = 99, overnightStays = 99, distanceKm = 99)
         val stations = FakeStationRepository(listOf(station(vehicleId = 1, tourId = 1).copy(nights = 2)))
