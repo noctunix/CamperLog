@@ -384,6 +384,120 @@ class TrackRecordingServiceTest {
     }
 
     @Test
+    fun scheduleAutoResume_storesTheScheduledTime() {
+        TrackRecordingSettings.get(app).trackedTourId = 1
+
+        TrackRecordingService.scheduleAutoResume(app, 999_000L)
+
+        assertEquals(999_000L, TrackRecordingSettings.get(app).scheduledResumeAtMillis)
+    }
+
+    @Test
+    fun scheduleAutoResume_withoutATrackedTour_doesNothing() {
+        TrackRecordingService.scheduleAutoResume(app, 999_000L)
+
+        assertNull(TrackRecordingSettings.get(app).scheduledResumeAtMillis)
+    }
+
+    @Test
+    fun resumingManually_clearsAScheduledAutoResume() {
+        val settings = TrackRecordingSettings.get(app)
+        settings.trackedTourId = 1
+        TrackRecordingService.scheduleAutoResume(app, 999_000L)
+
+        TrackRecordingService.start(app, 1)
+
+        assertNull(settings.scheduledResumeAtMillis)
+    }
+
+    @Test
+    fun stopping_clearsAScheduledAutoResume() {
+        val settings = TrackRecordingSettings.get(app)
+        settings.trackedTourId = 1
+        TrackRecordingService.scheduleAutoResume(app, 999_000L)
+
+        TrackRecordingService.stop(app)
+
+        assertNull(settings.scheduledResumeAtMillis)
+    }
+
+    @Test
+    fun resumeFromTimedPause_resumesTheStillPausedTour() {
+        grantLocation()
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 1
+        settings.scheduledResumeAtMillis = 999_000L
+
+        TrackRecordingService.resumeFromTimedPause(app, 1)
+
+        val started = shadowOf(app).nextStartedService
+        assertEquals(TrackRecordingService::class.java.name, started?.component?.className)
+        assertEquals(1L, started?.getLongExtra("tour_id", -1))
+        assertTrue(settings.resumedAfterTimedPause)
+        assertNull(settings.scheduledResumeAtMillis)
+    }
+
+    @Test
+    fun resumeFromTimedPause_noOpWhenAlreadyResumedManually() {
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 1
+        settings.scheduledResumeAtMillis = 999_000L
+
+        // Manuelles Fortsetzen vor Ablauf verwirft die Planung.
+        TrackRecordingService.start(app, 1)
+        shadowOf(app).clearStartedServices()
+
+        TrackRecordingService.resumeFromTimedPause(app, 1)
+
+        assertNull(shadowOf(app).nextStartedService)
+        assertFalse(settings.resumedAfterTimedPause)
+    }
+
+    @Test
+    fun resumeFromTimedPause_noOpAfterStop() {
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 1
+        settings.scheduledResumeAtMillis = 999_000L
+
+        TrackRecordingService.stop(app)
+        shadowOf(app).clearStartedServices()
+
+        TrackRecordingService.resumeFromTimedPause(app, 1)
+
+        assertNull(shadowOf(app).nextStartedService)
+    }
+
+    @Test
+    fun resumeFromTimedPause_noOpWhileAnotherTourIsTracked() {
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 2
+        settings.scheduledResumeAtMillis = 999_000L
+
+        TrackRecordingService.resumeFromTimedPause(app, 1)
+
+        assertNull(shadowOf(app).nextStartedService)
+        assertEquals(999_000L, settings.scheduledResumeAtMillis)
+    }
+
+    @Test
+    fun resumeFromTimedPause_noOpWhileAlreadyRunning() {
+        val settings = TrackRecordingSettings.get(app)
+        settings.enabled = true
+        settings.trackedTourId = 1
+        settings.activeRecording = ActiveRecording(tourId = 1, segment = 1)
+        settings.scheduledResumeAtMillis = 999_000L
+
+        TrackRecordingService.resumeFromTimedPause(app, 1)
+
+        assertNull(shadowOf(app).nextStartedService)
+        assertEquals(999_000L, settings.scheduledResumeAtMillis)
+    }
+
+    @Test
     fun startForTour_enablesAndMarksTheTour() {
         TrackRecordingService.startForTour(app, 5L)
 

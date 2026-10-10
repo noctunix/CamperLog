@@ -137,24 +137,51 @@ class TrackRecordingSettingsTest {
     }
 
     @Test
+    fun scheduledResumeAtMillisPersistsAcrossInstancesAndClearsToNull() {
+        val settings = TrackRecordingSettings(context, CountingRevoker())
+        assertNull(settings.scheduledResumeAtMillis)
+
+        settings.scheduledResumeAtMillis = 123_456L
+        assertEquals(123_456L, TrackRecordingSettings(context, CountingRevoker()).scheduledResumeAtMillis)
+        assertEquals(123_456L, TrackRecordingSettings(context, CountingRevoker()).scheduledResumeAtMillisFlow.value)
+
+        settings.scheduledResumeAtMillis = null
+        assertNull(TrackRecordingSettings(context, CountingRevoker()).scheduledResumeAtMillis)
+    }
+
+    @Test
+    fun resumedAfterTimedPausePersistsAcrossInstances() {
+        TrackRecordingSettings(context, CountingRevoker()).resumedAfterTimedPause = true
+
+        assertTrue(TrackRecordingSettings(context, CountingRevoker()).resumedAfterTimedPause)
+        assertTrue(TrackRecordingSettings(context, CountingRevoker()).resumedAfterTimedPauseFlow.value)
+    }
+
+    @Test
     fun forgetTourClearsOnlyAMatchingTour() {
         val settings = TrackRecordingSettings(context, CountingRevoker())
         settings.trackedTourId = 1
         settings.activeRecording = ActiveRecording(tourId = 1, segment = 2)
         settings.pausedByReboot = true
         settings.resumedAfterBoot = true
+        settings.scheduledResumeAtMillis = 123_456L
+        settings.resumedAfterTimedPause = true
 
         settings.forgetTour(2)
         assertEquals(1L, settings.trackedTourId)
         assertEquals(ActiveRecording(1, 2), settings.activeRecording)
         assertTrue(settings.pausedByReboot)
         assertTrue(settings.resumedAfterBoot)
+        assertEquals(123_456L, settings.scheduledResumeAtMillis)
+        assertTrue(settings.resumedAfterTimedPause)
 
         settings.forgetTour(1)
         assertNull(settings.trackedTourId)
         assertNull(settings.activeRecording)
         assertFalse(settings.pausedByReboot)
         assertFalse(settings.resumedAfterBoot)
+        assertNull(settings.scheduledResumeAtMillis)
+        assertFalse(settings.resumedAfterTimedPause)
     }
 
     @Test

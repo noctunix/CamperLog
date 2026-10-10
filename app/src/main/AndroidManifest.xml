@@ -72,6 +72,12 @@
             </intent-filter>
         </receiver>
 
+        <!-- Kommt nur über den eigenen PendingIntent aus TrackRecordingService.scheduleAutoResume,
+             kein System-Broadcast, daher ohne Intent-Filter. -->
+        <receiver
+            android:name=".tracking.PauseResumeReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

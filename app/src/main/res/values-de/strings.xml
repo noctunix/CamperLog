@@ -104,6 +104,7 @@
     <string name="tours_track_paused">GPS-Track pausiert</string>
     <string name="tours_track_paused_by_reboot">GPS-Track unterbrochen</string>
     <string name="tours_track_resumed_after_boot">GPS-Track nach Neustart fortgesetzt</string>
+    <string name="tours_track_resumed_after_timed_pause">GPS-Track nach Pause fortgesetzt</string>
     <plurals name="tours_row_station_count">
         <item quantity="one">%1$d Station</item>
         <item quantity="other">%1$d Stationen</item>
@@ -1137,6 +1138,7 @@
     <string name="search_group_vehicles">Fahrzeuge</string>
     <string name="track_interval_seconds">%1$d s</string>
     <string name="track_interval_minutes">%1$d min</string>
+    <string name="track_interval_hours">%1$d h</string>
     <string name="track_notification_channel_name">Trackaufzeichnung</string>
     <string name="track_notification_channel_description">Wird angezeigt, solange der Track einer Tour aufgezeichnet wird.</string>
     <string name="track_notification_title">%1$s: Track wird aufgezeichnet</string>
@@ -1166,10 +1168,15 @@
     <string name="tour_track_paused">Aufzeichnung pausiert.</string>
     <string name="tour_track_paused_by_reboot">Durch einen Geräteneustart unterbrochen.</string>
     <string name="tour_track_resumed_after_boot">Nach einem Geräteneustart automatisch fortgesetzt.</string>
+    <string name="tour_track_resumed_after_timed_pause">Nach der gewählten Pause automatisch fortgesetzt.</string>
+    <string name="tour_track_pause_scheduled">Setzt automatisch um %1$s fort.</string>
     <string name="tour_track_other_tour">Für eine andere Tour läuft gerade eine Aufzeichnung. Ein Start hier beendet sie.</string>
     <string name="tour_track_switch_title">Für diese Tour aufzeichnen</string>
     <string name="tour_track_switch_support">Zeichnet die Strecke dieser Tour im Hintergrund auf.</string>
     <string name="tour_track_pause">Aufzeichnung pausieren</string>
+    <string name="tour_track_pause_duration_title">Automatisch fortsetzen nach</string>
+    <string name="tour_track_pause_duration_none">Ohne automatisches Fortsetzen</string>
+    <string name="tour_track_pause_duration_day">1 Tag</string>
     <string name="tour_track_resume">Aufzeichnung fortsetzen</string>
     <string name="tour_track_start_failed">Aufzeichnung konnte nicht gestartet werden – Standort prüfen</string>
     <string name="tour_track_stop">Aufzeichnung beenden</string>

@@ -104,6 +104,7 @@
     <string name="tours_track_paused">GPS track paused</string>
     <string name="tours_track_paused_by_reboot">GPS track interrupted</string>
     <string name="tours_track_resumed_after_boot">GPS track resumed after restart</string>
+    <string name="tours_track_resumed_after_timed_pause">GPS track resumed after pause</string>
     <plurals name="tours_row_station_count">
         <item quantity="one">%1$d stop</item>
         <item quantity="other">%1$d stops</item>
@@ -1148,6 +1149,7 @@
     <string name="search_group_vehicles">Vehicles</string>
     <string name="track_interval_seconds">%1$d s</string>
     <string name="track_interval_minutes">%1$d min</string>
+    <string name="track_interval_hours">%1$d h</string>
     <string name="track_notification_channel_name">Track recording</string>
     <string name="track_notification_channel_description">Shown while a tour track is being recorded.</string>
     <string name="track_notification_title">%1$s: Recording track</string>
@@ -1177,10 +1179,15 @@
     <string name="tour_track_paused">Recording paused.</string>
     <string name="tour_track_paused_by_reboot">Interrupted by a device restart.</string>
     <string name="tour_track_resumed_after_boot">Automatically resumed after a device restart.</string>
+    <string name="tour_track_resumed_after_timed_pause">Automatically resumed after the chosen pause.</string>
+    <string name="tour_track_pause_scheduled">Resumes automatically at %1$s.</string>
     <string name="tour_track_other_tour">A recording is running for another tour. Starting here ends it.</string>
     <string name="tour_track_switch_title">Record for this tour</string>
     <string name="tour_track_switch_support">Records this tour\'s route in the background.</string>
     <string name="tour_track_pause">Pause recording</string>
+    <string name="tour_track_pause_duration_title">Resume automatically after</string>
+    <string name="tour_track_pause_duration_none">Without automatic resume</string>
+    <string name="tour_track_pause_duration_day">1 day</string>
     <string name="tour_track_resume">Resume recording</string>
     <string name="tour_track_start_failed">Recording could not be started – check location</string>
     <string name="tour_track_stop">Stop recording</string>

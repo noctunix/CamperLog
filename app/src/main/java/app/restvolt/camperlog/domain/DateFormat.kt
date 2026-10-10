@@ -1,6 +1,8 @@
 package app.restvolt.camperlog.domain
 
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -17,6 +19,12 @@ fun formatDate(date: LocalDate, locale: Locale = Locale.getDefault()): String =
 fun formatMonthYear(date: LocalDate, locale: Locale = Locale.getDefault()): String {
     val resolved = supportedLocale(locale)
     return DateTimeFormatter.ofPattern("LLLL yyyy", resolved).format(date).uppercase(resolved)
+}
+
+/** Time of day in the device's time zone and the language of the UI, e.g. "14:05" or "2:05 PM". */
+fun formatTimeOfDay(atMillis: Long, locale: Locale = Locale.getDefault()): String {
+    val time = Instant.ofEpochMilli(atMillis).atZone(ZoneId.systemDefault()).toLocalTime()
+    return DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(supportedLocale(locale)).format(time)
 }
 
 /** Display a range or just one date for a day trip. */

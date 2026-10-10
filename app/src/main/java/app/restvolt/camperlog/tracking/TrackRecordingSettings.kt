@@ -43,6 +43,8 @@ class TrackRecordingSettings(
     private val startFailedState = MutableStateFlow(false)
     private val pausedByRebootState = MutableStateFlow(readPausedByReboot())
     private val resumedAfterBootState = MutableStateFlow(readResumedAfterBoot())
+    private val scheduledResumeAtMillisState = MutableStateFlow(readScheduledResumeAtMillis())
+    private val resumedAfterTimedPauseState = MutableStateFlow(readResumedAfterTimedPause())
 
     val values: StateFlow<TrackRecordingPreferences> = state.asStateFlow()
 
@@ -71,6 +73,16 @@ class TrackRecordingSettings(
      * lautlos weiterzulaufen.
      */
     val resumedAfterBootFlow: StateFlow<Boolean> = resumedAfterBootState.asStateFlow()
+
+    /** Zeitpunkt ([System.currentTimeMillis]), zu dem eine pausierte Aufzeichnung automatisch fortgesetzt wird, oder `null` ohne geplantes Fortsetzen. */
+    val scheduledResumeAtMillisFlow: StateFlow<Long?> = scheduledResumeAtMillisState.asStateFlow()
+
+    /**
+     * Einmaliges Signal, dass [TrackRecordingService.resumeFromTimedPause] die Aufzeichnung automatisch
+     * nach der beim Pausieren gewählten Dauer fortgesetzt hat, damit die Oberfläche das einmal anzeigen
+     * kann statt lautlos weiterzulaufen.
+     */
+    val resumedAfterTimedPauseFlow: StateFlow<Boolean> = resumedAfterTimedPauseState.asStateFlow()
 
     var enabled: Boolean
         get() = state.value.enabled
@@ -153,6 +165,24 @@ class TrackRecordingSettings(
             resumedAfterBootState.value = value
         }
 
+    /** Zeitpunkt des geplanten automatischen Fortsetzens, oder `null` ohne geplante Pausendauer. */
+    var scheduledResumeAtMillis: Long?
+        get() = scheduledResumeAtMillisState.value
+        set(value) {
+            preferences.edit {
+                if (value == null) remove(KEY_SCHEDULED_RESUME_AT) else putLong(KEY_SCHEDULED_RESUME_AT, value)
+            }
+            scheduledResumeAtMillisState.value = value
+        }
+
+    /** Ob die Aufzeichnung gerade automatisch nach der gewählten Pausendauer fortgesetzt wurde (noch nicht angezeigt). */
+    var resumedAfterTimedPause: Boolean
+        get() = resumedAfterTimedPauseState.value
+        set(value) {
+            preferences.edit { putBoolean(KEY_RESUMED_AFTER_TIMED_PAUSE, value) }
+            resumedAfterTimedPauseState.value = value
+        }
+
     /**
      * Ob zwischen [lastActiveElapsedRealtime] und jetzt ein Neustart des Geräts stattgefunden hat.
      * `elapsedRealtime()` läuft nur innerhalb eines Boot-Zyklus und fällt nach einem Neustart auf
@@ -174,6 +204,8 @@ class TrackRecordingSettings(
         trackedTourId = null
         pausedByReboot = false
         resumedAfterBoot = false
+        scheduledResumeAtMillis = null
+        resumedAfterTimedPause = false
     }
 
     /** Von [TrackRecordingService] gesetzt, wenn der Start scheiterte. */
@@ -193,6 +225,8 @@ class TrackRecordingSettings(
         trackedState.value = readTracked()
         pausedByRebootState.value = readPausedByReboot()
         resumedAfterBootState.value = readResumedAfterBoot()
+        scheduledResumeAtMillisState.value = readScheduledResumeAtMillis()
+        resumedAfterTimedPauseState.value = readResumedAfterTimedPause()
     }
 
     private fun read() = TrackRecordingPreferences(
@@ -213,6 +247,11 @@ class TrackRecordingSettings(
 
     private fun readResumedAfterBoot(): Boolean = preferences.getBoolean(KEY_RESUMED_AFTER_BOOT, false)
 
+    private fun readScheduledResumeAtMillis(): Long? =
+        if (!preferences.contains(KEY_SCHEDULED_RESUME_AT)) null else preferences.getLong(KEY_SCHEDULED_RESUME_AT, 0)
+
+    private fun readResumedAfterTimedPause(): Boolean = preferences.getBoolean(KEY_RESUMED_AFTER_TIMED_PAUSE, false)
+
     companion object {
         const val PREFERENCES_NAME = "track_recording"
         private const val KEY_ENABLED = "enabled"
@@ -225,6 +264,8 @@ class TrackRecordingSettings(
         private const val KEY_LAST_ACTIVE_ELAPSED_REALTIME = "last_active_elapsed_realtime"
         private const val KEY_PAUSED_BY_REBOOT = "paused_by_reboot"
         private const val KEY_RESUMED_AFTER_BOOT = "resumed_after_boot"
+        private const val KEY_SCHEDULED_RESUME_AT = "scheduled_resume_at"
+        private const val KEY_RESUMED_AFTER_TIMED_PAUSE = "resumed_after_timed_pause"
 
         @Volatile
         private var shared: TrackRecordingSettings? = null

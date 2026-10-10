@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.tracking
 
 import android.annotation.SuppressLint
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -355,6 +356,7 @@ class TrackRecordingService : Service() {
         private const val ACTION_PAUSE = "app.restvolt.camperlog.tracking.PAUSE"
         private const val ACTION_STOP = "app.restvolt.camperlog.tracking.STOP"
         private const val EXTRA_TOUR_ID = "tour_id"
+        private const val AUTO_RESUME_REQUEST_CODE = 3
 
         /** Spätestens nach so vielen Punkten wird geschrieben. */
         const val FLUSH_POINTS = 20
@@ -366,9 +368,13 @@ class TrackRecordingService : Service() {
             ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
         }
 
-        /** Startet die Aufzeichnung für [tourId]; nur aus der sichtbaren Oberfläche aufrufen. */
+        /**
+         * Startet die Aufzeichnung für [tourId]; nur aus der sichtbaren Oberfläche aufrufen. Ein noch
+         * geplantes automatisches Fortsetzen ([scheduleAutoResume]) wird hinfällig und daher verworfen.
+         */
         fun start(context: Context, tourId: Long) {
             TrackRecordingSettings.get(context).pausedByReboot = false
+            cancelScheduledAutoResume(context)
             val intent = Intent(context, TrackRecordingService::class.java).setAction(ACTION_START).putExtra(EXTRA_TOUR_ID, tourId)
             ContextCompat.startForegroundService(context, intent)
         }
@@ -382,6 +388,7 @@ class TrackRecordingService : Service() {
                 enabled = true
                 trackedTourId = tourId
                 resumedAfterBoot = false
+                resumedAfterTimedPause = false
             }
             start(context, tourId)
         }
@@ -435,8 +442,39 @@ class TrackRecordingService : Service() {
             TrackRecordingSettings.get(context).apply {
                 activeRecording = null
                 resumedAfterBoot = false
+                resumedAfterTimedPause = false
             }
             sendAction(context, ACTION_PAUSE)
+        }
+
+        /**
+         * Plant einen Alarm, der eine pausierte Aufzeichnung um [atMillis] automatisch fortsetzt, sofern
+         * bis dahin nichts anderes passiert ist ([resumeFromTimedPause]). `setAndAllowWhileIdle` statt
+         * eines exakten Alarms, damit keine `SCHEDULE_EXACT_ALARM`-Sonderberechtigung nötig ist; eine
+         * kleine Verspätung ist für diesen Zweck unproblematisch. Nur sinnvoll, solange eine Tour
+         * markiert ist ([TrackRecordingSettings.trackedTourId]).
+         */
+        fun scheduleAutoResume(context: Context, atMillis: Long) {
+            val settings = TrackRecordingSettings.get(context)
+            val tourId = settings.trackedTourId ?: return
+            settings.scheduledResumeAtMillis = atMillis
+            context.getSystemService(AlarmManager::class.java)
+                ?.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, autoResumePendingIntent(context, tourId))
+        }
+
+        /**
+         * Setzt eine pausierte Aufzeichnung fort, nachdem die beim Pausieren gewählte Dauer abgelaufen
+         * ist, ausgelöst vom Alarm aus [PauseResumeReceiver]. No-op, wenn [tourId] inzwischen nicht mehr
+         * die markierte Tour ist, die Aufzeichnung schon wieder läuft, oder die geplante Fortsetzung
+         * bereits verworfen wurde (z. B. durch manuelles Fortsetzen oder Beenden).
+         */
+        fun resumeFromTimedPause(context: Context, tourId: Long) {
+            val settings = TrackRecordingSettings.get(context)
+            if (settings.trackedTourId != tourId || settings.activeRecording != null || settings.scheduledResumeAtMillis == null) return
+            settings.scheduledResumeAtMillis = null
+            if (!settings.enabled || !hasLocationPermission(context)) return
+            settings.resumedAfterTimedPause = true
+            start(context, tourId)
         }
 
         /** Beendet die Aufzeichnung endgültig: Dienst stoppt, die zugeordnete Tour wird entmarkiert. */
@@ -446,7 +484,9 @@ class TrackRecordingService : Service() {
                 trackedTourId = null
                 pausedByReboot = false
                 resumedAfterBoot = false
+                resumedAfterTimedPause = false
             }
+            cancelScheduledAutoResume(context)
             sendAction(context, ACTION_STOP)
         }
 
@@ -454,6 +494,22 @@ class TrackRecordingService : Service() {
         fun stopIfTracking(context: Context, tourId: Long) {
             val settings = TrackRecordingSettings.get(context)
             if (settings.trackedTourId == tourId || settings.activeRecording?.tourId == tourId) stop(context)
+        }
+
+        /** `PendingIntent` für den Auto-Fortsetzen-Alarm; Abgleich beim Abmelden ignoriert die Extras. */
+        private fun autoResumePendingIntent(context: Context, tourId: Long): PendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                AUTO_RESUME_REQUEST_CODE,
+                Intent(context, PauseResumeReceiver::class.java)
+                    .setAction(PauseResumeReceiver.ACTION_AUTO_RESUME)
+                    .putExtra(PauseResumeReceiver.EXTRA_TOUR_ID, tourId),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+
+        private fun cancelScheduledAutoResume(context: Context) {
+            TrackRecordingSettings.get(context).scheduledResumeAtMillis = null
+            context.getSystemService(AlarmManager::class.java)?.cancel(autoResumePendingIntent(context, 0L))
         }
 
         private fun sendAction(context: Context, action: String) {
