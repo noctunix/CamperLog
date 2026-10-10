@@ -21,6 +21,7 @@ import app.restvolt.camperlog.domain.TrackSummary
 import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_FAB_ACTION
 import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_ID
 import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_SAVE_ACTION
+import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_STATION_FAB_ACTION
 import app.restvolt.camperlog.domain.displayTitle
 import app.restvolt.camperlog.ui.checklists.suggestedChecklistTemplates
 import app.restvolt.camperlog.ui.detail.AndroidTourExportFiles
@@ -82,32 +83,52 @@ internal fun NavGraphBuilder.toursGraph(
         val tourId = entry.toRoute<EditRoute>().tourId
         val resources = LocalResources.current
         val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations, tracks)
+        val guideState by guideController.state.collectAsStateWithLifecycle()
+        val isCreateFirstTourGuide = guideState.tour?.id == CREATE_FIRST_TOUR_ID
+        val editTourViewModel = viewModel {
+            EditTourViewModel(
+                repository,
+                vehicles,
+                stations,
+                checklists,
+                tourId,
+                createSavedStateHandle(),
+                tracks = tracks,
+                homeLocationSettings = homeLocationSettings,
+                defaultHomeStationName = { resources.getString(R.string.home_location_default_name) },
+            )
+        }
         EditTourScreen(
-            viewModel = viewModel {
-                EditTourViewModel(
-                    repository,
-                    vehicles,
-                    stations,
-                    checklists,
-                    tourId,
-                    createSavedStateHandle(),
-                    tracks = tracks,
-                    homeLocationSettings = homeLocationSettings,
-                    defaultHomeStationName = { resources.getString(R.string.home_location_default_name) },
-                )
-            },
+            viewModel = editTourViewModel,
             trackSettings = trackSettings,
             homeLocationSettings = homeLocationSettings,
+            requestTrackPermissionEarly = isCreateFirstTourGuide,
+            onBeforeSystemDialog = guideController::pause,
+            onAfterSystemDialog = guideController::resume,
+            onAddVehicle = {
+                // Pausiert die Pilot-Tour für das ungeführte Fahrzeugformular, aber nur, wenn sie
+                // gerade läuft: normales Anlegen ohne aktive Tour soll nicht an sie koppeln.
+                if (isCreateFirstTourGuide) guideController.pause()
+                navController.navigate(VehicleEditRoute())
+            },
             onDone = { navController.popFrom(entry) },
             onSaved = {
                 // Schaltet den letzten Schritt der Pilot-Tour frei, aber nur, wenn sie gerade läuft:
                 // normales Speichern ohne aktive Tour soll nicht an sie koppeln.
-                if (guideController.state.value.tour?.id == CREATE_FIRST_TOUR_ID) {
+                if (isCreateFirstTourGuide) {
                     guideController.completeAction(CREATE_FIRST_TOUR_SAVE_ACTION)
                     guideController.next()
                 }
                 if (tourId == 0L) toursViewModel.onTourCreated()
-                navController.popFrom(entry)
+                val savedTourId = editTourViewModel.uiState.value.savedTourId
+                if (isCreateFirstTourGuide && tourId == 0L && savedTourId != null) {
+                    // Die Pilot-Tour will als Nächstes den "Station hinzufügen"-FAB der
+                    // Tourdetailseite zeigen; normales Speichern führt sonst zur Tourenliste zurück.
+                    navController.popBackStack()
+                    navController.navigate(DetailRoute(savedTourId))
+                } else {
+                    navController.popFrom(entry)
+                }
             },
         )
     }
@@ -166,6 +187,11 @@ internal fun NavGraphBuilder.toursGraph(
                 }
             },
             onAddStation = { targetTourId, type ->
+                // Schaltet den "Station hinzufügen"-Schritt der Pilot-Tour frei, aber nur, wenn sie
+                // gerade läuft: normales Anlegen ohne aktive Tour soll nicht an sie koppeln.
+                if (guideController.state.value.tour?.id == CREATE_FIRST_TOUR_ID) {
+                    guideController.completeAction(CREATE_FIRST_TOUR_STATION_FAB_ACTION)
+                }
                 navController.navigate(StationEditRoute(tourId = targetTourId, initialType = type.name))
             },
             onOpenStation = { stationId -> navController.navigate(StationDetailRoute(stationId)) },

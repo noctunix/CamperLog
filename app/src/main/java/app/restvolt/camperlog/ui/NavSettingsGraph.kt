@@ -33,6 +33,7 @@ import app.restvolt.camperlog.ui.settings.SettingsScreen
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** Navigationsziele: Suche, Kurse, Daten, Einstellungen und Über. */
@@ -65,7 +66,16 @@ internal fun NavGraphBuilder.settingsGraph(
                     // "Beispiel"-Kennzeichnung erst nach dieser Navigation aufblitzen.
                     demoTourSession.begin()
                     navController.navigateToToursTabRootAndAwait()
-                    guideController.start(createFirstTourTour())
+                    // Bedingte Abschnitte werden einmalig hier entschieden statt während der Tour zu
+                    // springen, siehe createFirstTourTour().
+                    val offerVehicleCreation = vehicles.observeVehicles().first().none { !it.isDemo }
+                    guideController.start(
+                        createFirstTourTour(
+                            offerVehicleCreation = offerVehicleCreation,
+                            trackSwitchGloballyEnabled = trackSettings.values.value.enabled,
+                            hasHomeLocation = homeLocationSettings.values.value.hasLocation,
+                        ),
+                    )
                 }
             },
         ),

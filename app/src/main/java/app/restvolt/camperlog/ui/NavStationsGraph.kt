@@ -19,6 +19,8 @@ import androidx.navigation.toRoute
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.AndroidLocationPermissionGate
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_ID
+import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_STATION_SAVE_ACTION
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.ui.detail.StationDetailScreen
@@ -118,16 +120,25 @@ internal fun NavGraphBuilder.stationsGraph(
             onDone = { navController.popFrom(entry) },
             onSaved = { loggedServices ->
                 if (route.stationId == 0L) {
-                    // Eine neue Station landet auf ihrer Detailseite, damit sofort Fotos angehängt
-                    // werden können; Zurück führt dann zur Herkunft des Formulars (Tourdetail,
-                    // Stationen-Reiter oder, bei einem `geo:`-Link ohne einen der beiden im Stapel,
-                    // zu dessen eigener Herkunft).
-                    val savedId = stationEditViewModel.uiState.value.savedStationId
-                    val fromStationsTab = !(route.tourId != null && navController.hasRoute<DetailRoute>())
-                    navController.popBackStack()
-                    navController.navigate(
-                        StationDetailRoute(savedId, fromStationsTab = fromStationsTab, justSavedLoggedServices = loggedServices.map { it.name }),
-                    )
+                    if (guideController.state.value.tour?.id == CREATE_FIRST_TOUR_ID) {
+                        // Innerhalb der Pilot-Tour "Erste Tour anlegen" führt das Speichern zurück zur
+                        // Tourdetailseite statt auf die Stationsdetailseite, damit der abschließende
+                        // Hinweis auf den GPS-Track-Abschnitt dort einen echten Anker vorfindet.
+                        guideController.completeAction(CREATE_FIRST_TOUR_STATION_SAVE_ACTION)
+                        guideController.next()
+                        navController.popBackStack()
+                    } else {
+                        // Eine neue Station landet auf ihrer Detailseite, damit sofort Fotos angehängt
+                        // werden können; Zurück führt dann zur Herkunft des Formulars (Tourdetail,
+                        // Stationen-Reiter oder, bei einem `geo:`-Link ohne einen der beiden im Stapel,
+                        // zu dessen eigener Herkunft).
+                        val savedId = stationEditViewModel.uiState.value.savedStationId
+                        val fromStationsTab = !(route.tourId != null && navController.hasRoute<DetailRoute>())
+                        navController.popBackStack()
+                        navController.navigate(
+                            StationDetailRoute(savedId, fromStationsTab = fromStationsTab, justSavedLoggedServices = loggedServices.map { it.name }),
+                        )
+                    }
                 } else {
                     onStationSaved(loggedServices)
                     navController.popFrom(entry)

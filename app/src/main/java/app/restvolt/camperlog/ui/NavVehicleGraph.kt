@@ -14,6 +14,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import app.restvolt.camperlog.data.AndroidLocationPermissionGate
 import app.restvolt.camperlog.domain.Checklist
+import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_ID
+import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_VEHICLE_ACTION
 import app.restvolt.camperlog.ui.checklists.ChecklistScreen
 import app.restvolt.camperlog.ui.checklists.ChecklistTemplateEditScreen
 import app.restvolt.camperlog.ui.checklists.ChecklistTemplateEditViewModel
@@ -101,7 +103,16 @@ internal fun NavGraphBuilder.vehicleGraph(
         EditVehicleScreen(
             viewModel = viewModel { EditVehicleViewModel(vehicles, vehicleId, createSavedStateHandle()) },
             onDone = { navController.popFrom(entry) },
-            onSaved = { navController.popFrom(entry) },
+            onSaved = {
+                // Inline aus der Pilot-Tour "Erste Tour anlegen" angelegt: schaltet ihren
+                // Fahrzeug-Schritt frei und setzt sie fort - das Tourformular greift das neue
+                // Fahrzeug über seine eigene, dauerhaft laufende Vorbelegung auf.
+                if (guideController.state.value.tour?.id == CREATE_FIRST_TOUR_ID) {
+                    guideController.completeAction(CREATE_FIRST_TOUR_VEHICLE_ACTION)
+                    guideController.resume()
+                }
+                navController.popFrom(entry)
+            },
         )
     }
     composable<RepairEditRoute> { entry ->
