@@ -69,7 +69,7 @@ class DemoTourSession(
         sweepOrphansLocked()
         val now = clock()
         val vehicleId = vehicles.save(demoVehicle(now))
-        val start = LocalDate.ofInstant(now, ZoneOffset.UTC).minusDays(DEMO_TOUR_LENGTH_DAYS)
+        val start = now.atZone(ZoneOffset.UTC).toLocalDate().minusDays(DEMO_TOUR_LENGTH_DAYS)
         val tourId = tours.save(demoTour(vehicleId, start, now))
         demoStations(tourId, vehicleId, start, now).forEach { stations.save(it) }
         tracks.addAll(demoTrackPoints(tourId, start))
