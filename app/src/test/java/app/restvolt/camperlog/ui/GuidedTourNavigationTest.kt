@@ -59,14 +59,21 @@ class GuidedTourNavigationTest {
         context.getSharedPreferences("guide_progress", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
-    /** Überspringt die Ersteinrichtung: Hier geht es nur um die geführten Touren selbst. */
-    private fun start(tours: FakeTourRepository = FakeTourRepository(emptyList())): FakeTourRepository {
+    /**
+     * Überspringt die Ersteinrichtung: Hier geht es nur um die geführten Touren selbst.
+     * Ohne eigenes `demoTourSession`-Argument baut [CamperLogNavHost] eine Demo-Tour-Sitzung aus
+     * genau denselben Fakes, die hier für Touren/Stationen/Fahrzeuge/Tracks übergeben werden.
+     */
+    private fun start(
+        tours: FakeTourRepository = FakeTourRepository(emptyList()),
+        vehicles: FakeVehicleRepository = FakeVehicleRepository(),
+    ): FakeTourRepository {
         IntroductionSettings(context).seen = true
         compose.setContent {
             CamperLogTheme {
                 CamperLogNavHost(
                     tours,
-                    FakeVehicleRepository(),
+                    vehicles,
                     FakeLogRepository(),
                     FakeStationRepository(),
                     FakeExchangeRateRepository(),
@@ -195,6 +202,32 @@ class GuidedTourNavigationTest {
     }
 
     @Test
+    fun createFirstTourTour_endingEarlyRemovesTheDemoTourAndItsVehicleToo() {
+        clearPreferences()
+        try {
+            val vehicles = FakeVehicleRepository()
+            val tours = start(vehicles = vehicles)
+            openAbout()
+            compose.onAllNodesWithText("Starten")[1].performClick()
+            compose.waitForIdle()
+
+            assertEquals(1, tours.tours.size)
+            assertEquals(2, vehicles.vehicles.size)
+
+            // "Beenden" bricht die Pilot-Tour vorzeitig ab; das muss die Demo-Tour genauso aufräumen
+            // wie ein regulärer Abschluss.
+            compose.onNodeWithText("Beenden").performClick()
+            compose.waitForIdle()
+
+            assertEquals(emptyList<Any>(), tours.tours)
+            assertEquals(1L, vehicles.vehicles.single().id)
+            assertTrue(vehicles.vehicles.none { it.isDemo })
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
     fun createFirstTourTour_weiterStaysDisabledUntilTheRealFabClick() {
         clearPreferences()
         try {
@@ -217,13 +250,16 @@ class GuidedTourNavigationTest {
     }
 
     @Test
-    fun createFirstTourTour_realSaveCompletesTheActionStepAndEndsTheTour() {
+    fun createFirstTourTour_realSaveCompletesTheActionStepAndEndsTheTourAfterTheTrackStep() {
         clearPreferences()
         try {
             val tours = start()
             openAbout()
             compose.onAllNodesWithText("Starten")[1].performClick()
             compose.waitForIdle()
+
+            // Die Demo-Tour des Tutorials existiert schon, bevor der Nutzer überhaupt etwas tut.
+            assertTrue(tours.tours.single().isDemo)
 
             // Schritt 1: Anker auf dem echten FAB, ein echter Klick navigiert ins Formular.
             val fabCenter = centerOf(hasText("Neue Tour") and hasClickAction())
@@ -243,12 +279,19 @@ class GuidedTourNavigationTest {
             compose.onRoot().performTouchInput { click(saveCenter) }
             compose.waitForIdle()
 
-            assertEquals(1, tours.tours.size)
-            assertEquals("Gardasee-Rundfahrt", tours.tours.single().name)
+            assertEquals(2, tours.tours.size)
+            val savedTour = tours.tours.single { !it.isDemo }
+            assertEquals("Gardasee-Rundfahrt", savedTour.name)
+            // Schritt 4: der abschließende Hinweis zum GPS-Track, ohne weitere echte Aktion.
+            compose.onNodeWithText("GPS-Track").assertExists()
+            compose.onNodeWithText("Fertig").performClick()
+            compose.waitForIdle()
+
             assertTrue(GuideProgressStore(context).isCompleted(CREATE_FIRST_TOUR_ID, CREATE_FIRST_TOUR_VERSION))
-            // Die Tour ist zu Ende: keine Karte mehr sichtbar.
+            // Die Tour ist zu Ende: keine Karte mehr sichtbar, und die Demo-Tour ist wieder weg.
             compose.onNodeWithText("Weiter").assertDoesNotExist()
             compose.onNodeWithText("Fertig").assertDoesNotExist()
+            assertEquals(listOf(savedTour), tours.tours)
 
             openAbout()
             compose.onAllNodesWithText("Abgeschlossen").assertCountEquals(1)
@@ -280,6 +323,30 @@ class GuidedTourNavigationTest {
     }
 
     @Test
+    fun createFirstTourTour_demoTourShowsItsMapButtonEvenWithWeatherAndMapSwitchedOff() {
+        clearPreferences()
+        context.getSharedPreferences("weather", Context.MODE_PRIVATE).edit().putBoolean("enabled", false).commit()
+        try {
+            start()
+            openAbout()
+            compose.onAllNodesWithText("Starten")[1].performClick()
+            compose.waitForIdle()
+
+            // Pausiert blendet die Barriere aus (wie beim Startdatum), damit die Demo-Tour abseits
+            // des FAB-Ankers geöffnet werden kann, ohne die Tour schon zu beenden. Die Kartenzeile
+            // ist eine zusammengeführte Sprechform (Titel, "Beispiel"-Kennzeichnung, Zeitraum, …),
+            // daher reicht hier ein Teilstring.
+            compose.onNodeWithText("Pause").performClick()
+            compose.onNode(hasText("Alpine loop", substring = true)).performClick()
+
+            // "Wetter & Karte" ist standardmäßig aus; die Demo-Tour zeigt den "Karte"-Button trotzdem.
+            compose.onNodeWithText("Karte").assertExists()
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
     fun aboutScreen_startingTheCreateFirstTourTourNavigatesToTheToursTab() {
         clearPreferences()
         try {
@@ -288,8 +355,14 @@ class GuidedTourNavigationTest {
             compose.onNodeWithText("Bordbuch").performClick()
             openAbout()
             compose.onAllNodesWithText("Starten")[1].performClick()
+            compose.waitForIdle()
 
-            compose.onNodeWithText("Noch keine Touren. Lege mit „Neue Tour“ die erste Fahrt an.").assertExists()
+            // Auf dem Touren-Reiter steht jetzt der echte FAB (zusammen mit der Karte des aktuellen
+            // Tutorialschritts gibt es "Neue Tour" zweimal, siehe die anderen Tests dieser Datei),
+            // dazu schon die mit "Beispiel" gekennzeichnete Demo-Tour (vor dieser Navigation von
+            // DemoTourSession.begin angelegt).
+            compose.onAllNodesWithText("Neue Tour").assertCountEquals(2)
+            compose.onNode(hasText("Beispiel", substring = true)).assertExists()
         } finally {
             clearPreferences()
         }

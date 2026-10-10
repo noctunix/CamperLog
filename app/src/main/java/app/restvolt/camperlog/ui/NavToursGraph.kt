@@ -156,6 +156,7 @@ internal fun NavGraphBuilder.toursGraph(
                     { TrackRecordingSection(tourId, tracks, trackSettings, hasEndDate = tour.endDate != null) }
                 }
             },
+            forceVisibleForTutorial = detailTour?.isDemo == true,
             onBack = { navController.popFrom(entry) },
             onEdit = { navController.navigate(EditRoute(tourId)) },
             onDelete = { tour ->

@@ -97,7 +97,9 @@ class ToursViewModel(
         query,
         selectedYear,
     ) { filter, query, year ->
-        val visible = filter.tours.filter { filter.allVehicles || it.vehicleId == filter.currentVehicleId }
+        // Die Demo-Tour des Tutorials bleibt immer sichtbar, unabhängig vom Fahrzeugfilter: sie hat
+        // ihr eigenes Demo-Fahrzeug (siehe DemoTourSession), nie das aktuelle echte Fahrzeug.
+        val visible = filter.tours.filter { filter.allVehicles || it.vehicleId == filter.currentVehicleId || it.isDemo }
         val years = visible.map(Tour::year).distinct().sortedDescending()
         val activeYear = year?.takeIf { it in years }
         ToursUiState(

@@ -1206,10 +1206,18 @@
     <string name="guide_step_fab_body">Tap here to start a new tour.</string>
     <string name="guide_step_name_body">Enter the tour\'s name or destination here.</string>
     <string name="guide_step_save_body">Tap Save to create the tour.</string>
+    <string name="guide_step_track_title">GPS track</string>
+    <string name="guide_step_track_body">A tour can also record its GPS track while you drive. Recording is optional and off by default – see the sample tour marked \"Sample\" in your tour list for a preview of the track and map, even though yours isn\'t recording yet.</string>
     <string name="guide_tour_introduction_title">Introduction</string>
     <string name="guide_tour_create_first_title">Create your first tour</string>
     <string name="guide_entry_start">Start</string>
     <string name="guide_entry_repeat">Repeat</string>
     <string name="guide_entry_completed">Completed</string>
     <string name="guide_tutorials_section_title">Tutorials</string>
+    <string name="tour_demo_badge">Sample</string>
+    <string name="demo_vehicle_name">Sample camper</string>
+    <string name="demo_tour_destination">Alpine loop</string>
+    <string name="demo_station_1_name">Lakeside pitch</string>
+    <string name="demo_station_2_name">Mountain pass stop</string>
+    <string name="demo_station_3_name">Forest campsite</string>
 </resources>

@@ -28,7 +28,12 @@ const val CREATE_FIRST_TOUR_FAB_ACTION = "tour.fab.clicked"
 /** Aktion, die den letzten Schritt von [CREATE_FIRST_TOUR_ID] beim echten Speichern der Tour freischaltet. */
 const val CREATE_FIRST_TOUR_SAVE_ACTION = "tour.saved"
 
-/** Pilot-Tour: FAB, Namensfeld und Speichern-Button beim Anlegen der ersten Tour. */
+/**
+ * Pilot-Tour: FAB, Namensfeld und Speichern-Button beim Anlegen der ersten Tour, danach ein
+ * abschließender Hinweis auf den GPS-Track am Beispiel der simulierten Demo-Tour
+ * ([DemoTourSession]) - die zeigt ihren Track in der Tourenliste und im Tourdetail immer, auch wenn
+ * die globale Trackaufzeichnung oder "Wetter & Karte" ausgeschaltet sind.
+ */
 fun createFirstTourTour() = TourDefinition(
     id = CREATE_FIRST_TOUR_ID,
     version = CREATE_FIRST_TOUR_VERSION,
@@ -48,5 +53,6 @@ fun createFirstTourTour() = TourDefinition(
             R.string.guide_step_save_body,
             StepCompletion.Action(CREATE_FIRST_TOUR_SAVE_ACTION),
         ),
+        TourStep("track", null, R.string.guide_step_track_title, R.string.guide_step_track_body, StepCompletion.Information),
     ),
 )

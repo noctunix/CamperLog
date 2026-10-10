@@ -117,6 +117,12 @@ fun TourDetailScreen(
     trackStatusContent: (@Composable () -> Unit)? = null,
     /** Inhalt des Abschnitts "GPS-Track"; `null`, solange die Trackaufzeichnung ausgeschaltet ist. */
     trackSectionContent: (@Composable () -> Unit)? = null,
+    /**
+     * Tutorial-Ausnahme für die Demo-Tour: zeigt den "Karte"-Button unabhängig von
+     * [weatherMapEnabled], damit der Rundgang den GPS-Track auch bei ausgeschaltetem "Wetter &
+     * Karte" vorführen kann. Gilt nie für echte Touren.
+     */
+    forceVisibleForTutorial: Boolean = false,
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: (Tour) -> Unit,
@@ -248,6 +254,7 @@ fun TourDetailScreen(
                 onSaveCountries = { added, removed -> viewModel.saveCountries(current.tour, added, removed) },
                 trackStatusContent = trackStatusContent,
                 trackSectionContent = trackSectionContent,
+                forceVisibleForTutorial = forceVisibleForTutorial,
                 onAddDiaryEntry = { onAddDiaryEntry(current.tour.id) },
                 onOpenDiaryEntry = onOpenDiaryEntry,
                 onStartChecklist = { showChecklistPicker = true },
@@ -395,6 +402,7 @@ private fun TourDetails(
     onSaveCountries: (Set<String>, Set<String>) -> Unit,
     trackStatusContent: (@Composable () -> Unit)?,
     trackSectionContent: (@Composable () -> Unit)?,
+    forceVisibleForTutorial: Boolean,
     onAddDiaryEntry: () -> Unit,
     onOpenDiaryEntry: (Long) -> Unit,
     onStartChecklist: () -> Unit,
@@ -437,7 +445,7 @@ private fun TourDetails(
                     modifier = Modifier.weight(1f).semantics { heading() },
                     style = MaterialTheme.typography.titleMedium,
                 )
-                if (isMapAvailable(weatherMapEnabled, stations)) {
+                if (isMapAvailable(weatherMapEnabled, stations) || forceVisibleForTutorial) {
                     TextButton(onClick = onOpenMap) {
                         Icon(painterResource(R.drawable.ic_map), contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(6.dp))

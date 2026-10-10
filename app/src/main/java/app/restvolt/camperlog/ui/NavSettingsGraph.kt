@@ -61,6 +61,9 @@ internal fun NavGraphBuilder.settingsGraph(
             completed = guideProgressStore.isCompleted(CREATE_FIRST_TOUR_ID, CREATE_FIRST_TOUR_VERSION),
             onStart = {
                 scope.launch {
+                    // Legt die Demo-Tour an, bevor die Tourenliste sie zeigt - sonst würde ihre
+                    // "Beispiel"-Kennzeichnung erst nach dieser Navigation aufblitzen.
+                    demoTourSession.begin()
                     navController.navigateToToursTabRootAndAwait()
                     guideController.start(createFirstTourTour())
                 }

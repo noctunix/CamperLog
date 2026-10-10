@@ -1195,10 +1195,18 @@
     <string name="guide_step_fab_body">Tippe hier, um eine neue Tour anzulegen.</string>
     <string name="guide_step_name_body">Trag hier den Namen oder das Ziel der Tour ein.</string>
     <string name="guide_step_save_body">Tippe auf Speichern, um die Tour anzulegen.</string>
+    <string name="guide_step_track_title">GPS-Track</string>
+    <string name="guide_step_track_body">Eine Tour kann während der Fahrt auch ihren GPS-Track aufzeichnen. Das ist optional und standardmäßig aus – wie Track und Karte aussehen, zeigt dir die mit „Beispiel" markierte Tour in deiner Liste schon jetzt, auch wenn deine eigene Aufzeichnung noch nicht läuft.</string>
     <string name="guide_tour_introduction_title">Rundgang</string>
     <string name="guide_tour_create_first_title">Erste Tour anlegen</string>
     <string name="guide_entry_start">Starten</string>
     <string name="guide_entry_repeat">Wiederholen</string>
     <string name="guide_entry_completed">Abgeschlossen</string>
     <string name="guide_tutorials_section_title">Tutorials</string>
+    <string name="tour_demo_badge">Beispiel</string>
+    <string name="demo_vehicle_name">Beispiel-Wohnmobil</string>
+    <string name="demo_tour_destination">Alpenrunde</string>
+    <string name="demo_station_1_name">Platz am See</string>
+    <string name="demo_station_2_name">Rast am Pass</string>
+    <string name="demo_station_3_name">Waldlager</string>
 </resources>
