@@ -1,0 +1,2 @@
+• Ein geplantes automatisches Fortsetzen der GPS-Aufzeichnung überlebt jetzt einen Geräteneustart
+• Tutorial zeigt jetzt auch bei nur einem Fahrzeug, welchem Fahrzeug die neue Tour zugeordnet ist

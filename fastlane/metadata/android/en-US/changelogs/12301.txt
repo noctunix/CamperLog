@@ -1,0 +1,2 @@
+• A scheduled GPS-track auto-resume now survives a device restart
+• Tutorial now shows which vehicle a new tour is assigned to, even with just one vehicle

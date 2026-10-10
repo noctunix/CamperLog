@@ -2,6 +2,8 @@
 
 Shipped features, newest first.
 
+- 1.23.1 – A scheduled GPS-track auto-resume now survives a device restart; the tutorial shows which vehicle a new tour is assigned to even with just one vehicle; cleared up a misdiagnosed "DatePicker doesn't open during a tutorial" report (it was a test bug, not an app bug)
+
 - 1.23.0 – The "create your first tour" tutorial now walks through every field step by step (14 real steps instead of 3): vehicle selection with inline vehicle creation if needed, period, GPS-track and home-location switches with location permission requested inline, other costs, slug, saving, adding a first station, and the finished track section with map
 
 - 1.22.0 – Pausing a GPS track recording can now schedule an automatic resume after a chosen duration (30 min / 1 h / 3 h / 8 h / 1 day), no new permission needed
