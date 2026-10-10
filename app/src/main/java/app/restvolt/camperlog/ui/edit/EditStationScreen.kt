@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,8 +38,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -106,6 +103,7 @@ import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LocationCaptureSection
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.TimeField
 import app.restvolt.camperlog.ui.WeatherFetchRow
 import app.restvolt.camperlog.ui.WeatherRefreshRow
 import app.restvolt.camperlog.ui.WeatherSummary
@@ -126,7 +124,6 @@ import app.restvolt.camperlog.ui.theme.HeartRed
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.yesNoRes
 import java.time.LocalDate
-import java.time.LocalTime
 
 /**
  * Formular zum Anlegen und Bearbeiten einer Station. [onDone] verlässt es ohne, [onSaved] nach
@@ -834,55 +831,6 @@ private fun GpsSuccessRow(fix: LocationFix, locationSettings: LocationSettings, 
             Text(stringResource(R.string.location_approximate_hint_body), style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = { context.openAppDetailsSettings() }) { Text(stringResource(R.string.location_action_app_settings)) }
         }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TimeField(label: String, time: LocalTime?, onTimeSelected: (LocalTime?) -> Unit) {
-    var showPicker by rememberSaveable { mutableStateOf(false) }
-    val pickLabel = stringResource(R.string.edit_pick_date, label)
-    OutlinedTextField(
-        value = time?.let { "%02d:%02d".format(it.hour, it.minute) }.orEmpty(),
-        onValueChange = {},
-        readOnly = true,
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics {
-                onClick(label = pickLabel) {
-                    showPicker = true
-                    true
-                }
-            },
-        label = { Text(label) },
-        trailingIcon = {
-            if (time != null) {
-                IconButton(onClick = { onTimeSelected(null) }) {
-                    Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.station_clear_time))
-                }
-            } else {
-                IconButton(onClick = { showPicker = true }) {
-                    Icon(painterResource(R.drawable.ic_schedule), contentDescription = pickLabel)
-                }
-            }
-        },
-        singleLine = true,
-        shape = MaterialTheme.shapes.medium,
-    )
-    if (showPicker) {
-        val now = LocalTime.now()
-        val pickerState = rememberTimePickerState(initialHour = time?.hour ?: now.hour, initialMinute = time?.minute ?: now.minute, is24Hour = true)
-        AlertDialog(
-            onDismissRequest = { showPicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    onTimeSelected(LocalTime.of(pickerState.hour, pickerState.minute))
-                    showPicker = false
-                }) { Text(stringResource(R.string.action_ok)) }
-            },
-            dismissButton = { TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.action_cancel)) } },
-            text = { TimePicker(state = pickerState) },
-        )
     }
 }
 

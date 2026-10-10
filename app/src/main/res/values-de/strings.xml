@@ -749,6 +749,7 @@
     <string name="diary_edit_save_failed">Tagebucheintrag konnte nicht gespeichert werden.</string>
     <string name="diary_not_found">Diesen Tagebucheintrag gibt es nicht mehr.</string>
     <string name="diary_field_text">Text</string>
+    <string name="diary_field_weather">Wetter</string>
     <string name="diary_error_duplicate_date">Für diesen Tag gibt es schon einen Eintrag</string>
     <string name="diary_error_text_required">Text erforderlich</string>
 

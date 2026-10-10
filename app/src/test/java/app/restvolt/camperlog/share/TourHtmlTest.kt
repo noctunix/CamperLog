@@ -15,6 +15,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 
 /** HTML-Export einer Tour (`Tour.html`, siehe `TourHtml.kt`). */
 @RunWith(RobolectricTestRunner::class)
@@ -95,6 +96,26 @@ class TourHtmlTest {
         assertFalse("raw markup must not reach the page", html.contains("<script>"))
         assertTrue(html.contains("&lt;script&gt;&amp;&quot;&#39;"))
         assertTrue(html.contains(">Diary<"))
+    }
+
+    @Test
+    fun diaryEntryShowsTimeWeatherAndOdometerWhenSet() {
+        val entry = DiaryEntry(
+            tourId = 1,
+            date = LocalDate.of(2026, 7, 11),
+            time = LocalTime.of(18, 30),
+            text = "Langer Tag",
+            weather = "Sonnig, 22 °C",
+            odometerKm = 48_300,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+
+        val html = tourHtml(resources, tour, emptyList(), emptySet(), emptyMap(), listOf(entry))
+
+        assertTrue(html.contains("18:30"))
+        assertTrue(html.contains("Weather: Sonnig, 22 °C"))
+        assertTrue(html.contains("Odometer: 48,300 km"))
     }
 
     @Test

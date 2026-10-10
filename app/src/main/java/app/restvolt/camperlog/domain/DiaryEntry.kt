@@ -3,18 +3,23 @@ package app.restvolt.camperlog.domain
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 
 /**
  * Ein Tagebucheintrag zu einem Tag einer Tour, getrennt von den Notizen einzelner Stationen.
  * Je Tour und Tag gibt es höchstens einen Eintrag (siehe [DiaryEntryRepository]); [date] ist nicht
- * auf den Zeitraum der Tour beschränkt, da dieser nachträglich geändert werden kann.
+ * auf den Zeitraum der Tour beschränkt, da dieser nachträglich geändert werden kann. [time],
+ * [odometerKm] und [weather] sind optional.
  */
 data class DiaryEntry(
     val id: Long = 0,
     val uuid: String = "",
     val tourId: Long,
     val date: LocalDate,
+    val time: LocalTime? = null,
     val text: String,
+    val odometerKm: Int? = null,
+    val weather: String = "",
     val createdAt: Instant,
     val updatedAt: Instant,
 )

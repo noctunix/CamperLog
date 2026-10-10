@@ -308,6 +308,7 @@ val DiaryEntryField.labelRes: Int
     get() = when (this) {
         DiaryEntryField.DATE -> R.string.field_date
         DiaryEntryField.TEXT -> R.string.diary_field_text
+        DiaryEntryField.ODOMETER_KM -> R.string.field_odometer_km
     }
 
 /** Fehlertext zu [this] am Feld [field] des Tagebuchformulars. */
@@ -315,9 +316,15 @@ val DiaryEntryField.labelRes: Int
 fun DiaryEntryError.messageRes(field: DiaryEntryField): String = when (this) {
     DiaryEntryError.REQUIRED -> when (field) {
         DiaryEntryField.DATE -> stringResource(R.string.error_date_required)
-        DiaryEntryField.TEXT -> stringResource(R.string.diary_error_text_required)
+        else -> stringResource(R.string.diary_error_text_required)
     }
     DiaryEntryError.DUPLICATE_DATE -> stringResource(R.string.diary_error_duplicate_date)
+    DiaryEntryError.NEGATIVE_NUMBER -> stringResource(R.string.error_negative_number)
+    DiaryEntryError.INVALID_NUMBER -> stringResource(R.string.error_invalid_number)
+    DiaryEntryError.TOO_LARGE -> {
+        val max = java.text.NumberFormat.getIntegerInstance(currentLocale()).format(MAX_ODOMETER_KM)
+        stringResource(R.string.error_value_too_large, "$max km")
+    }
 }
 
 /** Anzeigename der Erinnerungsart. */

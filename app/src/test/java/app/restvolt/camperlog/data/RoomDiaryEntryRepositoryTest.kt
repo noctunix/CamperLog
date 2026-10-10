@@ -19,6 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.UUID
 
 @RunWith(RobolectricTestRunner::class)
@@ -85,6 +86,16 @@ class RoomDiaryEntryRepositoryTest {
         assertEquals("Überarbeitet", updated.text)
         assertEquals(created, updated.createdAt)
         assertEquals(now, updated.updatedAt)
+    }
+
+    @Test
+    fun saveKeepsTimeOdometerAndWeather() = runTest {
+        val id = repository.save(entry().copy(time = LocalTime.of(18, 30), odometerKm = 48_300, weather = "Sonnig"))
+
+        val stored = checkNotNull(repository.observeForTour(tourId).first().firstOrNull { it.id == id })
+        assertEquals(LocalTime.of(18, 30), stored.time)
+        assertEquals(48_300, stored.odometerKm)
+        assertEquals("Sonnig", stored.weather)
     }
 
     @Test

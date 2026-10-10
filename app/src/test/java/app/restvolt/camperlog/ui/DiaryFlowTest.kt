@@ -102,6 +102,20 @@ class DiaryFlowTest {
     }
 
     @Test
+    fun invalidOdometer_forNewDiaryEntry_showsError() {
+        start(tour())
+        compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Tagebuch").performScrollTo().performClick()
+        compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
+
+        textField().performTextInput("Langer Tag am Fjord.")
+        compose.onNode(hasSetTextAction() and hasText("km-Stand")).performScrollTo().performTextInput("abc")
+        clickSave()
+
+        compose.onNodeWithText("Ungültige Zahl").assertExists()
+    }
+
+    @Test
     fun textRequired_forNewDiaryEntry() {
         start(tour())
         compose.onNodeWithText("Lofoten").performClick()

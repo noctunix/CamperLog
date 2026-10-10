@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.backup
 
 import app.restvolt.camperlog.domain.DiaryEntry
+import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
@@ -11,6 +12,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.Currency
 
 /** Tagebucheinträge im JSON-Teil einer Sicherung: Rundgang und Validierung (siehe `BackupTest` für den Rest des Formats). */
@@ -60,6 +62,7 @@ class BackupDiaryEntriesTest {
 
     private fun success(text: String) = (decodeBackup(text) as BackupReadResult.Success).backup
     private fun failure(text: String) = decodeBackup(text) as? BackupReadResult.Failure
+    private fun encodedWith(old: String, new: String) = encodeBackup(backup()).replace(old, new)
 
     @Test
     fun roundTrip_keepsDiaryEntryWithTourUuid() {
@@ -130,4 +133,67 @@ class BackupDiaryEntriesTest {
 
         assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, diaryEntryNumber = 1), failure(encodeBackup(broken)))
     }
+
+    @Test
+    fun roundTrip_keepsTimeOdometerAndWeather() {
+        val withFields = backup(
+            listOf(BackupDiaryEntry(entry().copy(time = LocalTime.of(18, 30), odometerKm = 48_300, weather = "Sonnig, 22 °C"), tourUuid)),
+        )
+
+        val decoded = success(encodeBackup(withFields))
+
+        val diaryEntry = decoded.diaryEntries.single().entry
+        assertEquals(LocalTime.of(18, 30), diaryEntry.time)
+        assertEquals(48_300, diaryEntry.odometerKm)
+        assertEquals("Sonnig, 22 °C", diaryEntry.weather)
+    }
+
+    @Test
+    fun read_importsOlderBackupsMissingTimeOdometerAndWeather() {
+        val text = applyAll(
+            encodeBackup(backup(listOf(BackupDiaryEntry(entry().copy(time = LocalTime.of(18, 30), odometerKm = 48_300, weather = "Sonnig"), tourUuid)))),
+            listOf(
+                "\"time\": \"18:30\"," to "",
+                "\"odometerKm\": 48300," to "",
+                "\"weather\": \"Sonnig\"," to "",
+            ),
+        )
+
+        val decoded = success(text)
+
+        val diaryEntry = decoded.diaryEntries.single().entry
+        assertEquals(null, diaryEntry.time)
+        assertEquals(null, diaryEntry.odometerKm)
+        assertEquals("", diaryEntry.weather)
+    }
+
+    @Test
+    fun diaryEntryWithInvalidTime_isRejected() {
+        val text = encodedWith("\"time\": null,", "\"time\": \"kaumzeit\",")
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, diaryEntryNumber = 1), failure(text))
+    }
+
+    @Test
+    fun diaryEntryWithOdometerOutOfBounds_isRejected() {
+        listOf(
+            "\"odometerKm\": null," to "\"odometerKm\": -1,",
+            "\"odometerKm\": null," to "\"odometerKm\": ${MAX_ODOMETER_KM + 1},",
+        ).forEach { (old, new) ->
+            assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, diaryEntryNumber = 1), failure(encodedWith(old, new)))
+        }
+    }
+
+    @Test
+    fun tooLongDiaryEntryWeather_isRejected() {
+        val broken = backup(listOf(BackupDiaryEntry(entry().copy(weather = "x".repeat(MAX_DESTINATION_LENGTH + 1)), tourUuid)))
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, diaryEntryNumber = 1), failure(encodeBackup(broken)))
+    }
+
+    private fun applyAll(text: String, replacements: List<Pair<String, String>>): String =
+        replacements.fold(text) { acc, (old, new) ->
+            check(old in acc) { "\"$old\" nicht gefunden" }
+            acc.replace(old, new)
+        }
 }

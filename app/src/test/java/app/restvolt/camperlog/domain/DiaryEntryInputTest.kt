@@ -5,6 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 
 class DiaryEntryInputTest {
 
@@ -40,7 +41,7 @@ class DiaryEntryInputTest {
 
     @Test
     fun roundTripThroughInputIsLossless() {
-        val entry = valid.toDiaryEntry(null, tourId = 3)
+        val entry = valid.copy(time = LocalTime.of(18, 30), odometerKm = "48300", weather = "Sonnig").toDiaryEntry(null, tourId = 3)
         assertEquals(entry, entry.toInput().toDiaryEntry(entry, tourId = 3))
     }
 
@@ -67,6 +68,55 @@ class DiaryEntryInputTest {
     fun textIsTrimmed() {
         val entry = DiaryEntryInput(date = LocalDate.of(2026, 1, 1), text = "  Regen den ganzen Tag  ").toDiaryEntry(null, tourId = 1)
         assertEquals("Regen den ganzen Tag", entry.text)
+    }
+
+    @Test
+    fun weatherIsTrimmed() {
+        val entry = valid.copy(weather = "  Sonnig  ").toDiaryEntry(null, tourId = 1)
+        assertEquals("Sonnig", entry.weather)
+    }
+
+    @Test
+    fun timeAndOdometerAreOptional() {
+        assertTrue(valid.validate(emptySet()).isEmpty())
+        val entry = valid.toDiaryEntry(null, tourId = 1)
+        assertEquals(null, entry.time)
+        assertEquals(null, entry.odometerKm)
+    }
+
+    @Test
+    fun timeIsKeptAsSet() {
+        val entry = valid.copy(time = LocalTime.of(18, 30)).toDiaryEntry(null, tourId = 1)
+        assertEquals(LocalTime.of(18, 30), entry.time)
+    }
+
+    @Test
+    fun blankOdometerIsNotAnError() {
+        assertTrue(valid.copy(odometerKm = "").validate(emptySet()).isEmpty())
+    }
+
+    @Test
+    fun nonNumericOdometerIsRejected() {
+        assertEquals(DiaryEntryError.INVALID_NUMBER, valid.copy(odometerKm = "abc").validate(emptySet())[DiaryEntryField.ODOMETER_KM])
+    }
+
+    @Test
+    fun negativeOdometerIsRejected() {
+        assertEquals(DiaryEntryError.NEGATIVE_NUMBER, valid.copy(odometerKm = "-1").validate(emptySet())[DiaryEntryField.ODOMETER_KM])
+    }
+
+    @Test
+    fun tooLargeOdometerIsRejected() {
+        assertEquals(
+            DiaryEntryError.TOO_LARGE,
+            valid.copy(odometerKm = (MAX_ODOMETER_KM + 1).toString()).validate(emptySet())[DiaryEntryField.ODOMETER_KM],
+        )
+    }
+
+    @Test
+    fun validOdometerIsKept() {
+        val entry = valid.copy(odometerKm = "48300").toDiaryEntry(null, tourId = 1)
+        assertEquals(48_300, entry.odometerKm)
     }
 
     @Test

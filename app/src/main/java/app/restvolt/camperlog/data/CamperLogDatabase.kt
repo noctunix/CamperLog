@@ -39,7 +39,7 @@ import java.util.UUID
         ChecklistItemEntity::class,
         TrackPointEntity::class,
     ],
-    version = 22,
+    version = 23,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -80,7 +80,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
                     MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
-                    MIGRATION_20_21, MIGRATION_21_22,
+                    MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23,
                 )
                 .build()
     }
@@ -801,5 +801,19 @@ internal val MIGRATION_21_22 = object : Migration(21, 22) {
         db.execSQL("ALTER TABLE `repairs` ADD COLUMN `workshop_name` TEXT NOT NULL DEFAULT ''")
         db.execSQL("ALTER TABLE `repairs` ADD COLUMN `latitude` REAL")
         db.execSQL("ALTER TABLE `repairs` ADD COLUMN `longitude` REAL")
+    }
+}
+
+/**
+ * Version 23: Tagebucheinträge bekommen die Uhrzeit ([app.restvolt.camperlog.domain.DiaryEntry.time]),
+ * den Kilometerstand ([app.restvolt.camperlog.domain.DiaryEntry.odometerKm]) und einen Freitext zum
+ * Wetter ([app.restvolt.camperlog.domain.DiaryEntry.weather]). Drei nullable bzw. leer vorbelegte
+ * Spalten ohne Fremdschlüssel, daher reicht `ALTER TABLE ADD COLUMN` wie schon bei [MIGRATION_16_17].
+ */
+internal val MIGRATION_22_23 = object : Migration(22, 23) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `diary_entries` ADD COLUMN `time` TEXT")
+        db.execSQL("ALTER TABLE `diary_entries` ADD COLUMN `odometer_km` INTEGER")
+        db.execSQL("ALTER TABLE `diary_entries` ADD COLUMN `weather` TEXT NOT NULL DEFAULT ''")
     }
 }

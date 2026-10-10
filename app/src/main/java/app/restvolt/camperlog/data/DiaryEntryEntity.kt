@@ -24,7 +24,10 @@ data class DiaryEntryEntity(
     val uuid: String = "",
     @ColumnInfo(name = "tour_id") val tourId: Long,
     val date: String,
+    val time: String? = null,
     val text: String,
+    @ColumnInfo(name = "odometer_km") val odometerKm: Int? = null,
+    @ColumnInfo(defaultValue = "") val weather: String = "",
     @ColumnInfo(name = "created_at") val createdAtMillis: Long,
     @ColumnInfo(name = "updated_at") val updatedAtMillis: Long,
 )

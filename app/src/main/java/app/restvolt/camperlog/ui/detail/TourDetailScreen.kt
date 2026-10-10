@@ -853,13 +853,15 @@ private fun DiarySection(entries: List<DiaryEntry>, locale: Locale, onOpenEntry:
 @Composable
 private fun DiaryEntryRow(entry: DiaryEntry, locale: Locale, onClick: () -> Unit) {
     val openLabel = stringResource(R.string.tours_open_details)
+    val date = formatDate(entry.date, locale)
+    val dateTime = entry.time?.let { "$date, %02d:%02d".format(it.hour, it.minute) } ?: date
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClickLabel = openLabel, onClick = onClick)
             .padding(vertical = 8.dp),
     ) {
-        Text(formatDate(entry.date, locale), style = MaterialTheme.typography.titleSmall)
+        Text(dateTime, style = MaterialTheme.typography.titleSmall)
         Text(
             entry.text,
             style = MaterialTheme.typography.bodyMedium,

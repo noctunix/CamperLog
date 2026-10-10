@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
@@ -51,6 +52,7 @@ import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.TimeField
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.messageRes
 
@@ -168,6 +170,7 @@ private fun DiaryForm(state: DiaryEditUiState, viewModel: DiaryEditViewModel, mo
                 { date -> change { it.copy(date = date) } },
                 modifier = focusOf(DiaryEntryField.DATE),
             )
+            TimeField(stringResource(R.string.field_time), input.time) { time -> change { it.copy(time = time) } }
             OutlinedTextField(
                 value = input.text,
                 onValueChange = { value -> change { it.copy(text = value) } },
@@ -177,6 +180,27 @@ private fun DiaryForm(state: DiaryEditUiState, viewModel: DiaryEditViewModel, mo
                 supportingText = { Text(errorOf(DiaryEntryField.TEXT) ?: required) },
                 minLines = 6,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Default),
+                shape = MaterialTheme.shapes.medium,
+            )
+            OutlinedTextField(
+                value = input.weather,
+                onValueChange = { value -> change { it.copy(weather = value) } },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.diary_field_weather)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
+                shape = MaterialTheme.shapes.medium,
+            )
+            OutlinedTextField(
+                value = input.odometerKm,
+                onValueChange = { value -> change { it.copy(odometerKm = value) } },
+                modifier = focusOf(DiaryEntryField.ODOMETER_KM).fillMaxWidth(),
+                label = { Text(stringResource(R.string.field_odometer_km)) },
+                trailingIcon = { Text("km", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                isError = errorOf(DiaryEntryField.ODOMETER_KM) != null,
+                supportingText = errorOf(DiaryEntryField.ODOMETER_KM)?.let { { Text(it) } },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 shape = MaterialTheme.shapes.medium,
             )
         }

@@ -293,7 +293,13 @@ internal data class DiaryEntryDto(
     /** uuid der Tour dieses Eintrags. */
     val tourUuid: String,
     val date: String,
+    /** Fehlt in Sicherungen vor Formatversion 17. */
+    val time: String? = null,
     val text: String = "",
+    /** Fehlt in Sicherungen vor Formatversion 17. */
+    val odometerKm: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 17. */
+    val weather: String = "",
     val createdAt: String,
     val updatedAt: String,
 )

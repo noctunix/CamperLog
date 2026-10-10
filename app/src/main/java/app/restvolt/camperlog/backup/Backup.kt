@@ -91,7 +91,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 16
+const val BACKUP_SCHEMA_VERSION = 17
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -1220,12 +1220,18 @@ private fun BackupVehicleDocument.toDto() = VehicleDocumentDto(
 private fun DiaryEntryDto.toDiaryEntry(): DiaryEntry? {
     val uuid = parseUuid(uuid) ?: return null
     val entryDate = parseDate(date) ?: return null
+    val entryTime = time?.let { parseTime(it) ?: return null }
     val entryText = text.takeIf { it.isNotBlank() && it.length <= MAX_DIARY_TEXT_LENGTH } ?: return null
+    if (!odometerKm.inBounds(MAX_ODOMETER_KM)) return null
+    if (weather.length > MAX_DESTINATION_LENGTH) return null
     return DiaryEntry(
         uuid = uuid,
         tourId = 0,
         date = entryDate,
+        time = entryTime,
         text = entryText,
+        odometerKm = odometerKm,
+        weather = weather.trim(),
         createdAt = parseInstant(createdAt) ?: return null,
         updatedAt = parseInstant(updatedAt) ?: return null,
     )
@@ -1235,7 +1241,10 @@ private fun BackupDiaryEntry.toDto() = DiaryEntryDto(
     uuid = entry.uuid,
     tourUuid = tourUuid,
     date = entry.date.toString(),
+    time = entry.time?.toString(),
     text = entry.text,
+    odometerKm = entry.odometerKm,
+    weather = entry.weather,
     createdAt = entry.createdAt.toString(),
     updatedAt = entry.updatedAt.toString(),
 )

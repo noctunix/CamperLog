@@ -5,7 +5,6 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
-import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.supportedLocale
 
 /**
@@ -52,7 +51,9 @@ fun tourMarkdown(
             appendLine("## ${res.getString(R.string.diary_section_title)}")
             diaryEntries.sortedBy { it.date }.forEach { entry ->
                 appendLine()
-                appendLine("### ${md(formatDate(entry.date, locale))}")
+                appendLine("### ${md(diaryEntryHeading(entry, locale))}")
+                diaryEntryWeatherLine(res, entry)?.let { appendLine(); appendLine(md(it)) }
+                diaryEntryOdometerLine(res, entry)?.let { appendLine(); appendLine(md(it)) }
                 appendLine()
                 appendLine(md(entry.text))
             }

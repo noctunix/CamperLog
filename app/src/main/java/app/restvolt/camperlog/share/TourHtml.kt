@@ -5,7 +5,6 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
-import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.supportedLocale
 
 /**
@@ -51,7 +50,9 @@ fun tourHtml(
             appendLine("<h2>${htmlEscape(res.getString(R.string.diary_section_title))}</h2>")
             diaryEntries.sortedBy { it.date }.forEach { entry ->
                 appendLine("""<section class="diary-entry">""")
-                appendLine("<h3>${htmlEscape(formatDate(entry.date, locale))}</h3>")
+                appendLine("<h3>${htmlEscape(diaryEntryHeading(entry, locale))}</h3>")
+                diaryEntryWeatherLine(res, entry)?.let { appendLine("<p>${htmlEscape(it)}</p>") }
+                diaryEntryOdometerLine(res, entry)?.let { appendLine("<p>${htmlEscape(it)}</p>") }
                 appendLine("<p>${htmlEscape(entry.text)}</p>")
                 appendLine("</section>")
             }

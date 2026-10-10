@@ -17,6 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 
 /** Markdown-Export einer Tour (`Tour.md`, siehe `TourMarkdown.kt`). */
 @RunWith(RobolectricTestRunner::class)
@@ -106,5 +107,25 @@ class TourMarkdownTest {
 
         assertTrue(markdown.contains("## Diary"))
         assertTrue(markdown.contains("1\\. Tag\n\\- \\*fett\\*"))
+    }
+
+    @Test
+    fun diaryEntryShowsTimeWeatherAndOdometerWhenSet() {
+        val entry = DiaryEntry(
+            tourId = 1,
+            date = LocalDate.of(2026, 7, 11),
+            time = LocalTime.of(18, 30),
+            text = "Langer Tag",
+            weather = "Sonnig, 22 °C",
+            odometerKm = 48_300,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+
+        val markdown = tourMarkdown(resources, tour, emptyList(), emptySet(), emptyMap(), listOf(entry))
+
+        assertTrue(markdown.contains("18:30"))
+        assertTrue(markdown.contains("Weather: Sonnig, 22 °C"))
+        assertTrue(markdown.contains("Odometer: 48,300 km"))
     }
 }
