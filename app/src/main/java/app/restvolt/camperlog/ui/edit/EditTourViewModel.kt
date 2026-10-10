@@ -274,7 +274,10 @@ class EditTourViewModel(
                     stations.moveTourToVehicle(id, tour.vehicleId)
                     checklists.moveTourToVehicle(id, tour.vehicleId)
                 }
-                if (state.isNew && state.homeSwitch) createHomeStations(tour, id)
+                if (state.isNew && state.homeSwitch) {
+                    val savedTour = repository.observeTour(id).first() ?: tour
+                    createHomeStations(savedTour, id)
+                }
                 savedStateHandle.remove<SavedState>(DRAFT_KEY)
                 _uiState.update { it.copy(isSaving = false, isSaved = true, savedTourId = id) }
             } catch (_: RunningTourAlreadyExistsException) {

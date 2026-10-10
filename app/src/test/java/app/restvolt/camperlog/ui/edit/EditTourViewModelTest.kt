@@ -296,6 +296,29 @@ class EditTourViewModelTest {
     }
 
     @Test
+    fun homeSwitchOn_withoutAnyVehicleYet_usesTheResolvedVehicleIdForTheHomeStation() = runTest {
+        val stations = FakeStationRepository()
+        val tours = FakeTourRepository(currentVehicleId = { 7L })
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(emptyList()),
+            stations,
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            locale,
+            homeLocationSettings = homeLocationSettings(name = "Elternhaus"),
+        )
+        viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
+        viewModel.onDestinationChange("Gardasee")
+        viewModel.onHomeSwitchChange(true)
+
+        viewModel.save()
+
+        assertEquals(7L, stations.stations.single().vehicleId)
+    }
+
+    @Test
     fun homeSwitchOn_withoutHomeLocationSet_createsNoHomeStation() = runTest {
         val stations = FakeStationRepository()
         val viewModel = EditTourViewModel(
