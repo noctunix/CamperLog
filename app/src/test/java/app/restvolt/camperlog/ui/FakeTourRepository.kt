@@ -87,6 +87,8 @@ class FakeTourRepository(
         state.value += tour
     }
 
+    override suspend fun demoTourIds(): List<Long> = state.value.filter { it.isDemo }.map { it.id }
+
     /** Wie die Room-Abfrage: letzte Währung der zuletzt geänderten Tour mit Kosten. */
     override suspend fun lastUsedCurrency(): Currency? = state.value
         .filter { it.costs.isNotEmpty() }

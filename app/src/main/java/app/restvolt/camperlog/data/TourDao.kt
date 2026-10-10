@@ -90,6 +90,10 @@ interface TourDao {
     @Query("DELETE FROM tours")
     suspend fun deleteAll()
 
+    /** ids aller als Demo markierten Touren, zum Aufräumen eines abgebrochenen Tutorials. */
+    @Query("SELECT id FROM tours WHERE is_demo = 1")
+    suspend fun demoTourIds(): List<Long>
+
     @Query(
         "SELECT c.currency FROM tour_costs c JOIN tours t ON t.id = c.tour_id " +
             "ORDER BY t.updated_at DESC, t.id DESC, c.position DESC LIMIT 1",

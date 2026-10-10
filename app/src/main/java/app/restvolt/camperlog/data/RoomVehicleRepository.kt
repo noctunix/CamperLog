@@ -84,6 +84,13 @@ class RoomVehicleRepository(
         return VehicleDeleteResult.DELETED
     }
 
+    override suspend fun deleteDemoVehicles() = database.withTransaction {
+        dao.demoVehicleIds().forEach { id ->
+            logDao.idsForVehicle(id).takeIf { it.isNotEmpty() }?.let { attachmentDao.deleteForOwners(AttachmentOwnerType.LOG_ENTRY.name, it) }
+            dao.deleteById(id)
+        }
+    }
+
     override fun observeRepairs(vehicleId: Long): Flow<List<Repair>> =
         dao.observeRepairs(vehicleId).map { rows -> rows.map(RepairEntity::toDomain) }
 

@@ -36,6 +36,8 @@ data class Tour(
     val updatedAt: Instant,
     val manualCountriesAdded: Set<String> = emptySet(),
     val manualCountriesRemoved: Set<String> = emptySet(),
+    /** `true` für die simulierte Demo-Tour des Tutorials; wird nie gesichert oder exportiert. */
+    val isDemo: Boolean = false,
 ) {
     /** Jahr der Tour, bestimmt durch das Startdatum. */
     val year: Int get() = startDate.year

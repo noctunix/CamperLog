@@ -64,6 +64,10 @@ interface VehicleDao {
     @Query("SELECT id FROM vehicles ORDER BY id ASC LIMIT 1")
     suspend fun lowestVehicleId(): Long?
 
+    /** ids aller als Demo markierten Fahrzeuge, zum Aufräumen eines abgebrochenen Tutorials. */
+    @Query("SELECT id FROM vehicles WHERE is_demo = 1")
+    suspend fun demoVehicleIds(): List<Long>
+
     /**
      * Legt ein Fahrzeug mit leerem Namen an, falls es noch keines gibt. Eine einzige Anweisung,
      * damit gleichzeitige Aufrufe (mehrere Screens beim ersten Start) nicht mehrere Fahrzeuge anlegen.

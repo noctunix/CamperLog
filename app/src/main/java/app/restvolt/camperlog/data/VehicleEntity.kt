@@ -71,6 +71,7 @@ data class VehicleEntity(
     @ColumnInfo(name = "last_oil_change_odometer_km") val lastOilChangeOdometerKm: Int? = null,
     @ColumnInfo(name = "created_at") val createdAtMillis: Long,
     @ColumnInfo(name = "updated_at") val updatedAtMillis: Long,
+    @ColumnInfo(name = "is_demo", defaultValue = "0") val isDemo: Boolean = false,
 )
 
 /** Datenbankzeile einer Reparatur, verknüpft mit ihrem Fahrzeug. */

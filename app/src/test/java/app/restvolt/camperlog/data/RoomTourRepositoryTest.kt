@@ -379,6 +379,16 @@ class RoomTourRepositoryTest {
         assertEquals(listOf(eur(500)), years[2026])
     }
 
+    @Test
+    fun demoTourIdsReturnsOnlyToursMarkedAsDemo() = runTest {
+        val real = repository.save(tour(start = "2026-05-01", destination = "Gardasee"))
+        val demo = repository.save(tour(start = "2026-06-01", destination = "Alpen").copy(isDemo = true))
+
+        assertEquals(listOf(demo), repository.demoTourIds())
+        assertFalse(checkNotNull(repository.observeTour(real).first()).isDemo)
+        assertTrue(checkNotNull(repository.observeTour(demo).first()).isDemo)
+    }
+
     private fun station(date: String, costs: List<StationCost> = emptyList()) = Station(
         vehicleId = vehicleId,
         type = StationType.SUPPLY,

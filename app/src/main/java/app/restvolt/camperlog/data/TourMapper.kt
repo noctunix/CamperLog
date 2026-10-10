@@ -36,6 +36,7 @@ private fun TourEntity.toDomain(costs: List<Money>, manualCountriesAdded: Set<St
     updatedAt = Instant.ofEpochMilli(updatedAtMillis),
     manualCountriesAdded = manualCountriesAdded,
     manualCountriesRemoved = manualCountriesRemoved,
+    isDemo = isDemo,
 )
 
 internal fun Tour.toEntity(): TourEntity = TourEntity(
@@ -55,6 +56,7 @@ internal fun Tour.toEntity(): TourEntity = TourEntity(
     mapLink = mapLink,
     createdAtMillis = createdAt.toEpochMilli(),
     updatedAtMillis = updatedAt.toEpochMilli(),
+    isDemo = isDemo,
 )
 
 internal fun Tour.toCostEntities(): List<TourCostEntity> =

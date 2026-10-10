@@ -141,6 +141,41 @@ class RoomVehicleRepositoryTest {
     }
 
     @Test
+    fun deleteDemoVehiclesIgnoresTheLastVehicleRule() = runTest {
+        val demoOnlyId = repository.save(vehicle(name = "Demo").copy(isDemo = true))
+        assertEquals(VehicleDeleteResult.LAST_VEHICLE, repository.delete(demoOnlyId))
+
+        repository.deleteDemoVehicles()
+
+        assertNull(repository.observeVehicle(demoOnlyId).first())
+    }
+
+    @Test
+    fun deleteDemoVehiclesAlsoDeletesAttachmentsOfItsLogEntries() = runTest {
+        val demoId = repository.save(vehicle(name = "Demo").copy(isDemo = true))
+        val logEntryId = db.logDao().insert(
+            LogEntryEntity(uuid = UUID.randomUUID().toString(), vehicleId = demoId, type = LogType.CASSETTE_EMPTIED.name, date = "2026-01-01", createdAtMillis = 0),
+        )
+        addAttachmentFor(AttachmentOwnerType.LOG_ENTRY, logEntryId)
+
+        repository.deleteDemoVehicles()
+
+        assertNull(repository.observeVehicle(demoId).first())
+        assertEquals(0, db.attachmentDao().getAll().size)
+    }
+
+    @Test
+    fun deleteDemoVehiclesLeavesRealVehiclesUntouched() = runTest {
+        val realId = repository.save(vehicle(name = "Echt"))
+        val demoId = repository.save(vehicle(name = "Demo").copy(isDemo = true))
+
+        repository.deleteDemoVehicles()
+
+        assertNull(repository.observeVehicle(demoId).first())
+        assertEquals("Echt", checkNotNull(repository.observeVehicle(realId).first()).name)
+    }
+
+    @Test
     fun observeRepairsIsNewestFirstAndSaveDeleteRestoreWork() = runTest {
         val vehicleId = repository.save(vehicle(name = "Womo"))
         val first = repository.saveRepair(repair(vehicleId, "2026-01-01", "Reifen"))

@@ -83,6 +83,8 @@ class RoomTourRepository(
         Unit
     }
 
+    override suspend fun demoTourIds(): List<Long> = dao.demoTourIds()
+
     override suspend fun lastUsedCurrency(): Currency? = dao.lastUsedCurrency()?.let(Currency::getInstance)
 
     override fun observeTotals(vehicleId: Long?): Flow<TourTotals> =

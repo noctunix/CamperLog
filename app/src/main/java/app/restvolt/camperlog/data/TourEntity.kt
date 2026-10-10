@@ -42,6 +42,7 @@ data class TourEntity(
     @ColumnInfo(name = "map_link") val mapLink: String?,
     @ColumnInfo(name = "created_at") val createdAtMillis: Long,
     @ColumnInfo(name = "updated_at") val updatedAtMillis: Long,
+    @ColumnInfo(name = "is_demo", defaultValue = "0") val isDemo: Boolean = false,
 )
 
 /**

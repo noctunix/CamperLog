@@ -37,6 +37,9 @@ interface TourRepository {
     /** Legt eine zuvor gelöschte [tour] mit ihrer bisherigen id und ihren Zeitstempeln wieder an. */
     suspend fun restore(tour: Tour)
 
+    /** ids aller als Demo markierten Touren, zum Aufräumen eines abgebrochenen Tutorials. */
+    suspend fun demoTourIds(): List<Long>
+
     /** Liefert die Währung des letzten Kostenbetrags der zuletzt geänderten Tour oder `null` ohne Kosten. */
     suspend fun lastUsedCurrency(): Currency?
 

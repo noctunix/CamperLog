@@ -65,6 +65,10 @@ class FakeVehicleRepository(
         return VehicleDeleteResult.DELETED
     }
 
+    override suspend fun deleteDemoVehicles() {
+        state.value = state.value.filterNot { it.isDemo }
+    }
+
     override fun observeRepairs(vehicleId: Long): Flow<List<Repair>> =
         repairs.map { list -> list.filter { it.vehicleId == vehicleId }.sortedByDescending { it.date } }
 

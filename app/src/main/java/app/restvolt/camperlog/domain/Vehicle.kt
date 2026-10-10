@@ -87,6 +87,8 @@ data class Vehicle(
     val lastOilChangeOdometerKm: Int? = null,
     val createdAt: Instant,
     val updatedAt: Instant,
+    /** `true` für das eigene Fahrzeug der simulierten Demo-Tour des Tutorials; wird nie gesichert oder exportiert. */
+    val isDemo: Boolean = false,
 ) {
     /** Ob das Fahrzeug verkauft ist. */
     val isSold: Boolean get() = saleDate != null
@@ -159,6 +161,13 @@ interface VehicleRepository {
 
     /** Löscht das Fahrzeug mit [id], sofern es nicht das letzte ist oder noch Touren hat. */
     suspend fun delete(id: Long): VehicleDeleteResult
+
+    /**
+     * Löscht alle als Demo markierten Fahrzeuge sofort, ohne die Regeln von [delete] (letztes
+     * Fahrzeug, noch vorhandene Touren/Stationen) zu prüfen: Aufräumen des Tutorials, kein
+     * Nutzer-Löschen mit Rückgängig.
+     */
+    suspend fun deleteDemoVehicles()
 
     /** Liefert die Reparaturen eines Fahrzeugs, neueste zuerst. */
     fun observeRepairs(vehicleId: Long): Flow<List<Repair>>

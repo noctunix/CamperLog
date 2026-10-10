@@ -63,6 +63,7 @@ internal fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     lastOilChangeOdometerKm = lastOilChangeOdometerKm,
     createdAt = Instant.ofEpochMilli(createdAtMillis),
     updatedAt = Instant.ofEpochMilli(updatedAtMillis),
+    isDemo = isDemo,
 )
 
 internal fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
@@ -123,6 +124,7 @@ internal fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     lastOilChangeOdometerKm = lastOilChangeOdometerKm,
     createdAtMillis = createdAt.toEpochMilli(),
     updatedAtMillis = updatedAt.toEpochMilli(),
+    isDemo = isDemo,
 )
 
 internal fun RepairEntity.toDomain(): Repair = Repair(
