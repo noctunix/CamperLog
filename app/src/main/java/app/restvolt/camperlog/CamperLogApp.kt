@@ -29,6 +29,9 @@ import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.domain.guide.DemoTourContent
+import app.restvolt.camperlog.domain.guide.DemoTourSession
+import app.restvolt.camperlog.tracking.TrackRecordingService
 import app.restvolt.camperlog.ui.stations.StationsWhatsNewSettings
 
 /** Application-Klasse; hält die einzige Datenbank- und Repository-Instanz. */
@@ -77,6 +80,25 @@ class CamperLogApp : Application() {
 
     /** Einspielen von JSON- oder ZIP-Sicherungen (Datenbankteil; das Verschieben von ZIP-Dateien übernimmt der Aufrufer). */
     val backupImporter: BackupImporter by lazy { RoomBackupImporter(database) }
+
+    /** Simulierte Demo-Tour des Tutorials (siehe [DemoTourSession]). */
+    val demoTourSession: DemoTourSession by lazy {
+        DemoTourSession(
+            repository,
+            stations,
+            tracks,
+            vehicles,
+            content = DemoTourContent(
+                vehicleName = getString(R.string.demo_vehicle_name),
+                destination = getString(R.string.demo_tour_destination),
+                stationNames = listOf(
+                    getString(R.string.demo_station_1_name),
+                    getString(R.string.demo_station_2_name),
+                    getString(R.string.demo_station_3_name),
+                ),
+            ),
+        ) { tourId -> TrackRecordingService.stopIfTracking(this, tourId) }
+    }
 
     private val database by lazy { CamperLogDatabase.open(this) { StationsWhatsNewSettings(this).pending = true } }
 }

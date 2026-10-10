@@ -77,6 +77,7 @@ class MainActivity : ComponentActivity() {
                     themeMode = themeMode,
                     stations = app.stations,
                     tracks = app.tracks,
+                    demoTourSession = app.demoTourSession,
                     pendingGeoIntent = pendingGeoIntent,
                     onGeoIntentHandled = { pendingGeoIntent = null },
                     pendingVehicleId = pendingVehicleId,

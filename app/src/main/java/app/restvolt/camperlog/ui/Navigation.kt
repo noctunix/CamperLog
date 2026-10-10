@@ -19,7 +19,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -61,6 +60,7 @@ import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.LocationProvider
+import app.restvolt.camperlog.domain.guide.DemoTourSession
 import app.restvolt.camperlog.domain.guide.GuideController
 import app.restvolt.camperlog.domain.guide.GuidePhase
 import app.restvolt.camperlog.domain.LogRepository
@@ -97,6 +97,7 @@ import app.restvolt.camperlog.ui.detail.TourDetailViewModel
 import app.restvolt.camperlog.domain.guide.introductionTour
 import app.restvolt.camperlog.ui.guide.GuideHost
 import app.restvolt.camperlog.ui.guide.GuideProgressStore
+import app.restvolt.camperlog.ui.guide.GuideViewModel
 import app.restvolt.camperlog.ui.guide.guideAnchor
 import app.restvolt.camperlog.ui.onboarding.FirstRunSetupScreen
 import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
@@ -271,6 +272,7 @@ internal class NavDependencies(
     val homeLocationSettings: HomeLocationSettings,
     val guideController: GuideController,
     val guideProgressStore: GuideProgressStore,
+    val demoTourSession: DemoTourSession,
 )
 
 /** Navigationsgraph der App mit Start auf der Tourenliste. */
@@ -321,12 +323,21 @@ fun CamperLogNavHost(
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     /** Aufgezeichnete Trackpunkte; in Tests ein Fake. */
     tracks: TrackRepository = (LocalContext.current.applicationContext as CamperLogApp).tracks,
+    /**
+     * Simulierte Demo-Tour des Tutorials; `null` baut sie unten aus [repository]/[stations]/[tracks]/
+     * [vehicles] auf, damit Tests ohne eigenes Argument automatisch dieselben Fakes treffen, die sie
+     * schon für diese Parameter übergeben - kein eigener Fall für jeden bestehenden Test nötig.
+     */
+    demoTourSession: DemoTourSession? = null,
     onAccentColorChange: (AccentColor) -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
     val navController = rememberNavController()
     val currentDestination = navController.currentBackStackEntryAsState().value?.destination
     val context = LocalContext.current
+    val resolvedDemoTourSession = demoTourSession ?: remember(repository, stations, tracks, vehicles) {
+        DemoTourSession(repository, stations, tracks, vehicles) { tourId -> TrackRecordingService.stopIfTracking(context, tourId) }
+    }
     val reminderSettings = remember { ReminderSettings(context) }
     val reminderPreferences by reminderSettings.values.collectAsStateWithLifecycle()
     val locationSettings = remember { LocationSettings(context) }
@@ -359,16 +370,19 @@ fun CamperLogNavHost(
     val introductionSettings = remember { IntroductionSettings(context) }
     var showFirstRunSetup by rememberSaveable { mutableStateOf(false) }
 
-    // Geteilter Controller für alle geführten Touren (Rundgang, Pilot-Tour); Lebensdauer wie die
-    // übrigen hier erzeugten Einstellungen-Objekte, also solange diese Komposition bestehen bleibt.
-    val guideScope = rememberCoroutineScope()
-    val guideController = remember { GuideController(guideScope) }
+    // Geteilter Controller für alle geführten Touren (Rundgang, Pilot-Tour), Activity-gebunden über
+    // GuideViewModel, damit der Fortschritt eine Bildschirmdrehung überlebt.
+    val guideViewModel: GuideViewModel = viewModel { GuideViewModel(resolvedDemoTourSession) }
+    val guideController = guideViewModel.controller
     val guideProgressStore = remember { GuideProgressStore(context) }
     val guideState by guideController.state.collectAsStateWithLifecycle()
     LaunchedEffect(guideState.phase, guideState.tour?.id) {
         val tour = guideState.tour
-        if (guideState.phase == GuidePhase.ENDED && tour != null) {
-            guideProgressStore.markCompleted(tour.id, tour.version)
+        if (guideState.phase == GuidePhase.ENDED) {
+            if (tour != null) guideProgressStore.markCompleted(tour.id, tour.version)
+            // Deckt sowohl den erfolgreichen Abschluss als auch einen Abbruch der Pilot-Tour ab:
+            // beide landen hier, egal ob die Demo-Tour dabei je angelegt wurde.
+            resolvedDemoTourSession.end()
         }
     }
 
@@ -451,6 +465,7 @@ fun CamperLogNavHost(
         attachments, attachmentFileStore, backupImporter, locationProvider, weatherProvider, placeSearchProvider, tileLoader,
         countryLookup, attachmentPickers, tracks, reminderSettings, locationSettings, trackSettings, weatherSettings,
         notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings, guideController, guideProgressStore,
+        resolvedDemoTourSession,
     )
     NavHost(navController, startDestination = ToursRoute) {
         toursGraph(navController, deps, bottomBar)
