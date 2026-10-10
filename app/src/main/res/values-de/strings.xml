@@ -420,9 +420,11 @@
     <string name="field_purchase_date">Kaufdatum</string>
     <string name="field_purchase_price">Kaufpreis</string>
     <string name="field_purchase_odometer">km-Stand bei Kauf</string>
+    <string name="field_seller_name">Verkäufer</string>
     <string name="field_sale_date">Verkaufsdatum</string>
     <string name="field_sale_price">Verkaufspreis</string>
     <string name="field_sale_odometer">km-Stand bei Verkauf</string>
+    <string name="field_buyer_name">Käufer</string>
     <string name="field_insurer">Versicherer</string>
     <string name="field_insurance_policy_number">Versicherungsnummer</string>
     <string name="field_insurance_premium">Jahresbeitrag</string>

@@ -110,6 +110,22 @@ class EditVehicleFlowTest {
     }
 
     @Test
+    fun purchaseSaleSection_hasSellerAndBuyerNameFieldsAndShowsThemInSheet() {
+        start()
+        compose.onNodeWithText("Fahrzeug").performClick()
+        compose.onNodeWithText("Details hinzufügen").performClick()
+
+        compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Wohnmobil")
+        compose.onNode(hasSetTextAction() and hasText("Verkäufer")).performScrollTo().performTextInput("Max Verkäufer")
+        compose.onNode(hasSetTextAction() and hasText("Käufer")).performScrollTo().performTextInput("Erika Käufer")
+
+        clickSave()
+
+        compose.onNodeWithText("Max Verkäufer").assertExists()
+        compose.onNodeWithText("Erika Käufer").assertExists()
+    }
+
+    @Test
     fun editAction_inTopBarOpensFormForExistingVehicle() {
         start(FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "Camper"))))
         compose.onNodeWithText("Fahrzeug").performClick()

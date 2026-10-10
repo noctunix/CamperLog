@@ -105,10 +105,14 @@ internal data class VehicleDto(
     val purchaseDate: String? = null,
     val purchasePrice: CostDto? = null,
     val purchaseOdometerKm: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 18. */
+    val sellerName: String = "",
     val saleDate: String? = null,
     val salePrice: CostDto? = null,
     /** Fehlt in Sicherungen vor Formatversion 15. */
     val saleOdometerKm: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 18. */
+    val buyerName: String = "",
     val insurer: String = "",
     val insurancePolicyNumber: String = "",
     val insurancePremiumPerYear: CostDto? = null,

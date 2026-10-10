@@ -21,6 +21,8 @@ class VehicleInputTest {
         purchaseDate = LocalDate.of(2021, 1, 1),
         purchasePrice = "45000",
         purchaseOdometerKm = "12000",
+        sellerName = "Max Verkäufer",
+        buyerName = "Erika Käufer",
         insurer = "ACME",
         insurancePolicyNumber = "POL-1",
         insurancePremiumPerYear = "600",
@@ -312,6 +314,16 @@ class VehicleInputTest {
         val vehicle = valid.copy(displacementCc = "2287").toVehicle(null, de)
         assertEquals(2_287, vehicle.displacementCc)
         assertEquals(2_287, vehicle.toInput(de).toVehicle(vehicle, de).displacementCc)
+    }
+
+    @Test
+    fun sellerAndBuyerNameAreTrimmedAndRoundTripThroughInput() {
+        val input = valid.copy(sellerName = "  Max Verkäufer  ", buyerName = "  Erika Käufer  ")
+        val vehicle = input.toVehicle(null, de)
+        assertEquals("Max Verkäufer", vehicle.sellerName)
+        assertEquals("Erika Käufer", vehicle.buyerName)
+        assertEquals(vehicle.sellerName, vehicle.toInput(de).toVehicle(vehicle, de).sellerName)
+        assertEquals(vehicle.buyerName, vehicle.toInput(de).toVehicle(vehicle, de).buyerName)
     }
 
     @Test

@@ -120,9 +120,11 @@ class BackupTest {
         purchaseDate = LocalDate.of(2018, 5, 1),
         purchasePrice = Money(4500000, eur),
         purchaseOdometerKm = 500,
+        sellerName = "Max Verkäufer",
         saleDate = LocalDate.of(2026, 1, 1),
         salePrice = Money(3200000, eur),
         saleOdometerKm = 80000,
+        buyerName = "Erika Käufer",
         insurer = "HUK24",
         insurancePolicyNumber = "POL-123",
         insurancePremiumPerYear = Money(80000, eur),
@@ -265,7 +267,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 17" in text)
+        assert("\"schemaVersion\": 18" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -275,7 +277,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 17" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 18" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -362,6 +364,23 @@ class BackupTest {
     }
 
     @Test
+    fun read_importsOlderBackupsMissingTheSellerAndBuyerNameFields() {
+        val text = applyAll(
+            encodeBackup(vehicleBackup),
+            listOf(
+                "\"sellerName\": \"Max Verkäufer\"," to "",
+                "\"buyerName\": \"Erika Käufer\"," to "",
+            ),
+        )
+
+        val decoded = success(text)
+
+        val vehicle = decoded.vehicles.single().vehicle
+        assertEquals("", vehicle.sellerName)
+        assertEquals("", vehicle.buyerName)
+    }
+
+    @Test
     fun read_importsOlderBackupsMissingTheRequiredEnergyTypesField() {
         val text = vehicleEncodedWith("\"requiredEnergyTypes\": [],", "")
 
@@ -428,7 +447,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 17" in text)
+        assert("\"schemaVersion\": 18" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -463,13 +482,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 17", "\"schemaVersion\": 18"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 18", "\"schemaVersion\": 19"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 17", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 18", it))?.error)
         }
     }
 
@@ -713,6 +732,17 @@ class BackupTest {
         assertEquals(null, vehicle.saleOdometerKm)
         assertEquals(null, vehicle.displacementCc)
         assertEquals(null, vehicle.transmission)
+    }
+
+    @Test
+    fun decode_rejectsVehicleWithTooLongSellerOrBuyerName() {
+        val tooLong = "x".repeat(MAX_DESTINATION_LENGTH + 1)
+        listOf(
+            "\"sellerName\": \"Max Verkäufer\"" to "\"sellerName\": \"$tooLong\"",
+            "\"buyerName\": \"Erika Käufer\"" to "\"buyerName\": \"$tooLong\"",
+        ).forEach { (old, new) ->
+            assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1), failure(vehicleEncodedWith(old, new)))
+        }
     }
 
     @Test

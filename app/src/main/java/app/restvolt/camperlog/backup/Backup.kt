@@ -91,7 +91,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 17
+const val BACKUP_SCHEMA_VERSION = 18
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -741,6 +741,7 @@ private fun VehicleDto.toVehicle(): Vehicle? {
         listOf(
             name, licensePlate, manufacturer, model, vin, insurer, insurancePolicyNumber, tireSize,
             breakdownProvider, breakdownMembershipNumber, travelProtectionProvider, travelProtectionContractNumber,
+            sellerName, buyerName,
         ).any { it.length > MAX_DESTINATION_LENGTH }
     ) {
         return null
@@ -785,9 +786,11 @@ private fun VehicleDto.toVehicle(): Vehicle? {
         purchaseDate = purchaseDate,
         purchasePrice = purchasePriceMoney,
         purchaseOdometerKm = purchaseOdometerKm,
+        sellerName = sellerName,
         saleDate = saleDate,
         salePrice = salePriceMoney,
         saleOdometerKm = saleOdometerKm,
+        buyerName = buyerName,
         insurer = insurer,
         insurancePolicyNumber = insurancePolicyNumber,
         insurancePremiumPerYear = insurancePremium,
@@ -912,9 +915,11 @@ private fun BackupVehicle.toDto(logEntryStationUuid: Map<String, String>) = vehi
         purchaseDate = v.purchaseDate?.toString(),
         purchasePrice = v.purchasePrice?.toCostDto(),
         purchaseOdometerKm = v.purchaseOdometerKm,
+        sellerName = v.sellerName,
         saleDate = v.saleDate?.toString(),
         salePrice = v.salePrice?.toCostDto(),
         saleOdometerKm = v.saleOdometerKm,
+        buyerName = v.buyerName,
         insurer = v.insurer,
         insurancePolicyNumber = v.insurancePolicyNumber,
         insurancePremiumPerYear = v.insurancePremiumPerYear?.toCostDto(),

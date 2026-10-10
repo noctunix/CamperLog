@@ -118,6 +118,15 @@ class RoomVehicleRepositoryTest {
     }
 
     @Test
+    fun savedVehicleKeepsSellerAndBuyerName() = runTest {
+        val id = repository.save(vehicle(name = "Womo").copy(sellerName = "Max Verkäufer", buyerName = "Erika Käufer"))
+        val stored = checkNotNull(repository.observeVehicle(id).first())
+
+        assertEquals("Max Verkäufer", stored.sellerName)
+        assertEquals("Erika Käufer", stored.buyerName)
+    }
+
+    @Test
     fun deleteRefusesTheLastVehicleAndOneWithTours() = runTest {
         val onlyId = repository.save(vehicle(name = "Einzig"))
         assertEquals(VehicleDeleteResult.LAST_VEHICLE, repository.delete(onlyId))

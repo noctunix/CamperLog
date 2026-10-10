@@ -605,8 +605,10 @@ private fun purchaseSaleRows(vehicle: Vehicle, locale: Locale): List<Pair<String
     vehicle.purchaseDate?.let { add(stringResource(R.string.field_purchase_date) to formatDate(it, locale)) }
     vehicle.purchasePrice?.let { add(stringResource(R.string.field_purchase_price) to formatAmount(it.minor, it.currency, locale)) }
     vehicle.purchaseOdometerKm?.let { add(stringResource(R.string.field_purchase_odometer) to stringResource(R.string.distance_km, it)) }
+    if (vehicle.sellerName.isNotBlank()) add(stringResource(R.string.field_seller_name) to vehicle.sellerName)
     vehicle.salePrice?.let { add(stringResource(R.string.field_sale_price) to formatAmount(it.minor, it.currency, locale)) }
     vehicle.saleOdometerKm?.let { add(stringResource(R.string.field_sale_odometer) to stringResource(R.string.distance_km, it)) }
+    if (vehicle.buyerName.isNotBlank()) add(stringResource(R.string.field_buyer_name) to vehicle.buyerName)
 }
 
 @Composable

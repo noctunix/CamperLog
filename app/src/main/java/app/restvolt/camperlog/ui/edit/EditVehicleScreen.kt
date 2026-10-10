@@ -223,6 +223,12 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 modifier = focusOf(VehicleField.PURCHASE_ODOMETER_KM),
                 onValueChange = { value -> change { it.copy(purchaseOdometerKm = value) } },
             )
+            FormTextField(
+                label = stringResource(R.string.field_seller_name),
+                value = input.sellerName,
+                onValueChange = { value -> change { it.copy(sellerName = value) } },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+            )
             DateField(
                 stringResource(R.string.field_sale_date),
                 input.saleDate,
@@ -248,6 +254,12 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 error = errorOf(VehicleField.SALE_ODOMETER_KM),
                 modifier = focusOf(VehicleField.SALE_ODOMETER_KM),
                 onValueChange = { value -> change { it.copy(saleOdometerKm = value) } },
+            )
+            FormTextField(
+                label = stringResource(R.string.field_buyer_name),
+                value = input.buyerName,
+                onValueChange = { value -> change { it.copy(buyerName = value) } },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
             )
         }
         SectionCard {

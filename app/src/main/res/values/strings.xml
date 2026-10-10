@@ -420,9 +420,11 @@
     <string name="field_purchase_date">Purchase date</string>
     <string name="field_purchase_price">Purchase price</string>
     <string name="field_purchase_odometer">Odometer at purchase</string>
+    <string name="field_seller_name">Seller</string>
     <string name="field_sale_date">Sale date</string>
     <string name="field_sale_price">Sale price</string>
     <string name="field_sale_odometer">Odometer at sale</string>
+    <string name="field_buyer_name">Buyer</string>
     <string name="field_insurer">Insurer</string>
     <string name="field_insurance_policy_number">Policy number</string>
     <string name="field_insurance_premium">Annual premium</string>
