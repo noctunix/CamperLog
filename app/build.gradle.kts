@@ -11,8 +11,8 @@ plugins {
 // SemVer version (MAJOR.MINOR.PATCH); release tag: v<appVersion>.
 // appVersionCode must be MAJOR * 10000 + MINOR * 100 + PATCH (1.2.3 -> 10203). It is a literal
 // rather than computed because F-Droid's update check reads both values from this file.
-val appVersion = "1.22.0"
-val appVersionCode = 12200
+val appVersion = "1.23.0"
+val appVersionCode = 12300
 appVersion.split(".").map(String::toInt).also {
     require(it.size == 3) { "appVersion must be MAJOR.MINOR.PATCH: $appVersion" }
 }.let { (major, minor, patch) ->

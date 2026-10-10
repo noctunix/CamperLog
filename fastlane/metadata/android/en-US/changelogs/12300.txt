@@ -1,0 +1,1 @@
+• The "create your first tour" tutorial now walks through every field step by step, including location permission, adding a vehicle, and your first station
