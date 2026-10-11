@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -22,7 +21,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,34 +47,31 @@ import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.DiaryEntryField
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.DateField
-import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.LeaveDraftDialog
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.TimeField
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.messageRes
 
 /**
- * Formular zum Anlegen und Bearbeiten eines Tagebucheintrags. [onDone] verlässt es ohne, [onSaved]
- * nach dem Speichern; [onDelete] löscht einen bestehenden Eintrag und wird mit ihm aufgerufen.
+ * Formular zum Anlegen und Bearbeiten eines Tagebucheintrags; jede Eingabe speichert sich implizit
+ * selbst. [onDone] ist der einzige Ausstiegspunkt, für beide Fälle - siehe [DiaryEditViewModel].
+ * [onDelete] löscht einen bestehenden Eintrag über die Kopfzeile und wird mit ihm aufgerufen.
  */
 @Composable
 fun DiaryEditScreen(
     viewModel: DiaryEditViewModel,
     onDone: () -> Unit,
-    onSaved: () -> Unit,
     onDelete: (DiaryEntry) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
     var overflowExpanded by remember { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
 
-    LaunchedEffect(state.isSaved) {
-        if (state.isSaved) onSaved()
-    }
     LaunchedEffect(state.saveFailed) {
         if (state.saveFailed) {
             snackbar.showSnackbar(resources.getString(R.string.diary_edit_save_failed), withDismissAction = true)
@@ -84,8 +79,10 @@ fun DiaryEditScreen(
         }
     }
 
-    val requestBack = { if (state.isDirty) confirmDiscard = true else onDone() }
-    BackHandler(enabled = state.isDirty && !state.isSaved) { confirmDiscard = true }
+    val requestBack = {
+        if (state.needsLeaveConfirmation()) showLeaveDialog = true else onDone()
+    }
+    BackHandler(onBack = requestBack)
 
     Scaffold(
         topBar = {
@@ -108,7 +105,6 @@ fun DiaryEditScreen(
                                 )
                             }
                         }
-                        TextButton(onClick = viewModel::save, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
                     }
                 },
             )
@@ -129,11 +125,16 @@ fun DiaryEditScreen(
         }
     }
 
-    if (confirmDiscard) {
-        DiscardChangesDialog(
-            onKeep = { confirmDiscard = false },
+    if (showLeaveDialog) {
+        LeaveDraftDialog(
+            onCancel = { showLeaveDialog = false },
             onDiscard = {
-                confirmDiscard = false
+                showLeaveDialog = false
+                viewModel.onDiscardConfirmed()
+                onDone()
+            },
+            onKeep = {
+                showLeaveDialog = false
                 onDone()
             },
         )
@@ -148,13 +149,6 @@ private fun DiaryForm(state: DiaryEditUiState, viewModel: DiaryEditViewModel, mo
     val focus = remember { DiaryEntryField.entries.associateWith { FocusRequester() } }
     fun focusOf(field: DiaryEntryField) = Modifier.focusRequester(focus.getValue(field))
     @Composable fun errorOf(field: DiaryEntryField): String? = state.errors[field]?.messageRes(field)
-
-    // Nach einem abgelehnten Speichern zum ersten fehlerhaften Feld springen; der Fokus scrollt es ins Bild.
-    LaunchedEffect(state.rejectedSaves) {
-        if (state.rejectedSaves > 0) {
-            state.errors.keys.minByOrNull(DiaryEntryField::ordinal)?.let { focus.getValue(it).requestFocus() }
-        }
-    }
 
     Column(
         modifier = modifier
@@ -204,11 +198,6 @@ private fun DiaryForm(state: DiaryEditUiState, viewModel: DiaryEditViewModel, mo
                 shape = MaterialTheme.shapes.medium,
             )
         }
-        Button(
-            onClick = viewModel::save,
-            enabled = !state.isSaving,
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(stringResource(R.string.action_save)) }
         if (state.errors.isNotEmpty()) {
             // Nennt die betroffenen Felder; ändert sich die Liste, sagt TalkBack sie erneut an.
             val fields = state.errors.keys.sortedBy(DiaryEntryField::ordinal).map { stringResource(it.labelRes) }

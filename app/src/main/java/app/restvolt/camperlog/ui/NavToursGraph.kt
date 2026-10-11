@@ -223,7 +223,6 @@ internal fun NavGraphBuilder.toursGraph(
                 DiaryEditViewModel(diaryEntries, repository, route.tourId, route.entryId, createSavedStateHandle())
             },
             onDone = { navController.popFrom(entry) },
-            onSaved = { navController.popFrom(entry) },
             onDelete = { diaryEntry ->
                 if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
                     tourDetailViewModel.deleteDiaryEntry(diaryEntry)
