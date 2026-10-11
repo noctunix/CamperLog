@@ -1093,6 +1093,38 @@
         <item>Landstrom abstecken</item>
         <item>Reifendruck prüfen</item>
         <item>Spiegel einstellen</item>
+        <item>Fahrzeugpapiere, Führerschein und Ausweis prüfen</item>
+        <item>Versicherungskarte und Gasprüfnachweis prüfen</item>
+        <item>Stellplatzbuchung prüfen</item>
+        <item>Rundgang um das Fahrzeug machen</item>
+    </string-array>
+    <string name="checklist_suggested_packing_name">Packliste</string>
+    <string-array name="checklist_suggested_packing_items">
+        <item>Fahrzeugpapiere und Führerschein</item>
+        <item>Versicherungsunterlagen</item>
+        <item>Mautunterlagen (Vignetten, Transponder)</item>
+        <item>Heimtierausweis, falls ein Haustier mitfährt</item>
+        <item>Verbandskasten</item>
+        <item>Warndreieck und Warnweste</item>
+        <item>Feuerlöscher</item>
+        <item>Rauch- und Gasmelder</item>
+        <item>Unterlegkeile</item>
+        <item>Wagenheber und Radschlüssel</item>
+        <item>Starthilfekabel</item>
+        <item>CEE-Verlängerungskabel</item>
+        <item>Mehrfachsteckdose</item>
+        <item>Ersatzgasflasche und Druckregler</item>
+        <item>Powerbank</item>
+        <item>Geschirr, Besteck und Kochgeschirr</item>
+        <item>Spülmittel, Lappen und Müllbeutel</item>
+        <item>Campingstühle und -tisch</item>
+        <item>Sonnensegel und Zeltheringe</item>
+        <item>Werkzeugset und Ersatzsicherungen</item>
+        <item>Klebeband und Kabelbinder</item>
+        <item>Reiseapotheke</item>
+        <item>Sonnen- und Insektenschutz</item>
+        <item>Handtücher und Toilettenartikel</item>
+        <item>Kleidung nach dem Zwiebelprinzip und Regenschutz</item>
     </string-array>
     <string name="checklist_suggested_arrival_name">Ankunft</string>
     <string-array name="checklist_suggested_arrival_items">
@@ -1117,14 +1149,21 @@
     </string-array>
     <string name="checklist_suggested_spring_check_name">Frühjahrscheck</string>
     <string-array name="checklist_suggested_spring_check_items">
+        <item>Frischwassertank auf Frostschäden prüfen und wieder befüllen</item>
+        <item>Abwassertank auf Dichtheit und Frostschäden prüfen</item>
+        <item>Wasserhähne und Ablassventile schließen und auf Dichtheit prüfen</item>
+        <item>Boiler oder Frostschutzventil auf Funktion prüfen</item>
+        <item>Campingtoilette (Kassette) auf Funktion prüfen und befüllen</item>
+        <item>Batterien wieder anschließen und Ladezustand prüfen</item>
+        <item>Lebensmittel und Ausstattung wieder einräumen</item>
+        <item>Innenraum auf Schimmel und Feuchtigkeit prüfen</item>
+        <item>Reifendruck und Reifenzustand prüfen</item>
         <item>Prüfen, ob die Dichtheitsprüfung für die Gasanlage fällig ist</item>
-        <item>Batteriezustand prüfen</item>
-        <item>Frischwassersystem desinfizieren</item>
         <item>Dichtungen und Dach prüfen</item>
-        <item>Reifen und ihr Alter prüfen</item>
+        <item>Reifenalter und Profiltiefe prüfen</item>
         <item>Beleuchtung prüfen</item>
         <item>Bremsen prüfen</item>
-        <item>Unterlagen prüfen (Versicherung, Prüftermin)</item>
+        <item>Unterlagen prüfen (Versicherung, Hauptuntersuchung)</item>
     </string-array>
 
     <!-- Suche -->

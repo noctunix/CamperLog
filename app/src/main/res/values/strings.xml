@@ -1104,6 +1104,38 @@
         <item>Unplug shore power</item>
         <item>Check tyre pressure</item>
         <item>Check mirrors</item>
+        <item>Check vehicle documents, driving licence and ID</item>
+        <item>Check insurance card and gas test certificate</item>
+        <item>Check pitch booking</item>
+        <item>Walk around the vehicle for a final check</item>
+    </string-array>
+    <string name="checklist_suggested_packing_name">Packing list</string>
+    <string-array name="checklist_suggested_packing_items">
+        <item>Vehicle documents and driving licence</item>
+        <item>Insurance documents</item>
+        <item>Toll documents (vignettes, transponder)</item>
+        <item>Pet passport, if travelling with a pet</item>
+        <item>First aid kit</item>
+        <item>Warning triangle and hi-vis vest</item>
+        <item>Fire extinguisher</item>
+        <item>Smoke and gas detector</item>
+        <item>Wheel chocks</item>
+        <item>Jack and wheel wrench</item>
+        <item>Jump leads</item>
+        <item>CEE extension cable</item>
+        <item>Multi-socket adapter</item>
+        <item>Spare gas bottle and regulator</item>
+        <item>Power bank</item>
+        <item>Dishes, cutlery and cookware</item>
+        <item>Washing-up liquid, cloths and bin bags</item>
+        <item>Camping chairs and table</item>
+        <item>Sun canopy and tent pegs</item>
+        <item>Tool set and spare fuses</item>
+        <item>Tape and cable ties</item>
+        <item>Personal medicine kit</item>
+        <item>Sun and insect protection</item>
+        <item>Towels and toiletries</item>
+        <item>Clothing in layers and rain gear</item>
     </string-array>
     <string name="checklist_suggested_arrival_name">Arrival</string>
     <string-array name="checklist_suggested_arrival_items">
@@ -1128,11 +1160,18 @@
     </string-array>
     <string name="checklist_suggested_spring_check_name">Spring check</string>
     <string-array name="checklist_suggested_spring_check_items">
+        <item>Check the fresh water tank for frost damage and refill it</item>
+        <item>Check the grey water tank for leaks and frost damage</item>
+        <item>Close taps and drain valves and check them for leaks</item>
+        <item>Check the boiler or frost valve works</item>
+        <item>Check the cassette toilet works and fill it</item>
+        <item>Reconnect batteries and check their charge</item>
+        <item>Restock food and supplies</item>
+        <item>Check the interior for mould and damp</item>
+        <item>Check tyre pressure and condition</item>
         <item>Check whether the gas leak test is due</item>
-        <item>Check battery condition</item>
-        <item>Sanitise the fresh water system</item>
         <item>Check seals and roof</item>
-        <item>Check tyres and their age</item>
+        <item>Check tyre age and tread depth</item>
         <item>Check lights</item>
         <item>Check brakes</item>
         <item>Check documents (insurance, inspection)</item>

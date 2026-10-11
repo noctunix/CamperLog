@@ -80,10 +80,10 @@ class ChecklistFlowTest {
         compose.onNodeWithText("Vorlagen-Vorschläge hinzufügen").performClick()
         compose.onNodeWithText("Abfahrt").performClick()
 
-        compose.onNodeWithText("Erledigt: 0/8").assertExists()
+        compose.onNodeWithText("Erledigt: 0/12").assertExists()
         compose.onNodeWithText("Dachluken und Fenster schließen").performClick()
 
-        compose.onNodeWithText("Erledigt: 1/8").assertExists()
+        compose.onNodeWithText("Erledigt: 1/12").assertExists()
     }
 
     @Test
