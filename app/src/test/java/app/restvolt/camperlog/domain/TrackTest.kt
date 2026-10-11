@@ -1,11 +1,16 @@
 package app.restvolt.camperlog.domain
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TrackTest {
 
     @Test
@@ -34,6 +39,33 @@ class TrackTest {
         assertEquals(TrackInterval.MINUTES_15, effectiveTrackInterval(TrackInterval.MINUTES_15, fasterWhileCharging = true, charging = false))
         assertEquals(TrackInterval.MINUTES_15, effectiveTrackInterval(TrackInterval.MINUTES_15, fasterWhileCharging = false, charging = true))
         assertEquals(TrackInterval.SECONDS_30, effectiveTrackInterval(TrackInterval.SECONDS_30, fasterWhileCharging = true, charging = true))
+    }
+
+    @Test
+    fun motionAwareness_dropsMinDistanceOnlyWhileMoving() {
+        val config = TrackSamplingConfig.forInterval(TrackInterval.MINUTES_15)
+
+        assertEquals(0f, config.withMotionAwareness(isMoving = true).minDistanceMeters)
+        assertEquals(config, config.withMotionAwareness(isMoving = false))
+    }
+
+    @Test
+    fun motionAwareness_followsTheDetectorThroughMovingStillAndMovingAgain() = runTest {
+        val detector = FakeMotionDetector(initiallyMoving = true)
+        val base = TrackSamplingConfig.forInterval(TrackInterval.MINUTES_15)
+        val observedMinDistances = mutableListOf<Float>()
+        val job = launch {
+            detector.observeIsMoving().collect { isMoving -> observedMinDistances += base.withMotionAwareness(isMoving).minDistanceMeters }
+        }
+        advanceUntilIdle()
+
+        detector.setMoving(false)
+        advanceUntilIdle()
+        detector.setMoving(true)
+        advanceUntilIdle()
+        job.cancel()
+
+        assertEquals(listOf(0f, 100f, 0f), observedMinDistances)
     }
 
     @Test

@@ -28,7 +28,9 @@ import androidx.core.location.LocationRequestCompat
 import app.restvolt.camperlog.CamperLogApp
 import app.restvolt.camperlog.MainActivity
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.data.AndroidMotionDetector
 import app.restvolt.camperlog.data.LOCATION_PERMISSIONS
+import app.restvolt.camperlog.domain.MotionDetector
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TrackInterval
 import app.restvolt.camperlog.domain.TrackPoint
@@ -36,6 +38,7 @@ import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.TrackSamplingConfig
 import app.restvolt.camperlog.domain.effectiveTrackInterval
 import app.restvolt.camperlog.domain.isUsableTrackFix
+import app.restvolt.camperlog.domain.withMotionAwareness
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -55,9 +58,10 @@ import kotlin.math.roundToInt
  * daher reicht die Standortberechtigung "bei Nutzung der App"; ACCESS_BACKGROUND_LOCATION ist nicht nötig.
  *
  * Fixes kommen über `LocationManagerCompat` mit Intervall, Mindestdistanz und Batching
- * ([TrackSamplingConfig]); unbrauchbare Fixes ([isUsableTrackFix]) werden verworfen. Punkte sammeln
- * sich im Speicher und werden gebündelt geschrieben ([FLUSH_POINTS], [FLUSH_INTERVAL_MILLIS]) sowie
- * beim Beenden.
+ * ([TrackSamplingConfig]); die Mindestdistanz gilt dabei nur im erkannten Stillstand
+ * ([MotionDetector], [withMotionAwareness]). Unbrauchbare Fixes ([isUsableTrackFix]) werden
+ * verworfen. Punkte sammeln sich im Speicher und werden gebündelt geschrieben ([FLUSH_POINTS],
+ * [FLUSH_INTERVAL_MILLIS]) sowie beim Beenden.
  */
 class TrackRecordingService : Service() {
 
@@ -68,12 +72,15 @@ class TrackRecordingService : Service() {
     private lateinit var settings: TrackRecordingSettings
     private lateinit var tours: TourRepository
     private lateinit var tracks: TrackRepository
+    private lateinit var motionDetector: MotionDetector
     private val locationManager get() = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
     private var recording: ActiveRecording? = null
     private var startingTourId: Long? = null
     private var requestedInterval: TrackInterval? = null
+    private var requestedConfig: TrackSamplingConfig? = null
     private var charging = false
+    private var isMoving = true
     private var receiverRegistered = false
 
     private val listener = LocationListenerCompat { location -> onFix(location) }
@@ -92,6 +99,7 @@ class TrackRecordingService : Service() {
         settings = TrackRecordingSettings.get(this)
         tours = (application as CamperLogApp).repository
         tracks = (application as CamperLogApp).tracks
+        motionDetector = AndroidMotionDetector(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -185,6 +193,7 @@ class TrackRecordingService : Service() {
             ContextCompat.registerReceiver(this, powerReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
             receiverRegistered = true
             scope.launch { settings.values.collect { prefs -> if (prefs.enabled) updateRequest() else stopRecording() } }
+            scope.launch { motionDetector.observeIsMoving().collect { moving -> isMoving = moving; updateRequest() } }
             scope.launch {
                 while (isActive) {
                     delay(FLUSH_INTERVAL_MILLIS)
@@ -201,12 +210,12 @@ class TrackRecordingService : Service() {
         if (recording == null) return
         val prefs = settings.values.value
         val interval = effectiveTrackInterval(prefs.interval, prefs.fasterWhileCharging, charging)
-        if (interval == requestedInterval) return
+        val config = TrackSamplingConfig.forInterval(interval).withMotionAwareness(isMoving)
+        if (config == requestedConfig) return
         if (!hasLocationPermission(this)) {
             stopRecording()
             return
         }
-        val config = TrackSamplingConfig.forInterval(interval)
         val request = LocationRequestCompat.Builder(config.intervalMillis)
             .setMinUpdateDistanceMeters(config.minDistanceMeters)
             .setMaxUpdateDelayMillis(config.maxUpdateDelayMillis)
@@ -218,6 +227,7 @@ class TrackRecordingService : Service() {
         removeUpdates()
         LocationManagerCompat.requestLocationUpdates(locationManager, provider(), request, ContextCompat.getMainExecutor(this), listener)
         requestedInterval = interval
+        requestedConfig = config
         updateNotification()
     }
 
@@ -285,6 +295,7 @@ class TrackRecordingService : Service() {
         recording = null
         startingTourId = null
         requestedInterval = null
+        requestedConfig = null
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }

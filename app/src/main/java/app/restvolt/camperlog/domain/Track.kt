@@ -82,6 +82,13 @@ data class TrackSamplingConfig(val intervalMillis: Long, val minDistanceMeters: 
 }
 
 /**
+ * Mindestdistanz-Filter nur im erkannten Stillstand ([isMoving] `false`); bei Bewegung oder noch
+ * unklarem Zustand blockiert keine Mindestdistanz die Zustellung eines Fixes (siehe [MotionDetector]).
+ */
+fun TrackSamplingConfig.withMotionAwareness(isMoving: Boolean): TrackSamplingConfig =
+    if (isMoving) copy(minDistanceMeters = 0f) else this
+
+/**
  * Der tatsächlich genutzte Abstand: beim Laden mit [fasterWhileCharging] höchstens
  * [TrackInterval.WHILE_CHARGING], sonst [selected].
  */
