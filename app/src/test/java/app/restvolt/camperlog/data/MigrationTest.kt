@@ -787,9 +787,14 @@ class MigrationTest {
     @Test
     fun migration22To23AddsTimeOdometerAndWeatherColumnsAndKeepsThemEditable() = runTest {
         createVersion22(
+            "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
+                "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
+                "breakdown_phone, travel_protection_provider, travel_protection_contract_number, " +
+                "travel_protection_phone, insurer_claims_phone, required_energy_types, created_at, updated_at) VALUES " +
+                "(1, 'veh-1', 'Bluebird', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 1000, 2000)",
             "INSERT INTO tours (id, uuid, vehicle_id, start_date, destination, tour_type, travel_days, overnight_stays, " +
                 "distance_km, notes, created_at, updated_at) VALUES " +
-                "(1, 'tour-1', 0, '2026-07-01', 'Lofoten', 'VACATION', 10, 9, 2000, '', 1000, 2000)",
+                "(1, 'tour-1', 1, '2026-07-01', 'Lofoten', 'VACATION', 10, 9, 2000, '', 1000, 2000)",
             "INSERT INTO diary_entries (id, uuid, tour_id, date, text, created_at, updated_at) VALUES " +
                 "(1, 'entry-1', 1, '2026-07-04', 'Langer Tag am Fjord.', 1000, 2000)",
         )
