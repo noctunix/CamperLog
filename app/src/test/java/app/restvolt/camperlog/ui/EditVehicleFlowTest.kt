@@ -87,17 +87,25 @@ class EditVehicleFlowTest {
     }
 
     @Test
-    fun engineDetailsSection_startsCollapsedAndRevealsDisplacementAndTransmission() {
+    fun transmissionField_isVisibleWithoutExpandingEngineDetails() {
+        start()
+        compose.onNodeWithText("Fahrzeug").performClick()
+        compose.onNodeWithText("Details hinzufügen").performClick()
+
+        compose.onNodeWithText("Automatik").performScrollTo().assertExists()
+    }
+
+    @Test
+    fun engineDetailsSection_startsCollapsedAndRevealsDisplacement() {
         start()
         compose.onNodeWithText("Fahrzeug").performClick()
         compose.onNodeWithText("Details hinzufügen").performClick()
 
         compose.onNode(hasSetTextAction() and hasText("Hubraum")).assertDoesNotExist()
 
-        compose.onNodeWithText("Hubraum & Schaltung").performScrollTo().performClick()
+        compose.onNodeWithText("Hubraum").performScrollTo().performClick()
 
         compose.onNode(hasSetTextAction() and hasText("Hubraum")).assertExists()
-        compose.onNodeWithText("Automatik").assertExists()
     }
 
     @Test

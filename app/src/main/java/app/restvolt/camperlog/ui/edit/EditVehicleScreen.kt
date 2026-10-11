@@ -386,14 +386,13 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 errorOf(VehicleField.POWER_KW), focusOf(VehicleField.POWER_KW),
             ) { value -> change { it.copy(powerKw = value) } }
             PowerPsHint(input.powerKw)
+            TransmissionField(input.transmission) { value -> change { it.copy(transmission = value) } }
 
             var engineDetailsExpanded by rememberSaveable {
-                mutableStateOf(input.displacementCc.isNotBlank() || input.transmission != null)
+                mutableStateOf(input.displacementCc.isNotBlank())
             }
-            val engineDetailsSummary = listOfNotNull(
-                input.displacementCc.takeIf(String::isNotBlank)?.let { "$it cm³" },
-                input.transmission?.let { stringResource(it.labelRes) },
-            ).joinToString(" · ").ifEmpty { stringResource(R.string.station_summary_none) }
+            val engineDetailsSummary = input.displacementCc.takeIf(String::isNotBlank)?.let { "$it cm³" }
+                ?: stringResource(R.string.station_summary_none)
             CollapsibleSection(
                 title = stringResource(R.string.section_engine_details),
                 expanded = engineDetailsExpanded,
@@ -404,7 +403,6 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                     stringResource(R.string.field_displacement), input.displacementCc, "cm³", KeyboardType.Number,
                     errorOf(VehicleField.DISPLACEMENT_CC), focusOf(VehicleField.DISPLACEMENT_CC),
                 ) { value -> change { it.copy(displacementCc = value) } }
-                TransmissionField(input.transmission) { value -> change { it.copy(transmission = value) } }
             }
         }
         SectionCard {

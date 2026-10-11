@@ -493,7 +493,7 @@
     <string name="section_dimensions_weight">Abmessungen &amp; Gewicht</string>
     <string name="section_breakdown_accident">Panne &amp; Unfall</string>
     <string name="section_engine">Motor</string>
-    <string name="section_engine_details">Hubraum &amp; Schaltung</string>
+    <string name="section_engine_details">Hubraum</string>
     <string name="section_tires">Reifen</string>
     <string name="section_tanks">Tanks</string>
     <string name="section_energy">Energie</string>
