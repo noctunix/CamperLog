@@ -34,7 +34,7 @@ const val CREATE_FIRST_TOUR_SAVE_ACTION = "tour.saved"
 /** Aktion, die den "Station hinzufügen"-Schritt beim echten Auswählen eines Stationstyps freischaltet. */
 const val CREATE_FIRST_TOUR_STATION_FAB_ACTION = "tour.station.fab.clicked"
 
-/** Aktion, die den Stationsformular-Schritt beim echten Speichern der Station freischaltet. */
+/** Aktion, die den Stationsformular-Schritt freischaltet, sobald die neue Station über "Zurück" verlassen wird. */
 const val CREATE_FIRST_TOUR_STATION_SAVE_ACTION = "tour.station.saved"
 
 /**
@@ -134,8 +134,8 @@ fun createFirstTourTour(
         ),
         TourStep(
             "station-save",
-            "station.edit.save",
-            R.string.action_save,
+            "edit.station.back",
+            R.string.action_back,
             R.string.guide_step_station_save_body,
             StepCompletion.Action(CREATE_FIRST_TOUR_STATION_SAVE_ACTION),
         ),

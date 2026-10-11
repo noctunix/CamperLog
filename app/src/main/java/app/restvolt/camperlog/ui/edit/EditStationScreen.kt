@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -99,8 +98,8 @@ import app.restvolt.camperlog.share.openAppDetailsSettings
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.DateField
-import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.LeaveDraftDialog
 import app.restvolt.camperlog.ui.LocationCaptureSection
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.TimeField
@@ -109,7 +108,6 @@ import app.restvolt.camperlog.ui.WeatherRefreshRow
 import app.restvolt.camperlog.ui.WeatherSummary
 import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
 import app.restvolt.camperlog.ui.attachments.AttachmentPickers
-import app.restvolt.camperlog.ui.attachments.PendingPhotosState
 import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
@@ -126,8 +124,8 @@ import app.restvolt.camperlog.ui.yesNoRes
 import java.time.LocalDate
 
 /**
- * Formular zum Anlegen und Bearbeiten einer Station. [onDone] verlässt es ohne, [onSaved] nach
- * dem Speichern mit den gerade ins Bordbuch eingetragenen Ver-/Entsorgungs-Häkchen.
+ * Formular zum Anlegen und Bearbeiten einer Station; jede Eingabe speichert sich implizit selbst.
+ * [onDone] ist der einzige Ausstiegspunkt, für beide Fälle - siehe [EditStationViewModel].
  */
 @Composable
 fun EditStationScreen(
@@ -138,19 +136,15 @@ fun EditStationScreen(
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     onDone: () -> Unit,
-    onSaved: (Set<StationService>) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
     val weatherEnabled by weatherSettings.values.collectAsStateWithLifecycle()
-    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
 
-    LaunchedEffect(state.isSaved) {
-        if (state.isSaved) onSaved(state.loggedServices)
-    }
     LaunchedEffect(state.saveFailed) {
         if (state.saveFailed) {
             snackbar.showSnackbar(resources.getString(R.string.station_edit_save_failed), withDismissAction = true)
@@ -158,23 +152,15 @@ fun EditStationScreen(
         }
     }
 
-    val requestBack = { if (state.isDirty) confirmDiscard = true else onDone() }
-    BackHandler(enabled = state.isDirty && !state.isSaved) { confirmDiscard = true }
+    val requestBack = { if (state.needsLeaveConfirmation()) showLeaveDialog = true else onDone() }
+    BackHandler(onBack = requestBack)
 
     Scaffold(
         topBar = {
             BackTopBar(
                 title = stringResource(if (state.isNew) R.string.station_edit_title_new else R.string.station_edit_title_existing),
                 onBack = requestBack,
-                actions = {
-                    if (!state.notFound && !state.isLoading) {
-                        TextButton(
-                            onClick = viewModel::save,
-                            enabled = !state.isSaving,
-                            modifier = Modifier.guideAnchor("station.edit.save"),
-                        ) { Text(stringResource(R.string.action_save)) }
-                    }
-                },
+                navigationIconModifier = if (state.isNew) Modifier.guideAnchor("edit.station.back") else Modifier,
             )
         },
         bottomBar = { SnackbarHost(snackbar, Modifier.navigationBarsPadding()) },
@@ -200,11 +186,16 @@ fun EditStationScreen(
         }
     }
 
-    if (confirmDiscard) {
-        DiscardChangesDialog(
-            onKeep = { confirmDiscard = false },
+    if (showLeaveDialog) {
+        LeaveDraftDialog(
+            onCancel = { showLeaveDialog = false },
             onDiscard = {
-                confirmDiscard = false
+                showLeaveDialog = false
+                viewModel.onDiscardConfirmed()
+                onDone()
+            },
+            onKeep = {
+                showLeaveDialog = false
                 onDone()
             },
         )
@@ -252,13 +243,6 @@ private fun StationForm(
         )
     }
     fun focusOf(field: StationField) = Modifier.focusRequester(focus.getValue(field))
-
-    // Nach einem abgelehnten Speichern zum ersten fehlerhaften Feld springen; der Fokus scrollt es ins Bild.
-    LaunchedEffect(state.rejectedSaves) {
-        if (state.rejectedSaves > 0) {
-            errors.keys.minByOrNull(StationField::ordinal)?.let { focus[it]?.requestFocus() }
-        }
-    }
 
     val selectedTour = state.tours.firstOrNull { it.id == input.tourId }
     val toursOfVehicle = state.tours.filter { it.vehicleId == input.vehicleId }.sortedByDescending { it.startDate }
@@ -413,22 +397,12 @@ private fun StationForm(
         }
         PhotoAttachmentsSection(
             ownerType = AttachmentOwnerType.STATION,
-            ownerId = state.savedStationId,
+            ownerId = state.stationId,
             repository = attachments,
             fileStore = attachmentFileStore,
             snackbarHostState = snackbarHostState,
             stopLocation = if (input.latitude != null && input.longitude != null) input.latitude to input.longitude else null,
             pickers = attachmentPickers,
-            pending = PendingPhotosState(
-                photos = state.pendingPhotos,
-                importing = state.pendingPhotoImporting,
-                importError = state.pendingPhotoImportError,
-                onAdd = viewModel::onAddPendingPhoto,
-                onRemove = viewModel::onRemovePendingPhoto,
-                onCaptionChange = viewModel::onPendingPhotoCaptionChange,
-                onUseLocation = viewModel::onPendingPhotoUseLocation,
-                onDismissImportError = viewModel::onDismissPendingPhotoImportError,
-            ),
         )
         SectionCard {
             FormTextField(
@@ -441,13 +415,6 @@ private fun StationForm(
                 modifier = focusOf(StationField.NOTES),
             )
         }
-        Button(
-            onClick = viewModel::save,
-            enabled = !state.isSaving,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp),
-        ) { Text(stringResource(R.string.action_save)) }
         if (errors.isNotEmpty()) {
             // Nennt die betroffenen Felder; ändert sich die Liste, sagt TalkBack sie erneut an.
             val fields = errors.keys.sortedBy(StationField::ordinal).map { stringResource(it.labelRes) }

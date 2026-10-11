@@ -27,6 +27,7 @@ import app.restvolt.camperlog.ui.detail.StationDetailScreen
 import app.restvolt.camperlog.ui.detail.StationDetailViewModel
 import app.restvolt.camperlog.ui.edit.EditStationScreen
 import app.restvolt.camperlog.ui.edit.EditStationViewModel
+import app.restvolt.camperlog.ui.edit.loggedServices
 import app.restvolt.camperlog.ui.map.MapScreen
 import app.restvolt.camperlog.ui.map.MapViewModel
 import app.restvolt.camperlog.ui.stations.StationsScreen
@@ -84,7 +85,7 @@ internal fun NavGraphBuilder.stationsGraph(
         val route = entry.toRoute<StationEditRoute>()
         val stationEditContext = LocalContext.current
         // Wohin die Speichermeldung beim Bearbeiten einer bestehenden Station geht: die kam immer
-        // vom Stationsdetail, das Speichern führt dort auch wieder hin.
+        // vom Stationsdetail, das Verlassen führt dort auch wieder hin.
         val onStationSaved: (Set<StationService>) -> Unit = when {
             route.stationId != 0L && navController.hasRoute<StationDetailRoute>() ->
                 navController.stationDetailViewModel(entry, stations, repository, route.stationId)::onStationSaved
@@ -95,8 +96,6 @@ internal fun NavGraphBuilder.stationsGraph(
                 repository = stations,
                 tours = repository,
                 vehicles = vehicles,
-                attachments = attachments,
-                fileStore = attachmentFileStore,
                 stationId = route.stationId,
                 initialTourId = route.tourId,
                 initialType = route.initialType?.let(StationType::valueOf),
@@ -117,31 +116,37 @@ internal fun NavGraphBuilder.stationsGraph(
             attachments = attachments,
             attachmentFileStore = attachmentFileStore,
             attachmentPickers = attachmentPickers,
-            onDone = { navController.popFrom(entry) },
-            onSaved = { loggedServices ->
-                if (route.stationId == 0L) {
-                    if (guideController.state.value.tour?.id == CREATE_FIRST_TOUR_ID) {
-                        // Innerhalb der Pilot-Tour "Erste Tour anlegen" führt das Speichern zurück zur
+            onDone = {
+                // Die Station speichert sich schon laufend selbst; beim Verlassen entscheidet sich nur
+                // noch, wohin es geht und ob die Bordbuch-Meldung für diese Sitzung noch aussteht.
+                val finalState = stationEditViewModel.uiState.value
+                val discarded = stationEditViewModel.wasDiscarded()
+                when {
+                    route.stationId != 0L -> {
+                        if (!discarded) onStationSaved(finalState.loggedServices)
+                        navController.popFrom(entry)
+                    }
+                    discarded -> navController.popFrom(entry)
+                    guideController.state.value.tour?.id == CREATE_FIRST_TOUR_ID -> {
+                        // Innerhalb der Pilot-Tour "Erste Tour anlegen" führt das Verlassen zurück zur
                         // Tourdetailseite statt auf die Stationsdetailseite, damit der abschließende
                         // Hinweis auf den GPS-Track-Abschnitt dort einen echten Anker vorfindet.
                         guideController.completeAction(CREATE_FIRST_TOUR_STATION_SAVE_ACTION)
                         guideController.next()
                         navController.popBackStack()
-                    } else {
+                    }
+                    else -> {
                         // Eine neue Station landet auf ihrer Detailseite, damit sofort Fotos angehängt
                         // werden können; Zurück führt dann zur Herkunft des Formulars (Tourdetail,
                         // Stationen-Reiter oder, bei einem `geo:`-Link ohne einen der beiden im Stapel,
                         // zu dessen eigener Herkunft).
-                        val savedId = stationEditViewModel.uiState.value.savedStationId
+                        val savedId = finalState.stationId
                         val fromStationsTab = !(route.tourId != null && navController.hasRoute<DetailRoute>())
                         navController.popBackStack()
                         navController.navigate(
-                            StationDetailRoute(savedId, fromStationsTab = fromStationsTab, justSavedLoggedServices = loggedServices.map { it.name }),
+                            StationDetailRoute(savedId, fromStationsTab = fromStationsTab, justSavedLoggedServices = finalState.loggedServices.map { it.name }),
                         )
                     }
-                } else {
-                    onStationSaved(loggedServices)
-                    navController.popFrom(entry)
                 }
             },
         )

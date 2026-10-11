@@ -1,19 +1,12 @@
 package app.restvolt.camperlog.ui.edit
 
 import android.database.SQLException
-import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.savedstate.SavedState
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
-import app.restvolt.camperlog.data.AttachmentFileStore
-import app.restvolt.camperlog.data.AttachmentImportError
-import app.restvolt.camperlog.data.AttachmentImportResult
-import app.restvolt.camperlog.data.ImportedAttachment
-import app.restvolt.camperlog.domain.AttachmentOwnerType
-import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.ElectricityBilling
@@ -30,6 +23,7 @@ import app.restvolt.camperlog.domain.PlaceSearchProvider
 import app.restvolt.camperlog.domain.PlaceSearchResult
 import app.restvolt.camperlog.domain.SYNCED_SERVICE_LOG_TYPES
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.allowedServices
 import app.restvolt.camperlog.domain.StationError
 import app.restvolt.camperlog.domain.StationField
 import app.restvolt.camperlog.domain.StationInput
@@ -51,12 +45,10 @@ import app.restvolt.camperlog.domain.parseLocationText
 import app.restvolt.camperlog.domain.supportedLocale
 import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toStation
-import app.restvolt.camperlog.domain.validate
 import app.restvolt.camperlog.domain.validation
 import app.restvolt.camperlog.domain.withElectricityBilling
-import app.restvolt.camperlog.ui.attachments.PendingPhoto
-import app.restvolt.camperlog.ui.attachments.toAttachment
-import app.restvolt.camperlog.ui.attachments.toPendingPhoto
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -64,14 +56,15 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.Currency
 import java.util.Locale
 
-/** Zustand des Stationsformulars. Fehler werden erst nach dem ersten Speicherversuch angezeigt. */
+/** Zustand des Formulars. Jede Eingabe speichert sich laufend selbst (siehe [EditStationViewModel]). */
 data class StationEditUiState(
     val isNew: Boolean,
     val isLoading: Boolean = false,
@@ -83,37 +76,58 @@ data class StationEditUiState(
     val errors: Map<StationField, StationError> = emptyMap(),
     /** Fehler je Kostenzeile, Schlüssel ist der Index in [StationInput.costs]. */
     val costErrors: Map<Int, StationError> = emptyMap(),
+    /** Seit dem Öffnen des Formulars wurde mindestens eine Eingabe geändert. */
     val isDirty: Boolean = false,
-    val isSaving: Boolean = false,
-    val isSaved: Boolean = false,
-    /** Welche Ver-/Entsorgungs-Häkchen beim letzten erfolgreichen Speichern ins Bordbuch eingetragen wurden. */
-    val loggedServices: Set<StationService> = emptySet(),
-    /** Der letzte Speicherversuch ist an der Datenbank gescheitert; Meldung steht noch aus. */
+    /** Der letzte automatische Speicherversuch ist an der Datenbank gescheitert; Meldung steht noch aus. */
     val saveFailed: Boolean = false,
-    /** Zählt an der Validierung gescheiterte Speicherversuche; jede Erhöhung fokussiert das erste fehlerhafte Feld. */
-    val rejectedSaves: Int = 0,
-    /**
-     * Die id dieser Station, sobald bekannt (bei einer bestehenden Station von Anfang an, bei einer
-     * neuen erst nach dem ersten Speichern); `0` bis dahin. Fotos, die vor dem ersten Speichern
-     * aufgenommen wurden, stehen bis dahin in [pendingPhotos] statt in der Datenbank.
-     */
-    val savedStationId: Long = 0,
-    /** Vor dem ersten Speichern aufgenommene Fotos; [EditStationViewModel.save] übernimmt sie danach in die Datenbank. */
-    val pendingPhotos: List<PendingPhoto> = emptyList(),
-    val pendingPhotoImporting: Boolean = false,
-    val pendingPhotoImportError: AttachmentImportError? = null,
+    /** Die id der Station, sobald sie bekannt ist: für eine neue Station ab ihrer ersten Anlage, sonst ab dem Laden. */
+    val stationId: Long = 0,
 )
+
+/**
+ * Welche Ver-/Entsorgungs-Häkchen des aktuellen Formularstands ins Bordbuch eingetragen werden -
+ * live aus [StationInput.services] abgeleitet (wie [toStation] sie beim Speichern filtert), statt
+ * erst nach einem erfolgreichen [EditStationViewModel.attemptPersist] bekannt: Ein gerade erst
+ * angehaktes Häkchen zählt damit schon beim sofortigen Verlassen, auch innerhalb der Autosave-
+ * Verzögerung.
+ */
+internal val StationEditUiState.loggedServices: Set<StationService>
+    get() = input.services.intersect(input.type.allowedServices).filterTo(mutableSetOf()) { it in SYNCED_SERVICE_LOG_TYPES }
+
+/**
+ * Ob ein Verlassen zuerst den Verwerfen/Speichern-Dialog zeigen muss: Für eine neue Station immer -
+ * ihr Formular ist nur über eine bewusste Typauswahl erreichbar, anders als bei einer Tour oder
+ * Reparatur gibt es also keinen rein zufällig geöffneten, komplett leeren Entwurf, der sich ohne
+ * Rückfrage verwerfen ließe. Für eine bestehende Station, solange sich seit dem Öffnen des Formulars
+ * wirklich etwas geändert hat.
+ */
+internal fun StationEditUiState.needsLeaveConfirmation(): Boolean = if (isNew) true else isDirty
 
 /** Ungespeicherte Formulareingaben, die ein Beenden des Prozesses im Hintergrund überstehen. */
 @Serializable
-internal data class StationDraft(val input: StationInput, val showErrors: Boolean, val pendingPhotos: List<PendingPhoto> = emptyList())
+internal data class StationDraft(
+    val input: StationInput,
+    val showErrors: Boolean,
+    /** Für eine neue Station die id der schon automatisch angelegten Station, falls es sie schon gibt. */
+    val persistedStationId: Long? = null,
+)
 
 /**
  * Lädt, validiert und speichert eine Station. [stationId] 0 legt eine neue Station an; dafür
  * entscheiden [initialTourId]/[initialType]/[prefillLatitude]/[prefillLongitude]/[prefillPlace]
  * über die Vorbelegung (aus der Tourdetailseite bzw. aus einem `geo:`-Link).
+ *
+ * Jede Eingabe speichert sich nach kurzer Zeit automatisch (implizites Speichern, siehe
+ * [attemptPersist]), für eine neue wie für eine bestehende Station. Eine neue Station wird dafür
+ * sofort nach ihrer Vorbelegung ([applyNewStationDefaults]) als echter Datensatz angelegt - dadurch
+ * können Fotos von Anfang an angehängt werden, ohne auf einen expliziten Speichern-Erfolg zu warten.
+ * Verlässt der Nutzer das Formular über [onDiscardConfirmed] statt es zu behalten, räumt [onCleared]
+ * den Datensatz wieder auf - für eine neue Station heißt das Löschen (mit ihren Anhängen), für eine
+ * bestehende das Zurücksetzen auf den beim Öffnen geladenen Stand (siehe [openedStation]).
+ *
  * Geänderte Eingaben liegen zusätzlich in [savedStateHandle] und werden nach einem Neustart des
- * Prozesses statt der gespeicherten Station angezeigt.
+ * Prozesses statt der gespeicherten Station angezeigt; für eine neue Station sichert das auch die
+ * id der schon automatisch angelegten Station gegen einen solchen Neustart ab.
  *
  * @param locale liefert die aktuelle Sprache für die Beträge und Dezimalzahlen der Stromabrechnung;
  *   wird bei jedem Zugriff neu gelesen, damit ein Sprachwechsel bei laufendem ViewModel greift
@@ -122,8 +136,6 @@ class EditStationViewModel(
     private val repository: StationRepository,
     private val tours: TourRepository,
     private val vehicles: VehicleRepository,
-    private val attachments: AttachmentRepository,
-    private val fileStore: AttachmentFileStore,
     stationId: Long,
     initialTourId: Long? = null,
     initialType: StationType? = null,
@@ -137,7 +149,6 @@ class EditStationViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val today: () -> LocalDate = LocalDate::now,
     private val timeNow: () -> LocalTime = LocalTime::now,
-    private val now: () -> Instant = Instant::now,
     private val locale: () -> Locale = { supportedLocale(Locale.getDefault()) },
 ) : ViewModel() {
 
@@ -160,9 +171,9 @@ class EditStationViewModel(
     private val draft: StationDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)?.let { decodeFromSavedState(it) }
 
     private val _uiState = MutableStateFlow(
-        StationEditUiState(isNew = stationId == 0L, isLoading = stationId != 0L, savedStationId = stationId).let { state ->
+        StationEditUiState(isNew = stationId == 0L, isLoading = stationId != 0L, stationId = stationId).let { state ->
             when {
-                draft != null -> state.copy(input = draft.input, isDirty = true, pendingPhotos = draft.pendingPhotos)
+                draft != null -> state.copy(input = draft.input, isDirty = true)
                 stationId == 0L -> state.copy(
                     input = StationInput(
                         tourId = initialTourId,
@@ -181,8 +192,24 @@ class EditStationViewModel(
     )
     val uiState: StateFlow<StationEditUiState> = _uiState.asStateFlow()
 
+    /** Der zuletzt erfolgreich automatisch gespeicherte Stand; Basis für den nächsten [attemptPersist]-Versuch. */
     private var original: Station? = null
+
+    /**
+     * Für eine bestehende Station der beim Öffnen des Formulars geladene Stand, unverändert über die
+     * ganze Bearbeitungssitzung - die Grundlage für [onDiscardConfirmed], falls der Nutzer seine
+     * Änderungen verwirft. Bleibt für eine neue Station `null`, da ihr Verwerfen den Datensatz löscht
+     * statt ihn zurückzusetzen.
+     */
+    private var openedStation: Station? = null
     private var showErrors = draft?.showErrors ?: false
+
+    /** Verhindert, dass zwei gleichzeitige Autosave-Versuche beide eine neue Station anlegen. */
+    private val persistMutex = Mutex()
+    private var pendingSaveJob: Job? = null
+
+    /** Beim nächsten [onCleared] verwerfen statt die letzte Änderung zu übernehmen; siehe [onDiscardConfirmed]. */
+    private var discardConfirmed = false
 
     init {
         if (showErrors) _uiState.update { it.withErrors() }
@@ -228,18 +255,32 @@ class EditStationViewModel(
             viewModelScope.launch {
                 val station = repository.observeStation(stationId).first()
                 original = station
+                openedStation = station
                 _uiState.update {
                     // Ein wiederhergestellter Entwurf hat Vorrang vor dem gespeicherten Stand.
                     val input = if (it.isDirty) it.input else station?.toInput(locale()) ?: it.input
                     it.copy(isLoading = false, notFound = station == null, input = input)
                 }
             }
-        } else if (draft == null) {
-            viewModelScope.launch { applyNewStationDefaults(initialTourId) }
+        } else {
+            viewModelScope.launch {
+                val restoredId = draft?.persistedStationId
+                if (restoredId != null) {
+                    original = repository.observeStation(restoredId).first()
+                    if (original != null) _uiState.update { it.copy(stationId = restoredId) }
+                }
+                if (original == null) {
+                    applyNewStationDefaults(initialTourId)
+                    attemptPersist()
+                }
+            }
         }
     }
 
-    /** Vorbelegung einer neuen Station: Datum/Uhrzeit aus der Tour bzw. dem aktuellen Fahrzeug und Tag. */
+    /**
+     * Vorbelegung einer neuen Station: Datum/Uhrzeit aus der Tour bzw. dem aktuellen Fahrzeug und Tag.
+     * Läuft vor dem allerersten [attemptPersist], damit das Pflichtfeld Datum dabei schon gesetzt ist.
+     */
     private suspend fun applyNewStationDefaults(tourId: Long?) {
         if (tourId != null) {
             val tour = tours.observeTour(tourId).first() ?: return
@@ -263,10 +304,16 @@ class EditStationViewModel(
         }
     }
 
-    /** Übernimmt eine Formularänderung. */
+    /**
+     * Übernimmt eine Formularänderung. Es gibt keinen Speichern-Versuch mehr, der Fehler sichtbar
+     * machen könnte - stattdessen macht schon die erste Eingabe alle aktuellen Fehler sichtbar, und
+     * löst außerdem den debounced Autosave aus.
+     */
     fun onInputChange(transform: (StationInput) -> StationInput) {
+        showErrors = true
         _uiState.update { state -> state.copy(input = transform(state.input), isDirty = true).withErrors() }
         saveDraft()
+        scheduleAutosave()
     }
 
     /** Wechselt die Stationsart; bei einem Wechsel zu Übernachtung wird "Nächte" auf 1 vorbelegt, sofern noch leer. */
@@ -373,98 +420,77 @@ class EditStationViewModel(
         input.copy(costs = input.costs.mapIndexed { i, cost -> if (i == index) transform(cost) else cost })
     }
 
-    /** Validiert und speichert; bei Erfolg wird [StationEditUiState.isSaved] gesetzt. */
-    fun save() {
-        val state = _uiState.value
-        if (state.isSaving || state.isLoading || state.notFound) return
-        val validation = state.input.validation(today(), locale())
-        if (validation.errors.isNotEmpty()) {
-            showErrors = true
-            saveDraft()
-            _uiState.update {
-                it.copy(errors = validation.errors, costErrors = validation.costErrors, rejectedSaves = it.rejectedSaves + 1)
-            }
-            return
-        }
-        val station = state.input.toStation(original, locale())
-        val loggedServices = station.services.filterTo(mutableSetOf()) { it in SYNCED_SERVICE_LOG_TYPES }
-        _uiState.update { it.copy(isSaving = true, errors = emptyMap(), costErrors = emptyMap(), saveFailed = false) }
-        viewModelScope.launch {
+    /**
+     * Versucht die aktuelle Eingabe in die Datenbank zu schreiben: anlegen, falls [original] noch
+     * keine gibt (nur für eine neue Station), sonst aktualisieren. Das einzige Pflichtfeld ist das
+     * Datum, das für eine neue Station schon vor dem allerersten Aufruf durch
+     * [applyNewStationDefaults] gesetzt ist; fehlt es trotzdem, bleibt der zuletzt gespeicherte Stand
+     * unverändert stehen. Jede andere ungültige Eingabe wird stattdessen entschärft, siehe
+     * [sanitizedForAutosave].
+     */
+    private suspend fun attemptPersist() {
+        persistMutex.withLock {
+            val state = _uiState.value
+            val basis = original
+            val loc = locale()
+            val day = today()
+            val effectiveInput = state.input.sanitizedForAutosave(day, loc)
+            if (effectiveInput.validation(day, loc).errors.isNotEmpty()) return@withLock
+            val station = effectiveInput.toStation(basis, loc)
             try {
                 val id = repository.save(station)
-                val createdAt = now()
-                state.pendingPhotos.forEach { photo -> attachments.add(photo.toAttachment(AttachmentOwnerType.STATION, id, createdAt)) }
-                savedStateHandle.remove<SavedState>(DRAFT_KEY)
-                _uiState.update {
-                    it.copy(isSaving = false, isSaved = true, loggedServices = loggedServices, savedStationId = id, pendingPhotos = emptyList())
-                }
+                original = repository.observeStation(id).first() ?: station.copy(id = id)
+                _uiState.update { it.copy(stationId = id, saveFailed = false) }
+                saveDraft()
             } catch (_: SQLException) {
-                // Eingaben bleiben erhalten, damit der Nutzer es erneut versuchen kann.
-                _uiState.update { it.copy(isSaving = false, saveFailed = true) }
+                _uiState.update { it.copy(saveFailed = true) }
             }
+        }
+    }
+
+    /**
+     * Entschärft eine Eingabe für [attemptPersist]: Jede ungültige Einzelangabe außer dem fehlenden
+     * Datum fällt weg, statt den Schreibzugriff für die ganze Station zu blockieren - der Rest der
+     * Eingabe speichert sich weiter, während das betroffene Feld inline seinen Fehler zeigt. Das
+     * verändert nur den gespeicherten Stand, nicht die Anzeige im Formular.
+     */
+    private fun StationInput.sanitizedForAutosave(today: LocalDate, locale: Locale): StationInput {
+        val validation = validation(today, locale)
+        val errors = validation.errors
+        var sanitized = this
+        if (StationField.COORDINATES in errors) sanitized = sanitized.copy(latitude = null, longitude = null, coordinateSource = null, accuracyM = null)
+        if (StationField.NIGHTS in errors) sanitized = sanitized.copy(nights = "")
+        if (StationField.NAME in errors) sanitized = sanitized.copy(name = "")
+        if (StationField.PLACE in errors) sanitized = sanitized.copy(place = "")
+        if (StationField.NOTES in errors) sanitized = sanitized.copy(notes = "")
+        if (StationField.MAP_LINK in errors) sanitized = sanitized.copy(mapLink = null)
+        if (StationField.SERVICES in errors) sanitized = sanitized.copy(services = sanitized.services.filterNotTo(mutableSetOf()) { it in SYNCED_SERVICE_LOG_TYPES })
+        if (StationField.ELECTRICITY in errors) sanitized = sanitized.copy(electricityBilling = null)
+        if (StationField.TOLL_COUNTRY in errors) sanitized = sanitized.copy(tollCountry = "")
+        if (StationField.TOLL_VALID_UNTIL in errors) sanitized = sanitized.copy(tollValidUntil = null)
+        if (StationField.TOLL_PAYMENT_METHOD in errors) sanitized = sanitized.copy(tollPaymentMethod = "")
+        if (StationField.FERRY_BOOKING_REFERENCE in errors) sanitized = sanitized.copy(ferryBookingReference = "")
+        if (StationField.ODOMETER_KM in errors) sanitized = sanitized.copy(odometerKm = "")
+        if (StationField.MANUAL_TEMPERATURE in errors) sanitized = sanitized.copy(manualTemperatureC = "")
+        if (StationField.LINK in errors) sanitized = sanitized.copy(link = "")
+        if (validation.costErrors.isNotEmpty()) {
+            sanitized = sanitized.copy(costs = sanitized.costs.filterIndexed { index, _ -> index !in validation.costErrors.keys })
+        }
+        return sanitized
+    }
+
+    /** Plant [attemptPersist] mit kurzer Verzögerung, damit schnell aufeinanderfolgende Tastendrücke nur einen Schreibzugriff auslösen. */
+    private fun scheduleAutosave() {
+        pendingSaveJob?.cancel()
+        pendingSaveJob = viewModelScope.launch {
+            delay(AUTOSAVE_DEBOUNCE_MILLIS)
+            attemptPersist()
         }
     }
 
     /** Die Fehlermeldung zu [StationEditUiState.saveFailed] wurde angezeigt. */
     fun onSaveFailureShown() {
         _uiState.update { it.copy(saveFailed = false) }
-    }
-
-    /** Importiert ein vor dem ersten Speichern mit der Kamera aufgenommenes oder aus der Galerie gewähltes Foto. */
-    fun onAddPendingPhoto(source: Uri) {
-        _uiState.update { it.copy(pendingPhotoImporting = true, pendingPhotoImportError = null) }
-        viewModelScope.launch {
-            when (val result = fileStore.importPhoto(source)) {
-                is AttachmentImportResult.Success -> {
-                    val photo = (result.attachment as ImportedAttachment.Photo).toPendingPhoto()
-                    _uiState.update { it.copy(pendingPhotoImporting = false, pendingPhotos = it.pendingPhotos + photo) }
-                    saveDraft()
-                }
-                is AttachmentImportResult.Failure -> _uiState.update { it.copy(pendingPhotoImporting = false, pendingPhotoImportError = result.error) }
-            }
-        }
-    }
-
-    /** Die Fehlermeldung zu [StationEditUiState.pendingPhotoImportError] wurde angezeigt. */
-    fun onDismissPendingPhotoImportError() = _uiState.update { it.copy(pendingPhotoImportError = null) }
-
-    /** Verwirft ein vor dem ersten Speichern aufgenommenes Foto wieder; die Datei wird gleich mitgelöscht. */
-    fun onRemovePendingPhoto(photo: PendingPhoto) {
-        _uiState.update { state -> state.copy(pendingPhotos = state.pendingPhotos.filterNot { it.fileName == photo.fileName }) }
-        saveDraft()
-        viewModelScope.launch { fileStore.delete(photo.fileName) }
-    }
-
-    /** Bildunterschrift eines vor dem ersten Speichern aufgenommenen Fotos bearbeiten. */
-    fun onPendingPhotoCaptionChange(photo: PendingPhoto, caption: String) {
-        _uiState.update { state ->
-            state.copy(pendingPhotos = state.pendingPhotos.map { if (it.fileName == photo.fileName) it.copy(caption = caption) else it })
-        }
-        saveDraft()
-    }
-
-    /** "Standort der Station übernehmen" im Betrachter, für ein noch nicht gespeichertes Foto. */
-    fun onPendingPhotoUseLocation(photo: PendingPhoto, latitude: Double, longitude: Double) {
-        _uiState.update { state ->
-            state.copy(
-                pendingPhotos = state.pendingPhotos.map {
-                    if (it.fileName == photo.fileName) it.copy(latitude = latitude, longitude = longitude) else it
-                },
-            )
-        }
-        saveDraft()
-        viewModelScope.launch { fileStore.writeLocation(photo.fileName, latitude, longitude) }
-    }
-
-    /**
-     * Löscht die Dateien noch nicht übernommener [StationEditUiState.pendingPhotos], wenn das Formular
-     * ohne Speichern verlassen wird. `viewModelScope` ist zu diesem Zeitpunkt bereits abgebrochen (siehe
-     * `ViewModel.clear()`), daher blockierend statt über ihn - reines lokales Datei-I/O, unkritisch kurz.
-     */
-    override fun onCleared() {
-        val orphaned = _uiState.value.pendingPhotos
-        if (orphaned.isEmpty()) return
-        runBlocking { orphaned.forEach { fileStore.delete(it.fileName) } }
     }
 
     private fun StationEditUiState.withErrors(): StationEditUiState {
@@ -475,11 +501,60 @@ class EditStationViewModel(
 
     private fun saveDraft() {
         val state = _uiState.value
-        savedStateHandle[DRAFT_KEY] = encodeToSavedState(StationDraft(state.input, showErrors, state.pendingPhotos))
+        savedStateHandle[DRAFT_KEY] = encodeToSavedState(StationDraft(state.input, showErrors, original?.id))
+    }
+
+    /**
+     * Verwirft die aktuelle Bearbeitungssitzung beim nächsten Verlassen (siehe [onCleared]), statt die
+     * letzte Änderung zu übernehmen: Für eine neue Station heißt das, den automatisch angelegten
+     * Datensatz (mit seinen Anhängen) zu löschen; für eine bestehende, sie auf den beim Öffnen des
+     * Formulars geladenen Stand zurückzusetzen (siehe [openedStation]). Bricht außerdem einen noch
+     * wartenden Autosave ab, damit er nicht doch noch zwischen diesem Aufruf und dem tatsächlichen
+     * Verlassen feuert.
+     */
+    fun onDiscardConfirmed() {
+        discardConfirmed = true
+        pendingSaveJob?.cancel()
+    }
+
+    /** Ob [onDiscardConfirmed] für diese Sitzung schon aufgerufen wurde. */
+    fun wasDiscarded(): Boolean = discardConfirmed
+
+    /**
+     * Nach [onDiscardConfirmed] wird der betroffene Datensatz aufgeräumt; sonst wird eine noch nicht
+     * geschriebene letzte Änderung blockierend nachgeholt. `viewModelScope` ist zu diesem Zeitpunkt
+     * bereits abgebrochen (siehe `ViewModel.clear()`), daher blockierend statt über ihn.
+     */
+    override fun onCleared() {
+        pendingSaveJob?.cancel()
+        val state = _uiState.value
+        runBlocking {
+            when {
+                state.isNew && discardConfirmed -> deleteNewStationDraft()
+                !state.isNew && discardConfirmed -> revertToOpenedStation()
+                state.isDirty -> runCatching { attemptPersist() }
+            }
+        }
+    }
+
+    /** Löscht die explizit verworfene neue Station (mit ihren Anhängen) wieder. */
+    private suspend fun deleteNewStationDraft() {
+        original?.id?.let { id -> runCatching { repository.delete(id) } }
+        savedStateHandle.remove<SavedState>(DRAFT_KEY)
+    }
+
+    /** Setzt eine bestehende Station auf [openedStation] zurück. */
+    private suspend fun revertToOpenedStation() {
+        val baseline = openedStation ?: return
+        persistMutex.withLock { runCatching { repository.save(baseline) } }
+        savedStateHandle.remove<SavedState>(DRAFT_KEY)
     }
 }
 
 private const val DRAFT_KEY = "station_draft"
+
+/** Verzögerung zwischen einer Formularänderung einer Station und ihrem automatischen Schreibzugriff. */
+private const val AUTOSAVE_DEBOUNCE_MILLIS = 500L
 
 /** Platzhalter für Tests und Vorschauen ohne Standorthardware; liefert nie einen Fix. */
 private object NoOpLocationProvider : LocationProvider {

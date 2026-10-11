@@ -1282,7 +1282,7 @@
     <string name="guide_step_station_fab_body">Add your first stop here – a campsite, a fuel stop, or anything else along the way.</string>
     <string name="guide_step_station_fields_title">Stop details</string>
     <string name="guide_step_station_fields_body">Pick the stop\'s type, then fill in its date and place. The other fields depend on the type you choose.</string>
-    <string name="guide_step_station_save_body">Tap Save to add the stop.</string>
+    <string name="guide_step_station_save_body">Everything is already saved – tap Back when you\'re done.</string>
     <string name="guide_step_track_title">GPS track</string>
     <string name="guide_step_track_body">Your GPS track and map, once you have one, show up here. Want to see a finished example first? The tour marked \"Sample\" in your tour list always keeps its track and map ready to explore.</string>
     <string name="guide_tour_introduction_title">Introduction</string>

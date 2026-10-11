@@ -1271,7 +1271,7 @@
     <string name="guide_step_station_fab_body">Leg hier deine erste Station an – ein Campingplatz, eine Tankstelle oder irgendein anderer Stopp.</string>
     <string name="guide_step_station_fields_title">Stationsdetails</string>
     <string name="guide_step_station_fields_body">Wähl den Stationstyp und trag dann Datum und Ort ein. Die übrigen Felder hängen vom gewählten Typ ab.</string>
-    <string name="guide_step_station_save_body">Tippe auf Speichern, um die Station anzulegen.</string>
+    <string name="guide_step_station_save_body">Alles ist schon gespeichert – tippe auf Zurück, wenn du fertig bist.</string>
     <string name="guide_step_track_title">GPS-Track</string>
     <string name="guide_step_track_body">Dein GPS-Track und die Karte stehen hier, sobald du einen hast. Willst du vorher ein fertiges Beispiel sehen? Die mit „Beispiel" markierte Tour in deiner Liste hat Track und Karte immer bereit zum Erkunden.</string>
     <string name="guide_tour_introduction_title">Rundgang</string>
