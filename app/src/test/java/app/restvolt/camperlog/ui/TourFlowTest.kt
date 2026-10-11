@@ -11,7 +11,6 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
@@ -143,9 +142,16 @@ class TourFlowTest {
         compose.onNodeWithText("Tour löschen").performClick()
     }
 
-    /** Speichert über den Button am Formularende, nicht über die Aktion in der App-Leiste. */
-    private fun clickSave() =
-        compose.onNode(hasText("Speichern") and hasAnyAncestor(hasScrollAction())).performScrollTo().performClick()
+    /**
+     * Verlässt das (implizit schon automatisch gespeicherte) Tourformular über die
+     * Verwerfen/Speichern-Abfrage und behält die Änderungen - das Pendant zum früheren expliziten
+     * Speichern-Button.
+     */
+    private fun leaveFormKeepingChanges() {
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Speichern").performClick()
+        compose.waitForIdle()
+    }
 
     /** Kalenderzelle des Tages; das Datumsfeld im Formular trägt dasselbe Datum. */
     private fun dayCell(day: Int) = hasText(", $day. ", substring = true) and hasClickAction() and hasAnyAncestor(isDialog())
@@ -166,7 +172,7 @@ class TourFlowTest {
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Gardasee")
-        compose.onNodeWithContentDescription("Zurück").performClick()
+        leaveFormKeepingChanges()
 
         compose.onNodeWithText("Gardasee").assertExists()
         val saved = repository.tours.single()
@@ -230,7 +236,7 @@ class TourFlowTest {
 
         compose.onNodeWithText("Heute").performClick()
         destinationField().performTextInput("Gardasee")
-        compose.onNodeWithContentDescription("Zurück").performClick()
+        leaveFormKeepingChanges()
 
         assertEquals(LocalDate.now(), repository.tours.single().startDate)
     }
@@ -248,7 +254,7 @@ class TourFlowTest {
 
         compose.onNodeWithText("Startdatum erforderlich").assertExists()
 
-        compose.onNodeWithContentDescription("Zurück").performClick()
+        leaveFormKeepingChanges()
         compose.waitForIdle()
 
         val saved = repository.tours.single()
@@ -263,7 +269,7 @@ class TourFlowTest {
         compose.onNodeWithText("Gardasee").performClick()
         compose.onNodeWithContentDescription("Bearbeiten").performClick()
         destinationField().performTextReplacement("Comer See")
-        clickSave()
+        leaveFormKeepingChanges()
 
         // Zurück in der Detailansicht: Der Titel zeigt das neue Ziel; eine eigene "Ziel"-Zeile gibt es
         // ohne gesetzten Namen nicht, das wäre doppelt zum Titel.
@@ -557,15 +563,16 @@ class TourFlowTest {
         compose.onNode(dayCell(11)).assertIsEnabled()
     }
 
+    /** Ohne Speichern-Button zeigt sich ein Validierungsfehler einer bestehenden Tour sofort inline, kein Klick nötig. */
     @Test
-    fun saveRejected_scrollsDownToInvalidField() {
+    fun existingTour_invalidMapLinkShowsErrorInlineWithoutAnyExplicitSave() {
         start(tour(id = 1, destination = "Ostsee").copy(mapLink = "https://example.org/karte"))
         compose.onNodeWithText("Ostsee").performClick()
         compose.onNodeWithContentDescription("Bearbeiten").performClick()
-        compose.onNode(hasSetTextAction() and hasText("Kartenlink")).performTextReplacement("kein link")
-        compose.onNode(hasText("Speichern") and hasClickAction() and !hasAnyAncestor(hasScrollAction())).performClick()
 
-        compose.onNode(hasSetTextAction() and hasText("Kartenlink")).assertIsFocused().assertIsDisplayed()
+        compose.onNode(hasSetTextAction() and hasText("Kartenlink")).performTextReplacement("kein link")
+
+        compose.onNodeWithText("Nur http- oder https-Links").assertExists()
     }
 
     @Test
@@ -586,7 +593,7 @@ class TourFlowTest {
         compose.onNodeWithContentDescription("Enddatum löschen").performClick()
         // Ohne Enddatum sind die Felder nicht mehr editierbar, nur noch der statische Hinweis.
         compose.onNode(hasSetTextAction() and hasText("Reisetage")).assertDoesNotExist()
-        clickSave()
+        leaveFormKeepingChanges()
 
         assertEquals(null, repository.tours.single().endDate)
     }
@@ -634,7 +641,7 @@ class TourFlowTest {
 
         repository.failWrites = false
         destinationField().performTextInput("Ostsee")
-        compose.onNodeWithContentDescription("Zurück").performClick()
+        leaveFormKeepingChanges()
         compose.waitForIdle()
 
         assertEquals(listOf("Ostsee"), repository.tours.map { it.destination })
@@ -658,7 +665,7 @@ class TourFlowTest {
         assertEquals(0, repository.tours.size)
 
         repository.failWithRunningTourConflict = false
-        compose.onNodeWithContentDescription("Zurück").performClick()
+        leaveFormKeepingChanges()
         compose.waitForIdle()
 
         assertEquals(listOf("Ostsee"), repository.tours.map { it.destination })
@@ -685,7 +692,7 @@ class TourFlowTest {
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Ostsee")
-        compose.onNodeWithContentDescription("Zurück").performClick()
+        leaveFormKeepingChanges()
 
         compose.onNodeWithText("Tour gespeichert").assertExists()
         compose.onNodeWithText("Ostsee").assertExists()
@@ -713,34 +720,67 @@ class TourFlowTest {
 
         compose.onNodeWithContentDescription("Zurück").performClick()
 
-        compose.onNodeWithText("Änderungen verwerfen?").assertDoesNotExist()
+        compose.onNodeWithText("Formular verlassen?").assertDoesNotExist()
         assertEquals(0, repository.tours.size)
     }
 
-    /** Mit einer sinnvollen Eingabe bleibt die automatisch angelegte Tour einfach stehen, ganz ohne Rückfrage. */
+    /** Mit einer sinnvollen Eingabe fragt das Verlassen jetzt nach; "Speichern" behält die automatisch angelegte Tour. */
     @Test
-    fun leavingNewTourAfterTyping_keepsItSilentlyWithoutAsking() {
+    fun leavingNewTourAfterTyping_asksAndKeepingLeavesTheTour() {
         val repository = start()
         compose.onNodeWithText("Neue Tour").performClick()
         destinationField().performTextInput("Ostsee")
 
         compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Formular verlassen?").assertExists()
+        compose.onNodeWithText("Speichern").performClick()
+        compose.waitForIdle()
 
-        compose.onNodeWithText("Änderungen verwerfen?").assertDoesNotExist()
         assertEquals(listOf("Ostsee"), repository.tours.map { it.destination })
     }
 
-    /** Das Bearbeiten einer bestehenden Tour behält den Verwerfen-Dialog weiterhin, unverändert. */
+    /** "Verwerfen" löscht die automatisch angelegte neue Tour trotz sinnvoller Eingabe wieder komplett. */
     @Test
-    fun leavingDirtyExistingTourEdit_asksBeforeDiscarding() {
+    fun leavingNewTourAfterTyping_discardingDeletesTheTour() {
+        val repository = start()
+        compose.onNodeWithText("Neue Tour").performClick()
+        destinationField().performTextInput("Ostsee")
+
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Verwerfen").performClick()
+        compose.waitForIdle()
+
+        assertEquals(0, repository.tours.size)
+    }
+
+    /** Ein unverändertes Formular einer bestehenden Tour verlässt sich ohne jede Rückfrage. */
+    @Test
+    fun leavingUnmodifiedExistingTourEdit_leavesWithoutAsking() {
+        start(tour(id = 1, destination = "Gardasee"))
+        compose.onNodeWithText("Gardasee").performClick()
+        compose.onNodeWithContentDescription("Bearbeiten").performClick()
+
+        compose.onNodeWithContentDescription("Zurück").performClick()
+
+        compose.onNodeWithText("Formular verlassen?").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Bearbeiten").assertExists()
+    }
+
+    /**
+     * Das Bearbeiten einer bestehenden Tour fragt beim Verlassen mit echten Änderungen jetzt über
+     * die Verwerfen/Speichern-Abfrage nach; Verwerfen setzt die Tour auf den beim Öffnen geladenen
+     * Stand zurück, statt sie (wie bei einer neuen Tour) zu löschen.
+     */
+    @Test
+    fun leavingDirtyExistingTourEdit_asksAndDiscardRevertsToTheOpenedState() {
         val repository = start(tour(id = 1, destination = "Gardasee"))
         compose.onNodeWithText("Gardasee").performClick()
         compose.onNodeWithContentDescription("Bearbeiten").performClick()
         destinationField().performTextReplacement("Ostsee")
 
         compose.onNodeWithContentDescription("Zurück").performClick()
-        compose.onNodeWithText("Änderungen verwerfen?").assertExists()
-        compose.onNodeWithText("Weiter bearbeiten").performClick()
+        compose.onNodeWithText("Formular verlassen?").assertExists()
+        compose.onNodeWithText("Abbrechen").performClick()
         destinationField().assertExists()
 
         compose.onNodeWithContentDescription("Zurück").performClick()
@@ -766,7 +806,7 @@ class TourFlowTest {
         compose.onNode(hasText("NOK · Norwegische Krone") and isSelectable()).performClick()
         compose.onNode(hasSetTextAction() and hasText("Kosten (NOK)")).performScrollTo().performTextInput("1.450")
         compose.onNodeWithContentDescription("Betrag in NOK entfernen").assertExists()
-        compose.onNodeWithContentDescription("Zurück").performClick()
+        leaveFormKeepingChanges()
 
         compose.onNodeWithText("Lofoten").assertExists()
         val nok = Currency.getInstance("NOK")
@@ -786,7 +826,7 @@ class TourFlowTest {
 
         compose.onNodeWithText("Betrag zu groß, höchstens 100.000.000.000,00", substring = true).assertExists()
 
-        compose.onNodeWithContentDescription("Zurück").performClick()
+        leaveFormKeepingChanges()
         compose.waitForIdle()
 
         val saved = repository.tours.single()

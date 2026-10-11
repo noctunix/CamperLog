@@ -49,7 +49,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 
-/** Zustand des Formulars. Für eine neue Tour speichert sich jede Eingabe laufend selbst (siehe [EditTourViewModel]). */
+/** Zustand des Formulars. Jede Eingabe speichert sich laufend selbst (siehe [EditTourViewModel]). */
 data class EditUiState(
     val isNew: Boolean,
     val isLoading: Boolean = false,
@@ -60,11 +60,9 @@ data class EditUiState(
     val errors: Map<TourField, TourError> = emptyMap(),
     /** Fehler je Kostenzeile, Schlüssel ist der Index in [TourInput.costs]. */
     val costErrors: Map<Int, TourError> = emptyMap(),
+    /** Seit dem Öffnen des Formulars wurde mindestens eine Eingabe geändert. */
     val isDirty: Boolean = false,
-    /** Nur für das Bearbeiten einer bestehenden Tour, die weiterhin über den Speichern-Button läuft. */
-    val isSaving: Boolean = false,
-    val isSaved: Boolean = false,
-    /** Der letzte Speicherversuch ist an der Datenbank gescheitert; Meldung steht noch aus. */
+    /** Der letzte automatische Speicherversuch ist an der Datenbank gescheitert; Meldung steht noch aus. */
     val saveFailed: Boolean = false,
     /**
      * Für eine bestehende Tour ein gescheiterter Speicherversuch (Meldung steht noch aus); für eine
@@ -74,8 +72,6 @@ data class EditUiState(
     val runningTourConflict: Boolean = false,
     /** Nur bestehende Altdaten mit bereits gespeichertem Link dürfen diesen noch bearbeiten. */
     val showLegacyMapLink: Boolean = false,
-    /** Zählt an der Validierung gescheiterte Speicherversuche; jede Erhöhung fokussiert das erste fehlerhafte Feld. */
-    val rejectedSaves: Int = 0,
     /** Schalter "GPS-Track aufzeichnen"; nur für neue, offene Touren überhaupt sichtbar/wirksam. */
     val trackSwitch: Boolean = false,
     /** Schalter "Beginnt zu Hause"; nur für neue Touren mit gesetzter Zuhause-Koordinate überhaupt sichtbar/wirksam. */
@@ -99,6 +95,14 @@ internal fun EditUiState.isUnmodifiedNewTourDraft(): Boolean = isNew &&
     !trackSwitch &&
     !homeSwitch
 
+/**
+ * Ob ein Verlassen zuerst den Verwerfen/Speichern-Dialog zeigen muss: Für eine neue Tour, solange
+ * ihr Entwurf nicht mehr [isUnmodifiedNewTourDraft] ist (ein komplett unberührter Entwurf verlässt
+ * sich ohne Rückfrage, siehe [EditTourViewModel.onCleared]); für eine bestehende Tour, solange sich
+ * seit dem Öffnen des Formulars wirklich etwas geändert hat.
+ */
+internal fun EditUiState.needsLeaveConfirmation(): Boolean = if (isNew) !isUnmodifiedNewTourDraft() else isDirty
+
 /** Ungespeicherte Formulareingaben, die ein Beenden des Prozesses im Hintergrund überstehen. */
 @Serializable
 internal data class TourDraft(
@@ -115,12 +119,14 @@ internal data class TourDraft(
 /**
  * Lädt, validiert und speichert eine Tour. [tourId] 0 legt eine neue Tour an.
  *
- * Eine neue Tour wird sofort als echter Datensatz angelegt und jede weitere Eingabe speichert sich
- * nach kurzer Zeit automatisch dorthin (implizites Speichern, siehe [attemptPersist]); dadurch hat
- * sie von Anfang an eine stabile id, gegen die z. B. eine GPS-Aufzeichnung sofort starten kann, ohne
- * auf einen expliziten Speichern-Erfolg zu warten. Verlässt der Nutzer das Formular ohne sinnvolle
- * Eingabe, wird der Datensatz beim Verlassen wieder gelöscht (siehe [onCleared]). Eine bestehende
- * Tour behält dagegen den expliziten Speichern-Button über [save].
+ * Jede Eingabe speichert sich nach kurzer Zeit automatisch (implizites Speichern, siehe
+ * [attemptPersist]), für eine neue wie für eine bestehende Tour. Eine neue Tour wird dafür sofort
+ * als echter Datensatz angelegt; dadurch hat sie von Anfang an eine stabile id, gegen die z. B.
+ * eine GPS-Aufzeichnung sofort starten kann, ohne auf einen expliziten Speichern-Erfolg zu warten.
+ * Verlässt der Nutzer das Formular wieder, entscheidet [onCleared] je nach Fall: Ein komplett
+ * unberührter Entwurf einer neuen Tour wird gelöscht; eine echte Änderung kann der Nutzer vorher
+ * über [onDiscardConfirmed] verwerfen - für eine neue Tour heißt das Löschen, für eine bestehende
+ * das Zurücksetzen auf den beim Öffnen geladenen Stand (siehe [openedTour]).
  *
  * Geänderte Eingaben liegen zusätzlich in [savedStateHandle] und werden nach einem Neustart
  * des Prozesses statt der gespeicherten Tour angezeigt; für eine neue Tour sichert das auch die
@@ -156,8 +162,16 @@ class EditTourViewModel(
     )
     val uiState: StateFlow<EditUiState> = _uiState.asStateFlow()
 
-    /** Für eine bestehende Tour der geladene Stand; für eine neue Tour der zuletzt erfolgreich gespeicherte. */
+    /** Der zuletzt erfolgreich automatisch gespeicherte Stand; Basis für den nächsten [attemptPersist]-Versuch. */
     private var original: Tour? = null
+
+    /**
+     * Für eine bestehende Tour der beim Öffnen des Formulars geladene Stand, unverändert über die
+     * ganze Bearbeitungssitzung - die Grundlage für [onDiscardConfirmed], falls der Nutzer seine
+     * Änderungen verwirft. Bleibt für eine neue Tour `null`, da ihr Verwerfen den Datensatz löscht
+     * statt ihn zurückzusetzen.
+     */
+    private var openedTour: Tour? = null
     private var showErrors = draft?.showErrors ?: false
     private var autoTravelDays: String? = draft?.autoTravelDays
     private var autoSlug: String? = draft?.autoSlug
@@ -166,6 +180,9 @@ class EditTourViewModel(
     /** Verhindert, dass zwei gleichzeitige Autosave-Versuche beide eine neue Tour anlegen. */
     private val persistMutex = Mutex()
     private var pendingSaveJob: Job? = null
+
+    /** Beim nächsten [onCleared] verwerfen statt die letzte Änderung zu übernehmen; siehe [onDiscardConfirmed]. */
+    private var discardConfirmed = false
 
     init {
         if (showErrors) _uiState.update { it.withErrors() }
@@ -210,6 +227,7 @@ class EditTourViewModel(
             viewModelScope.launch {
                 val tour = repository.observeTour(tourId).first()
                 original = tour
+                openedTour = tour
                 _uiState.update {
                     // Ein wiederhergestellter Entwurf hat Vorrang vor dem gespeicherten Stand.
                     val input = if (it.isDirty) it.input else tour?.toInput(locale()) ?: it.input
@@ -226,12 +244,12 @@ class EditTourViewModel(
     }
 
     /**
-     * Übernimmt eine Formularänderung. Für eine neue Tour gibt es keinen Speichern-Versuch mehr, der
-     * Fehler sichtbar machen könnte - stattdessen macht schon die erste Eingabe alle aktuellen Fehler
-     * sichtbar, und löst außerdem den debounced Autosave aus.
+     * Übernimmt eine Formularänderung. Es gibt keinen Speichern-Versuch mehr, der Fehler sichtbar
+     * machen könnte - stattdessen macht schon die erste Eingabe alle aktuellen Fehler sichtbar, und
+     * löst außerdem den debounced Autosave aus.
      */
     fun onInputChange(transform: (TourInput) -> TourInput) {
-        if (_uiState.value.isNew) showErrors = true
+        showErrors = true
         _uiState.update { state ->
             state.copy(input = transform(state.input), isDirty = true).withErrors()
         }
@@ -315,61 +333,18 @@ class EditTourViewModel(
         }
     }
 
-    /** Validiert und speichert eine bestehende Tour; bei Erfolg wird [EditUiState.isSaved] gesetzt. */
-    fun save() {
-        val state = _uiState.value
-        if (state.isNew || state.isSaving || state.isLoading || state.notFound) return
-        val locale = locale()
-        val validation = state.input.validation(locale)
-        if (validation.errors.isNotEmpty()) {
-            showErrors = true
-            saveDraft()
-            _uiState.update {
-                it.copy(errors = validation.errors, costErrors = validation.costErrors, rejectedSaves = it.rejectedSaves + 1)
-            }
-            return
-        }
-        val tour = state.input.toTour(original, locale)
-        _uiState.update {
-            it.copy(
-                isSaving = true,
-                errors = emptyMap(),
-                costErrors = emptyMap(),
-                saveFailed = false,
-                runningTourConflict = false,
-            )
-        }
-        viewModelScope.launch {
-            try {
-                val id = repository.save(tour)
-                val previousVehicleId = original?.vehicleId
-                if (previousVehicleId != null && previousVehicleId != tour.vehicleId) {
-                    stations.moveTourToVehicle(id, tour.vehicleId)
-                    checklists.moveTourToVehicle(id, tour.vehicleId)
-                }
-                savedStateHandle.remove<SavedState>(DRAFT_KEY)
-                _uiState.update { it.copy(isSaving = false, isSaved = true, tourId = id) }
-            } catch (_: RunningTourAlreadyExistsException) {
-                _uiState.update { it.copy(isSaving = false, runningTourConflict = true) }
-            } catch (_: SQLException) {
-                // Eingaben bleiben erhalten, damit der Nutzer es erneut versuchen kann.
-                _uiState.update { it.copy(isSaving = false, saveFailed = true) }
-            }
-        }
-    }
-
     /**
-     * Versucht die aktuelle Eingabe einer neuen Tour in die Datenbank zu schreiben: anlegen, falls
-     * [original] noch keine gibt, sonst aktualisieren. Fehlt [TourInput.startDate] noch (der Nutzer
-     * hat es noch nicht gesetzt), wird dafür vorübergehend das Startdatum des zuletzt gespeicherten
-     * Standes bzw. das heutige Datum verwendet, ohne die Anzeige im Formular zu verändern - das
-     * Pflichtfeld bleibt dort leer, bis der Nutzer selbst ein Datum wählt. Ist die Eingabe (mit diesem
-     * Platzhalter) ungültig, bleibt der zuletzt gespeicherte Stand unverändert stehen, bis sie es
-     * wieder ist. Scheitert der Versuch an [RunningTourAlreadyExistsException], bleibt die Tour
-     * unangelegt bzw. unverändert und der Konflikt wird nur angezeigt, nicht wiederholt erzwungen.
+     * Versucht die aktuelle Eingabe in die Datenbank zu schreiben: anlegen, falls [original] noch
+     * keine gibt (nur für eine neue Tour), sonst aktualisieren. Fehlt [TourInput.startDate] noch (der
+     * Nutzer hat es noch nicht gesetzt, nur für eine neue Tour möglich), wird dafür vorübergehend das
+     * Startdatum des zuletzt gespeicherten Standes bzw. das heutige Datum verwendet, ohne die Anzeige
+     * im Formular zu verändern - das Pflichtfeld bleibt dort leer, bis der Nutzer selbst ein Datum
+     * wählt. Ist die Eingabe (mit diesem Platzhalter) ungültig, bleibt der zuletzt gespeicherte Stand
+     * unverändert stehen, bis sie es wieder ist. Scheitert der Versuch an
+     * [RunningTourAlreadyExistsException], bleibt die Tour unangelegt bzw. unverändert und der
+     * Konflikt wird nur angezeigt, nicht wiederholt erzwungen.
      */
     private suspend fun attemptPersist() {
-        if (!_uiState.value.isNew) return
         persistMutex.withLock {
             val state = _uiState.value
             val basis = original
@@ -426,7 +401,6 @@ class EditTourViewModel(
 
     /** Plant [attemptPersist] mit kurzer Verzögerung, damit schnell aufeinanderfolgende Tastendrücke nur einen Schreibzugriff auslösen. */
     private fun scheduleAutosave() {
-        if (!_uiState.value.isNew) return
         pendingSaveJob?.cancel()
         pendingSaveJob = viewModelScope.launch {
             delay(AUTOSAVE_DEBOUNCE_MILLIS)
@@ -512,24 +486,59 @@ class EditTourViewModel(
     }
 
     /**
-     * Beim Verlassen einer neuen Tour ohne sinnvolle Eingabe wird der automatisch angelegte Datensatz
-     * wieder gelöscht, statt als Karteileiche zu bleiben; sonst wird eine noch nicht geschriebene
-     * letzte Änderung blockierend nachgeholt. `viewModelScope` ist zu diesem Zeitpunkt bereits
-     * abgebrochen (siehe `ViewModel.clear()`), daher blockierend statt über ihn, wie beim analogen
-     * Aufräumen in [EditStationViewModel.onCleared].
+     * Verwirft die aktuelle Bearbeitungssitzung beim nächsten Verlassen (siehe [onCleared]), statt die
+     * letzte Änderung zu übernehmen: Für eine neue Tour heißt das, den automatisch angelegten
+     * Datensatz zu löschen; für eine bestehende, sie auf den beim Öffnen des Formulars geladenen Stand
+     * zurückzusetzen (siehe [openedTour]). Bricht außerdem einen noch wartenden Autosave ab, damit er
+     * nicht doch noch zwischen diesem Aufruf und dem tatsächlichen Verlassen feuert.
+     */
+    fun onDiscardConfirmed() {
+        discardConfirmed = true
+        pendingSaveJob?.cancel()
+    }
+
+    /** Ob [onDiscardConfirmed] für diese Sitzung schon aufgerufen wurde. */
+    fun wasDiscarded(): Boolean = discardConfirmed
+
+    /**
+     * Beim Verlassen ohne sinnvolle Eingabe (eine neue, komplett unberührte Tour) oder nach
+     * [onDiscardConfirmed] wird der betroffene Datensatz aufgeräumt; sonst wird eine noch nicht
+     * geschriebene letzte Änderung blockierend nachgeholt. `viewModelScope` ist zu diesem Zeitpunkt
+     * bereits abgebrochen (siehe `ViewModel.clear()`), daher blockierend statt über ihn, wie beim
+     * analogen Aufräumen in [EditStationViewModel.onCleared].
      */
     override fun onCleared() {
-        val state = _uiState.value
-        if (!state.isNew) return
         pendingSaveJob?.cancel()
+        val state = _uiState.value
         runBlocking {
-            if (state.isUnmodifiedNewTourDraft()) {
-                original?.id?.let { id -> runCatching { repository.delete(id) } }
-                savedStateHandle.remove<SavedState>(DRAFT_KEY)
-            } else {
-                runCatching { attemptPersist() }
+            when {
+                state.isNew && (discardConfirmed || state.isUnmodifiedNewTourDraft()) -> deleteNewTourDraft()
+                !state.isNew && discardConfirmed -> revertToOpenedTour()
+                state.isDirty -> runCatching { attemptPersist() }
             }
         }
+    }
+
+    /** Löscht die automatisch angelegte, noch nicht sinnvoll befüllte bzw. explizit verworfene neue Tour wieder. */
+    private suspend fun deleteNewTourDraft() {
+        original?.id?.let { id -> runCatching { repository.delete(id) } }
+        savedStateHandle.remove<SavedState>(DRAFT_KEY)
+    }
+
+    /**
+     * Setzt eine bestehende Tour auf [openedTour] zurück. Zieht dabei ihre Stationen und Checklisten
+     * immer auf das ursprüngliche Fahrzeug, unabhängig davon, ob und wie oft es während der Sitzung
+     * gewechselt wurde - [moveTourToVehicle][StationRepository.moveTourToVehicle] ist für ein schon
+     * passendes Fahrzeug ein No-op.
+     */
+    private suspend fun revertToOpenedTour() {
+        val baseline = openedTour ?: return
+        persistMutex.withLock {
+            runCatching { repository.save(baseline) }
+            runCatching { stations.moveTourToVehicle(baseline.id, baseline.vehicleId) }
+            runCatching { checklists.moveTourToVehicle(baseline.id, baseline.vehicleId) }
+        }
+        savedStateHandle.remove<SavedState>(DRAFT_KEY)
     }
 
     /** Aktualisiert nach einer Datumswahl alle automatisch ableitbaren Kennzahlen. */

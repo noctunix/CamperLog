@@ -140,6 +140,7 @@ class VehicleFlowTest {
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Harz")
         compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Speichern").performClick()
         compose.waitForIdle()
 
         assertEquals(1L, repository.tours.single().vehicleId)

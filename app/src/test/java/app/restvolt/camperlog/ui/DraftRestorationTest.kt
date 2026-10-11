@@ -153,22 +153,6 @@ class DraftRestorationTest {
     }
 
     @Test
-    fun savedTourLeavesNoDraft() {
-        val repository = FakeTourRepository(listOf(tour()))
-        val handle = SavedStateHandle()
-        val before = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 1, handle, locale)
-        before.onInputChange { it.copy(destination = "Ostsee") }
-        before.save()
-        assertTrue(before.uiState.value.isSaved)
-        assertTrue(handle.keys().isEmpty())
-
-        val after = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 1, handle.afterProcessDeath(), locale)
-
-        assertEquals("Ostsee", after.uiState.value.input.destination)
-        assertFalse(after.uiState.value.isDirty)
-    }
-
-    @Test
     fun untouchedFormStoresNothing() {
         val handle = SavedStateHandle()
         EditTourViewModel(FakeTourRepository(listOf(tour())), vehicles, FakeStationRepository(), FakeChecklistRepository(), 1, handle, locale)

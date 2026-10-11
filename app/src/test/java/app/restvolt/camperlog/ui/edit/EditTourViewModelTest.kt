@@ -10,6 +10,7 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TrackPoint
 import app.restvolt.camperlog.domain.Tour
+import app.restvolt.camperlog.domain.TourInput
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.FakeChecklistRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
@@ -27,6 +28,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -72,7 +74,7 @@ class EditTourViewModelTest {
         val viewModel = EditTourViewModel(tours, vehicles, stations, checklists, 1, SavedStateHandle(), locale)
 
         viewModel.onVehicleChange(2)
-        viewModel.save()
+        advanceUntilIdle()
 
         assertEquals(2L, stations.stations.single().vehicleId)
         assertEquals(2L, checklists.checklists.single().vehicleId)
@@ -86,7 +88,8 @@ class EditTourViewModelTest {
         val checklists = FakeChecklistRepository(listOf(checklist(vehicleId = 1, tourId = 1)))
         val viewModel = EditTourViewModel(tours, vehicles, stations, checklists, 1, SavedStateHandle(), locale)
 
-        viewModel.save()
+        viewModel.onInputChange { it }
+        advanceUntilIdle()
 
         assertEquals(1L, stations.stations.single().vehicleId)
         assertEquals(1L, checklists.checklists.single().vehicleId)
@@ -482,6 +485,164 @@ class EditTourViewModelTest {
         viewModel.onHomeSwitchChange(false)
 
         assertEquals(1, stations.stations.size)
+    }
+
+    /** Kernregressionstest für Teil A des Umbaus: Eine bestehende Tour hat keinen Speichern-Button mehr. */
+    @Test
+    fun existingTour_autosavesFieldChangesAfterTheDebounceWithoutAnyExplicitSave() = runTest {
+        val tours = FakeTourRepository(listOf(tour(vehicleId = 1)))
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(),
+            FakeChecklistRepository(),
+            1,
+            SavedStateHandle(),
+            locale,
+        )
+
+        viewModel.onDestinationChange("Ostsee")
+        // Der Schreibzugriff ist entprellt; direkt nach der Eingabe steht der alte Stand noch in der DB.
+        assertEquals("Gardasee", tours.tours.single().destination)
+
+        advanceUntilIdle()
+
+        assertEquals("Ostsee", tours.tours.single().destination)
+    }
+
+    /** Ein noch nicht geschriebener letzter Tastendruck geht auch für eine bestehende Tour beim Verlassen nicht verloren. */
+    @Test
+    fun existingTour_leavingAfterTyping_flushesAStillPendingChange() = runTest {
+        val tours = FakeTourRepository(listOf(tour(vehicleId = 1)))
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(),
+            FakeChecklistRepository(),
+            1,
+            SavedStateHandle(),
+            locale,
+        )
+
+        viewModel.onDestinationChange("Ostsee")
+        clear(viewModel)
+
+        assertEquals("Ostsee", tours.tours.single().destination)
+    }
+
+    /** Ein unverändert geöffnetes und wieder verlassenes Formular darf die Tour nicht grundlos neu schreiben. */
+    @Test
+    fun existingTour_leavingWithoutAnyChange_doesNotRewriteTheTour() = runTest {
+        val tours = FakeTourRepository(listOf(tour(vehicleId = 1)))
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(),
+            FakeChecklistRepository(),
+            1,
+            SavedStateHandle(),
+            locale,
+        )
+        advanceUntilIdle()
+
+        clear(viewModel)
+
+        assertEquals(0, tours.saveCount)
+    }
+
+    @Test
+    fun needsLeaveConfirmation_newUnmodifiedDraft_doesNotNeedConfirmation() {
+        assertFalse(EditUiState(isNew = true).needsLeaveConfirmation())
+    }
+
+    @Test
+    fun needsLeaveConfirmation_newModifiedDraft_needsConfirmation() {
+        val state = EditUiState(isNew = true, input = TourInput(destination = "Gardasee"), isDirty = true)
+        assertTrue(state.needsLeaveConfirmation())
+    }
+
+    @Test
+    fun needsLeaveConfirmation_existingTourWithoutChanges_doesNotNeedConfirmation() {
+        assertFalse(EditUiState(isNew = false, isDirty = false).needsLeaveConfirmation())
+    }
+
+    @Test
+    fun needsLeaveConfirmation_existingTourWithChanges_needsConfirmation() {
+        assertTrue(EditUiState(isNew = false, isDirty = true).needsLeaveConfirmation())
+    }
+
+    /** Verwerfen löscht eine neue Tour auch dann vollständig, wenn sie schon sinnvoll befüllt ist. */
+    @Test
+    fun newTour_discardConfirmed_deletesTheTourEvenWithMeaningfulInput() = runTest {
+        val tours = FakeTourRepository()
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(),
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            locale,
+        )
+
+        viewModel.onDestinationChange("Gardasee")
+        assertTrue(viewModel.uiState.value.needsLeaveConfirmation())
+        viewModel.onDiscardConfirmed()
+        clear(viewModel)
+
+        assertTrue(tours.tours.isEmpty())
+        assertTrue(viewModel.wasDiscarded())
+    }
+
+    /** Verwerfen bei einer bestehenden Tour setzt geänderte Felder auf den beim Öffnen geladenen Stand zurück. */
+    @Test
+    fun existingTour_discardConfirmed_revertsFieldChangesToTheOpenedState() = runTest {
+        val tours = FakeTourRepository(listOf(tour(vehicleId = 1)))
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(),
+            FakeChecklistRepository(),
+            1,
+            SavedStateHandle(),
+            locale,
+        )
+
+        viewModel.onDestinationChange("Ostsee")
+        advanceUntilIdle()
+        assertEquals("Ostsee", tours.tours.single().destination)
+
+        viewModel.onDiscardConfirmed()
+        clear(viewModel)
+
+        assertEquals("Gardasee", tours.tours.single().destination)
+    }
+
+    /**
+     * Kernregressionstest für Teil B: Verwerfen muss auch einen während der Sitzung gewechselten
+     * Fahrzeugbezug komplett zurückdrehen, sonst blieben Stationen und Checklisten beim falschen
+     * Fahrzeug stehen, während die Tour selbst wieder beim ursprünglichen steht.
+     */
+    @Test
+    fun existingTour_discardConfirmed_revertsAVehicleChangeIncludingItsStationsAndChecklists() = runTest {
+        val vehicles = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A"), defaultVehicle(id = 2, name = "B")), currentVehicleId = 1)
+        val tours = FakeTourRepository(listOf(tour(vehicleId = 1)))
+        val stations = FakeStationRepository(listOf(station(vehicleId = 1, tourId = 1)))
+        val checklists = FakeChecklistRepository(listOf(checklist(vehicleId = 1, tourId = 1)))
+        val viewModel = EditTourViewModel(tours, vehicles, stations, checklists, 1, SavedStateHandle(), locale)
+
+        viewModel.onVehicleChange(2)
+        advanceUntilIdle()
+        assertEquals(2L, tours.tours.single().vehicleId)
+        assertEquals(2L, stations.stations.single().vehicleId)
+        assertEquals(2L, checklists.checklists.single().vehicleId)
+
+        viewModel.onDiscardConfirmed()
+        clear(viewModel)
+
+        assertEquals(1L, tours.tours.single().vehicleId)
+        assertEquals(1L, stations.stations.single().vehicleId)
+        assertEquals(1L, checklists.checklists.single().vehicleId)
     }
 
     /** [EditTourViewModel.onCleared] ist wie bei jedem `ViewModel` nur intern erreichbar; über den Store löst sich das Pendant zum echten Verlassen aus. */

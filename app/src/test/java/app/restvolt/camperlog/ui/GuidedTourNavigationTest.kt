@@ -332,9 +332,12 @@ class GuidedTourNavigationTest {
             clickWeiter()
 
             // Schritt "finish": die Tour speichert sich schon laufend selbst; ein echter Klick auf
-            // "Zurück" verlässt das Formular und schaltet darüber weiter - die Pilot-Tour führt
-            // danach direkt zur Tourdetailseite.
+            // "Zurück" zeigt wegen der echten Eingaben erst die Verwerfen/Speichern-Abfrage, "Speichern"
+            // verlässt das Formular dann und schaltet darüber weiter - die Pilot-Tour führt danach
+            // direkt zur Tourdetailseite.
             clickThrough(hasContentDescription("Zurück"))
+            compose.waitForIdle()
+            compose.onNodeWithText("Speichern").performClick()
             compose.waitForIdle()
 
             assertEquals(2, tours.tours.size)
@@ -433,6 +436,8 @@ class GuidedTourNavigationTest {
             clickWeiter() // other-costs
             clickWeiter() // advanced
             clickThrough(hasContentDescription("Zurück"))
+            compose.waitForIdle()
+            compose.onNodeWithText("Speichern").performClick()
             compose.waitForIdle()
 
             val savedTour = tours.tours.single { !it.isDemo }

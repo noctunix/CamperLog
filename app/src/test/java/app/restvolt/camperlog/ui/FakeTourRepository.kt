@@ -59,12 +59,16 @@ class FakeTourRepository(
     /** Lässt [allTours] (den CSV-Export) mit einer [SQLiteException] scheitern. */
     var failExportRead = false
 
+    /** Zählt die Schreibzugriffe über [save]; prüft z. B., dass ein unverändertes Formular nicht unnötig erneut speichert. */
+    var saveCount = 0
+
     private fun checkWritable() {
         if (failWrites) throw SQLiteException("simulierter Schreibfehler")
     }
 
     override suspend fun save(tour: Tour): Long {
         checkWritable()
+        saveCount++
         if (failWithRunningTourConflict) throw RunningTourAlreadyExistsException(tour.vehicleId)
         val now = Instant.EPOCH
         return if (tour.id == 0L) {

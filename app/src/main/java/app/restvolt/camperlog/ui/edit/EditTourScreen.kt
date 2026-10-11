@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -76,9 +75,9 @@ import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.DateField
-import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LabeledValue
+import app.restvolt.camperlog.ui.LeaveDraftDialog
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.guide.guideAnchor
 import app.restvolt.camperlog.ui.labelRes
@@ -89,7 +88,10 @@ import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.vehicleMenuLabel
 import java.time.LocalDate
 
-/** Formular zum Anlegen und Bearbeiten einer Tour. [onDone] verlässt es ohne, [onSaved] nach dem Speichern. */
+/**
+ * Formular zum Anlegen und Bearbeiten einer Tour; jede Eingabe speichert sich implizit selbst.
+ * [onDone] ist der einzige Ausstiegspunkt, für beide Fälle - siehe [EditTourViewModel].
+ */
 @Composable
 fun EditTourScreen(
     viewModel: EditTourViewModel,
@@ -107,12 +109,11 @@ fun EditTourScreen(
     /** Bietet ein inline anlegbares Fahrzeug an; sichtbar, solange kein echtes (nicht als Demo markiertes) Fahrzeug existiert. */
     onAddVehicle: () -> Unit = {},
     onDone: () -> Unit,
-    onSaved: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val trackPreferences by trackSettings.values.collectAsStateWithLifecycle()
     val homeLocationPreferences by homeLocationSettings.values.collectAsStateWithLifecycle()
-    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
@@ -141,9 +142,6 @@ fun EditTourScreen(
             TrackRecordingService.stopIfTracking(context, tourId)
         }
     }
-    LaunchedEffect(state.isSaved) {
-        if (state.isSaved) onSaved()
-    }
     LaunchedEffect(state.saveFailed) {
         if (state.saveFailed) {
             snackbar.showSnackbar(resources.getString(R.string.edit_save_failed), withDismissAction = true)
@@ -160,7 +158,7 @@ fun EditTourScreen(
     }
 
     val requestBack = {
-        if (!state.isNew && state.isDirty && !state.isSaved) confirmDiscard = true else onDone()
+        if (state.needsLeaveConfirmation()) showLeaveDialog = true else onDone()
     }
     BackHandler(onBack = requestBack)
 
@@ -170,11 +168,6 @@ fun EditTourScreen(
                 title = stringResource(if (state.isNew) R.string.edit_title_new else R.string.edit_title_existing),
                 onBack = requestBack,
                 navigationIconModifier = if (state.isNew) Modifier.guideAnchor("edit.tour.back") else Modifier,
-                actions = {
-                    if (!state.isNew && !state.notFound && !state.isLoading) {
-                        TextButton(onClick = viewModel::save, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
-                    }
-                },
             )
         },
         // Als bottomBar statt Overlay: Das Formular endet über der Snackbar, der untere Button bleibt frei.
@@ -198,11 +191,16 @@ fun EditTourScreen(
         }
     }
 
-    if (confirmDiscard) {
-        DiscardChangesDialog(
-            onKeep = { confirmDiscard = false },
+    if (showLeaveDialog) {
+        LeaveDraftDialog(
+            onCancel = { showLeaveDialog = false },
             onDiscard = {
-                confirmDiscard = false
+                showLeaveDialog = false
+                viewModel.onDiscardConfirmed()
+                onDone()
+            },
+            onKeep = {
+                showLeaveDialog = false
                 onDone()
             },
         )
@@ -241,14 +239,6 @@ private fun TourForm(
     val metricsExpanded = metricsOverride || state.errors.keys.any { it in METRICS_FIELDS }
     val costsExpanded = costsOverride || TourField.COST in state.errors
     val advancedExpanded = advancedOverride || TourField.MAP_LINK in state.errors
-
-    // Nach einem abgelehnten Speichern zum ersten fehlerhaften Feld springen; der Fokus scrollt es
-    // ins Bild. Ein eingeklappter Abschnitt ist zu diesem Zeitpunkt schon aufgeklappt, siehe oben.
-    LaunchedEffect(state.rejectedSaves) {
-        if (state.rejectedSaves > 0) {
-            errors.keys.minByOrNull(TourField::ordinal)?.let { focus.getValue(it).requestFocus() }
-        }
-    }
 
     Column(
         modifier = modifier
@@ -465,15 +455,6 @@ private fun TourForm(
                 singleLine = false,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             )
-        }
-        if (!state.isNew) {
-            Button(
-                onClick = viewModel::save,
-                enabled = !state.isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp),
-            ) { Text(stringResource(R.string.action_save)) }
         }
         if (errors.isNotEmpty()) {
             // Nennt die betroffenen Felder; ändert sich die Liste, sagt TalkBack sie erneut an.

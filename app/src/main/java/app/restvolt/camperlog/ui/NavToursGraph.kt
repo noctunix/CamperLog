@@ -117,8 +117,11 @@ internal fun NavGraphBuilder.toursGraph(
             },
             onDone = {
                 // Eine neue Tour speichert sich schon laufend selbst; beim Verlassen entscheidet sich nur
-                // noch, ob der Entwurf (ohne jede sinnvolle Eingabe) wieder gelöscht wird oder bleibt.
-                val newTourKept = tourId == 0L && !editTourViewModel.uiState.value.isUnmodifiedNewTourDraft()
+                // noch, ob der Entwurf gelöscht wird (ohne jede sinnvolle Eingabe oder explizit verworfen)
+                // oder bleibt.
+                val newTourKept = tourId == 0L &&
+                    !editTourViewModel.wasDiscarded() &&
+                    !editTourViewModel.uiState.value.isUnmodifiedNewTourDraft()
                 if (newTourKept) toursViewModel.onTourCreated()
                 // Schaltet den letzten Schritt der Pilot-Tour frei, aber nur, wenn sie gerade läuft und
                 // die Tour wirklich bleibt: normales Verlassen ohne aktive Tour soll nicht an sie koppeln.
@@ -136,7 +139,6 @@ internal fun NavGraphBuilder.toursGraph(
                     navController.popFrom(entry)
                 }
             },
-            onSaved = { navController.popFrom(entry) },
         )
     }
     composable<DetailRoute> { entry ->
