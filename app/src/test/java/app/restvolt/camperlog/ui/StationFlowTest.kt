@@ -9,7 +9,6 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
@@ -183,9 +182,16 @@ class StationFlowTest {
     /** Eintrag der Typauswahl-Sheet; grenzt gegen eine gleichnamige Zeitleisten-Zeile darunter ab. */
     private fun typePickerItem(label: String) = compose.onNode(hasText(label) and hasClickAction() and hasAnyAncestor(isDialog()))
 
-    /** Speichert über den Button am Formularende, nicht über die Aktion in der App-Leiste (siehe TourFlowTest). */
-    private fun clickSave() =
-        compose.onNode(hasText("Speichern") and hasAnyAncestor(hasScrollAction())).performScrollTo().performClick()
+    /**
+     * Verlässt das (implizit schon automatisch gespeicherte) Stationsformular über die
+     * Verwerfen/Speichern-Abfrage und behält die Änderungen - das Pendant zum früheren expliziten
+     * Speichern-Button (siehe TourFlowTest).
+     */
+    private fun clickSave() {
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Speichern").performClick()
+        compose.waitForIdle()
+    }
 
     /** Kalenderzelle des Tages; das Datumsfeld im Formular trägt dasselbe Datum (siehe TourFlowTest). */
     private fun dayCell(day: Int) = hasText(", $day. ", substring = true) and hasClickAction() and hasAnyAncestor(isDialog())

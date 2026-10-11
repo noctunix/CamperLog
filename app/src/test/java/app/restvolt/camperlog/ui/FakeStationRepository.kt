@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui
 
+import android.database.sqlite.SQLiteException
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogSyncAction
 import app.restvolt.camperlog.domain.SYNCED_SERVICE_LOG_TYPES
@@ -24,6 +25,12 @@ class FakeStationRepository(initial: List<Station> = emptyList(), private val lo
 
     val stations: List<Station> get() = state.value
 
+    /** Simuliert eine volle oder defekte Datenbank: [save] wirft dann eine [SQLiteException]. */
+    var failWrites = false
+
+    /** Zählt die Aufrufe von [save]; prüft z. B., dass ein unverändertes Formular nicht unnötig erneut speichert. */
+    var saveCount = 0
+
     override fun observeForTour(tourId: Long): Flow<List<Station>> = state.map { list ->
         list.filter { it.tourId == tourId }
             .sortedWith(compareBy({ it.date }, { it.time ?: java.time.LocalTime.MAX }, { it.createdAt }))
@@ -39,6 +46,8 @@ class FakeStationRepository(initial: List<Station> = emptyList(), private val lo
     override suspend fun allStations(): List<Station> = state.value
 
     override suspend fun save(station: Station): Long {
+        if (failWrites) throw SQLiteException("simulierter Schreibfehler")
+        saveCount++
         val old = if (station.id != 0L) state.value.firstOrNull { it.id == station.id } else null
         val now = Instant.EPOCH
         val saved = if (station.id == 0L) {

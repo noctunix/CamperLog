@@ -6,8 +6,6 @@ import app.restvolt.camperlog.domain.FakeWeatherProvider
 import app.restvolt.camperlog.domain.WeatherCaptureState
 import app.restvolt.camperlog.domain.WeatherResult
 import app.restvolt.camperlog.domain.WeatherSnapshot
-import app.restvolt.camperlog.ui.FakeAttachmentFileStore
-import app.restvolt.camperlog.ui.FakeAttachmentRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
 import app.restvolt.camperlog.ui.FakeTourRepository
 import app.restvolt.camperlog.ui.FakeVehicleRepository
@@ -59,8 +57,6 @@ class EditStationViewModelWeatherTest {
         repository = FakeStationRepository(),
         tours = FakeTourRepository(),
         vehicles = FakeVehicleRepository(),
-        attachments = FakeAttachmentRepository(),
-        fileStore = FakeAttachmentFileStore(),
         stationId = 0,
         weatherProvider = provider,
         savedStateHandle = SavedStateHandle(),
@@ -97,8 +93,6 @@ class EditStationViewModelWeatherTest {
             repository = FakeStationRepository(),
             tours = FakeTourRepository(),
             vehicles = FakeVehicleRepository(),
-            attachments = FakeAttachmentRepository(),
-            fileStore = FakeAttachmentFileStore(),
             stationId = 0,
             weatherProvider = provider,
             savedStateHandle = SavedStateHandle(),
@@ -173,8 +167,6 @@ class EditStationViewModelWeatherTest {
             repository = FakeStationRepository(),
             tours = FakeTourRepository(),
             vehicles = FakeVehicleRepository(),
-            attachments = FakeAttachmentRepository(),
-            fileStore = FakeAttachmentFileStore(),
             stationId = 0,
             weatherProvider = provider,
             savedStateHandle = SavedStateHandle(),

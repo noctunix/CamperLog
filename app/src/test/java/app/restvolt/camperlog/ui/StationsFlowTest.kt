@@ -3,7 +3,6 @@ package app.restvolt.camperlog.ui
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -181,7 +180,12 @@ class StationsFlowTest {
 
         compose.onNodeWithText("Station hinzufügen").performClick()
         compose.onNode(hasText("Sehenswertes") and hasClickAction() and hasAnyAncestor(isDialog())).performClick()
-        compose.onNode(hasText("Speichern") and hasAnyAncestor(hasScrollAction())).performScrollTo().performClick()
+        // Verlässt das (implizit schon automatisch gespeicherte) Stationsformular über die
+        // Verwerfen/Speichern-Abfrage und behält die Änderungen - das Pendant zum früheren
+        // expliziten Speichern-Button.
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Speichern").performClick()
+        compose.waitForIdle()
 
         val saved = stationRepository.stations.single()
         assertEquals(StationType.SIGHT, saved.type)

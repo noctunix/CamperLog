@@ -354,12 +354,16 @@ class GuidedTourNavigationTest {
             // Tour); ein zusätzliches Weiter schaltet erst zum nächsten Schritt weiter.
             clickWeiter()
 
-            // Schritt "station-fields": reine Erklärung auf dem jetzt echten Stationsformular.
-            compose.onNode(hasSetTextAction() and hasText("Name")).assertExists()
+            // Schritt "station-fields": echte Eingabe des Orts, wie vom Hinweistext beschrieben.
+            compose.onNode(hasSetTextAction() and hasText("Ort oder Adresse")).performTextInput("Campingplatz am See")
             clickWeiter()
 
-            // Schritt "station-save": ein echter Klick speichert die Station wirklich.
-            clickThrough(topBarSaveButton())
+            // Schritt "station-save": die Station speichert sich schon laufend selbst; ein echter
+            // Klick auf "Zurück" zeigt wegen der echten Eingabe erst die Verwerfen/Speichern-Abfrage,
+            // "Speichern" verlässt das Formular dann und schaltet darüber weiter.
+            clickThrough(hasContentDescription("Zurück"))
+            compose.waitForIdle()
+            compose.onNodeWithText("Speichern").performClick()
             compose.waitForIdle()
 
             // Schritt "track": abschließender Hinweis auf den jetzt echten GPS-Track-Abschnitt,

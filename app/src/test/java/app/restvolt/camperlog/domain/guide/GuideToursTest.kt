@@ -41,7 +41,7 @@ class GuideToursTest {
                 "edit.tour.back",
                 "detail.station.fab",
                 "station.type",
-                "station.edit.save",
+                "edit.station.back",
                 "detail.track.section",
             ),
             tour.steps.map { it.anchorId },
