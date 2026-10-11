@@ -1,16 +1,20 @@
 package app.restvolt.camperlog.data
 
 import androidx.room.ColumnInfo
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.Relation
 
 /**
  * Datenbankzeile eines Fahrzeugs. Datumswerte sind ISO-Texte (`yyyy-MM-dd`); Geldbeträge liegen
  * als Paar aus Währungscode und Minor-Betrag vor und sind beide `NULL`, wenn kein Betrag erfasst ist.
  * [requiredEnergyTypes] speichert die [app.restvolt.camperlog.domain.EnergyType]-Werte kommagetrennt
- * als Namen; leer bedeutet "nicht konfiguriert".
+ * als Namen; leer bedeutet "nicht konfiguriert". [tireSize] wird seit den Achsen in [VehicleAxleEntity]
+ * nicht mehr gelesen oder geschrieben; die Spalte bleibt als Altlast bestehen, weil sie `NOT NULL`
+ * ohne SQL-`DEFAULT` ist und SQLite keine nachträgliche Spaltenänderung erlaubt.
  */
 @Entity(tableName = "vehicles", indices = [Index(value = ["uuid"], unique = true)])
 data class VehicleEntity(
@@ -74,6 +78,33 @@ data class VehicleEntity(
     @ColumnInfo(name = "created_at") val createdAtMillis: Long,
     @ColumnInfo(name = "updated_at") val updatedAtMillis: Long,
     @ColumnInfo(name = "is_demo", defaultValue = "0") val isDemo: Boolean = false,
+)
+
+/** Eine Achse eines Fahrzeugs in fester Reihenfolge ([position]); verschwindet mit ihrem Fahrzeug. */
+@Entity(
+    tableName = "vehicle_axles",
+    primaryKeys = ["vehicle_id", "position"],
+    foreignKeys = [
+        ForeignKey(
+            entity = VehicleEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["vehicle_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class VehicleAxleEntity(
+    @ColumnInfo(name = "vehicle_id") val vehicleId: Long,
+    val position: Int,
+    @ColumnInfo(name = "tire_size") val tireSize: String = "",
+    @ColumnInfo(name = "dual_tires") val dualTires: Boolean = false,
+    @ColumnInfo(name = "second_tire_size") val secondTireSize: String = "",
+)
+
+/** Fahrzeug mit seinen Achsen in Reihenfolge. */
+data class VehicleWithAxles(
+    @Embedded val vehicle: VehicleEntity,
+    @Relation(parentColumn = "id", entityColumn = "vehicle_id") val axles: List<VehicleAxleEntity>,
 )
 
 /** Datenbankzeile einer Reparatur, verknüpft mit ihrem Fahrzeug. */

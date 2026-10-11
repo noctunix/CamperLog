@@ -24,6 +24,14 @@ private val PHONE_PATTERN = Regex("""[0-9 +\-/()]+""")
 /** Ob [text] nur Ziffern, Leerzeichen und die Zeichen `+ - / ( )` enthält und höchstens [MAX_PHONE_LENGTH] lang ist. */
 fun isValidPhone(text: String): Boolean = text.length <= MAX_PHONE_LENGTH && PHONE_PATTERN.matches(text)
 
+/** Eingabe einer Achse im Fahrzeugformular; gleiche Felder wie [Axle], aber als Formulartext. */
+@Serializable
+data class AxleInput(
+    val tireSize: String = "",
+    val dualTires: Boolean = false,
+    val secondTireSize: String = "",
+)
+
 /**
  * Unvalidierte Eingaben des Fahrzeugformulars. Zahlen und Beträge liegen als Text im Zahlenformat
  * der Oberfläche vor.
@@ -67,7 +75,7 @@ data class VehicleInput(
     val powerKw: String = "",
     val displacementCc: String = "",
     val transmission: TransmissionType? = null,
-    val tireSize: String = "",
+    val axles: List<AxleInput> = listOf(AxleInput(), AxleInput()),
     val tirePressureFrontBar: String = "",
     val tirePressureRearBar: String = "",
     val requiredEnergyTypes: Set<EnergyType> = emptySet(),
@@ -230,7 +238,7 @@ fun VehicleInput.toVehicle(original: Vehicle?, locale: Locale): Vehicle = Vehicl
     powerKw = parseOptionalInt(powerKw),
     displacementCc = parseOptionalInt(displacementCc),
     transmission = transmission,
-    tireSize = tireSize.trim(),
+    axles = axles.map(AxleInput::toAxle).withMinimumAxles(),
     tirePressureFrontMbar = parseScaledDecimal(tirePressureFrontBar, locale, uiFractionDigits = 2, storageExponent = 3),
     tirePressureRearMbar = parseScaledDecimal(tirePressureRearBar, locale, uiFractionDigits = 2, storageExponent = 3),
     requiredEnergyTypes = requiredEnergyTypes,
@@ -290,7 +298,7 @@ fun Vehicle.toInput(locale: Locale): VehicleInput = VehicleInput(
     powerKw = powerKw?.toString().orEmpty(),
     displacementCc = displacementCc?.toString().orEmpty(),
     transmission = transmission,
-    tireSize = tireSize,
+    axles = axles.map(Axle::toInput),
     tirePressureFrontBar = scaledToInput(tirePressureFrontMbar, locale, uiFractionDigits = 2, storageExponent = 3),
     tirePressureRearBar = scaledToInput(tirePressureRearMbar, locale, uiFractionDigits = 2, storageExponent = 3),
     requiredEnergyTypes = requiredEnergyTypes,
@@ -311,6 +319,10 @@ fun Vehicle.toInput(locale: Locale): VehicleInput = VehicleInput(
 )
 
 internal fun Money?.toInput(locale: Locale): String = this?.let { amountToInput(it.minor, it.currency, locale) }.orEmpty()
+
+internal fun AxleInput.toAxle(): Axle = Axle(tireSize = tireSize.trim(), dualTires = dualTires, secondTireSize = secondTireSize.trim())
+
+internal fun Axle.toInput(): AxleInput = AxleInput(tireSize = tireSize, dualTires = dualTires, secondTireSize = secondTireSize)
 
 internal fun parseMoney(text: String, currency: Currency, locale: Locale): Money? =
     if (text.isBlank()) null else parseAmount(text, currency, locale)?.let { Money(it, currency) }

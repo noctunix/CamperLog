@@ -640,7 +640,15 @@ private fun engineRows(vehicle: Vehicle, locale: Locale): List<Pair<String, Stri
 
 @Composable
 private fun tireRows(vehicle: Vehicle, locale: Locale): List<Pair<String, String>> = buildList {
-    if (vehicle.tireSize.isNotBlank()) add(stringResource(R.string.field_tire_size) to vehicle.tireSize)
+    vehicle.axles.forEachIndexed { index, axle ->
+        if (axle.tireSize.isBlank()) return@forEachIndexed
+        val value = if (axle.dualTires && axle.secondTireSize.isNotBlank()) {
+            stringResource(R.string.vehicle_axle_dual_value, axle.tireSize, axle.secondTireSize)
+        } else {
+            axle.tireSize
+        }
+        add(stringResource(R.string.vehicle_axle_heading, index + 1) to value)
+    }
     vehicle.tirePressureFrontMbar?.let { add(stringResource(R.string.field_tire_pressure_front) to formatBar(it, locale)) }
     vehicle.tirePressureRearMbar?.let { add(stringResource(R.string.field_tire_pressure_rear) to formatBar(it, locale)) }
 }

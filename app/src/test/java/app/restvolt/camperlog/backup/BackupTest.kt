@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.backup
 
+import app.restvolt.camperlog.domain.Axle
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.ElectricityBilling
@@ -144,7 +145,10 @@ class BackupTest {
         powerKw = 130,
         displacementCc = 1968,
         transmission = TransmissionType.DSG,
-        tireSize = "225/75 R16 C",
+        axles = listOf(
+            Axle(tireSize = "225/75 R16 C", dualTires = true, secondTireSize = "205/70 R15"),
+            Axle(tireSize = "225/75 R16 C"),
+        ),
         tirePressureFrontMbar = 2500,
         tirePressureRearMbar = 2800,
         fuelTankDl = 900,
@@ -267,7 +271,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 18" in text)
+        assert("\"schemaVersion\": 19" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -277,7 +281,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 18" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 19" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -422,6 +426,51 @@ class BackupTest {
         vehicles = listOf(BackupVehicle(fullVehicle().copy(requiredEnergyTypes = types), listOf(repair()), listOf(logEntry()))),
     )
 
+    private fun vehicleBackupWithAxles(axles: List<Axle>) = vehicleBackup.copy(
+        vehicles = listOf(BackupVehicle(fullVehicle().copy(axles = axles), listOf(repair()), listOf(logEntry()))),
+    )
+
+    @Test
+    fun read_importsOldBackupWithSingleTireSizeFieldAsFirstAxle() {
+        val text = """
+            {
+              "format": "camperlog-backup",
+              "schemaVersion": 15,
+              "exportedAt": "2026-10-04T12:00:00Z",
+              "mainCurrency": "EUR",
+              "exchangeRates": [],
+              "tours": [],
+              "vehicles": [
+                {
+                  "uuid": "$vehicleUuid",
+                  "tireSize": "225/75 R16 C",
+                  "createdAt": "2018-05-01T08:00:00Z",
+                  "updatedAt": "2026-01-01T09:30:00Z"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val decoded = success(text)
+
+        assertEquals(listOf(Axle(tireSize = "225/75 R16 C"), Axle()), decoded.vehicles.single().vehicle.axles)
+    }
+
+    @Test
+    fun decode_rejectsVehicleWithTooManyAxles() {
+        val text = encodeBackup(vehicleBackupWithAxles(List(MAX_VEHICLE_AXLES + 1) { Axle() }))
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1), failure(text))
+    }
+
+    @Test
+    fun decode_rejectsAxleWithTooLongTireSize() {
+        val tooLong = "x".repeat(MAX_DESTINATION_LENGTH + 1)
+        val text = encodeBackup(vehicleBackupWithAxles(listOf(Axle(tireSize = tooLong), Axle())))
+
+        assertEquals(BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1), failure(text))
+    }
+
     @Test
     fun roundTrip_keepsRequiredEnergyTypes() {
         val decoded = success(encodeBackup(vehicleBackupWithEnergyTypes(setOf(EnergyType.DIESEL, EnergyType.ELECTRICITY))))
@@ -447,7 +496,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 18" in text)
+        assert("\"schemaVersion\": 19" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -482,13 +531,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 18", "\"schemaVersion\": 19"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 19", "\"schemaVersion\": 20"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 18", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 19", it))?.error)
         }
     }
 

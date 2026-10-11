@@ -5,6 +5,7 @@ import app.restvolt.camperlog.domain.ALL_CURRENCIES
 import app.restvolt.camperlog.domain.AmountReading
 import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.Axle
 import app.restvolt.camperlog.domain.Checklist
 import app.restvolt.camperlog.domain.ChecklistItem
 import app.restvolt.camperlog.domain.ChecklistTemplate
@@ -67,6 +68,7 @@ import app.restvolt.camperlog.domain.isValidPhone
 import app.restvolt.camperlog.domain.isWebUrl
 import app.restvolt.camperlog.domain.migrateLegacyElectricityFlatRate
 import app.restvolt.camperlog.domain.migrateLegacyPitch
+import app.restvolt.camperlog.domain.withMinimumAxles
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -91,7 +93,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 18
+const val BACKUP_SCHEMA_VERSION = 19
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -109,6 +111,7 @@ internal const val MAX_LINK_LENGTH = 4_000
 internal const val MAX_SOURCE_LENGTH = 500
 internal const val MAX_MANUAL_COUNTRIES = 300
 internal const val MAX_VEHICLE_DOCUMENTS = 10_000
+internal const val MAX_VEHICLE_AXLES = 50
 internal const val MAX_ATTACHMENTS = 200_000
 internal const val MAX_CAPTION_LENGTH = 2_000
 internal const val MAX_DIARY_ENTRIES = 200_000
@@ -765,6 +768,12 @@ private fun VehicleDto.toVehicle(): Vehicle? {
     if (!displacementCc.inBounds(MAX_DISPLACEMENT_CC)) return null
     if (!saleOdometerKm.inBounds(MAX_ODOMETER_KM)) return null
     val transmissionValue = transmission?.let { enumOrNull<TransmissionType>(it) ?: return null }
+    if (axles.size > MAX_VEHICLE_AXLES) return null
+    val axlesValue = if (axles.isNotEmpty()) {
+        axles.map { it.toAxle() ?: return null }
+    } else {
+        listOf(Axle(tireSize = tireSize), Axle())
+    }.withMinimumAxles()
     if (!tirePressureFrontMbar.inBounds(MAX_TIRE_PRESSURE_MBAR) || !tirePressureRearMbar.inBounds(MAX_TIRE_PRESSURE_MBAR)) return null
     val tanksInBounds = listOf(fuelTankDl, adBlueTankDl, freshWaterTankDl, greyWaterTankDl, boilerDl, cassetteDl)
         .all { it.inBounds(MAX_TANK_DL) }
@@ -810,7 +819,7 @@ private fun VehicleDto.toVehicle(): Vehicle? {
         powerKw = powerKw,
         displacementCc = displacementCc,
         transmission = transmissionValue,
-        tireSize = tireSize,
+        axles = axlesValue,
         tirePressureFrontMbar = tirePressureFrontMbar,
         tirePressureRearMbar = tirePressureRearMbar,
         requiredEnergyTypes = requiredEnergyTypesSet,
@@ -873,6 +882,13 @@ private fun CostDto.toMoney(): Money? {
 }
 
 private fun Money.toCostDto() = CostDto(currency.currencyCode, BigDecimal.valueOf(minor, currency.fractionDigits).toPlainString())
+
+private fun AxleDto.toAxle(): Axle? {
+    if (tireSize.length > MAX_DESTINATION_LENGTH || secondTireSize.length > MAX_DESTINATION_LENGTH) return null
+    return Axle(tireSize = tireSize, dualTires = dualTires, secondTireSize = secondTireSize)
+}
+
+private fun Axle.toDto() = AxleDto(tireSize = tireSize, dualTires = dualTires, secondTireSize = secondTireSize)
 
 private fun ExchangeRate.toDto() = RateDto(
     currency = currency.currencyCode,
@@ -939,7 +955,8 @@ private fun BackupVehicle.toDto(logEntryStationUuid: Map<String, String>) = vehi
         powerKw = v.powerKw,
         displacementCc = v.displacementCc,
         transmission = v.transmission?.name,
-        tireSize = v.tireSize,
+        tireSize = "",
+        axles = v.axles.map { it.toDto() },
         tirePressureFrontMbar = v.tirePressureFrontMbar,
         tirePressureRearMbar = v.tirePressureRearMbar,
         requiredEnergyTypes = v.requiredEnergyTypes.map { it.name },

@@ -134,7 +134,10 @@ internal data class VehicleDto(
     val displacementCc: Int? = null,
     /** Name von [app.restvolt.camperlog.domain.TransmissionType]; fehlt in Sicherungen vor Formatversion 15. */
     val transmission: String? = null,
+    /** Nur in Sicherungen vor Formatversion 19: die Reifengröße der ersten Achse, siehe [axles]. */
     val tireSize: String = "",
+    /** Fehlt oder leer in Sicherungen vor Formatversion 19: dann wird [tireSize] als erste Achse gelesen. */
+    val axles: List<AxleDto> = emptyList(),
     val tirePressureFrontMbar: Int? = null,
     val tirePressureRearMbar: Int? = null,
     /** [app.restvolt.camperlog.domain.EnergyType]-Namen; fehlt in Sicherungen vor Formatversion 14. */
@@ -158,6 +161,13 @@ internal data class VehicleDto(
     val repairs: List<JsonElement> = emptyList(),
     /** Einzeln als [LogEntryDto] gelesen, damit Fehler eines Bordbuch-Eintrags zugeordnet werden können. */
     val logEntries: List<JsonElement> = emptyList(),
+)
+
+@Serializable
+internal data class AxleDto(
+    val tireSize: String = "",
+    val dualTires: Boolean = false,
+    val secondTireSize: String = "",
 )
 
 @Serializable

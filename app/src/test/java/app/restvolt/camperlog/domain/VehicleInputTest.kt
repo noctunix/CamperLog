@@ -40,7 +40,10 @@ class VehicleInputTest {
         travelProtectionPhone = "+49 30 123456",
         insurerClaimsPhone = "+49 69 5678",
         powerKw = "120",
-        tireSize = "225/75 R16 C",
+        axles = listOf(
+            AxleInput(tireSize = "225/75 R16 C"),
+            AxleInput(tireSize = "195/70 R15 C", dualTires = true, secondTireSize = "195/70 R15 C"),
+        ),
         tirePressureFrontBar = "2,80",
         tirePressureRearBar = "3,00",
         fuelTankL = "90",
@@ -333,5 +336,40 @@ class VehicleInputTest {
         val vehicle = valid.copy(transmission = TransmissionType.AUTOMATIC).toVehicle(null, de)
         assertEquals(TransmissionType.AUTOMATIC, vehicle.transmission)
         assertEquals(TransmissionType.AUTOMATIC, vehicle.toInput(de).toVehicle(vehicle, de).transmission)
+    }
+
+    @Test
+    fun newVehicleInputDefaultsToTwoEmptyAxles() {
+        assertEquals(listOf(AxleInput(), AxleInput()), VehicleInput().axles)
+    }
+
+    @Test
+    fun axlesAreTrimmedAndRoundTripThroughInputIncludingDualTires() {
+        val input = valid.copy(
+            axles = listOf(
+                AxleInput(tireSize = "  225/75 R16 C  "),
+                AxleInput(tireSize = "195/70 R15 C", dualTires = true, secondTireSize = "  195/70 R15 C  "),
+                AxleInput(tireSize = "225/75 R16 C"),
+            ),
+        )
+
+        val vehicle = input.toVehicle(null, de)
+
+        assertEquals(
+            listOf(
+                Axle(tireSize = "225/75 R16 C"),
+                Axle(tireSize = "195/70 R15 C", dualTires = true, secondTireSize = "195/70 R15 C"),
+                Axle(tireSize = "225/75 R16 C"),
+            ),
+            vehicle.axles,
+        )
+        assertEquals(vehicle.axles, vehicle.toInput(de).toVehicle(vehicle, de).axles)
+    }
+
+    @Test
+    fun axlesBelowTheMinimumAreFilledUpToTwoEmptyAxles() {
+        val vehicle = valid.copy(axles = listOf(AxleInput(tireSize = "225/75 R16 C"))).toVehicle(null, de)
+
+        assertEquals(listOf(Axle(tireSize = "225/75 R16 C"), Axle()), vehicle.axles)
     }
 }

@@ -25,6 +25,7 @@ import java.util.UUID
         ExchangeRateEntity::class,
         SettingsEntity::class,
         VehicleEntity::class,
+        VehicleAxleEntity::class,
         RepairEntity::class,
         LogEntryEntity::class,
         StationEntity::class,
@@ -39,7 +40,7 @@ import java.util.UUID
         ChecklistItemEntity::class,
         TrackPointEntity::class,
     ],
-    version = 24,
+    version = 25,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -80,7 +81,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
                     MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
-                    MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
+                    MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
                 )
                 .build()
     }
@@ -827,5 +828,35 @@ internal val MIGRATION_23_24 = object : Migration(23, 24) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `seller_name` TEXT NOT NULL DEFAULT ''")
         db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `buyer_name` TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+/**
+ * Version 25: Fahrzeuge bekommen mehrere Achsen ([app.restvolt.camperlog.domain.Vehicle.axles]) statt
+ * einer einzigen Reifengröße, in der neuen Tabelle `vehicle_axles` (Fremdschlüssel `vehicle_id` CASCADE,
+ * Reihenfolge über `position`). Jedes bestehende Fahrzeug bekommt zwei Achsen: Achse 0 übernimmt die
+ * bisherige `vehicles.tire_size`, Achse 1 bleibt leer. Die Spalte `vehicles.tire_size` bleibt als
+ * Altlast bestehen, siehe [VehicleEntity].
+ */
+internal val MIGRATION_24_25 = object : Migration(24, 25) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `vehicle_axles` (`vehicle_id` INTEGER NOT NULL, `position` INTEGER NOT NULL, " +
+                "`tire_size` TEXT NOT NULL, `dual_tires` INTEGER NOT NULL, `second_tire_size` TEXT NOT NULL, " +
+                "PRIMARY KEY(`vehicle_id`, `position`), " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL(
+            "INSERT INTO `vehicle_axles` (`vehicle_id`, `position`, `tire_size`, `dual_tires`, `second_tire_size`) " +
+                "SELECT `id`, 0, `tire_size`, 0, '' FROM `vehicles`",
+        )
+        db.execSQL(
+            "INSERT INTO `vehicle_axles` (`vehicle_id`, `position`, `tire_size`, `dual_tires`, `second_tire_size`) " +
+                "SELECT `id`, 1, '', 0, '' FROM `vehicles`",
+        )
+
+        db.query("PRAGMA foreign_key_check(vehicle_axles)").use { cursor ->
+            check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 24→25" }
+        }
     }
 }

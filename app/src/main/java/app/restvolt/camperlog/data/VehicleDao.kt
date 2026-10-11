@@ -9,27 +9,70 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
-/** Room-Zugriff auf die Tabellen `vehicles` und `repairs` sowie das Feld `current_vehicle_id` in `settings`. */
+/**
+ * Room-Zugriff auf die Tabellen `vehicles`, `vehicle_axles` und `repairs` sowie das Feld
+ * `current_vehicle_id` in `settings`.
+ */
 @Dao
 interface VehicleDao {
 
+    @Transaction
     @Query("SELECT * FROM vehicles ORDER BY (sale_date IS NOT NULL) ASC, name ASC, id ASC")
-    fun observeAll(): Flow<List<VehicleEntity>>
+    fun observeAll(): Flow<List<VehicleWithAxles>>
 
+    @Transaction
     @Query("SELECT * FROM vehicles ORDER BY id ASC")
-    fun observeAllByIdAsc(): Flow<List<VehicleEntity>>
+    fun observeAllByIdAsc(): Flow<List<VehicleWithAxles>>
 
+    @Transaction
     @Query("SELECT * FROM vehicles WHERE id = :id")
-    fun observeById(id: Long): Flow<VehicleEntity?>
+    fun observeById(id: Long): Flow<VehicleWithAxles?>
 
+    @Transaction
     @Query("SELECT * FROM vehicles ORDER BY id ASC")
-    suspend fun getAll(): List<VehicleEntity>
+    suspend fun getAll(): List<VehicleWithAxles>
 
     @Insert
     suspend fun insert(vehicle: VehicleEntity): Long
 
     @Update
     suspend fun update(vehicle: VehicleEntity)
+
+    @Insert
+    suspend fun insertAxles(axles: List<VehicleAxleEntity>)
+
+    @Query("DELETE FROM vehicle_axles WHERE vehicle_id = :vehicleId")
+    suspend fun deleteAxles(vehicleId: Long)
+
+    /** Legt [vehicle] samt [axles] an; die Achsen erhalten die neue Fahrzeug-id. */
+    @Transaction
+    suspend fun insertWithAxles(vehicle: VehicleEntity, axles: List<VehicleAxleEntity>): Long {
+        val id = insert(vehicle)
+        insertAxles(axles.map { it.copy(vehicleId = id) })
+        return id
+    }
+
+    /** Aktualisiert [vehicle] und ersetzt seine Achsen vollständig durch [axles]. */
+    @Transaction
+    suspend fun updateWithAxles(vehicle: VehicleEntity, axles: List<VehicleAxleEntity>) {
+        update(vehicle)
+        deleteAxles(vehicle.id)
+        insertAxles(axles)
+    }
+
+    @Query(
+        "INSERT INTO vehicle_axles (vehicle_id, position, tire_size, dual_tires, second_tire_size) " +
+            "SELECT :vehicleId, :position, '', 0, '' " +
+            "WHERE NOT EXISTS (SELECT 1 FROM vehicle_axles WHERE vehicle_id = :vehicleId AND position = :position)",
+    )
+    suspend fun insertDefaultAxleIfNone(vehicleId: Long, position: Int)
+
+    /** Legt für [vehicleId] zwei leere Achsen an, falls es noch keine hat. */
+    @Transaction
+    suspend fun insertDefaultAxlesIfNone(vehicleId: Long) {
+        insertDefaultAxleIfNone(vehicleId, 0)
+        insertDefaultAxleIfNone(vehicleId, 1)
+    }
 
     @Query("DELETE FROM vehicles WHERE id = :id")
     suspend fun deleteById(id: Long)
@@ -156,5 +199,7 @@ internal suspend fun VehicleDao.resolveCurrentVehicleId(now: Instant, newUuid: (
     if (currentId != null && vehicleExists(currentId)) return currentId
     lowestVehicleId()?.let { return it }
     insertDefaultIfNone(newUuid(), now.toEpochMilli())
-    return checkNotNull(lowestVehicleId())
+    val id = checkNotNull(lowestVehicleId())
+    insertDefaultAxlesIfNone(id)
+    return id
 }

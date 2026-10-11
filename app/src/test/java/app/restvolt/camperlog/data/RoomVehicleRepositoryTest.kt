@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.Axle
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
@@ -115,6 +116,29 @@ class RoomVehicleRepositoryTest {
         assertEquals("Womo 2", updated.name)
         assertEquals(created, updated.createdAt)
         assertEquals(now, updated.updatedAt)
+    }
+
+    @Test
+    fun observeCurrentVehicleAutoCreatesTwoEmptyAxles() = runTest {
+        val current = repository.observeCurrentVehicle().first()
+
+        assertEquals(listOf(Axle(), Axle()), current.axles)
+    }
+
+    @Test
+    fun savedVehicleKeepsAxlesIncludingDualTiresAndAnAddedThirdAxle() = runTest {
+        val axles = listOf(
+            Axle(tireSize = "225/75 R16"),
+            Axle(tireSize = "195/70 R15", dualTires = true, secondTireSize = "195/70 R15"),
+            Axle(tireSize = "225/75 R16"),
+        )
+        val id = repository.save(vehicle(name = "Lkw").copy(axles = axles))
+
+        val stored = checkNotNull(repository.observeVehicle(id).first())
+        assertEquals(axles, stored.axles)
+
+        val updated = repository.save(stored.copy(axles = stored.axles.dropLast(1)))
+        assertEquals(axles.dropLast(1), checkNotNull(repository.observeVehicle(updated).first()).axles)
     }
 
     @Test

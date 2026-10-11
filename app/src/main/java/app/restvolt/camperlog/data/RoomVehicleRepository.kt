@@ -39,9 +39,9 @@ class RoomVehicleRepository(
     private val attachmentDao get() = database.attachmentDao()
 
     override fun observeVehicles(): Flow<List<Vehicle>> =
-        dao.observeAll().map { rows -> rows.map(VehicleEntity::toDomain) }
+        dao.observeAll().map { rows -> rows.map(VehicleWithAxles::toDomain) }
 
-    override suspend fun allVehicles(): List<Vehicle> = dao.getAll().map(VehicleEntity::toDomain)
+    override suspend fun allVehicles(): List<Vehicle> = dao.getAll().map(VehicleWithAxles::toDomain)
 
     override fun observeVehicle(id: Long): Flow<Vehicle?> =
         dao.observeById(id).distinctUntilChanged().map { it?.toDomain() }
@@ -51,7 +51,7 @@ class RoomVehicleRepository(
         dao.resolveCurrentVehicleId(clock(), newUuid)
         emitAll(
             combine(dao.observeCurrentVehicleId(), dao.observeAllByIdAsc()) { currentId, vehicles ->
-                (vehicles.firstOrNull { it.id == currentId } ?: vehicles.first()).toDomain()
+                (vehicles.firstOrNull { it.vehicle.id == currentId } ?: vehicles.first()).toDomain()
             },
         )
     }.distinctUntilChanged()
@@ -62,9 +62,11 @@ class RoomVehicleRepository(
         val now = clock()
         return if (vehicle.id == 0L) {
             val uuid = vehicle.uuid.ifEmpty { newUuid() }
-            dao.insert(vehicle.copy(uuid = uuid, createdAt = now, updatedAt = now).toEntity())
+            val withTimestamps = vehicle.copy(uuid = uuid, createdAt = now, updatedAt = now)
+            dao.insertWithAxles(withTimestamps.toEntity(), withTimestamps.toAxleEntities())
         } else {
-            dao.update(vehicle.copy(updatedAt = now).toEntity())
+            val withTimestamp = vehicle.copy(updatedAt = now)
+            dao.updateWithAxles(withTimestamp.toEntity(), withTimestamp.toAxleEntities())
             vehicle.id
         }
     }

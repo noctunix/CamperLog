@@ -12,16 +12,20 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,8 +40,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -48,6 +54,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.AxleInput
 import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.MAX_AMOUNT_MINOR
 import app.restvolt.camperlog.domain.TransmissionType
@@ -402,12 +409,21 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
         }
         SectionCard {
             SectionHeading(stringResource(R.string.section_tires))
-            FormTextField(
-                label = stringResource(R.string.field_tire_size),
-                value = input.tireSize,
-                onValueChange = { value -> change { it.copy(tireSize = value) } },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
-            )
+            input.axles.forEachIndexed { index, axle ->
+                AxleFields(
+                    index = index,
+                    axle = axle,
+                    canRemove = index >= 2,
+                    onChange = { transform ->
+                        change { form -> form.copy(axles = form.axles.mapIndexed { i, a -> if (i == index) transform(a) else a }) }
+                    },
+                    onRemove = { change { form -> form.copy(axles = form.axles.filterIndexed { i, _ -> i != index }) } },
+                )
+            }
+            TextButton(onClick = { change { form -> form.copy(axles = form.axles + AxleInput()) } }) {
+                Icon(painterResource(R.drawable.ic_add), contentDescription = null)
+                Text(stringResource(R.string.vehicle_add_axle), Modifier.padding(start = 8.dp))
+            }
             UnitField(
                 stringResource(R.string.field_tire_pressure_front), input.tirePressureFrontBar, "bar", KeyboardType.Decimal,
                 errorOf(VehicleField.TIRE_PRESSURE_FRONT), focusOf(VehicleField.TIRE_PRESSURE_FRONT),
@@ -534,6 +550,55 @@ private fun SectionHeading(text: String) {
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
     )
+}
+
+/**
+ * Formularfelder einer Achse: Reifengröße, Schalter für Doppelbereifung und bei dessen Aktivierung
+ * eine zweite Reifengröße. Ab der dritten Achse ([canRemove]) kommt ein Löschen-Button hinzu.
+ */
+@Composable
+private fun AxleFields(index: Int, axle: AxleInput, canRemove: Boolean, onChange: ((AxleInput) -> AxleInput) -> Unit, onRemove: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                stringResource(R.string.vehicle_axle_heading, index + 1),
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { heading() },
+                style = MaterialTheme.typography.titleSmall,
+            )
+            if (canRemove) {
+                IconButton(onClick = onRemove) {
+                    Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.vehicle_remove_axle))
+                }
+            }
+        }
+        FormTextField(
+            label = stringResource(R.string.field_tire_size),
+            value = axle.tireSize,
+            onValueChange = { value -> onChange { it.copy(tireSize = value) } },
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .toggleable(value = axle.dualTires, role = Role.Switch, onValueChange = { value -> onChange { it.copy(dualTires = value) } }),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.field_dual_tires), style = MaterialTheme.typography.bodyLarge)
+            Switch(checked = axle.dualTires, onCheckedChange = null)
+        }
+        if (axle.dualTires) {
+            FormTextField(
+                label = stringResource(R.string.field_second_tire_size),
+                value = axle.secondTireSize,
+                onValueChange = { value -> onChange { it.copy(secondTireSize = value) } },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
+            )
+        }
+    }
 }
 
 /** Mehrfachauswahl der benötigten Energiearten; steuert, welche Tank-/Kapazitätsfelder darunter erscheinen. */

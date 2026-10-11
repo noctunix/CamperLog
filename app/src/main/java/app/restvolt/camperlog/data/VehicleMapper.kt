@@ -1,10 +1,12 @@
 package app.restvolt.camperlog.data
 
+import app.restvolt.camperlog.domain.Axle
 import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.TransmissionType
 import app.restvolt.camperlog.domain.Vehicle
+import app.restvolt.camperlog.domain.withMinimumAxles
 import java.time.Instant
 import java.time.LocalDate
 import java.util.Currency
@@ -46,7 +48,6 @@ internal fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     powerKw = powerKw,
     displacementCc = displacementCc,
     transmission = transmission?.let(TransmissionType::valueOf),
-    tireSize = tireSize,
     tirePressureFrontMbar = tirePressureFrontMbar,
     tirePressureRearMbar = tirePressureRearMbar,
     requiredEnergyTypes = decodeEnergyTypes(requiredEnergyTypes),
@@ -109,7 +110,6 @@ internal fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     powerKw = powerKw,
     displacementCc = displacementCc,
     transmission = transmission?.name,
-    tireSize = tireSize,
     tirePressureFrontMbar = tirePressureFrontMbar,
     tirePressureRearMbar = tirePressureRearMbar,
     requiredEnergyTypes = encodeEnergyTypes(requiredEnergyTypes),
@@ -130,6 +130,15 @@ internal fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     updatedAtMillis = updatedAt.toEpochMilli(),
     isDemo = isDemo,
 )
+
+internal fun VehicleWithAxles.toDomain(): Vehicle =
+    vehicle.toDomain().copy(axles = axles.sortedBy(VehicleAxleEntity::position).map(VehicleAxleEntity::toDomain).withMinimumAxles())
+
+internal fun Vehicle.toAxleEntities(): List<VehicleAxleEntity> = axles.mapIndexed { index, axle ->
+    VehicleAxleEntity(vehicleId = id, position = index, tireSize = axle.tireSize, dualTires = axle.dualTires, secondTireSize = axle.secondTireSize)
+}
+
+private fun VehicleAxleEntity.toDomain(): Axle = Axle(tireSize = tireSize, dualTires = dualTires, secondTireSize = secondTireSize)
 
 internal fun RepairEntity.toDomain(): Repair = Repair(
     id = id,

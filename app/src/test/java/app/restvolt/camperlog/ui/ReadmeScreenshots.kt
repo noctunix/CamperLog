@@ -24,6 +24,7 @@ import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TollKind
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.Axle
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
@@ -185,7 +186,7 @@ class ReadmeScreenshots {
             breakdownMembershipNumber = "123 456 789",
             breakdownPhone = "+49 89 22 22 22",
             powerKw = 103,
-            tireSize = "225/75 R16 C",
+            axles = listOf(Axle(tireSize = "225/75 R16 C"), Axle()),
             tirePressureFrontMbar = 5_000,
             tirePressureRearMbar = 5_500,
             fuelTankDl = 900,

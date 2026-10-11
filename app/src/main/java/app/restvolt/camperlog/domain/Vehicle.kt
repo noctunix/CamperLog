@@ -29,9 +29,26 @@ enum class TransmissionType {
     OTHER,
 }
 
+/** Mindestanzahl an Achsen, die jedes Fahrzeug immer hat; siehe [Vehicle.axles]. */
+const val MIN_AXLES = 2
+
+/**
+ * Eine Achse eines Fahrzeugs mit ihrer Reifengröße. [dualTires] steht für Doppelbereifung (z. B.
+ * bei Lkw- oder Explorer-Chassis); dann gilt [secondTireSize] für die inneren Zwillingsreifen.
+ */
+data class Axle(
+    val tireSize: String = "",
+    val dualTires: Boolean = false,
+    val secondTireSize: String = "",
+)
+
+/** Füllt mit leeren Achsen auf [MIN_AXLES] auf, falls [this] weniger enthält. */
+fun List<Axle>.withMinimumAxles(): List<Axle> = if (size >= MIN_AXLES) this else this + List(MIN_AXLES - size) { Axle() }
+
 /**
  * Ein Wohnmobil. Nur [id], [uuid] und [name] sind nicht optional; ein leerer [name] wird in der
- * Oberfläche als „Mein Wohnmobil" angezeigt. [isSold] ergibt sich aus [saleDate].
+ * Oberfläche als „Mein Wohnmobil" angezeigt. [isSold] ergibt sich aus [saleDate]. [axles] hat immer
+ * mindestens [MIN_AXLES] Einträge.
  */
 data class Vehicle(
     val id: Long = 0,
@@ -70,7 +87,7 @@ data class Vehicle(
     val powerKw: Int? = null,
     val displacementCc: Int? = null,
     val transmission: TransmissionType? = null,
-    val tireSize: String = "",
+    val axles: List<Axle> = listOf(Axle(), Axle()),
     val tirePressureFrontMbar: Int? = null,
     val tirePressureRearMbar: Int? = null,
     val requiredEnergyTypes: Set<EnergyType> = emptySet(),

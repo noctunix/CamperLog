@@ -453,6 +453,12 @@
     <string name="transmission_cvt">CVT</string>
     <string name="transmission_other">Other</string>
     <string name="field_tire_size">Tyre size</string>
+    <string name="field_dual_tires">Dual tyres</string>
+    <string name="field_second_tire_size">Second tyre size</string>
+    <string name="vehicle_axle_heading">Axle %1$d</string>
+    <string name="vehicle_axle_dual_value">%1$s (dual tyres: %2$s)</string>
+    <string name="vehicle_add_axle">Add axle</string>
+    <string name="vehicle_remove_axle">Remove axle</string>
     <string name="field_tire_pressure_front">Tyre pressure front</string>
     <string name="field_tire_pressure_rear">Tyre pressure rear</string>
     <string name="field_required_energy_types">Needs</string>

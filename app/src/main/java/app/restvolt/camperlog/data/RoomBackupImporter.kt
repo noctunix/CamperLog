@@ -77,7 +77,8 @@ class RoomBackupImporter(
         var updatedVehicles = 0
         if (mode == ImportMode.REPLACE) {
             for (backupVehicle in importedVehicles) {
-                val id = vehicleDao.insert(backupVehicle.vehicle.copy(id = 0).toEntity())
+                val vehicle = backupVehicle.vehicle.copy(id = 0)
+                val id = vehicleDao.insertWithAxles(vehicle.toEntity(), vehicle.toAxleEntities())
                 localIdByVehicleUuid[backupVehicle.vehicle.uuid] = id
                 addedVehicles++
             }
@@ -85,6 +86,7 @@ class RoomBackupImporter(
                 // Sicherungen der Formatversion 1 kennen noch keine Fahrzeuge; es muss trotzdem genau
                 // eines übrig bleiben, dem alle Touren zugeordnet werden.
                 vehicleDao.insertDefaultIfNone(newUuid(), now.toEpochMilli())
+                vehicleDao.lowestVehicleId()?.let { vehicleDao.insertDefaultAxlesIfNone(it) }
             }
         } else {
             val placeholderId = if (importedVehicles.isNotEmpty()) untouchedSoleVehicleId(vehicleDao, logDao, stationDao) else null
@@ -94,12 +96,14 @@ class RoomBackupImporter(
                 val existing = storedVehicles[vehicle.uuid]
                 when {
                     existing == null -> {
-                        val id = vehicleDao.insert(vehicle.copy(id = 0).toEntity())
+                        val toInsert = vehicle.copy(id = 0)
+                        val id = vehicleDao.insertWithAxles(toInsert.toEntity(), toInsert.toAxleEntities())
                         localIdByVehicleUuid[vehicle.uuid] = id
                         addedVehicles++
                     }
                     vehicle.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
-                        vehicleDao.update(vehicle.copy(id = existing.id).toEntity())
+                        val toUpdate = vehicle.copy(id = existing.id)
+                        vehicleDao.updateWithAxles(toUpdate.toEntity(), toUpdate.toAxleEntities())
                         localIdByVehicleUuid[vehicle.uuid] = existing.id
                         updatedVehicles++
                     }
@@ -515,7 +519,7 @@ private suspend fun untouchedSoleVehicleId(vehicles: VehicleDao, logs: LogDao, s
     val only = vehicles.getAll().singleOrNull() ?: return null
     val blank = Vehicle(createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
     val untouched = only.toDomain().copy(id = 0, uuid = "", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH) == blank
-    return only.id.takeIf {
+    return only.vehicle.id.takeIf {
         untouched && vehicles.countToursForVehicle(it) == 0 && vehicles.countRepairsForVehicle(it) == 0 &&
             logs.countForVehicle(it) == 0 && stations.getAll().none { row -> row.station.vehicleId == it }
     }

@@ -453,6 +453,12 @@
     <string name="transmission_cvt">CVT</string>
     <string name="transmission_other">Sonstige</string>
     <string name="field_tire_size">Reifengröße</string>
+    <string name="field_dual_tires">Doppelbereifung</string>
+    <string name="field_second_tire_size">Zweite Reifengröße</string>
+    <string name="vehicle_axle_heading">Achse %1$d</string>
+    <string name="vehicle_axle_dual_value">%1$s (Doppelbereifung: %2$s)</string>
+    <string name="vehicle_add_axle">Achse hinzufügen</string>
+    <string name="vehicle_remove_axle">Achse entfernen</string>
     <string name="field_tire_pressure_front">Reifendruck vorne</string>
     <string name="field_tire_pressure_rear">Reifendruck hinten</string>
     <string name="field_required_energy_types">Benötigt</string>

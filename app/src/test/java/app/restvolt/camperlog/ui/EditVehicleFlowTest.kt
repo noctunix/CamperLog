@@ -162,6 +162,45 @@ class EditVehicleFlowTest {
     }
 
     @Test
+    fun tiresSection_showsTwoAxlesByDefaultAndAddButtonAppendsAThird() {
+        start()
+        compose.onNodeWithText("Fahrzeug").performClick()
+        compose.onNodeWithText("Details hinzufügen").performClick()
+
+        compose.onNodeWithText("Achse 1").performScrollTo().assertExists()
+        compose.onNodeWithText("Achse 2").assertExists()
+        compose.onNodeWithText("Achse 3").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Achse entfernen").assertDoesNotExist()
+
+        compose.onNodeWithText("Achse hinzufügen").performScrollTo().performClick()
+
+        compose.onNodeWithText("Achse 3").assertExists()
+        compose.onNodeWithContentDescription("Achse entfernen").assertExists()
+
+        compose.onNodeWithContentDescription("Achse entfernen").performClick()
+
+        compose.onNodeWithText("Achse 3").assertDoesNotExist()
+    }
+
+    @Test
+    fun tiresSection_dualTiresTogglesSecondSizeFieldAndShowsBothSizesInSheet() {
+        start()
+        compose.onNodeWithText("Fahrzeug").performClick()
+        compose.onNodeWithText("Details hinzufügen").performClick()
+
+        compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Wohnmobil")
+        compose.onAllNodes(hasSetTextAction() and hasText("Reifengröße"))[0].performScrollTo().performTextInput("225/75 R16")
+        compose.onNode(hasSetTextAction() and hasText("Zweite Reifengröße")).assertDoesNotExist()
+
+        compose.onAllNodes(hasText("Doppelbereifung") and hasClickAction())[0].performScrollTo().performClick()
+        compose.onNode(hasSetTextAction() and hasText("Zweite Reifengröße")).performTextInput("225/70 R15")
+
+        clickSave()
+
+        compose.onNodeWithText("225/75 R16 (Doppelbereifung: 225/70 R15)").assertExists()
+    }
+
+    @Test
     fun nameRequired_forNewVehicle() {
         start()
         compose.onNodeWithText("Fahrzeug").performClick()
