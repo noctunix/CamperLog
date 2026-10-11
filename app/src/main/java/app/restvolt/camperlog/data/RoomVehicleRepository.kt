@@ -100,8 +100,9 @@ class RoomVehicleRepository(
 
     override fun observeAllRepairs(): Flow<List<Repair>> = dao.observeAllRepairs().map { rows -> rows.map(RepairEntity::toDomain) }
 
+    // Eine leere Beschreibung bleibt erlaubt: Das implizite Speichern einer neuen Reparatur legt sie
+    // schon vor der ersten Eingabe an; das Formular zeigt den Pflichtfeld-Fehler trotzdem inline an.
     override suspend fun saveRepair(repair: Repair): Long {
-        require(repair.description.isNotBlank()) { "Beschreibung darf nicht leer sein" }
         val now = clock()
         return if (repair.id == 0L) {
             val uuid = repair.uuid.ifEmpty { newUuid() }

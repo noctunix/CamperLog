@@ -135,7 +135,6 @@ internal fun NavGraphBuilder.vehicleGraph(
             attachmentFileStore = attachmentFileStore,
             attachmentPickers = attachmentPickers,
             onDone = { navController.popFrom(entry) },
-            onSaved = { navController.popFrom(entry) },
             onDelete = { repair ->
                 if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
                     vehicleViewModel.deleteRepair(repair)

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,7 +22,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,8 +58,8 @@ import app.restvolt.camperlog.domain.formatCoordinates
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CurrencyPicker
 import app.restvolt.camperlog.ui.DateField
-import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.LeaveDraftDialog
 import app.restvolt.camperlog.ui.LocationCaptureSection
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
@@ -75,8 +73,9 @@ import java.util.Currency
 import java.util.Locale
 
 /**
- * Formular zum Anlegen und Bearbeiten einer Reparatur. [onDone] verlässt es ohne, [onSaved] nach
- * dem Speichern; [onDelete] löscht eine bestehende Reparatur und wird mit ihr aufgerufen.
+ * Formular zum Anlegen und Bearbeiten einer Reparatur; jede Eingabe speichert sich implizit selbst.
+ * [onDone] ist der einzige Ausstiegspunkt, für beide Fälle - siehe [RepairEditViewModel]. [onDelete]
+ * löscht eine bestehende Reparatur über die Kopfzeile und wird mit ihr aufgerufen.
  */
 @Composable
 fun RepairEditScreen(
@@ -86,24 +85,14 @@ fun RepairEditScreen(
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     onDone: () -> Unit,
-    onSaved: () -> Unit,
     onDelete: (Repair) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
 
-    LaunchedEffect(state.isSaved) {
-        if (state.isSaved) onSaved()
-    }
-    LaunchedEffect(state.justCreated) {
-        if (state.justCreated) {
-            snackbar.showSnackbar(resources.getString(R.string.repair_edit_saved_first_time), withDismissAction = true)
-            viewModel.onFirstSaveShown()
-        }
-    }
     LaunchedEffect(state.saveFailed) {
         if (state.saveFailed) {
             snackbar.showSnackbar(resources.getString(R.string.repair_edit_save_failed), withDismissAction = true)
@@ -111,8 +100,10 @@ fun RepairEditScreen(
         }
     }
 
-    val requestBack = { if (state.isDirty) confirmDiscard = true else onDone() }
-    BackHandler(enabled = state.isDirty && !state.isSaved) { confirmDiscard = true }
+    val requestBack = {
+        if (state.needsLeaveConfirmation()) showLeaveDialog = true else onDone()
+    }
+    BackHandler(onBack = requestBack)
 
     Scaffold(
         topBar = {
@@ -129,7 +120,6 @@ fun RepairEditScreen(
                                 )
                             }
                         }
-                        TextButton(onClick = viewModel::save, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
                     }
                 },
             )
@@ -155,11 +145,16 @@ fun RepairEditScreen(
         }
     }
 
-    if (confirmDiscard) {
-        DiscardChangesDialog(
-            onKeep = { confirmDiscard = false },
+    if (showLeaveDialog) {
+        LeaveDraftDialog(
+            onCancel = { showLeaveDialog = false },
             onDiscard = {
-                confirmDiscard = false
+                showLeaveDialog = false
+                viewModel.onDiscardConfirmed()
+                onDone()
+            },
+            onKeep = {
+                showLeaveDialog = false
                 onDone()
             },
         )
@@ -183,13 +178,6 @@ private fun RepairForm(
     val focus = remember { RepairField.entries.associateWith { FocusRequester() } }
     fun focusOf(field: RepairField) = Modifier.focusRequester(focus.getValue(field))
     @Composable fun errorOf(field: RepairField): String? = state.errors[field]?.messageRes(field)
-
-    // Nach einem abgelehnten Speichern zum ersten fehlerhaften Feld springen; der Fokus scrollt es ins Bild.
-    LaunchedEffect(state.rejectedSaves) {
-        if (state.rejectedSaves > 0) {
-            state.errors.keys.minByOrNull(RepairField::ordinal)?.let { focus.getValue(it).requestFocus() }
-        }
-    }
 
     Column(
         modifier = modifier
@@ -252,19 +240,12 @@ private fun RepairForm(
         }
         PhotoAttachmentsSection(
             ownerType = AttachmentOwnerType.REPAIR,
-            ownerId = state.savedRepairId,
+            ownerId = state.repairId,
             repository = attachments,
             fileStore = attachmentFileStore,
             snackbarHostState = snackbarHostState,
             pickers = attachmentPickers,
         )
-        Button(
-            onClick = viewModel::save,
-            enabled = !state.isSaving,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp),
-        ) { Text(stringResource(R.string.action_save)) }
         if (state.errors.isNotEmpty()) {
             // Nennt die betroffenen Felder; ändert sich die Liste, sagt TalkBack sie erneut an.
             val fields = state.errors.keys.sortedBy(RepairField::ordinal).map { stringResource(it.labelRes) }

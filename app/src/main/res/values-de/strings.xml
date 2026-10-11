@@ -546,7 +546,6 @@
     <string name="repair_edit_title_new">Neue Reparatur</string>
     <string name="repair_edit_title_existing">Reparatur bearbeiten</string>
     <string name="repair_edit_save_failed">Reparatur konnte nicht gespeichert werden.</string>
-    <string name="repair_edit_saved_first_time">Gespeichert · du kannst jetzt Fotos anhängen</string>
     <string name="repair_not_found">Diese Reparatur existiert nicht mehr.</string>
 
     <!-- Erinnerungen -->
