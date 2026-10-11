@@ -42,8 +42,15 @@ import app.restvolt.camperlog.ui.guide.guideAnchor
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BackTopBar(title: String, onBack: () -> Unit, navigationIconModifier: Modifier = Modifier, actions: @Composable () -> Unit = {}) {
+fun BackTopBar(
+    title: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    navigationIconModifier: Modifier = Modifier,
+    actions: @Composable () -> Unit = {},
+) {
     TopAppBar(
+        modifier = modifier,
         title = { Text(title, modifier = Modifier.semantics { heading() }, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         navigationIcon = {
             IconButton(onClick = onBack, modifier = navigationIconModifier) {
