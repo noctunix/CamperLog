@@ -96,6 +96,18 @@ class TourInputTest {
         assertEquals(listOf(Money(12_345, EUR)), tour.costs)
     }
 
+    /**
+     * [TourInput] hat kein eigenes Feld für manuelle Länderkorrekturen (die trägt die Detailseite
+     * direkt in die [Tour] ein); ein Speichern aus dem Formular darf sie trotzdem nicht wegwerfen.
+     */
+    @Test
+    fun toTourKeepsManualCountryOverridesFromOriginal() {
+        val original = valid.toTour(null, de).copy(id = 7, manualCountriesAdded = setOf("AT"), manualCountriesRemoved = setOf("DE"))
+        val tour = valid.copy(destination = "Ostsee").toTour(original, de)
+        assertEquals(setOf("AT"), tour.manualCountriesAdded)
+        assertEquals(setOf("DE"), tour.manualCountriesRemoved)
+    }
+
     @Test
     fun toTourTrimsNameAndSlug() {
         val tour = valid.copy(name = "  Sommerurlaub  ", slug = "  sommerurlaub-2026  ").toTour(null, de)

@@ -104,8 +104,9 @@ fun TourInput.costErrors(locale: Locale): Map<Int, TourError> = buildMap {
  *
  * @param original die bearbeitete Tour oder `null` für eine neue Tour
  * @param locale dieselbe Sprache wie bei [validate]
- * @return Tour mit id und Zeitstempeln von [original]; leere Kostenzeilen und Beträge von 0 fallen
- *   weg, doppelte Währungen werden addiert
+ * @return Tour mit id, Zeitstempeln, manuellen Länderkorrekturen und Demo-Kennzeichnung von
+ *   [original], da das Formular dafür keine eigenen Felder hat; leere Kostenzeilen und Beträge
+ *   von 0 fallen weg, doppelte Währungen werden addiert
  */
 fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
     id = original?.id ?: 0,
@@ -129,6 +130,9 @@ fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
     mapLink = mapLink.trim().ifEmpty { null },
     createdAt = original?.createdAt ?: Instant.EPOCH,
     updatedAt = original?.updatedAt ?: Instant.EPOCH,
+    manualCountriesAdded = original?.manualCountriesAdded ?: emptySet(),
+    manualCountriesRemoved = original?.manualCountriesRemoved ?: emptySet(),
+    isDemo = original?.isDemo ?: false,
 )
 
 /**
