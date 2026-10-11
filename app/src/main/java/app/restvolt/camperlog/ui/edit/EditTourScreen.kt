@@ -6,23 +6,28 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -46,6 +51,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -90,9 +96,9 @@ fun EditTourScreen(
     trackSettings: TrackRecordingSettings,
     homeLocationSettings: HomeLocationSettings,
     /**
-     * Nur innerhalb der Pilot-Tour "Erste Tour anlegen" `true`: fragt die Standortberechtigung schon
-     * beim Ankreuzen von "GPS-Track aufzeichnen" an statt erst beim Speichern. Außerhalb bleibt es
-     * beim normalen Verhalten (Anfrage beim Speichern, siehe unten).
+     * Nur innerhalb der Pilot-Tour "Erste Tour anlegen" `true`: pausiert und setzt die geführte Tour
+     * automatisch rund um die Standortberechtigungsabfrage fort, die beim Ankreuzen von "GPS-Track
+     * aufzeichnen" erscheint (außerhalb der Pilot-Tour bleibt die Barriere dafür einfach bestehen).
      */
     requestTrackPermissionEarly: Boolean = false,
     /** Pausiert bzw. setzt eine laufende geführte Tour rund um die vorgezogene Berechtigungsabfrage fort. */
@@ -113,27 +119,30 @@ fun EditTourScreen(
     val context = LocalContext.current
 
     val trackPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        val tourId = state.savedTourId
-        if (tourId != null && TrackRecordingService.hasLocationPermission(context)) {
+        if (requestTrackPermissionEarly) onAfterSystemDialog()
+        val tourId = state.tourId
+        if (tourId != null && state.trackSwitch && TrackRecordingService.hasLocationPermission(context)) {
             TrackRecordingService.startForTour(context, tourId)
         }
     }
-    val earlyTrackPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        onAfterSystemDialog()
-    }
 
-    LaunchedEffect(state.isSaved) {
-        if (state.isSaved) {
-            val tourId = state.savedTourId
-            if (state.trackSwitch && tourId != null) {
-                if (TrackRecordingService.hasLocationPermission(context)) {
-                    TrackRecordingService.startForTour(context, tourId)
-                } else {
-                    trackPermissionLauncher.launch(trackPermissions())
-                }
+    // Startet bzw. stoppt die Aufzeichnung direkt beim Umschalten, gegen die schon beim Öffnen des
+    // Formulars angelegte, echte Tour-id - kein Warten mehr auf einen expliziten Speichern-Erfolg.
+    LaunchedEffect(state.trackSwitch) {
+        val tourId = state.tourId ?: return@LaunchedEffect
+        if (state.trackSwitch) {
+            if (TrackRecordingService.hasLocationPermission(context)) {
+                TrackRecordingService.startForTour(context, tourId)
+            } else {
+                if (requestTrackPermissionEarly) onBeforeSystemDialog()
+                trackPermissionLauncher.launch(trackPermissions())
             }
-            onSaved()
+        } else {
+            TrackRecordingService.stopIfTracking(context, tourId)
         }
+    }
+    LaunchedEffect(state.isSaved) {
+        if (state.isSaved) onSaved()
     }
     LaunchedEffect(state.saveFailed) {
         if (state.saveFailed) {
@@ -142,27 +151,28 @@ fun EditTourScreen(
         }
     }
     LaunchedEffect(state.runningTourConflict) {
-        if (state.runningTourConflict) {
+        // Für eine neue Tour zeigt das Formular den Hinweis dauerhaft inline an (siehe TourForm)
+        // statt als vorbeiziehende Snackbar, da der Konflikt jederzeit wieder auftreten kann.
+        if (state.runningTourConflict && !state.isNew) {
             snackbar.showSnackbar(resources.getString(R.string.edit_running_tour_conflict), withDismissAction = true)
             viewModel.onRunningTourConflictShown()
         }
     }
 
-    val requestBack = { if (state.isDirty) confirmDiscard = true else onDone() }
-    BackHandler(enabled = state.isDirty && !state.isSaved) { confirmDiscard = true }
+    val requestBack = {
+        if (!state.isNew && state.isDirty && !state.isSaved) confirmDiscard = true else onDone()
+    }
+    BackHandler(onBack = requestBack)
 
     Scaffold(
         topBar = {
             BackTopBar(
                 title = stringResource(if (state.isNew) R.string.edit_title_new else R.string.edit_title_existing),
                 onBack = requestBack,
+                navigationIconModifier = if (state.isNew) Modifier.guideAnchor("edit.tour.back") else Modifier,
                 actions = {
-                    if (!state.notFound && !state.isLoading) {
-                        TextButton(
-                            onClick = viewModel::save,
-                            enabled = !state.isSaving,
-                            modifier = Modifier.guideAnchor("edit.tour.save"),
-                        ) { Text(stringResource(R.string.action_save)) }
+                    if (!state.isNew && !state.notFound && !state.isLoading) {
+                        TextButton(onClick = viewModel::save, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
                     }
                 },
             )
@@ -179,12 +189,6 @@ fun EditTourScreen(
                 showTrackSwitch = state.isNew && state.input.endDate == null && trackPreferences.enabled,
                 showHomeSwitch = state.isNew && homeLocationPreferences.hasLocation,
                 homeName = homeLocationPreferences.name.ifBlank { stringResource(R.string.home_location_default_name) },
-                onTrackSwitchChecked = { checked ->
-                    if (checked && requestTrackPermissionEarly && !TrackRecordingService.hasLocationPermission(context)) {
-                        onBeforeSystemDialog()
-                        earlyTrackPermissionLauncher.launch(trackPermissions())
-                    }
-                },
                 onAddVehicle = onAddVehicle,
                 modifier = Modifier
                     .padding(padding)
@@ -214,7 +218,6 @@ private fun TourForm(
     showTrackSwitch: Boolean,
     showHomeSwitch: Boolean,
     homeName: String,
-    onTrackSwitchChecked: (Boolean) -> Unit,
     onAddVehicle: () -> Unit,
     modifier: Modifier,
 ) {
@@ -253,6 +256,9 @@ private fun TourForm(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        if (state.isNew && state.runningTourConflict) {
+            RunningTourConflictBanner()
+        }
         SectionCard {
             SectionHeading(stringResource(R.string.edit_section_tour))
             val realVehicles = state.vehicles.filterNot { it.isDemo }
@@ -378,10 +384,7 @@ private fun TourForm(
                         title = stringResource(R.string.edit_track_switch_title),
                         supportingText = stringResource(R.string.edit_track_switch_support),
                         checked = state.trackSwitch,
-                        onCheckedChange = { checked ->
-                            viewModel.onTrackSwitchChange(checked)
-                            onTrackSwitchChecked(checked)
-                        },
+                        onCheckedChange = viewModel::onTrackSwitchChange,
                         modifier = Modifier.guideAnchor("edit.tour.track.checkbox"),
                     )
                 }
@@ -463,13 +466,15 @@ private fun TourForm(
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             )
         }
-        Button(
-            onClick = viewModel::save,
-            enabled = !state.isSaving,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp),
-        ) { Text(stringResource(R.string.action_save)) }
+        if (!state.isNew) {
+            Button(
+                onClick = viewModel::save,
+                enabled = !state.isSaving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
+            ) { Text(stringResource(R.string.action_save)) }
+        }
         if (errors.isNotEmpty()) {
             // Nennt die betroffenen Felder; ändert sich die Liste, sagt TalkBack sie erneut an.
             val fields = errors.keys.sortedBy(TourField::ordinal).map { stringResource(it.labelRes) }
@@ -478,6 +483,29 @@ private fun TourForm(
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+/**
+ * Nicht blockierender Hinweis für eine neue Tour: Das gewählte Fahrzeug hat (noch) eine laufende
+ * Tour, daher speichert sich diese Eingabe gerade nicht als zweite laufende Tour - der Nutzer kann
+ * trotzdem weiter tippen, der Hinweis verschwindet automatisch, sobald der Konflikt sich auflöst.
+ */
+@Composable
+private fun RunningTourConflictBanner() {
+    Card(
+        modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(painterResource(R.drawable.ic_warning), contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+            Spacer(Modifier.width(12.dp))
+            Text(
+                stringResource(R.string.edit_running_tour_conflict),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
             )
         }
     }

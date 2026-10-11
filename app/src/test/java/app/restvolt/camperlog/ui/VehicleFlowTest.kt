@@ -3,7 +3,6 @@ package app.restvolt.camperlog.ui
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
@@ -55,9 +54,6 @@ class VehicleFlowTest {
     }
 
     private fun destinationField() = compose.onNode(hasSetTextAction() and hasText("Ziel"))
-
-    private fun clickSave() =
-        compose.onNode(hasText("Speichern") and hasAnyAncestor(hasScrollAction())).performScrollTo().performClick()
 
     private fun dayCell(day: Int) = hasText(", $day. ", substring = true) and hasClickAction() and hasAnyAncestor(isDialog())
 
@@ -143,7 +139,8 @@ class VehicleFlowTest {
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Harz")
-        clickSave()
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.waitForIdle()
 
         assertEquals(1L, repository.tours.single().vehicleId)
     }

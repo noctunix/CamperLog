@@ -36,14 +36,17 @@ import androidx.compose.ui.unit.dp
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.ui.guide.guideAnchor
 
-/** Obere Leiste mit Zurück-Pfeil für Unterseiten. */
+/**
+ * Obere Leiste mit Zurück-Pfeil für Unterseiten. [navigationIconModifier] hängt sich an den
+ * Zurück-Button, z. B. für einen Rundgang-Anker auf ein Formular, das sich nur noch darüber verlässt.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BackTopBar(title: String, onBack: () -> Unit, actions: @Composable () -> Unit = {}) {
+fun BackTopBar(title: String, onBack: () -> Unit, navigationIconModifier: Modifier = Modifier, actions: @Composable () -> Unit = {}) {
     TopAppBar(
         title = { Text(title, modifier = Modifier.semantics { heading() }, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         navigationIcon = {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = onBack, modifier = navigationIconModifier) {
                 Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.action_back))
             }
         },

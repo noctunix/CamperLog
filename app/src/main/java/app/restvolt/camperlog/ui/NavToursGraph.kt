@@ -34,6 +34,7 @@ import app.restvolt.camperlog.ui.detail.TrackRecordingSection
 import app.restvolt.camperlog.ui.detail.TrackRecordingStatusRow
 import app.restvolt.camperlog.ui.edit.EditTourScreen
 import app.restvolt.camperlog.ui.edit.EditTourViewModel
+import app.restvolt.camperlog.ui.edit.isUnmodifiedNewTourDraft
 import app.restvolt.camperlog.ui.map.MapScreen
 import app.restvolt.camperlog.ui.map.MapViewModel
 import app.restvolt.camperlog.ui.overview.OverviewScreen
@@ -111,25 +112,28 @@ internal fun NavGraphBuilder.toursGraph(
                 if (isCreateFirstTourGuide) guideController.pause()
                 navController.navigate(VehicleEditRoute())
             },
-            onDone = { navController.popFrom(entry) },
-            onSaved = {
-                // Schaltet den letzten Schritt der Pilot-Tour frei, aber nur, wenn sie gerade läuft:
-                // normales Speichern ohne aktive Tour soll nicht an sie koppeln.
-                if (isCreateFirstTourGuide) {
+            onDone = {
+                // Eine neue Tour speichert sich schon laufend selbst; beim Verlassen entscheidet sich nur
+                // noch, ob der Entwurf (ohne jede sinnvolle Eingabe) wieder gelöscht wird oder bleibt.
+                val newTourKept = tourId == 0L && !editTourViewModel.uiState.value.isUnmodifiedNewTourDraft()
+                if (newTourKept) toursViewModel.onTourCreated()
+                // Schaltet den letzten Schritt der Pilot-Tour frei, aber nur, wenn sie gerade läuft und
+                // die Tour wirklich bleibt: normales Verlassen ohne aktive Tour soll nicht an sie koppeln.
+                if (isCreateFirstTourGuide && newTourKept) {
                     guideController.completeAction(CREATE_FIRST_TOUR_SAVE_ACTION)
                     guideController.next()
                 }
-                if (tourId == 0L) toursViewModel.onTourCreated()
-                val savedTourId = editTourViewModel.uiState.value.savedTourId
-                if (isCreateFirstTourGuide && tourId == 0L && savedTourId != null) {
+                val keptTourId = editTourViewModel.uiState.value.tourId
+                if (isCreateFirstTourGuide && newTourKept && keptTourId != null) {
                     // Die Pilot-Tour will als Nächstes den "Station hinzufügen"-FAB der
-                    // Tourdetailseite zeigen; normales Speichern führt sonst zur Tourenliste zurück.
+                    // Tourdetailseite zeigen; normales Verlassen führt sonst zur Tourenliste zurück.
                     navController.popBackStack()
-                    navController.navigate(DetailRoute(savedTourId))
+                    navController.navigate(DetailRoute(keptTourId))
                 } else {
                     navController.popFrom(entry)
                 }
             },
+            onSaved = { navController.popFrom(entry) },
         )
     }
     composable<DetailRoute> { entry ->

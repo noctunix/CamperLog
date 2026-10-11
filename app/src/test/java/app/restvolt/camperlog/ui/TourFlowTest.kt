@@ -65,6 +65,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
@@ -165,7 +166,7 @@ class TourFlowTest {
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Gardasee")
-        clickSave()
+        compose.onNodeWithContentDescription("Zurück").performClick()
 
         compose.onNodeWithText("Gardasee").assertExists()
         val saved = repository.tours.single()
@@ -173,6 +174,45 @@ class TourFlowTest {
         assertEquals(10, saved.startDate.dayOfMonth)
         assertEquals(12, saved.endDate?.dayOfMonth)
         assertEquals(3, saved.travelDays)
+    }
+
+    /** Kernregressionstest: Eine neue Tour bekommt sofort eine echte, stabile id, ganz ohne Speichern-Button. */
+    @Test
+    fun newTour_isPersistedImmediatelyWithAStableId() {
+        val repository = start()
+
+        compose.onNodeWithText("Neue Tour").performClick()
+
+        compose.onNodeWithText("Speichern").assertDoesNotExist()
+        val created = repository.tours.single()
+        assertTrue(created.id != 0L)
+    }
+
+    /**
+     * Der eigentliche Auslöser dieses Umbaus: Die GPS-Aufzeichnung startet beim Ankreuzen direkt
+     * gegen die schon existierende, echte Tour-id, ohne auf einen expliziten Speichern-Erfolg zu warten.
+     */
+    @Test
+    fun newTour_trackSwitch_startsRecordingAgainstTheRealIdWithoutAnyExplicitSave() {
+        TrackRecordingSettings.resetShared()
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        shadowOf(context as android.app.Application).grantPermissions(
+            "android.permission.ACCESS_FINE_LOCATION",
+            "android.permission.ACCESS_COARSE_LOCATION",
+            "android.permission.POST_NOTIFICATIONS",
+        )
+        val settings = TrackRecordingSettings.get(context)
+        settings.enabled = true
+        val repository = start()
+        compose.onNodeWithText("Neue Tour").performClick()
+        compose.waitForIdle()
+        val tourId = repository.tours.single().id
+
+        compose.onNode(hasText("GPS-Track aufzeichnen") and hasClickAction()).performClick()
+        compose.waitForIdle()
+
+        assertEquals(tourId, settings.trackedTourId)
+        TrackRecordingSettings.resetShared()
     }
 
     @Test
@@ -190,20 +230,30 @@ class TourFlowTest {
 
         compose.onNodeWithText("Heute").performClick()
         destinationField().performTextInput("Gardasee")
-        clickSave()
+        compose.onNodeWithContentDescription("Zurück").performClick()
 
         assertEquals(LocalDate.now(), repository.tours.single().startDate)
     }
 
+    /**
+     * Ohne Speichern-Button blockiert ein fehlendes Startdatum nichts mehr: Der Fehler erscheint
+     * inline, sobald der Nutzer irgendein Feld bearbeitet hat, speichert aber trotzdem weiter -
+     * mit dem heutigen Datum als unauffälligem Platzhalter, bis der Nutzer selbst eins wählt.
+     */
     @Test
-    fun saveWithoutRequiredFields_showsErrorsAndStaysOnForm() {
+    fun typingWithoutPickingAStartDate_showsTheRequiredErrorButStillKeepsTheTour() {
         val repository = start()
         compose.onNodeWithText("Neue Tour").performClick()
-        clickSave()
+        destinationField().performTextInput("Gardasee")
 
         compose.onNodeWithText("Startdatum erforderlich").assertExists()
-        destinationField().assertExists()
-        assertEquals(0, repository.tours.size)
+
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.waitForIdle()
+
+        val saved = repository.tours.single()
+        assertEquals("Gardasee", saved.destination)
+        assertEquals(LocalDate.now(), saved.startDate)
     }
 
     @Test
@@ -373,37 +423,22 @@ class TourFlowTest {
         assertEquals(1, repository.tours.size)
     }
 
+    /**
+     * Ohne Speichern-Button gibt es keinen abgelehnten Speicherversuch mehr, der Fehler erst
+     * sichtbar macht - stattdessen zeigt das Formular sie inline, sobald der Nutzer ein Feld
+     * bearbeitet hat, und meldet sie TalkBack über dieselbe Sprechblase wie zuvor.
+     */
     @Test
-    fun saveRejected_focusesFirstInvalidFieldAndAnnouncesHint() {
+    fun newTour_invalidCostShowsErrorInlineWithoutAnExplicitSave() {
         start()
         compose.onNodeWithText("Neue Tour").performClick()
+        compose.waitForIdle()
         pickDay("Startdatum", 10)
-        pickDay("Enddatum", 12)
         compose.onNodeWithText("Sonstige Kosten").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performTextInput("abc")
 
-        clickSave()
-
-        compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).assertIsFocused().assertIsDisplayed()
         compose.onNodeWithText("Bitte diese Felder prüfen: Kosten")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
-    }
-
-    @Test
-    fun saveRejected_reExpandsACollapsedSectionBeforeFocusingItsField() {
-        start()
-        compose.onNodeWithText("Neue Tour").performClick()
-        pickDay("Startdatum", 10)
-        pickDay("Enddatum", 12)
-        compose.onNodeWithText("Sonstige Kosten").performScrollTo().performClick()
-        compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performTextInput("abc")
-        // Wieder einklappen: Der Fehler muss den Abschnitt beim Speichern erneut aufklappen.
-        compose.onNodeWithText("Sonstige Kosten").performScrollTo().performClick()
-        compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).assertDoesNotExist()
-
-        clickSave()
-
-        compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).assertIsFocused().assertIsDisplayed()
     }
 
     @Test
@@ -418,7 +453,9 @@ class TourFlowTest {
         compose.onNodeWithText("Kartenlink").assertDoesNotExist()
         compose.onNode(hasSetTextAction() and hasText("Notizen")).assert(!hasText("Pflichtfeld"))
 
-        clickSave()
+        // Keine explizite Speicheraktion mehr nötig: Das erste bearbeitete Feld macht alle
+        // aktuellen Fehler sichtbar, hier das noch fehlende Startdatum.
+        destinationField().performTextInput("x")
 
         compose.onNodeWithText("Bitte diese Felder prüfen: Startdatum").assertExists()
     }
@@ -580,48 +617,51 @@ class TourFlowTest {
         compose.onNode(hasSetTextAction() and hasText("Kartenlink")).assertExists()
     }
 
+    /**
+     * Ohne Speichern-Button gibt es keinen manuellen Wiederholungsversuch mehr: Ein fehlgeschlagener
+     * Autosave meldet sich genauso wie zuvor, erholt sich aber selbst beim nächsten erfolgreichen
+     * Schreibzugriff - hier ausgelöst durchs endgültige Sichern beim Verlassen des Formulars.
+     */
     @Test
-    fun saveTour_writeFails_keepsFormAndReportsError() {
+    fun newTourAutosave_writeFails_showsErrorAndRecoversOnTheNextWrite() {
         val repository = start()
         repository.failWrites = true
 
         compose.onNodeWithText("Neue Tour").performClick()
-        pickDay("Startdatum", 10)
-        pickDay("Enddatum", 12)
-        destinationField().performTextInput("Ostsee")
-        clickSave()
 
         compose.onNodeWithText("Tour konnte nicht gespeichert werden.").assertExists()
-        compose.onNodeWithText("Neue Tour").assertExists()
-        compose.onNodeWithText("Ostsee").assertExists()
         assertEquals(0, repository.tours.size)
 
-        // Der untere Button bleibt neben der Snackbar erreichbar und wird nicht von ihr verdeckt.
-        val bottomSave = compose.onNode(hasText("Speichern") and hasAnyAncestor(hasScrollAction())).performScrollTo()
-        val snackbarTop = compose.onNodeWithText("Tour konnte nicht gespeichert werden.").getUnclippedBoundsInRoot().top
-        val saveBottom = bottomSave.getUnclippedBoundsInRoot().bottom
-        assertTrue("Button endet bei $saveBottom, Snackbar beginnt bei $snackbarTop", saveBottom <= snackbarTop)
-
         repository.failWrites = false
-        bottomSave.performClick()
+        destinationField().performTextInput("Ostsee")
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.waitForIdle()
 
         assertEquals(listOf("Ostsee"), repository.tours.map { it.destination })
-        compose.onNodeWithText("Tour gespeichert").assertExists()
     }
 
+    /**
+     * Der Konflikt "schon eine laufende Tour für dieses Fahrzeug" blockiert die Eingabe nicht mehr:
+     * Er zeigt sich als dauerhafter Inline-Hinweis, lässt den Nutzer aber weitertippen und legt die
+     * Tour erst an, sobald er sich auflöst.
+     */
     @Test
-    fun secondRunningTourIsRejectedWithoutLeavingForm() {
+    fun newTour_runningVehicleConflict_showsInlineHintWithoutBlockingInput() {
         val repository = start()
         repository.failWithRunningTourConflict = true
 
         compose.onNodeWithText("Neue Tour").performClick()
-        pickDay("Startdatum", 10)
-        destinationField().performTextInput("Ostsee")
-        clickSave()
 
         compose.onNodeWithText("Für dieses Fahrzeug läuft bereits eine Tour.").assertExists()
-        compose.onNodeWithText("Neue Tour").assertExists()
+        destinationField().performTextInput("Ostsee")
+        compose.onNodeWithText("Für dieses Fahrzeug läuft bereits eine Tour.").assertExists()
         assertEquals(0, repository.tours.size)
+
+        repository.failWithRunningTourConflict = false
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.waitForIdle()
+
+        assertEquals(listOf("Ostsee"), repository.tours.map { it.destination })
     }
 
     @Test
@@ -645,7 +685,7 @@ class TourFlowTest {
         pickDay("Startdatum", 10)
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Ostsee")
-        clickSave()
+        compose.onNodeWithContentDescription("Zurück").performClick()
 
         compose.onNodeWithText("Tour gespeichert").assertExists()
         compose.onNodeWithText("Ostsee").assertExists()
@@ -663,11 +703,40 @@ class TourFlowTest {
         compose.onNodeWithText("Übersicht").assertExists()
     }
 
+    /** Eine neue Tour speichert sich schon laufend selbst - ohne jede Eingabe bleibt also keine Karteileiche zurück. */
     @Test
-    fun leavingDirtyForm_asksBeforeDiscarding() {
+    fun leavingNewTourWithoutAnyInput_discardsItSilentlyWithoutAsking() {
+        val repository = start()
+        compose.onNodeWithText("Neue Tour").performClick()
+        compose.waitForIdle()
+        assertEquals(1, repository.tours.size)
+
+        compose.onNodeWithContentDescription("Zurück").performClick()
+
+        compose.onNodeWithText("Änderungen verwerfen?").assertDoesNotExist()
+        assertEquals(0, repository.tours.size)
+    }
+
+    /** Mit einer sinnvollen Eingabe bleibt die automatisch angelegte Tour einfach stehen, ganz ohne Rückfrage. */
+    @Test
+    fun leavingNewTourAfterTyping_keepsItSilentlyWithoutAsking() {
         val repository = start()
         compose.onNodeWithText("Neue Tour").performClick()
         destinationField().performTextInput("Ostsee")
+
+        compose.onNodeWithContentDescription("Zurück").performClick()
+
+        compose.onNodeWithText("Änderungen verwerfen?").assertDoesNotExist()
+        assertEquals(listOf("Ostsee"), repository.tours.map { it.destination })
+    }
+
+    /** Das Bearbeiten einer bestehenden Tour behält den Verwerfen-Dialog weiterhin, unverändert. */
+    @Test
+    fun leavingDirtyExistingTourEdit_asksBeforeDiscarding() {
+        val repository = start(tour(id = 1, destination = "Gardasee"))
+        compose.onNodeWithText("Gardasee").performClick()
+        compose.onNodeWithContentDescription("Bearbeiten").performClick()
+        destinationField().performTextReplacement("Ostsee")
 
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Änderungen verwerfen?").assertExists()
@@ -676,8 +745,8 @@ class TourFlowTest {
 
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Verwerfen").performClick()
-        compose.onNodeWithText("Tourenlog").assertExists()
-        assertEquals(0, repository.tours.size)
+        compose.onNodeWithContentDescription("Bearbeiten").assertExists()
+        assertEquals("Gardasee", repository.tours.single().destination)
     }
 
     @Test
@@ -697,15 +766,16 @@ class TourFlowTest {
         compose.onNode(hasText("NOK · Norwegische Krone") and isSelectable()).performClick()
         compose.onNode(hasSetTextAction() and hasText("Kosten (NOK)")).performScrollTo().performTextInput("1.450")
         compose.onNodeWithContentDescription("Betrag in NOK entfernen").assertExists()
-        clickSave()
+        compose.onNodeWithContentDescription("Zurück").performClick()
 
         compose.onNodeWithText("Lofoten").assertExists()
         val nok = Currency.getInstance("NOK")
         assertEquals(listOf(Money(1_250, EUR), Money(145_000, nok)), repository.tours.single().costs)
     }
 
+    /** Ein zu großer Betrag zeigt den Fehler inline und speichert nur ihn nicht mit, der Rest der Eingabe bleibt erhalten. */
     @Test
-    fun createTour_amountTooLarge_showsMaximum() {
+    fun newTour_amountTooLarge_showsMaximumAndSkipsOnlyThatAmount() {
         val repository = start()
         compose.onNodeWithText("Neue Tour").performClick()
         pickDay("Startdatum", 10)
@@ -713,10 +783,15 @@ class TourFlowTest {
         destinationField().performTextInput("Lofoten")
         compose.onNodeWithText("Sonstige Kosten").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Kosten (€)")).performScrollTo().performTextInput("100000000000,01")
-        clickSave()
 
         compose.onNodeWithText("Betrag zu groß, höchstens 100.000.000.000,00", substring = true).assertExists()
-        assertEquals(0, repository.tours.size)
+
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.waitForIdle()
+
+        val saved = repository.tours.single()
+        assertEquals("Lofoten", saved.destination)
+        assertEquals(emptyList<Money>(), saved.costs)
     }
 
     @Test

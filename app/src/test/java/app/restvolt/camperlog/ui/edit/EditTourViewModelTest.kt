@@ -2,6 +2,7 @@ package app.restvolt.camperlog.ui.edit
 
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.Checklist
 import app.restvolt.camperlog.domain.CoordinateSource
@@ -20,6 +21,7 @@ import app.restvolt.camperlog.ui.settings.HomeLocationSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -200,8 +202,13 @@ class EditTourViewModelTest {
         assertEquals(false, viewModel.uiState.value.trackSwitch)
     }
 
+    /**
+     * Kernregressionstest für den Umbau auf implizites Speichern: Der eigentliche Vorfall (GPS-
+     * Aufzeichnung ließ sich nicht starten, weil ein vorheriges Speichern scheiterte) wird dadurch
+     * strukturell unmöglich, dass eine neue Tour von Anfang an eine echte, stabile id hat.
+     */
     @Test
-    fun savingANewTourExposesItsIdAsSavedTourId() = runTest {
+    fun newTour_getsARealIdImmediatelyWithoutAnyExplicitSave() = runTest {
         val tours = FakeTourRepository()
         val viewModel = EditTourViewModel(
             tours,
@@ -212,12 +219,108 @@ class EditTourViewModelTest {
             SavedStateHandle(),
             locale,
         )
-        viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
+
+        val tourId = viewModel.uiState.value.tourId
+        assertEquals(tours.tours.single().id, tourId)
+        assertTrue(tours.tours.single().id != 0L)
+    }
+
+    @Test
+    fun newTour_autosavesFieldChangesAfterTheDebounceWithoutAnyExplicitSave() = runTest {
+        val tours = FakeTourRepository()
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(),
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            locale,
+        )
+        val id = checkNotNull(viewModel.uiState.value.tourId)
+
         viewModel.onDestinationChange("Gardasee")
+        // Der Schreibzugriff ist entprellt; direkt nach der Eingabe steht der alte Stand noch in der DB.
+        assertEquals("", tours.tours.single().destination)
 
-        viewModel.save()
+        advanceUntilIdle()
 
-        assertEquals(tours.tours.single().id, viewModel.uiState.value.savedTourId)
+        assertEquals(id, tours.tours.single().id)
+        assertEquals("Gardasee", tours.tours.single().destination)
+    }
+
+    @Test
+    fun newTour_leavingWithoutAnyMeaningfulInput_deletesTheAutoCreatedDraft() = runTest {
+        val tours = FakeTourRepository()
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(),
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            locale,
+        )
+        assertEquals(1, tours.tours.size)
+
+        clear(viewModel)
+
+        assertEquals(0, tours.tours.size)
+    }
+
+    /** Ein noch nicht geschriebener letzter Tastendruck geht beim Verlassen nicht verloren. */
+    @Test
+    fun newTour_leavingAfterTyping_keepsTheTourAndFlushesAStillPendingChange() = runTest {
+        val tours = FakeTourRepository()
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(),
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            locale,
+        )
+
+        viewModel.onDestinationChange("Gardasee")
+        clear(viewModel)
+
+        assertEquals("Gardasee", tours.tours.single().destination)
+    }
+
+    /**
+     * Der Konflikt "schon eine laufende Tour für dieses Fahrzeug" blockiert die Eingabe nicht mehr:
+     * Die Tour wird dafür nicht angelegt, der Nutzer kann aber weiter tippen; sobald sich der
+     * Konflikt auflöst, holt der nächste Autosave die inzwischen eingegebenen Daten nach.
+     */
+    @Test
+    fun newTour_runningVehicleConflict_isNonBlockingAndResolvesOnTheNextSuccessfulAutosave() = runTest {
+        val tours = FakeTourRepository()
+        tours.failWithRunningTourConflict = true
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(),
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            locale,
+        )
+
+        assertTrue(viewModel.uiState.value.runningTourConflict)
+        assertEquals(0, tours.tours.size)
+
+        viewModel.onDestinationChange("Gardasee")
+        advanceUntilIdle()
+        assertEquals("Gardasee", viewModel.uiState.value.input.destination)
+        assertEquals(0, tours.tours.size)
+
+        tours.failWithRunningTourConflict = false
+        viewModel.onNameChange("Sommerurlaub")
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.uiState.value.runningTourConflict)
+        assertEquals("Gardasee", tours.tours.single().destination)
     }
 
     @Test
@@ -235,9 +338,8 @@ class EditTourViewModelTest {
         )
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
         viewModel.onDestinationChange("Gardasee")
-        viewModel.onHomeSwitchChange(true)
 
-        viewModel.save()
+        viewModel.onHomeSwitchChange(true)
 
         val saved = stations.stations.single()
         assertEquals(StationType.OVERNIGHT, saved.type)
@@ -265,9 +367,8 @@ class EditTourViewModelTest {
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
         viewModel.onEndDateChange(LocalDate.of(2026, 7, 3))
         viewModel.onDestinationChange("Gardasee")
-        viewModel.onHomeSwitchChange(true)
 
-        viewModel.save()
+        viewModel.onHomeSwitchChange(true)
 
         assertEquals(2, stations.stations.size)
         assertEquals(setOf(LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 3)), stations.stations.map { it.date }.toSet())
@@ -290,8 +391,6 @@ class EditTourViewModelTest {
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
         viewModel.onDestinationChange("Gardasee")
 
-        viewModel.save()
-
         assertEquals(0, stations.stations.size)
     }
 
@@ -311,9 +410,8 @@ class EditTourViewModelTest {
         )
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
         viewModel.onDestinationChange("Gardasee")
-        viewModel.onHomeSwitchChange(true)
 
-        viewModel.save()
+        viewModel.onHomeSwitchChange(true)
 
         assertEquals(7L, stations.stations.single().vehicleId)
     }
@@ -333,11 +431,62 @@ class EditTourViewModelTest {
         )
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
         viewModel.onDestinationChange("Gardasee")
+
         viewModel.onHomeSwitchChange(true)
 
-        viewModel.save()
+        assertEquals(0, stations.stations.size)
+    }
+
+    /** Beim Ausschalten entfernte Zuhause-Station(en) entstehen beim nächsten Einschalten neu. */
+    @Test
+    fun homeSwitchOff_removesAStillUnchangedHomeStationAgain() = runTest {
+        val stations = FakeStationRepository()
+        val viewModel = EditTourViewModel(
+            FakeTourRepository(),
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            stations,
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            locale,
+            homeLocationSettings = homeLocationSettings(name = "Elternhaus"),
+        )
+        viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
+        viewModel.onHomeSwitchChange(true)
+        assertEquals(1, stations.stations.size)
+
+        viewModel.onHomeSwitchChange(false)
 
         assertEquals(0, stations.stations.size)
+    }
+
+    /** Hat der Nutzer die automatisch angelegte Station inzwischen selbst bearbeitet, bleibt sie beim Ausschalten stehen. */
+    @Test
+    fun homeSwitchOff_keepsAHomeStationTheUserAlreadyEdited() = runTest {
+        val stations = FakeStationRepository()
+        val viewModel = EditTourViewModel(
+            FakeTourRepository(),
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            stations,
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            locale,
+            homeLocationSettings = homeLocationSettings(name = "Elternhaus"),
+        )
+        viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
+        viewModel.onHomeSwitchChange(true)
+        val created = stations.stations.single()
+        stations.save(created.copy(name = "Eigener Name"))
+
+        viewModel.onHomeSwitchChange(false)
+
+        assertEquals(1, stations.stations.size)
+    }
+
+    /** [EditTourViewModel.onCleared] ist wie bei jedem `ViewModel` nur intern erreichbar; über den Store löst sich das Pendant zum echten Verlassen aus. */
+    private fun clear(viewModel: EditTourViewModel) {
+        ViewModelStore().apply { put("tour", viewModel) }.clear()
     }
 
     private fun newViewModel() = EditTourViewModel(

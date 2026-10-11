@@ -127,7 +127,9 @@ class DraftRestorationTest {
     fun visibleErrorsSurviveProcessDeath() {
         val handle = SavedStateHandle()
         val before = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle, locale)
-        before.save()
+        // Eine neue Tour hat keinen Speichern-Button mehr; schon die erste Eingabe macht die
+        // aktuellen Fehler sichtbar (hier das noch fehlende Startdatum).
+        before.onDestinationChange("Gardasee")
 
         val after = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle.afterProcessDeath(), locale)
 
