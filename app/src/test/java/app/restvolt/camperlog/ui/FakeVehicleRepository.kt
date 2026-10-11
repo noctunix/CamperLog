@@ -34,8 +34,11 @@ class FakeVehicleRepository(
     val currentVehicleId: Long get() = current.value
     val repairs: List<Repair> get() = repairsState.value
 
-    /** Simuliert eine volle oder defekte Datenbank: [saveRepair] wirft dann eine [SQLiteException]. */
+    /** Simuliert eine volle oder defekte Datenbank: [save] und [saveRepair] werfen dann eine [SQLiteException]. */
     var failWrites = false
+
+    /** Zählt die Aufrufe von [save]. */
+    var saveCount = 0
 
     /** Zählt die Aufrufe von [saveRepair]. */
     var saveRepairCount = 0
@@ -59,6 +62,8 @@ class FakeVehicleRepository(
     }
 
     override suspend fun save(vehicle: Vehicle): Long {
+        if (failWrites) throw SQLiteException("simulierter Schreibfehler")
+        saveCount++
         val now = Instant.EPOCH
         return if (vehicle.id == 0L) {
             val id = nextId++

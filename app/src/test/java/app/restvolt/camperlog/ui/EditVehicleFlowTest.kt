@@ -1,8 +1,6 @@
 package app.restvolt.camperlog.ui
 
-import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -38,8 +36,13 @@ class EditVehicleFlowTest {
         }
     }
 
-    private fun clickSave() =
-        compose.onNode(hasText("Speichern") and hasClickAction() and !hasAnyAncestor(hasScrollAction())).performClick()
+    /** Verlässt das Fahrzeugformular über "Zurück" und bestätigt die Verwerfen/Speichern-Abfrage mit "Speichern". */
+    private fun leaveFormAndKeep() {
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Speichern").performClick()
+        compose.waitForIdle()
+    }
 
     @Test
     fun emptyVehicle_showsHintAndAddDetailsOpensForm() {
@@ -63,7 +66,7 @@ class EditVehicleFlowTest {
         compose.onNode(hasSetTextAction() and hasText("Leistung")).performScrollTo().performTextInput("120")
         compose.onNode(hasSetTextAction() and hasText("Diesel")).performScrollTo().performTextInput("90")
 
-        clickSave()
+        leaveFormAndKeep()
 
         compose.onNodeWithText("636 cm").assertExists()
         compose.onNodeWithText("120 kW (163 PS)").assertExists()
@@ -127,7 +130,7 @@ class EditVehicleFlowTest {
         compose.onNode(hasSetTextAction() and hasText("Verkäufer")).performScrollTo().performTextInput("Max Verkäufer")
         compose.onNode(hasSetTextAction() and hasText("Käufer")).performScrollTo().performTextInput("Erika Käufer")
 
-        clickSave()
+        leaveFormAndKeep()
 
         compose.onNodeWithText("Max Verkäufer").assertExists()
         compose.onNodeWithText("Erika Käufer").assertExists()
@@ -203,7 +206,7 @@ class EditVehicleFlowTest {
         compose.onAllNodes(hasText("Doppelbereifung") and hasClickAction())[0].performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Zweite Reifengröße")).performTextInput("225/70 R15")
 
-        clickSave()
+        leaveFormAndKeep()
 
         compose.onNodeWithText("225/75 R16 (Doppelbereifung: 225/70 R15)").assertExists()
     }
@@ -216,7 +219,11 @@ class EditVehicleFlowTest {
         compose.onNodeWithText("Fahrzeuge verwalten").performClick()
         compose.onNodeWithText("Fahrzeug hinzufügen").performClick()
 
-        clickSave()
+        // Es gibt keinen Speichern-Button mehr; schon die erste Eingabe macht den noch fehlenden
+        // Pflichtnamen inline sichtbar.
+        val nameField = compose.onNode(hasSetTextAction() and hasText("Name"))
+        nameField.performTextInput("X")
+        nameField.performTextClearance()
 
         compose.onNodeWithText("Name erforderlich").assertExists()
     }

@@ -263,25 +263,15 @@ class DraftRestorationTest {
         val repository = FakeVehicleRepository()
         val handle = SavedStateHandle()
         val before = EditVehicleViewModel(repository, 0, handle, locale)
-        before.save()
+        // Ein neues Fahrzeug hat keinen Speichern-Button mehr; schon die erste Eingabe macht die
+        // aktuellen Fehler sichtbar (hier den noch leeren Pflichtnamen).
+        before.onInputChange { it.copy(model = "Camper") }
 
         val after = EditVehicleViewModel(repository, 0, handle.afterProcessDeath(), locale)
 
         assertEquals(VehicleError.REQUIRED, after.uiState.value.errors[VehicleField.NAME])
         after.onInputChange { it.copy(name = "Camper") }
         assertFalse(VehicleField.NAME in after.uiState.value.errors)
-    }
-
-    @Test
-    fun savedVehicleLeavesNoDraft() {
-        val repository = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "Alt")))
-        val handle = SavedStateHandle()
-        val before = EditVehicleViewModel(repository, 1, handle, locale)
-        before.onInputChange { it.copy(name = "Neu") }
-        before.save()
-
-        assertTrue(before.uiState.value.isSaved)
-        assertTrue(handle.keys().isEmpty())
     }
 
     @Test

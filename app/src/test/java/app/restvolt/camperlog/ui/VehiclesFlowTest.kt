@@ -1,8 +1,6 @@
 package app.restvolt.camperlog.ui
 
 import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
@@ -44,9 +42,6 @@ class VehiclesFlowTest {
         compose.onNodeWithText("Fahrzeuge verwalten").performClick()
     }
 
-    private fun clickSave() =
-        compose.onNode(hasText("Speichern") and hasClickAction() and !hasAnyAncestor(hasScrollAction())).performClick()
-
     @Test
     fun addVehicle_appearsInListButDoesNotBecomeCurrent() {
         val vehicles = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "Wohnmobil A")))
@@ -55,7 +50,12 @@ class VehiclesFlowTest {
 
         compose.onNodeWithText("Fahrzeug hinzufügen").performClick()
         compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Wohnmobil B")
-        clickSave()
+        // Das Formular speichert implizit; "Zurück" zeigt wegen der echten Eingabe erst die
+        // Verwerfen/Speichern-Abfrage, "Speichern" verlässt es dann und behält das Fahrzeug.
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Speichern").performClick()
+        compose.waitForIdle()
 
         compose.onNodeWithText("Wohnmobil B").assertExists()
         assertEquals(2, vehicles.vehicles.size)

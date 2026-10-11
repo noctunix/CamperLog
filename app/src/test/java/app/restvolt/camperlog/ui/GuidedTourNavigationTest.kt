@@ -144,9 +144,6 @@ class GuidedTourNavigationTest {
     /** Eintrag der Stationstyp-Auswahl (eigenes Blatt über der Barriere). */
     private fun typePickerItem(label: String) = hasText(label) and hasClickAction() and hasAnyAncestor(isDialog())
 
-    /** Der echte "Speichern"-Button in der oberen Leiste, nicht der am Formularende oder der Kartentitel. */
-    private fun topBarSaveButton() = hasText("Speichern") and hasClickAction() and !hasAnyAncestor(hasScrollAction())
-
     private fun clickWeiter() {
         compose.onNodeWithText("Weiter").performClick()
         compose.waitForIdle()
@@ -419,9 +416,13 @@ class GuidedTourNavigationTest {
             compose.onNode(addVehicleButton).performClick()
 
             // Das Tourformular ist pausiert (keine Barriere mehr, "Fortsetzen" statt "Weiter"); das
-            // jetzt echte, ungeführte Fahrzeugformular ist offen.
+            // jetzt echte, ungeführte Fahrzeugformular ist offen. Es speichert sich implizit selbst;
+            // "Zurück" zeigt wegen der echten Eingabe erst die Verwerfen/Speichern-Abfrage, "Speichern"
+            // verlässt das Formular dann und behält das Fahrzeug.
             compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Hymer B-Klasse")
-            clickThrough(topBarSaveButton())
+            clickThrough(hasContentDescription("Zurück"))
+            compose.waitForIdle()
+            compose.onNodeWithText("Speichern").performClick()
             compose.waitForIdle()
 
             // Zurück im Tourformular ist die Pilot-Tour fortgesetzt und freigeschaltet.
@@ -450,6 +451,51 @@ class GuidedTourNavigationTest {
 
             // Die Pilot-Tour läuft weiter (jetzt auf der Tourdetailseite); zum Abschluss reicht hier
             // ein vorzeitiges Beenden, der vollständige Rest-Ablauf ist bereits anderswo abgedeckt.
+            compose.onNodeWithText("Beenden").performClick()
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    /**
+     * Wird das inline angelegte Fahrzeug stattdessen verworfen, bleibt die Pilot-Tour pausiert: Der
+     * Fahrzeug-Schritt gilt nicht als erledigt, "Fortsetzen" muss der Nutzer selbst anstoßen, und das
+     * angelegte Fahrzeug verschwindet wieder.
+     */
+    @Test
+    fun createFirstTourTour_discardingInlineVehicleCreation_doesNotCompleteTheVehicleStep() {
+        clearPreferences()
+        try {
+            val leftoverDemo = defaultVehicle(id = 99, name = "Alter Demo-Wagen").copy(isDemo = true)
+            val vehicles = FakeVehicleRepository(listOf(leftoverDemo), currentVehicleId = 99)
+            start(vehicles = vehicles)
+            openAbout()
+            compose.onAllNodesWithText("Starten")[1].performClick()
+            compose.waitForIdle()
+
+            clickThrough(hasText("Neue Tour") and hasClickAction())
+            clickWeiter() // fab
+            compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Alpentour")
+            clickWeiter() // name
+            clickWeiter() // tourtype
+
+            val addVehicleButton = hasText("Fahrzeug hinzufügen") and hasClickAction()
+            compose.onNode(addVehicleButton).assertExists()
+            val vehiclesBeforeCreate = vehicles.vehicles.size
+
+            compose.onNode(addVehicleButton).performClick()
+            compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Hymer B-Klasse")
+            clickThrough(hasContentDescription("Zurück"))
+            compose.waitForIdle()
+            compose.onNodeWithText("Verwerfen").performClick()
+            compose.waitForIdle()
+
+            // Die Pilot-Tour bleibt pausiert, statt den Fahrzeug-Schritt freizuschalten.
+            compose.onNodeWithText("Fortsetzen").assertExists()
+            compose.onNodeWithText("Weiter").assertDoesNotExist()
+            assertEquals(vehiclesBeforeCreate, vehicles.vehicles.size)
+
+            compose.onNodeWithText("Fortsetzen").performClick()
             compose.onNodeWithText("Beenden").performClick()
         } finally {
             clearPreferences()
