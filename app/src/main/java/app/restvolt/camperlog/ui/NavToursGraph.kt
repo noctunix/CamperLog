@@ -201,6 +201,7 @@ internal fun NavGraphBuilder.toursGraph(
             onAddSuggestedChecklistTemplates = {
                 scope.launch { suggestedChecklistTemplates(resources).forEach { checklistTemplates.save(it) } }
             },
+            onManageChecklistTemplates = { navController.navigate(ChecklistTemplatesRoute) },
             onOpenChecklist = { checklistId -> navController.navigate(ChecklistRoute(checklistId = checklistId, tourId = tourId)) },
         )
     }

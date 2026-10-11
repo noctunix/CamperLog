@@ -21,7 +21,7 @@ import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
 
-/** Checklisten-Abläufe an einer Tour: Vorschläge einfügen, Checkliste starten, Punkt abhaken. */
+/** Checklisten-Abläufe an einer Tour: Vorschläge einfügen, Checkliste starten, Punkt abhaken, Vorlagenverwaltung öffnen. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
 class ChecklistFlowTest {
@@ -97,5 +97,17 @@ class ChecklistFlowTest {
         compose.onNodeWithContentDescription("Zurück").performClick()
 
         compose.onNode(hasText("Ankunft") and hasText("0/6")).assertExists()
+    }
+
+    @Test
+    fun checklistPickerOnATour_manageTemplatesButton_opensTemplateManagement() {
+        start(tour())
+        compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Checklisten").performScrollTo().performClick()
+        compose.onNodeWithText("Checkliste starten").performScrollTo().performClick()
+
+        compose.onNodeWithContentDescription("Vorlagen verwalten").performClick()
+
+        compose.onNodeWithText("Checklisten-Vorlagen").assertExists()
     }
 }

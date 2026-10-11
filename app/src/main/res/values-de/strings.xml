@@ -1074,6 +1074,7 @@
         <item quantity="other">%1$d Punkte</item>
     </plurals>
     <string name="checklist_picker_title">Vorlage wählen</string>
+    <string name="checklist_manage_templates_action">Vorlagen verwalten</string>
     <string name="checklist_picker_empty">Noch keine Vorlagen.</string>
     <string name="checklist_vehicle_empty">Noch keine Checklisten.</string>
     <string name="checklist_templates_action">Vorlagen</string>

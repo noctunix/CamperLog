@@ -1085,6 +1085,7 @@
         <item quantity="other">%1$d items</item>
     </plurals>
     <string name="checklist_picker_title">Choose a template</string>
+    <string name="checklist_manage_templates_action">Manage templates</string>
     <string name="checklist_picker_empty">No templates yet.</string>
     <string name="checklist_vehicle_empty">No checklists yet.</string>
     <string name="checklist_templates_action">Templates</string>

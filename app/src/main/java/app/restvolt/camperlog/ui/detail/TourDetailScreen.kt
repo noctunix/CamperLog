@@ -133,6 +133,7 @@ fun TourDetailScreen(
     onAddDiaryEntry: (Long) -> Unit,
     onOpenDiaryEntry: (Long) -> Unit,
     onAddSuggestedChecklistTemplates: () -> Unit,
+    onManageChecklistTemplates: () -> Unit,
     onOpenChecklist: (Long) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -284,6 +285,10 @@ fun TourDetailScreen(
                 viewModel.startChecklist(template)
             },
             onAddSuggested = onAddSuggestedChecklistTemplates,
+            onManageTemplates = {
+                showChecklistPicker = false
+                onManageChecklistTemplates()
+            },
             onDismiss = { showChecklistPicker = false },
         )
     }

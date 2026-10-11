@@ -106,6 +106,10 @@ fun VehicleChecklistsScreen(
                 viewModel.startChecklist(template)
             },
             onAddSuggested = { viewModel.addSuggestedTemplates(suggestedChecklistTemplates(resources)) },
+            onManageTemplates = {
+                showPicker = false
+                onOpenTemplates()
+            },
             onDismiss = { showPicker = false },
         )
     }
