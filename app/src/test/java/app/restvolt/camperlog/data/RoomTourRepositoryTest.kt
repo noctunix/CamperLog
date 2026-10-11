@@ -158,6 +158,25 @@ class RoomTourRepositoryTest {
     }
 
     @Test
+    fun addingAVehicleAndFinishingARunningTourNeverMovesSiblingTours() = runTest {
+        val first = repository.save(tour(start = "2025-05-01", destination = "Alt 1"))
+        val second = repository.save(tour(start = "2025-07-01", destination = "Alt 2"))
+        val running = repository.save(tour(start = "2026-06-01", destination = "Laufend").copy(endDate = null))
+
+        // Entspricht dem gemeldeten Ablauf: ein neues Fahrzeug kommt dazu, während eine Tour des
+        // bisherigen Fahrzeugs noch läuft, danach wird genau diese eine Tour beendet.
+        val otherVehicleId = db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-audi", createdAtMillis = 0, updatedAtMillis = 0))
+        val runningTour = checkNotNull(repository.observeTour(running).first())
+        repository.save(runningTour.copy(endDate = LocalDate.parse("2026-06-05")))
+
+        assertEquals(vehicleId, repository.observeTour(first).first()?.vehicleId)
+        assertEquals(vehicleId, repository.observeTour(second).first()?.vehicleId)
+        assertEquals(vehicleId, repository.observeTour(running).first()?.vehicleId)
+        assertEquals(3, repository.allTours().count { it.vehicleId == vehicleId })
+        assertEquals(0, db.query("SELECT COUNT(*) FROM tours WHERE vehicle_id = $otherVehicleId", null).use { it.moveToFirst(); it.getInt(0) })
+    }
+
+    @Test
     fun restoreRejectsSecondRunningTour() = runTest {
         repository.save(tour(start = "2026-05-01").copy(endDate = null))
         val deletedId = repository.save(tour(start = "2026-06-01").copy(endDate = LocalDate.parse("2026-06-02")))
