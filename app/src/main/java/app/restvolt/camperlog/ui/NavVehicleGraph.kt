@@ -152,24 +152,12 @@ internal fun NavGraphBuilder.vehicleGraph(
     }
     composable<DocumentEditRoute> { entry ->
         val route = entry.toRoute<DocumentEditRoute>()
-        val documentEditViewModel = viewModel {
-            VehicleDocumentEditViewModel(documents, route.vehicleId, route.documentId, createSavedStateHandle())
-        }
         VehicleDocumentEditScreen(
-            viewModel = documentEditViewModel,
+            viewModel = viewModel { VehicleDocumentEditViewModel(documents, route.vehicleId, route.documentId, createSavedStateHandle()) },
             attachments = attachments,
             attachmentFileStore = attachmentFileStore,
             attachmentPickers = attachmentPickers,
             onDone = { navController.popFrom(entry) },
-            onSaved = {
-                if (route.documentId == 0L) {
-                    val savedId = documentEditViewModel.uiState.value.savedDocumentId
-                    navController.popBackStack()
-                    navController.navigate(DocumentDetailRoute(route.vehicleId, savedId))
-                } else {
-                    navController.popFrom(entry)
-                }
-            },
         )
     }
     composable<DocumentDetailRoute> { entry ->

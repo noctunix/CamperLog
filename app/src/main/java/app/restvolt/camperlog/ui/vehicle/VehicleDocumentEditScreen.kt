@@ -6,21 +6,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,8 +39,8 @@ import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.DateField
-import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.LeaveDraftDialog
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
 import app.restvolt.camperlog.ui.attachments.AttachmentPickers
@@ -51,9 +48,8 @@ import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.labelRes
 
 /**
- * Formular zum Anlegen und Bearbeiten eines Fahrzeugdokuments. Seine Dateien lassen sich erst nach
- * dem ersten Speichern anhängen, siehe [VehicleDocumentEditViewModel]; [onSaved] führt für ein neues
- * Dokument zu dessen Detailseite statt zurück zum Datenblatt, damit sich dort gleich Dateien anhängen lassen.
+ * Formular zum Anlegen und Bearbeiten eines Fahrzeugdokuments; jede Eingabe speichert sich implizit
+ * selbst. [onDone] ist der einzige Ausstiegspunkt, für beide Fälle - siehe [VehicleDocumentEditViewModel].
  */
 @Composable
 fun VehicleDocumentEditScreen(
@@ -62,16 +58,12 @@ fun VehicleDocumentEditScreen(
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     onDone: () -> Unit,
-    onSaved: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
 
-    LaunchedEffect(state.isSaved) {
-        if (state.isSaved) onSaved()
-    }
     LaunchedEffect(state.saveFailed) {
         if (state.saveFailed) {
             snackbar.showSnackbar(resources.getString(R.string.document_edit_save_failed), withDismissAction = true)
@@ -79,19 +71,14 @@ fun VehicleDocumentEditScreen(
         }
     }
 
-    val requestBack = { if (state.isDirty) confirmDiscard = true else onDone() }
-    BackHandler(enabled = state.isDirty && !state.isSaved) { confirmDiscard = true }
+    val requestBack = { if (state.needsLeaveConfirmation()) showLeaveDialog = true else onDone() }
+    BackHandler(onBack = requestBack)
 
     Scaffold(
         topBar = {
             BackTopBar(
                 title = stringResource(if (state.isNew) R.string.document_edit_title_new else R.string.document_edit_title_existing),
                 onBack = requestBack,
-                actions = {
-                    if (!state.notFound && !state.isLoading) {
-                        TextButton(onClick = viewModel::save, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
-                    }
-                },
             )
         },
         bottomBar = { SnackbarHost(snackbar, Modifier.navigationBarsPadding()) },
@@ -129,29 +116,27 @@ fun VehicleDocumentEditScreen(
                 }
                 PhotoAttachmentsSection(
                     ownerType = AttachmentOwnerType.VEHICLE_DOCUMENT,
-                    ownerId = state.savedDocumentId,
+                    ownerId = state.documentId,
                     repository = attachments,
                     fileStore = attachmentFileStore,
                     snackbarHostState = snackbar,
                     allowDocuments = true,
                     pickers = attachmentPickers,
                 )
-                Button(
-                    onClick = viewModel::save,
-                    enabled = !state.isSaving,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 56.dp),
-                ) { Text(stringResource(R.string.action_save)) }
             }
         }
     }
 
-    if (confirmDiscard) {
-        DiscardChangesDialog(
-            onKeep = { confirmDiscard = false },
+    if (showLeaveDialog) {
+        LeaveDraftDialog(
+            onCancel = { showLeaveDialog = false },
             onDiscard = {
-                confirmDiscard = false
+                showLeaveDialog = false
+                viewModel.onDiscardConfirmed()
+                onDone()
+            },
+            onKeep = {
+                showLeaveDialog = false
                 onDone()
             },
         )
