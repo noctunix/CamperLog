@@ -17,7 +17,6 @@ import app.restvolt.camperlog.data.AndroidLocationPermissionGate
 import app.restvolt.camperlog.domain.Checklist
 import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_ID
 import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_VEHICLE_ACTION
-import kotlinx.coroutines.launch
 import app.restvolt.camperlog.ui.checklists.ChecklistScreen
 import app.restvolt.camperlog.ui.checklists.ChecklistTemplateEditScreen
 import app.restvolt.camperlog.ui.checklists.ChecklistTemplateEditViewModel
@@ -43,6 +42,7 @@ import app.restvolt.camperlog.ui.vehicle.VehicleViewModel
 import app.restvolt.camperlog.ui.vehicle.WhereAmIViewModel
 import app.restvolt.camperlog.ui.vehicles.VehiclesScreen
 import app.restvolt.camperlog.ui.vehicles.VehiclesViewModel
+import kotlinx.coroutines.launch
 
 /** Navigationsziele: Logbuch- und Fahrzeug-Reiter mit Reparaturen, Dokumenten und Checklisten. */
 internal fun NavGraphBuilder.vehicleGraph(
