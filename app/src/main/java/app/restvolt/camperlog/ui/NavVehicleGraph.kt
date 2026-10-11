@@ -2,6 +2,7 @@ package app.restvolt.camperlog.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
@@ -16,6 +17,7 @@ import app.restvolt.camperlog.data.AndroidLocationPermissionGate
 import app.restvolt.camperlog.domain.Checklist
 import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_ID
 import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_VEHICLE_ACTION
+import kotlinx.coroutines.launch
 import app.restvolt.camperlog.ui.checklists.ChecklistScreen
 import app.restvolt.camperlog.ui.checklists.ChecklistTemplateEditScreen
 import app.restvolt.camperlog.ui.checklists.ChecklistTemplateEditViewModel
@@ -218,10 +220,16 @@ internal fun NavGraphBuilder.vehicleGraph(
     }
     composable<ChecklistRoute> { entry ->
         val route = entry.toRoute<ChecklistRoute>()
-        val deleteChecklist: (Checklist) -> Unit = if (route.tourId != null) {
-            navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)::deleteChecklist
-        } else {
-            navController.vehicleChecklistsViewModel(entry, checklists, checklistTemplates, route.vehicleId)::deleteChecklist
+        // Ein über den Schnellstart des Touren-Tabs angepinnt gestartete Checkliste kann hier ohne
+        // DetailRoute oder VehicleChecklistsRoute im Stapel landen; dann löscht sie direkt ohne
+        // "Rückgängig", wie schon bei einer über einen geo:-Link angelegten Station.
+        val fallbackDeleteScope = rememberCoroutineScope()
+        val deleteChecklist: (Checklist) -> Unit = when {
+            route.tourId != null && navController.hasRoute<DetailRoute>() ->
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)::deleteChecklist
+            route.tourId == null && navController.hasRoute<VehicleChecklistsRoute>() ->
+                navController.vehicleChecklistsViewModel(entry, checklists, checklistTemplates, route.vehicleId)::deleteChecklist
+            else -> { checklist -> fallbackDeleteScope.launch { checklists.delete(checklist.id) } }
         }
         ChecklistScreen(
             viewModel = viewModel { ChecklistViewModel(checklists, route.checklistId) },

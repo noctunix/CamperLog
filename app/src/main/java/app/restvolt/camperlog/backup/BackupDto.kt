@@ -323,6 +323,8 @@ internal data class ChecklistTemplateDto(
     val uuid: String,
     val name: String = "",
     val items: List<String> = emptyList(),
+    /** Fehlt in Sicherungen vor Formatversion 20. */
+    val pinned: Boolean = false,
     val createdAt: String,
     val updatedAt: String,
 )

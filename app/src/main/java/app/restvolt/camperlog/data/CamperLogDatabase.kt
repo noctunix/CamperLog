@@ -40,7 +40,7 @@ import java.util.UUID
         ChecklistItemEntity::class,
         TrackPointEntity::class,
     ],
-    version = 25,
+    version = 26,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -81,7 +81,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, migration6To7(context, onToursMigrated),
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
                     MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
-                    MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
+                    MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
                 )
                 .build()
     }
@@ -858,5 +858,16 @@ internal val MIGRATION_24_25 = object : Migration(24, 25) {
         db.query("PRAGMA foreign_key_check(vehicle_axles)").use { cursor ->
             check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 24→25" }
         }
+    }
+}
+
+/**
+ * Version 26: Checklisten-Vorlagen bekommen [app.restvolt.camperlog.domain.ChecklistTemplate.pinned]
+ * für den Schnellstart-Eintrag auf dem Touren-Tab. Eine Boolean-Spalte ohne Fremdschlüssel, daher
+ * reicht `ALTER TABLE ADD COLUMN` wie schon bei [MIGRATION_16_17].
+ */
+internal val MIGRATION_25_26 = object : Migration(25, 26) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `checklist_templates` ADD COLUMN `pinned` INTEGER NOT NULL DEFAULT 0")
     }
 }

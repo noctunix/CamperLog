@@ -7,7 +7,9 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -87,6 +89,27 @@ class BackupChecklistsTest {
         assertEquals("Abfahrt", decodedTemplate.name)
         assertEquals(listOf("Dachluken schließen", "Trittstufe einfahren"), decodedTemplate.items)
         assertEquals(Instant.parse("2026-07-04T20:00:00Z"), decodedTemplate.updatedAt)
+    }
+
+    @Test
+    fun roundTrip_keepsPinnedFlag() {
+        val decoded = success(encodeBackup(backup(checklistTemplates = listOf(template().copy(pinned = true)))))
+
+        assertEquals(true, decoded.checklistTemplates.single().pinned)
+    }
+
+    @Test
+    fun missingPinnedField_decodesAsFalse_forOlderBackups() {
+        // Ein Backup vor Formatversion 20 kennt dieses Feld gar nicht.
+        val encoded = Json.parseToJsonElement(encodeBackup(backup(checklistTemplates = listOf(template().copy(pinned = true))))).jsonObject
+        val templatesWithoutPinned = encoded["checklistTemplates"]!!.jsonArray.map { element ->
+            JsonObject(element.jsonObject.filterKeys { it != "pinned" })
+        }
+        val withoutField = JsonObject(encoded.toMutableMap().apply { this["checklistTemplates"] = JsonArray(templatesWithoutPinned) })
+
+        val decoded = success(withoutField.toString())
+
+        assertEquals(false, decoded.checklistTemplates.single().pinned)
     }
 
     @Test

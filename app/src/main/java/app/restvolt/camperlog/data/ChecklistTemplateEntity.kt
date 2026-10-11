@@ -14,6 +14,7 @@ data class ChecklistTemplateEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val uuid: String = "",
     val name: String,
+    val pinned: Boolean = false,
     @ColumnInfo(name = "created_at") val createdAtMillis: Long,
     @ColumnInfo(name = "updated_at") val updatedAtMillis: Long,
 )

@@ -93,7 +93,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 19
+const val BACKUP_SCHEMA_VERSION = 20
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -1279,6 +1279,7 @@ private fun ChecklistTemplateDto.toChecklistTemplate(): ChecklistTemplate? {
         uuid = uuid,
         name = nameValue,
         items = itemValues,
+        pinned = pinned,
         createdAt = parseInstant(createdAt) ?: return null,
         updatedAt = parseInstant(updatedAt) ?: return null,
     )
@@ -1288,6 +1289,7 @@ private fun ChecklistTemplate.toDto() = ChecklistTemplateDto(
     uuid = uuid,
     name = name,
     items = items,
+    pinned = pinned,
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
 )

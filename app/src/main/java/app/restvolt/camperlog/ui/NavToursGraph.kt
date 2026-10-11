@@ -59,10 +59,13 @@ internal fun NavGraphBuilder.toursGraph(
                     stations,
                     tracks,
                     VehicleScopeSettings(context),
+                    checklistTemplates,
+                    checklists,
                     onTourFinished = { tourId -> app.restvolt.camperlog.tracking.TrackRecordingService.stopIfTracking(context, tourId) },
                     onTourDeleted = { tourId -> app.restvolt.camperlog.tracking.TrackRecordingService.stopIfTracking(context, tourId) },
                 )
             },
+            onOpenChecklist = { checklistId, vehicleId -> navController.navigate(ChecklistRoute(checklistId = checklistId, vehicleId = vehicleId)) },
             onAddTour = {
                 // Schaltet den zweiten Schritt der Pilot-Tour frei, aber nur, wenn sie gerade läuft:
                 // normales Anlegen ohne aktive Tour soll nicht an sie koppeln.
@@ -83,7 +86,7 @@ internal fun NavGraphBuilder.toursGraph(
     composable<EditRoute> { entry ->
         val tourId = entry.toRoute<EditRoute>().tourId
         val resources = LocalResources.current
-        val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations, tracks)
+        val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations, tracks, checklistTemplates, checklists)
         val guideState by guideController.state.collectAsStateWithLifecycle()
         val isCreateFirstTourGuide = guideState.tour?.id == CREATE_FIRST_TOUR_ID
         val editTourViewModel = viewModel {
@@ -138,7 +141,7 @@ internal fun NavGraphBuilder.toursGraph(
     }
     composable<DetailRoute> { entry ->
         val tourId = entry.toRoute<DetailRoute>().tourId
-        val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations, tracks)
+        val toursViewModel = navController.toursViewModel(entry, repository, vehicles, stations, tracks, checklistTemplates, checklists)
         val weatherMapEnabled by weatherSettings.values.collectAsStateWithLifecycle()
         val context = LocalContext.current
         val resources = LocalResources.current

@@ -14,6 +14,8 @@ data class ChecklistTemplate(
     val uuid: String = "",
     val name: String,
     val items: List<String> = emptyList(),
+    /** Ob die Vorlage als Schnellstart-Eintrag auf dem Touren-Tab erscheint. */
+    val pinned: Boolean = false,
     val createdAt: Instant,
     val updatedAt: Instant,
 )
@@ -38,7 +40,7 @@ interface ChecklistTemplateRepository {
 
 /** Unvalidierte Eingaben des Vorlagen-Formulars. */
 @Serializable
-data class ChecklistTemplateInput(val name: String = "", val items: List<String> = emptyList())
+data class ChecklistTemplateInput(val name: String = "", val items: List<String> = emptyList(), val pinned: Boolean = false)
 
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
 enum class ChecklistTemplateField { NAME }
@@ -62,9 +64,10 @@ fun ChecklistTemplateInput.toTemplate(original: ChecklistTemplate?): ChecklistTe
     uuid = original?.uuid.orEmpty(),
     name = name.trim(),
     items = items.map(String::trim).filter(String::isNotBlank),
+    pinned = pinned,
     createdAt = original?.createdAt ?: Instant.EPOCH,
     updatedAt = original?.updatedAt ?: Instant.EPOCH,
 )
 
 /** Wandelt eine gespeicherte Vorlage in editierbare Formulardaten um. */
-fun ChecklistTemplate.toInput(): ChecklistTemplateInput = ChecklistTemplateInput(name = name, items = items)
+fun ChecklistTemplate.toInput(): ChecklistTemplateInput = ChecklistTemplateInput(name = name, items = items, pinned = pinned)

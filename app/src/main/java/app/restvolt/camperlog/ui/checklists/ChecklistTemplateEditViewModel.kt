@@ -87,6 +87,8 @@ class ChecklistTemplateEditViewModel(
 
     fun onNameChange(name: String) = onInputChange { it.copy(name = name) }
 
+    fun onPinnedChange(pinned: Boolean) = onInputChange { it.copy(pinned = pinned) }
+
     /** Hängt einen leeren Punkt an, der sofort bearbeitet werden kann. */
     fun onAddItem() = onInputChange { it.copy(items = it.items + "") }
 

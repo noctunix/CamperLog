@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,11 +47,14 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.ChecklistTemplate
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.displayTitle
@@ -79,6 +83,7 @@ fun ToursScreen(
     onOpenSettings: () -> Unit,
     onOpenTour: (Long) -> Unit,
     onOpenVehicles: () -> Unit,
+    onOpenChecklist: (Long, Long) -> Unit,
     bottomBar: @Composable () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -86,6 +91,7 @@ fun ToursScreen(
     val snackbar = remember { SnackbarHostState() }
     val message by viewModel.message.collectAsStateWithLifecycle()
     val finishingTourId by viewModel.finishingTourId.collectAsStateWithLifecycle()
+    val startedChecklistId by viewModel.startedChecklistId.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     var finishTourId by rememberSaveable { mutableStateOf<Long?>(null) }
 
@@ -129,6 +135,11 @@ fun ToursScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (state.pinnedTemplates.isNotEmpty()) {
+                item {
+                    PinnedChecklistsRow(state.pinnedTemplates, onStart = viewModel::startPinnedChecklist)
+                }
+            }
             if (state.hasAnyTour) {
                 item {
                     SearchField(state.query, viewModel::onQueryChange)
@@ -179,6 +190,12 @@ fun ToursScreen(
             is ToursMessage.Failed -> snackbar.showSnackbar(resources.getString(current.text), withDismissAction = true)
         }
         viewModel.onMessageShown(current)
+    }
+
+    LaunchedEffect(startedChecklistId) {
+        val id = startedChecklistId ?: return@LaunchedEffect
+        onOpenChecklist(id, state.currentVehicleId)
+        viewModel.onChecklistStartHandled()
     }
 
     val finishTour = state.tours.firstOrNull { it.id == finishTourId && it.endDate == null }
@@ -243,6 +260,22 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         shape = MaterialTheme.shapes.medium,
     )
+}
+
+/** Schnellstart-Reihe der angepinnten Checklisten-Vorlagen; bei vielen Einträgen horizontal scrollbar statt umzubrechen. */
+@Composable
+private fun PinnedChecklistsRow(templates: List<ChecklistTemplate>, onStart: (ChecklistTemplate) -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(templates, key = ChecklistTemplate::id) { template ->
+            val startLabel = stringResource(R.string.tours_pinned_checklist_start_cd, template.name)
+            AssistChip(
+                onClick = { onStart(template) },
+                label = { Text(template.name) },
+                leadingIcon = { Icon(painterResource(R.drawable.ic_checklist), contentDescription = null) },
+                modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = startLabel },
+            )
+        }
+    }
 }
 
 @Composable

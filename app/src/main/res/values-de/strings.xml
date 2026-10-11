@@ -100,6 +100,7 @@
     <string name="tours_search">Name oder Ziel suchen</string>
     <string name="tours_all_years">Alle Jahre</string>
     <string name="tours_open_details">Details öffnen</string>
+    <string name="tours_pinned_checklist_start_cd">Checkliste %1$s starten</string>
     <string name="tours_running_since">Unterwegs seit %1$s</string>
     <string name="tours_track_recording">GPS-Track läuft</string>
     <string name="tours_track_paused">GPS-Track pausiert</string>
@@ -1070,6 +1071,7 @@
     <string name="checklist_template_not_found">Diese Vorlage gibt es nicht mehr.</string>
     <string name="checklist_template_delete_action">Vorlage löschen</string>
     <string name="checklist_template_error_name_required">Name erforderlich</string>
+    <string name="checklist_template_pinned">An Touren-Tab anpinnen</string>
     <string name="checklist_template_items_title">Punkte</string>
     <string name="checklist_template_add_item">Punkt hinzufügen</string>
     <string name="checklist_template_item_move_up">Punkt nach oben verschieben</string>

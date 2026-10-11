@@ -2,8 +2,11 @@ package app.restvolt.camperlog.ui.tours
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.domain.ChecklistTemplate
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.ui.FakeChecklistRepository
+import app.restvolt.camperlog.ui.FakeChecklistTemplateRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
 import app.restvolt.camperlog.ui.FakeTourRepository
 import app.restvolt.camperlog.ui.FakeTrackRepository
@@ -53,12 +56,19 @@ class ToursViewModelTest {
         backgroundScope.launch { flow.collect {} }
     }
 
-    private fun viewModel(vehicles: FakeVehicleRepository, tours: FakeTourRepository) = ToursViewModel(
+    private fun viewModel(
+        vehicles: FakeVehicleRepository,
+        tours: FakeTourRepository,
+        checklistTemplates: FakeChecklistTemplateRepository = FakeChecklistTemplateRepository(),
+        checklists: FakeChecklistRepository = FakeChecklistRepository(),
+    ) = ToursViewModel(
         tours,
         vehicles,
         FakeStationRepository(),
         FakeTrackRepository(),
         VehicleScopeSettings(context),
+        checklistTemplates,
+        checklists,
     )
 
     @Test
@@ -97,6 +107,40 @@ class ToursViewModelTest {
         assertEquals(1L, checkNotNull(tours.tours.firstOrNull { it.id == 2L }).vehicleId)
         assertEquals(0, tours.tours.count { it.vehicleId == audiId })
     }
+
+    @Test
+    fun pinnedTemplatesExposesOnlyTemplatesMarkedPinned() = runTest(dispatcher) {
+        val hannes = defaultVehicle(id = 1, name = "Hannes")
+        val vehicles = FakeVehicleRepository(listOf(hannes), currentVehicleId = 1)
+        val templates = FakeChecklistTemplateRepository(
+            listOf(template(id = 1, name = "Abfahrt", pinned = true), template(id = 2, name = "Ankunft", pinned = false)),
+        )
+        val viewModel = viewModel(vehicles, FakeTourRepository(), templates)
+        collect(viewModel.uiState)
+
+        assertEquals(listOf("Abfahrt"), viewModel.uiState.value.pinnedTemplates.map { it.name })
+    }
+
+    @Test
+    fun startPinnedChecklistAttachesItToTheCurrentVehiclesRunningTour() = runTest(dispatcher) {
+        val hannes = defaultVehicle(id = 1, name = "Hannes")
+        val vehicles = FakeVehicleRepository(listOf(hannes), currentVehicleId = 1)
+        val tours = FakeTourRepository(listOf(runningTour(id = 5, vehicleId = 1)))
+        val templates = FakeChecklistTemplateRepository(listOf(template(id = 1, name = "Abfahrt", pinned = true)))
+        val checklists = FakeChecklistRepository()
+        val viewModel = viewModel(vehicles, tours, templates, checklists)
+        collect(viewModel.uiState)
+
+        viewModel.startPinnedChecklist(viewModel.uiState.value.pinnedTemplates.single())
+
+        val started = checklists.checklists.single()
+        assertEquals(1L, started.vehicleId)
+        assertEquals(5L, started.tourId)
+        assertEquals(started.id, viewModel.startedChecklistId.value)
+    }
+
+    private fun template(id: Long, name: String, pinned: Boolean) =
+        ChecklistTemplate(id = id, name = name, pinned = pinned, createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
 
     private fun tour(id: Long, vehicleId: Long) = Tour(
         id = id,

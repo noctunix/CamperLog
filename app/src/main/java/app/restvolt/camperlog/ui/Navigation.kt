@@ -618,6 +618,8 @@ internal fun NavController.toursViewModel(
     vehicles: VehicleRepository,
     stations: StationRepository,
     tracks: TrackRepository,
+    checklistTemplates: ChecklistTemplateRepository,
+    checklists: ChecklistRepository,
 ): ToursViewModel {
     val toursEntry = remember(entry) { getBackStackEntry<ToursRoute>() }
     val context = LocalContext.current
@@ -628,6 +630,8 @@ internal fun NavController.toursViewModel(
             stations,
             tracks,
             VehicleScopeSettings(context),
+            checklistTemplates,
+            checklists,
             onTourFinished = { tourId -> TrackRecordingService.stopIfTracking(context, tourId) },
             onTourDeleted = { tourId -> TrackRecordingService.stopIfTracking(context, tourId) },
         )

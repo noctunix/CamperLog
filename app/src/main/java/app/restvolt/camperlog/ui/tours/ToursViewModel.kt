@@ -5,6 +5,9 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.ChecklistRepository
+import app.restvolt.camperlog.domain.ChecklistTemplate
+import app.restvolt.camperlog.domain.ChecklistTemplateRepository
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
@@ -14,6 +17,7 @@ import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.completeTour
+import app.restvolt.camperlog.domain.startChecklist
 import app.restvolt.camperlog.ui.VehicleScopeSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -40,6 +44,10 @@ data class ToursUiState(
     val showAllVehicles: Boolean = false,
     /** Anzahl Stationen je Tour, für die Kartenzeile "· 9 Stationen"; fehlende Einträge heißen 0. */
     val stationCounts: Map<Long, Int> = emptyMap(),
+    /** Angepinnte Vorlagen für die Schnellstart-Liste, unabhängig vom Fahrzeugfilter immer die des aktuellen Fahrzeugs. */
+    val pinnedTemplates: List<ChecklistTemplate> = emptyList(),
+    /** id der laufenden Tour des aktuellen Fahrzeugs, falls vorhanden; Ziel einer über [pinnedTemplates] gestarteten Checkliste. */
+    val currentVehicleRunningTourId: Long? = null,
 )
 
 /** Zwischenergebnis der Fahrzeugfilterung, bevor Suche und Jahr angewendet werden. */
@@ -49,6 +57,7 @@ private data class VehicleFilter(
     val currentVehicleId: Long,
     val allVehicles: Boolean,
     val stationCounts: Map<Long, Int>,
+    val currentVehicleRunningTourId: Long?,
 )
 
 /** Rückmeldungen, die die Tourenliste als Snackbar anzeigt. */
@@ -74,6 +83,8 @@ class ToursViewModel(
     private val stations: StationRepository,
     private val tracks: TrackRepository,
     private val filterSettings: VehicleScopeSettings,
+    private val checklistTemplates: ChecklistTemplateRepository,
+    private val checklists: ChecklistRepository,
     private val today: () -> LocalDate = LocalDate::now,
     private val onTourFinished: (Long) -> Unit = {},
     private val onTourDeleted: (Long) -> Unit = {},
@@ -92,11 +103,13 @@ class ToursViewModel(
             stations.observeForVehicle(null),
         ) { tours, vehicleList, current, allVehicles, allStations ->
             val counts = allStations.mapNotNull(Station::tourId).groupingBy { it }.eachCount()
-            VehicleFilter(tours, vehicleList, current.id, allVehicles, counts)
+            val runningTourId = tours.firstOrNull { it.vehicleId == current.id && it.endDate == null }?.id
+            VehicleFilter(tours, vehicleList, current.id, allVehicles, counts, runningTourId)
         },
         query,
         selectedYear,
-    ) { filter, query, year ->
+        checklistTemplates.observeAll(),
+    ) { filter, query, year, templates ->
         // Die Demo-Tour des Tutorials bleibt immer sichtbar, unabhängig vom Fahrzeugfilter: sie hat
         // ihr eigenes Demo-Fahrzeug (siehe DemoTourSession), nie das aktuelle echte Fahrzeug.
         val visible = filter.tours.filter { filter.allVehicles || it.vehicleId == filter.currentVehicleId || it.isDemo }
@@ -117,8 +130,29 @@ class ToursViewModel(
             currentVehicleId = filter.currentVehicleId,
             showAllVehicles = filter.allVehicles,
             stationCounts = filter.stationCounts,
+            pinnedTemplates = templates.filter(ChecklistTemplate::pinned),
+            currentVehicleRunningTourId = filter.currentVehicleRunningTourId,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ToursUiState())
+
+    private val _startedChecklistId = MutableStateFlow<Long?>(null)
+
+    /** id der gerade gestarteten Checkliste, bis [onChecklistStartHandled] aufgerufen wird; löst das Öffnen aus. */
+    val startedChecklistId: StateFlow<Long?> = _startedChecklistId.asStateFlow()
+
+    /** Startet [template] als neue Checkliste des aktuellen Fahrzeugs, mit dessen laufender Tour, falls vorhanden. */
+    fun startPinnedChecklist(template: ChecklistTemplate) {
+        viewModelScope.launch {
+            val state = uiState.value
+            val checklist = startChecklist(template, state.currentVehicleId, state.currentVehicleRunningTourId)
+            _startedChecklistId.value = checklists.save(checklist)
+        }
+    }
+
+    /** [startedChecklistId] wurde übernommen und soll nicht erneut ausgelöst werden. */
+    fun onChecklistStartHandled() {
+        _startedChecklistId.value = null
+    }
 
     fun onQueryChange(value: String) {
         query.value = value

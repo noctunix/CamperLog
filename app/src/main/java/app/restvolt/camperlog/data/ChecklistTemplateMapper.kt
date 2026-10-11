@@ -8,6 +8,7 @@ internal fun ChecklistTemplateWithItems.toDomain(): ChecklistTemplate = Checklis
     uuid = template.uuid,
     name = template.name,
     items = items.sortedBy(ChecklistTemplateItemEntity::position).map(ChecklistTemplateItemEntity::text),
+    pinned = template.pinned,
     createdAt = Instant.ofEpochMilli(template.createdAtMillis),
     updatedAt = Instant.ofEpochMilli(template.updatedAtMillis),
 )
@@ -16,6 +17,7 @@ internal fun ChecklistTemplate.toEntity(): ChecklistTemplateEntity = ChecklistTe
     id = id,
     uuid = uuid,
     name = name,
+    pinned = pinned,
     createdAtMillis = createdAt.toEpochMilli(),
     updatedAtMillis = updatedAt.toEpochMilli(),
 )

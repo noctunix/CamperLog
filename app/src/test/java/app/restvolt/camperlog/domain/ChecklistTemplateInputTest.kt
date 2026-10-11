@@ -58,7 +58,7 @@ class ChecklistTemplateInputTest {
 
     @Test
     fun roundTripThroughInputIsLossless() {
-        val template = valid.toTemplate(null)
+        val template = valid.copy(pinned = true).toTemplate(null)
         assertEquals(template, template.toInput().toTemplate(template))
     }
 }

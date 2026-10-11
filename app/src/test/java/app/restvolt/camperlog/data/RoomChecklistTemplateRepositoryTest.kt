@@ -74,6 +74,17 @@ class RoomChecklistTemplateRepositoryTest {
     }
 
     @Test
+    fun savePersistsPinnedFlag() = runTest {
+        val id = repository.save(template())
+        val stored = checkNotNull(repository.observeAll().first().first { it.id == id })
+        assertEquals(false, stored.pinned)
+
+        repository.save(stored.copy(pinned = true))
+
+        assertEquals(true, repository.observeAll().first().first { it.id == id }.pinned)
+    }
+
+    @Test
     fun observeAllOrdersByName() = runTest {
         repository.save(template(name = "Winterizing"))
         repository.save(template(name = "Abfahrt"))
