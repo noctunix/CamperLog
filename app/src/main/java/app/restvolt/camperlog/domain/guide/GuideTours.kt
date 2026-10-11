@@ -4,7 +4,7 @@ import app.restvolt.camperlog.R
 
 /** Id und Version des Rundgangs durch die Hauptbereiche; startet einmalig nach der Ersteinrichtung. */
 const val INTRODUCTION_TOUR_ID = "tour.introduction"
-const val INTRODUCTION_TOUR_VERSION = 1
+const val INTRODUCTION_TOUR_VERSION = 2
 
 /** Rundgang über die vier Hauptreiter (Touren, Bordbuch, Fahrzeug) und den Daten-Button. */
 fun introductionTour() = TourDefinition(
