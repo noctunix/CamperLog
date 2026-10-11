@@ -29,6 +29,7 @@ import app.restvolt.camperlog.ui.edit.EditVehicleScreen
 import app.restvolt.camperlog.ui.edit.EditVehicleViewModel
 import app.restvolt.camperlog.ui.edit.RepairEditScreen
 import app.restvolt.camperlog.ui.edit.RepairEditViewModel
+import app.restvolt.camperlog.ui.edit.isUnmodifiedNewVehicleDraft
 import app.restvolt.camperlog.ui.logbook.LogHistoryScreen
 import app.restvolt.camperlog.ui.logbook.LogHistoryViewModel
 import app.restvolt.camperlog.ui.logbook.LogbookScreen
@@ -102,14 +103,20 @@ internal fun NavGraphBuilder.vehicleGraph(
     }
     composable<VehicleEditRoute> { entry ->
         val vehicleId = entry.toRoute<VehicleEditRoute>().vehicleId
+        val editVehicleViewModel = viewModel { EditVehicleViewModel(vehicles, vehicleId, createSavedStateHandle()) }
         EditVehicleScreen(
-            viewModel = viewModel { EditVehicleViewModel(vehicles, vehicleId, createSavedStateHandle()) },
-            onDone = { navController.popFrom(entry) },
-            onSaved = {
-                // Inline aus der Pilot-Tour "Erste Tour anlegen" angelegt: schaltet ihren
-                // Fahrzeug-Schritt frei und setzt sie fort - das Tourformular greift das neue
-                // Fahrzeug über seine eigene, dauerhaft laufende Vorbelegung auf.
-                if (guideController.state.value.tour?.id == CREATE_FIRST_TOUR_ID) {
+            viewModel = editVehicleViewModel,
+            onDone = {
+                // Ein neues Fahrzeug speichert sich schon laufend selbst; beim Verlassen entscheidet sich
+                // nur noch, ob der Entwurf gelöscht wird (ohne jede sinnvolle Eingabe oder explizit
+                // verworfen) oder bleibt.
+                val newVehicleKept = vehicleId == 0L &&
+                    !editVehicleViewModel.wasDiscarded() &&
+                    !editVehicleViewModel.uiState.value.isUnmodifiedNewVehicleDraft()
+                // Inline aus der Pilot-Tour "Erste Tour anlegen" angelegt: schaltet ihren Fahrzeug-Schritt
+                // frei und setzt sie fort, aber nur, wenn das Fahrzeug wirklich bleibt - das Tourformular
+                // greift es über seine eigene, dauerhaft laufende Vorbelegung auf.
+                if (newVehicleKept && guideController.state.value.tour?.id == CREATE_FIRST_TOUR_ID) {
                     guideController.completeAction(CREATE_FIRST_TOUR_VEHICLE_ACTION)
                     guideController.resume()
                 }

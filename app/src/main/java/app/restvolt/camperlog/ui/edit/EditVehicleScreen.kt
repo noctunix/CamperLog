@@ -15,7 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -67,8 +66,8 @@ import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.CurrencyPicker
 import app.restvolt.camperlog.ui.DateField
-import app.restvolt.camperlog.ui.DiscardChangesDialog
 import app.restvolt.camperlog.ui.EmptyHint
+import app.restvolt.camperlog.ui.LeaveDraftDialog
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
@@ -76,19 +75,18 @@ import app.restvolt.camperlog.ui.messageRes
 import java.util.Currency
 import java.util.Locale
 
-/** Formular zum Anlegen und Bearbeiten eines Fahrzeugs. [onDone] verlässt es ohne, [onSaved] nach dem Speichern mit der gespeicherten id. */
+/**
+ * Formular zum Anlegen und Bearbeiten eines Fahrzeugs; jede Eingabe speichert sich implizit selbst.
+ * [onDone] ist der einzige Ausstiegspunkt, für beide Fälle - siehe [EditVehicleViewModel].
+ */
 @Composable
-fun EditVehicleScreen(viewModel: EditVehicleViewModel, onDone: () -> Unit, onSaved: (Long) -> Unit) {
+fun EditVehicleScreen(viewModel: EditVehicleViewModel, onDone: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
 
-    LaunchedEffect(state.isSaved) {
-        val savedId = state.savedVehicleId
-        if (state.isSaved && savedId != null) onSaved(savedId)
-    }
     LaunchedEffect(state.saveFailed) {
         if (state.saveFailed) {
             snackbar.showSnackbar(resources.getString(R.string.vehicle_edit_save_failed), withDismissAction = true)
@@ -96,19 +94,14 @@ fun EditVehicleScreen(viewModel: EditVehicleViewModel, onDone: () -> Unit, onSav
         }
     }
 
-    val requestBack = { if (state.isDirty) confirmDiscard = true else onDone() }
-    BackHandler(enabled = state.isDirty && !state.isSaved) { confirmDiscard = true }
+    val requestBack = { if (state.needsLeaveConfirmation()) showLeaveDialog = true else onDone() }
+    BackHandler(onBack = requestBack)
 
     Scaffold(
         topBar = {
             BackTopBar(
                 title = stringResource(if (state.isNew) R.string.vehicle_edit_title_new else R.string.vehicle_edit_title_existing),
                 onBack = requestBack,
-                actions = {
-                    if (!state.notFound && !state.isLoading) {
-                        TextButton(onClick = viewModel::save, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
-                    }
-                },
             )
         },
         bottomBar = { SnackbarHost(snackbar, Modifier.navigationBarsPadding()) },
@@ -127,11 +120,16 @@ fun EditVehicleScreen(viewModel: EditVehicleViewModel, onDone: () -> Unit, onSav
         }
     }
 
-    if (confirmDiscard) {
-        DiscardChangesDialog(
-            onKeep = { confirmDiscard = false },
+    if (showLeaveDialog) {
+        LeaveDraftDialog(
+            onCancel = { showLeaveDialog = false },
             onDiscard = {
-                confirmDiscard = false
+                showLeaveDialog = false
+                viewModel.onDiscardConfirmed()
+                onDone()
+            },
+            onKeep = {
+                showLeaveDialog = false
                 onDone()
             },
         )
@@ -146,13 +144,6 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
     val focus = remember { VehicleField.entries.associateWith { FocusRequester() } }
     fun focusOf(field: VehicleField) = Modifier.focusRequester(focus.getValue(field))
     @Composable fun errorOf(field: VehicleField): String? = state.errors[field]?.messageRes(field)
-
-    // Nach einem abgelehnten Speichern zum ersten fehlerhaften Feld springen; der Fokus scrollt es ins Bild.
-    LaunchedEffect(state.rejectedSaves) {
-        if (state.rejectedSaves > 0) {
-            state.errors.keys.minByOrNull(VehicleField::ordinal)?.let { focus.getValue(it).requestFocus() }
-        }
-    }
 
     Column(
         modifier = modifier
@@ -520,13 +511,6 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
             )
         }
-        Button(
-            onClick = viewModel::save,
-            enabled = !state.isSaving,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp),
-        ) { Text(stringResource(R.string.action_save)) }
         if (state.errors.isNotEmpty()) {
             // Nennt die betroffenen Felder; ändert sich die Liste, sagt TalkBack sie erneut an.
             val fields = state.errors.keys.sortedBy(VehicleField::ordinal).map { stringResource(it.labelRes) }
