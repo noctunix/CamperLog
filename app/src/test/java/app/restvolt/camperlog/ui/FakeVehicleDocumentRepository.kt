@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui
 
+import android.database.sqlite.SQLiteException
 import app.restvolt.camperlog.domain.VehicleDocument
 import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import kotlinx.coroutines.flow.Flow
@@ -13,6 +14,12 @@ class FakeVehicleDocumentRepository(initial: List<VehicleDocument> = emptyList()
 
     val documents: List<VehicleDocument> get() = state.value
 
+    /** Lässt [save] wie bei einem Datenbankfehler scheitern. */
+    var failWrites = false
+
+    /** Zählt die Aufrufe von [save]. */
+    var saveCount = 0
+
     override fun observeForVehicle(vehicleId: Long): Flow<List<VehicleDocument>> =
         state.map { list -> list.filter { it.vehicleId == vehicleId } }
 
@@ -20,13 +27,17 @@ class FakeVehicleDocumentRepository(initial: List<VehicleDocument> = emptyList()
 
     override fun observeAllDocuments(): Flow<List<VehicleDocument>> = state
 
-    override suspend fun save(document: VehicleDocument): Long = if (document.id == 0L) {
-        val id = nextId++
-        state.value += document.copy(id = id)
-        id
-    } else {
-        state.value = state.value.map { if (it.id == document.id) document else it }
-        document.id
+    override suspend fun save(document: VehicleDocument): Long {
+        if (failWrites) throw SQLiteException("simulierter Schreibfehler")
+        saveCount++
+        return if (document.id == 0L) {
+            val id = nextId++
+            state.value += document.copy(id = id)
+            id
+        } else {
+            state.value = state.value.map { if (it.id == document.id) document else it }
+            document.id
+        }
     }
 
     override suspend fun delete(id: Long) {
