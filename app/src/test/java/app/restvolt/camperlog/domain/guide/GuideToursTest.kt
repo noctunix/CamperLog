@@ -38,7 +38,7 @@ class GuideToursTest {
                 "edit.tour.home.checkbox",
                 "edit.tour.other.costs",
                 "edit.tour.advanced",
-                "edit.tour.save",
+                "edit.tour.back",
                 "detail.station.fab",
                 "station.type",
                 "station.edit.save",
@@ -61,7 +61,7 @@ class GuideToursTest {
         val byId = tour.steps.associateBy { it.id }
 
         assertEquals(StepCompletion.Action(CREATE_FIRST_TOUR_FAB_ACTION), byId.getValue("fab").completion)
-        assertEquals(StepCompletion.Action(CREATE_FIRST_TOUR_SAVE_ACTION), byId.getValue("save").completion)
+        assertEquals(StepCompletion.Action(CREATE_FIRST_TOUR_SAVE_ACTION), byId.getValue("finish").completion)
         assertEquals(StepCompletion.Action(CREATE_FIRST_TOUR_STATION_FAB_ACTION), byId.getValue("add-station").completion)
         assertEquals(StepCompletion.Action(CREATE_FIRST_TOUR_STATION_SAVE_ACTION), byId.getValue("station-save").completion)
         // Mit vorhandenem echtem Fahrzeug erklärt der Schritt die Auswahl nur, statt eine Aktion abzuwarten.

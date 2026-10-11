@@ -277,10 +277,10 @@ class GuidedTourNavigationTest {
     }
 
     /**
-     * Vollständiger Durchlauf mit echtem Fahrzeug und beiden "Beim Speichern"-Schaltern aus
-     * (Standardeinstellungen): jedes Formularfeld einzeln, Speichern, eine Station anlegen, zurück
-     * zum GPS-Track-Abschnitt. Die Fahrzeug-Inline-Anlage und die vorgezogene Berechtigungsabfrage
-     * haben eigene, fokussierte Tests.
+     * Vollständiger Durchlauf mit echtem Fahrzeug und beiden zusätzlichen Schaltern aus
+     * (Standardeinstellungen): jedes Formularfeld einzeln, Verlassen über "Zurück", eine Station
+     * anlegen, zurück zum GPS-Track-Abschnitt. Die Fahrzeug-Inline-Anlage und die vorgezogene
+     * Berechtigungsabfrage haben eigene, fokussierte Tests.
      */
     @Test
     fun createFirstTourTour_fullWalkthroughCreatesTheTourAndAStationAndEndsOnTheTrackStep() {
@@ -331,9 +331,10 @@ class GuidedTourNavigationTest {
             clickWeiter()
             clickWeiter()
 
-            // Schritt "save": ein echter Klick auf den Speichern-Button speichert die Tour wirklich
-            // und schaltet über onSaved weiter - die Pilot-Tour führt danach direkt zur Tourdetailseite.
-            clickThrough(topBarSaveButton())
+            // Schritt "finish": die Tour speichert sich schon laufend selbst; ein echter Klick auf
+            // "Zurück" verlässt das Formular und schaltet darüber weiter - die Pilot-Tour führt
+            // danach direkt zur Tourdetailseite.
+            clickThrough(hasContentDescription("Zurück"))
             compose.waitForIdle()
 
             assertEquals(2, tours.tours.size)
@@ -431,7 +432,7 @@ class GuidedTourNavigationTest {
             clickWeiter() // home-switch
             clickWeiter() // other-costs
             clickWeiter() // advanced
-            clickThrough(topBarSaveButton())
+            clickThrough(hasContentDescription("Zurück"))
             compose.waitForIdle()
 
             val savedTour = tours.tours.single { !it.isDemo }

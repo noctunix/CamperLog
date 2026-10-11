@@ -28,7 +28,7 @@ const val CREATE_FIRST_TOUR_FAB_ACTION = "tour.fab.clicked"
 /** Aktion, die den Fahrzeug-Schritt freischaltet, sobald ein inline angelegtes Fahrzeug gespeichert ist. */
 const val CREATE_FIRST_TOUR_VEHICLE_ACTION = "tour.vehicle.created"
 
-/** Aktion, die den Speichern-Schritt beim echten Speichern der Tour freischaltet. */
+/** Aktion, die den letzten Formularschritt freischaltet, sobald die neue Tour über "Zurück" verlassen wird. */
 const val CREATE_FIRST_TOUR_SAVE_ACTION = "tour.saved"
 
 /** Aktion, die den "Station hinzufügen"-Schritt beim echten Auswählen eines Stationstyps freischaltet. */
@@ -39,16 +39,17 @@ const val CREATE_FIRST_TOUR_STATION_SAVE_ACTION = "tour.station.saved"
 
 /**
  * Pilot-Tour: ein vollständiger Durchlauf beim Anlegen der ersten eigenen Tour - FAB, jedes
- * Formularfeld einzeln, Speichern, eine erste Station und abschließend der GPS-Track-Abschnitt der
- * jetzt echten Tour, mit einem Hinweis auf die weiterhin erkundbare, simulierte Demo-Tour
+ * Formularfeld einzeln, das Verlassen über "Zurück" (die Tour speichert sich dabei längst
+ * fortlaufend selbst), eine erste Station und abschließend der GPS-Track-Abschnitt der jetzt
+ * echten Tour, mit einem Hinweis auf die weiterhin erkundbare, simulierte Demo-Tour
  * ([DemoTourSession]) - die zeigt ihren Track in der Tourenliste und im Tourdetail immer, auch wenn
  * die globale Trackaufzeichnung oder "Wetter & Karte" ausgeschaltet sind.
  *
  * Bedingte Abschnitte werden einmalig bei Tourstart entschieden statt während der Tour zu springen:
  * [offerVehicleCreation] bestimmt Anker und Abschlussbedingung des Fahrzeug-Schritts (echtes
  * Fahrzeug vorhanden vs. inline anlegen), [trackSwitchGloballyEnabled] und [hasHomeLocation], ob die
- * beiden "Beim Speichern"-Schritte auf ihre jeweilige Checkbox zeigen oder - weil die Checkbox ohne
- * die zugehörige Einstellung gar nicht erst im Formular steht - ohne Anker nur erklären, wo man die
+ * beiden Schritte dafür auf ihre jeweilige Checkbox zeigen oder - weil die Checkbox ohne die
+ * zugehörige Einstellung gar nicht erst im Formular steht - ohne Anker nur erklären, wo man die
  * Voraussetzung dafür einstellt.
  *
  * @param offerVehicleCreation `true`, wenn beim Start der Tour noch kein echtes (nicht als Demo
@@ -111,9 +112,9 @@ fun createFirstTourTour(
         ),
         TourStep("advanced", "edit.tour.advanced", R.string.edit_section_advanced, R.string.guide_step_advanced_body, StepCompletion.Information),
         TourStep(
-            "save",
-            "edit.tour.save",
-            R.string.action_save,
+            "finish",
+            "edit.tour.back",
+            R.string.action_back,
             R.string.guide_step_save_body,
             StepCompletion.Action(CREATE_FIRST_TOUR_SAVE_ACTION),
         ),
