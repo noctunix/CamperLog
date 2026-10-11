@@ -1,8 +1,5 @@
 package app.restvolt.camperlog.ui
 
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -26,7 +23,7 @@ import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
 
-/** Abläufe rund um das Tagebuch einer Tour: Anlegen und Löschen mit Rückgängig. */
+/** Abläufe rund um das Tagebuch einer Tour: implizites Anlegen, Verwerfen/Speichern beim Verlassen, Löschen mit Rückgängig. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
 class DiaryFlowTest {
@@ -57,10 +54,21 @@ class DiaryFlowTest {
         return repository
     }
 
-    private fun clickSave() =
-        compose.onNode(hasText("Speichern") and hasClickAction() and !hasAnyAncestor(hasScrollAction())).performClick()
-
     private fun textField() = compose.onNode(hasSetTextAction() and hasText("Text"))
+
+    /** Verlässt das (implizit schon automatisch gespeicherte) Formular ohne jede Rückfrage. */
+    private fun backWithoutDialog() {
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.waitForIdle()
+    }
+
+    /** Verlässt über die Verwerfen/Speichern-Abfrage und behält die Änderungen. */
+    private fun backKeepingChanges() {
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Formular verlassen?").assertExists()
+        compose.onNodeWithText("Speichern").performClick()
+        compose.waitForIdle()
+    }
 
     private fun tour(id: Long = 1, destination: String = "Lofoten") = Tour(
         id = id,
@@ -96,11 +104,12 @@ class DiaryFlowTest {
         compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
 
         textField().performTextInput("Langer Tag am Fjord.")
-        clickSave()
+        backKeepingChanges()
 
         compose.onNodeWithText("Langer Tag am Fjord.").assertExists()
     }
 
+    /** Eine ungültige Eingabe zeigt den Fehler sofort inline, ohne jeden Speichern-Versuch. */
     @Test
     fun invalidOdometer_forNewDiaryEntry_showsError() {
         start(tour())
@@ -108,23 +117,36 @@ class DiaryFlowTest {
         compose.onNodeWithText("Tagebuch").performScrollTo().performClick()
         compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
 
-        textField().performTextInput("Langer Tag am Fjord.")
         compose.onNode(hasSetTextAction() and hasText("km-Stand")).performScrollTo().performTextInput("abc")
-        clickSave()
 
         compose.onNodeWithText("Ungültige Zahl").assertExists()
     }
 
+    /** Schon die erste Eingabe in ein beliebiges anderes Feld macht den Pflichtfeld-Fehler des Texts sichtbar. */
     @Test
-    fun textRequired_forNewDiaryEntry() {
+    fun textRequired_isShownAsSoonAsAnyOtherFieldIsTouched() {
         start(tour())
         compose.onNodeWithText("Lofoten").performClick()
         compose.onNodeWithText("Tagebuch").performScrollTo().performClick()
         compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
 
-        clickSave()
+        compose.onNode(hasSetTextAction() and hasText("Wetter")).performScrollTo().performTextInput("Sonne")
 
         compose.onNodeWithText("Text erforderlich").assertExists()
+    }
+
+    /** Ein neuer Eintrag speichert sich schon laufend selbst - ohne jede Eingabe bleibt also keine Karteileiche zurück. */
+    @Test
+    fun leavingNewDiaryEntryWithoutAnyInput_discardsItSilentlyWithoutAsking() {
+        start(tour())
+        compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Tagebuch").performScrollTo().performClick()
+        compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
+
+        backWithoutDialog()
+
+        compose.onNodeWithText("Formular verlassen?").assertDoesNotExist()
+        compose.onNodeWithText("Tagebucheintrag hinzufügen").assertExists()
     }
 
     @Test
@@ -134,7 +156,7 @@ class DiaryFlowTest {
         compose.onNodeWithText("Tagebuch").performScrollTo().performClick()
         compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
         textField().performTextInput("Langer Tag am Fjord.")
-        clickSave()
+        backKeepingChanges()
 
         compose.onNodeWithText("Langer Tag am Fjord.").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Weitere Optionen").performClick()

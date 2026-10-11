@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui
 
+import android.database.sqlite.SQLiteException
 import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import kotlinx.coroutines.flow.Flow
@@ -13,6 +14,12 @@ class FakeDiaryEntryRepository(initial: List<DiaryEntry> = emptyList()) : DiaryE
 
     val entries: List<DiaryEntry> get() = state.value
 
+    /** Simuliert eine volle oder defekte Datenbank: [save] wirft dann eine [SQLiteException]. */
+    var failWrites = false
+
+    /** Zählt die Aufrufe von [save]. */
+    var saveCount = 0
+
     override fun observeForTour(tourId: Long): Flow<List<DiaryEntry>> =
         state.map { list -> list.filter { it.tourId == tourId }.sortedBy { it.date } }
 
@@ -20,13 +27,17 @@ class FakeDiaryEntryRepository(initial: List<DiaryEntry> = emptyList()) : DiaryE
 
     override suspend fun allEntries(): List<DiaryEntry> = state.value
 
-    override suspend fun save(entry: DiaryEntry): Long = if (entry.id == 0L) {
-        val id = nextId++
-        state.value += entry.copy(id = id)
-        id
-    } else {
-        state.value = state.value.map { if (it.id == entry.id) entry else it }
-        entry.id
+    override suspend fun save(entry: DiaryEntry): Long {
+        if (failWrites) throw SQLiteException("simulierter Schreibfehler")
+        saveCount++
+        return if (entry.id == 0L) {
+            val id = nextId++
+            state.value += entry.copy(id = id)
+            id
+        } else {
+            state.value = state.value.map { if (it.id == entry.id) entry else it }
+            entry.id
+        }
     }
 
     override suspend fun delete(id: Long) {
