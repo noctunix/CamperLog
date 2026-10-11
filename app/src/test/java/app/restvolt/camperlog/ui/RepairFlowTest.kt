@@ -1,16 +1,12 @@
 package app.restvolt.camperlog.ui
 
 import androidx.compose.ui.test.assertTextContains
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
@@ -22,7 +18,10 @@ import org.robolectric.annotation.Config
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/** Abläufe rund um Reparaturen: Anlegen, Bearbeiten, Löschen mit Rückgängig. */
+/**
+ * Abläufe rund um Reparaturen: implizites Anlegen und Speichern, Verwerfen/Speichern beim
+ * Verlassen, Löschen mit Rückgängig über die Kopfzeile.
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
 class RepairFlowTest {
@@ -40,10 +39,34 @@ class RepairFlowTest {
         return vehicles
     }
 
-    private fun clickSave() =
-        compose.onNode(hasText("Speichern") and hasClickAction() and !hasAnyAncestor(hasScrollAction())).performClick()
-
     private fun descriptionField() = compose.onNode(hasSetTextAction() and hasText("Beschreibung"))
+
+    private fun openNewRepairForm() {
+        compose.onNodeWithText("Fahrzeug").performClick()
+        compose.onNodeWithText("Reparatur hinzufügen").performClick()
+    }
+
+    /** Verlässt das (implizit schon automatisch gespeicherte) Formular ohne jede Rückfrage. */
+    private fun backWithoutDialog() {
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.waitForIdle()
+    }
+
+    /** Verlässt über die Verwerfen/Speichern-Abfrage und behält die Änderungen. */
+    private fun backKeepingChanges() {
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Formular verlassen?").assertExists()
+        compose.onNodeWithText("Speichern").performClick()
+        compose.waitForIdle()
+    }
+
+    /** Verlässt über die Verwerfen/Speichern-Abfrage und verwirft die Änderungen. */
+    private fun backDiscardingChanges() {
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Formular verlassen?").assertExists()
+        compose.onNodeWithText("Verwerfen").performClick()
+        compose.waitForIdle()
+    }
 
     @Test
     fun repairsSectionIsAlwaysVisibleEvenWhenSheetIsEmpty() {
@@ -55,45 +78,121 @@ class RepairFlowTest {
         compose.onNodeWithText("Reparatur hinzufügen").assertExists()
     }
 
+    /**
+     * Kernregressionstest für den Umbau auf implizites Speichern: Eine neue Reparatur hat von der
+     * allerersten Anzeige an eine echte id - Anhänge lassen sich sofort hinzufügen, ohne auf einen
+     * expliziten Speichern-Erfolg zu warten.
+     */
     @Test
-    fun addRepair_appearsInTheSheet() {
+    fun openingNewRepair_createsARealRecordImmediately_enablingAttachmentsAndDelete() {
         start()
-        compose.onNodeWithText("Fahrzeug").performClick()
-        compose.onNodeWithText("Reparatur hinzufügen").performClick()
+        openNewRepairForm()
+        compose.waitForIdle()
 
-        descriptionField().performTextInput("Reifen gewechselt")
-        compose.onNode(hasSetTextAction() and hasText("km-Stand")).performTextInput("42000")
-        clickSave()
-        compose.onNodeWithContentDescription("Zurück").performClick()
-
-        compose.onNodeWithText("Reifen gewechselt").assertExists()
-        compose.onNodeWithText("42.000 km").assertExists()
-        compose.onNodeWithText("Noch keine Reparaturen.").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Foto hinzufügen").assertExists()
+        compose.onNodeWithContentDescription("Reparatur löschen").assertExists()
     }
 
+    /** Eine neue Reparatur speichert sich schon laufend selbst - ohne jede Eingabe bleibt also keine Karteileiche zurück. */
     @Test
-    fun descriptionRequired_forNewRepair() {
+    fun leavingNewRepairWithoutAnyInput_discardsItSilentlyWithoutAsking() {
         start()
-        compose.onNodeWithText("Fahrzeug").performClick()
-        compose.onNodeWithText("Reparatur hinzufügen").performClick()
+        openNewRepairForm()
+        compose.waitForIdle()
 
-        clickSave()
+        backWithoutDialog()
+
+        compose.onNodeWithText("Formular verlassen?").assertDoesNotExist()
+        compose.onNodeWithText("Noch keine Reparaturen.").assertExists()
+    }
+
+    /** Schon die erste Eingabe in ein beliebiges Feld macht den Pflichtfeld-Fehler der Beschreibung sichtbar. */
+    @Test
+    fun descriptionRequired_isShownAsSoonAsAnyOtherFieldIsTouched() {
+        start()
+        openNewRepairForm()
+
+        compose.onNode(hasSetTextAction() and hasText("Werkstatt")).performTextInput("Werkstatt Meier")
 
         compose.onNodeWithText("Beschreibung erforderlich").assertExists()
     }
 
+    /** Mit einer sinnvollen Eingabe fragt das Verlassen jetzt nach; "Speichern" behält die automatisch angelegte Reparatur. */
     @Test
-    fun editRepair_updatesTheSheet() {
+    fun leavingNewRepairAfterTyping_asksAndKeepingKeepsTheRepair() {
         start()
-        compose.onNodeWithText("Fahrzeug").performClick()
-        compose.onNodeWithText("Reparatur hinzufügen").performClick()
+        openNewRepairForm()
         descriptionField().performTextInput("Reifen gewechselt")
-        clickSave()
 
-        // Die erste Speicherung einer neuen Reparatur bleibt auf dem (nun zur Bearbeitung
-        // umgeschalteten) Formular, statt zur Übersicht zurückzukehren.
+        backKeepingChanges()
+
+        compose.onNodeWithText("Reifen gewechselt").assertExists()
+        compose.onNodeWithText("Noch keine Reparaturen.").assertDoesNotExist()
+    }
+
+    /** "Verwerfen" löscht die automatisch angelegte neue Reparatur trotz sinnvoller Eingabe wieder komplett. */
+    @Test
+    fun leavingNewRepairAfterTyping_discardingDeletesIt() {
+        start()
+        openNewRepairForm()
+        descriptionField().performTextInput("Reifen gewechselt")
+
+        backDiscardingChanges()
+
+        compose.onNodeWithText("Noch keine Reparaturen.").assertExists()
+    }
+
+    /** Ein unverändertes Formular einer bestehenden Reparatur verlässt sich ohne jede Rückfrage. */
+    @Test
+    fun leavingUnmodifiedExistingRepairEdit_leavesWithoutAsking() {
+        start()
+        openNewRepairForm()
+        descriptionField().performTextInput("Ölwechsel")
+        backKeepingChanges()
+
+        compose.onNodeWithText("Ölwechsel").performClick()
+        backWithoutDialog()
+
+        compose.onNodeWithText("Formular verlassen?").assertDoesNotExist()
+        compose.onNodeWithText("Ölwechsel").assertExists()
+    }
+
+    /**
+     * Das Bearbeiten einer bestehenden Reparatur fragt beim Verlassen mit echten Änderungen jetzt
+     * über die Verwerfen/Speichern-Abfrage nach; Verwerfen setzt sie auf den beim Öffnen geladenen
+     * Stand zurück, statt sie (wie bei einer neuen Reparatur) zu löschen.
+     */
+    @Test
+    fun leavingDirtyExistingRepairEdit_discardingRevertsToTheOpenedState() {
+        start()
+        openNewRepairForm()
+        descriptionField().performTextInput("Reifen gewechselt")
+        backKeepingChanges()
+
+        compose.onNodeWithText("Reifen gewechselt").performClick()
         descriptionField().performTextReplacement("Bremsen gewechselt")
-        clickSave()
+
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Formular verlassen?").assertExists()
+        compose.onNodeWithText("Abbrechen").performClick()
+        descriptionField().assertExists()
+
+        backDiscardingChanges()
+
+        compose.onNodeWithText("Reifen gewechselt").assertExists()
+        compose.onNodeWithText("Bremsen gewechselt").assertDoesNotExist()
+    }
+
+    @Test
+    fun editingExistingRepair_autosavesWithoutAnySaveButton() {
+        start()
+        openNewRepairForm()
+        descriptionField().performTextInput("Reifen gewechselt")
+        backKeepingChanges()
+
+        compose.onNodeWithText("Reifen gewechselt").performClick()
+        descriptionField().performTextReplacement("Bremsen gewechselt")
+        backKeepingChanges()
 
         compose.onNodeWithText("Bremsen gewechselt").assertExists()
         compose.onNodeWithText("Reifen gewechselt").assertDoesNotExist()
@@ -102,26 +201,37 @@ class RepairFlowTest {
     @Test
     fun addRepair_keepsWorkshopNameAfterReopening() {
         start()
-        compose.onNodeWithText("Fahrzeug").performClick()
-        compose.onNodeWithText("Reparatur hinzufügen").performClick()
-
+        openNewRepairForm()
         descriptionField().performTextInput("Ölwechsel")
         compose.onNode(hasSetTextAction() and hasText("Werkstatt")).performTextInput("Werkstatt Meier")
-        clickSave()
-        compose.onNodeWithContentDescription("Zurück").performClick()
+        backKeepingChanges()
 
         compose.onNodeWithText("Ölwechsel").performClick()
         compose.onNode(hasSetTextAction() and hasText("Werkstatt")).assertTextContains("Werkstatt Meier")
     }
 
+    /** Löschen über die Kopfzeile wirkt unabhängig von der Verwerfen/Speichern-Abfrage, auch ohne jede Eingabe. */
+    @Test
+    fun deleteRepair_fromFormWithoutAnyChanges_doesNotAskToDiscardAndRemovesIt() {
+        start()
+        openNewRepairForm()
+        compose.waitForIdle()
+
+        compose.onNodeWithContentDescription("Reparatur löschen").performClick()
+
+        compose.onNodeWithText("Formular verlassen?").assertDoesNotExist()
+        compose.onNodeWithText("Reparatur gelöscht").assertExists()
+        compose.onNodeWithText("Noch keine Reparaturen.").assertExists()
+    }
+
     @Test
     fun deleteRepair_removesItAndOffersUndo() {
         start()
-        compose.onNodeWithText("Fahrzeug").performClick()
-        compose.onNodeWithText("Reparatur hinzufügen").performClick()
+        openNewRepairForm()
         descriptionField().performTextInput("Ölwechsel")
-        clickSave()
+        backKeepingChanges()
 
+        compose.onNodeWithText("Ölwechsel").performClick()
         compose.onNodeWithContentDescription("Reparatur löschen").performClick()
 
         compose.onNodeWithText("Ölwechsel").assertDoesNotExist()
@@ -131,45 +241,14 @@ class RepairFlowTest {
     @Test
     fun deleteRepair_undo_restoresIt() {
         start()
-        compose.onNodeWithText("Fahrzeug").performClick()
-        compose.onNodeWithText("Reparatur hinzufügen").performClick()
+        openNewRepairForm()
         descriptionField().performTextInput("Ölwechsel")
-        clickSave()
+        backKeepingChanges()
 
+        compose.onNodeWithText("Ölwechsel").performClick()
         compose.onNodeWithContentDescription("Reparatur löschen").performClick()
         compose.onNodeWithText("Rückgängig").performClick()
 
-        compose.onNodeWithText("Ölwechsel").assertExists()
-    }
-
-    @Test
-    fun deleteRepair_fromFormWithoutChanges_doesNotAskToDiscard() {
-        start()
-        compose.onNodeWithText("Fahrzeug").performClick()
-        compose.onNodeWithText("Reparatur hinzufügen").performClick()
-        descriptionField().performTextInput("Ölwechsel")
-        clickSave()
-
-        compose.onNodeWithContentDescription("Reparatur löschen").performClick()
-
-        compose.onNodeWithText("Änderungen verwerfen?").assertDoesNotExist()
-    }
-
-    @Test
-    fun savingNewRepair_staysOnFormWithPhotosEnabled() {
-        start()
-        compose.onNodeWithText("Fahrzeug").performClick()
-        compose.onNodeWithText("Reparatur hinzufügen").performClick()
-        descriptionField().performTextInput("Ölwechsel")
-        clickSave()
-
-        compose.onNodeWithText("Reparatur bearbeiten").assertExists()
-        compose.onNodeWithText("Gespeichert · du kannst jetzt Fotos anhängen").assertExists()
-        compose.onNodeWithContentDescription("Foto hinzufügen").assertExists()
-
-        // Zurück ohne weitere Änderungen verlässt direkt, ohne nach Verwerfen zu fragen.
-        compose.onNodeWithContentDescription("Zurück").performClick()
-        compose.onNodeWithText("Änderungen verwerfen?").assertDoesNotExist()
         compose.onNodeWithText("Ölwechsel").assertExists()
     }
 }

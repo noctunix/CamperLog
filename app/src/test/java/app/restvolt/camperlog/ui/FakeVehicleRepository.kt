@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui
 
+import android.database.sqlite.SQLiteException
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleDeleteResult
@@ -26,11 +27,18 @@ class FakeVehicleRepository(
     private val state = MutableStateFlow(initial)
     private val current = MutableStateFlow(currentVehicleId)
     private var nextId = (initial.maxOfOrNull { it.id } ?: 0) + 1
-    private val repairs = MutableStateFlow<List<Repair>>(emptyList())
+    private val repairsState = MutableStateFlow<List<Repair>>(emptyList())
     private var nextRepairId = 1L
 
     val vehicles: List<Vehicle> get() = state.value
     val currentVehicleId: Long get() = current.value
+    val repairs: List<Repair> get() = repairsState.value
+
+    /** Simuliert eine volle oder defekte Datenbank: [saveRepair] wirft dann eine [SQLiteException]. */
+    var failWrites = false
+
+    /** Zählt die Aufrufe von [saveRepair]. */
+    var saveRepairCount = 0
 
     override fun observeVehicles(): Flow<List<Vehicle>> =
         state.map { list -> list.sortedWith(compareBy<Vehicle> { it.isSold }.thenBy { it.name }.thenBy { it.id }) }
@@ -74,31 +82,35 @@ class FakeVehicleRepository(
     }
 
     override fun observeRepairs(vehicleId: Long): Flow<List<Repair>> =
-        repairs.map { list -> list.filter { it.vehicleId == vehicleId }.sortedByDescending { it.date } }
+        repairsState.map { list -> list.filter { it.vehicleId == vehicleId }.sortedByDescending { it.date } }
 
-    override suspend fun allRepairs(): List<Repair> = repairs.value
+    override suspend fun allRepairs(): List<Repair> = repairsState.value
 
-    override fun observeAllRepairs(): Flow<List<Repair>> = repairs.map { list -> list.sortedByDescending { it.date } }
+    override fun observeAllRepairs(): Flow<List<Repair>> = repairsState.map { list -> list.sortedByDescending { it.date } }
 
-    override suspend fun saveRepair(repair: Repair): Long = if (repair.id == 0L) {
-        val id = nextRepairId++
-        repairs.value += repair.copy(id = id)
-        id
-    } else {
-        repairs.value = repairs.value.map { if (it.id == repair.id) repair else it }
-        repair.id
+    override suspend fun saveRepair(repair: Repair): Long {
+        if (failWrites) throw SQLiteException("simulierter Schreibfehler")
+        saveRepairCount++
+        return if (repair.id == 0L) {
+            val id = nextRepairId++
+            repairsState.value += repair.copy(id = id)
+            id
+        } else {
+            repairsState.value = repairsState.value.map { if (it.id == repair.id) repair else it }
+            repair.id
+        }
     }
 
     override suspend fun deleteRepair(id: Long) {
-        repairs.value = repairs.value.filterNot { it.id == id }
+        repairsState.value = repairsState.value.filterNot { it.id == id }
     }
 
     override suspend fun restoreRepair(repair: Repair) {
-        repairs.value += repair
+        repairsState.value += repair
     }
 
     override suspend fun lastUsedRepairCurrency(): Currency? =
-        repairs.value.filter { it.cost != null }.maxByOrNull { it.updatedAt }?.cost?.currency
+        repairsState.value.filter { it.cost != null }.maxByOrNull { it.updatedAt }?.cost?.currency
 
     private companion object {
         val EMPTY_VEHICLE = Vehicle(uuid = "", name = "", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)

@@ -317,8 +317,9 @@ class DraftRestorationTest {
     fun repairVisibleErrorsSurviveProcessDeath() {
         val handle = SavedStateHandle()
         val before = RepairEditViewModel(vehicles, FakeExchangeRateRepository(), vehicles.currentVehicleId, 0, handle, locale)
-        before.onInputChange { it.copy(description = "") }
-        before.save()
+        // Eine neue Reparatur hat keinen Speichern-Button mehr; schon die erste Eingabe macht die
+        // aktuellen Fehler sichtbar (hier die noch leere Pflicht-Beschreibung).
+        before.onInputChange { it.copy(workshopName = "Meier") }
 
         val after = RepairEditViewModel(
             vehicles, FakeExchangeRateRepository(), vehicles.currentVehicleId, 0, handle.afterProcessDeath(), locale,
@@ -327,19 +328,6 @@ class DraftRestorationTest {
         assertEquals(RepairError.REQUIRED, after.uiState.value.errors[RepairField.DESCRIPTION])
         after.onInputChange { it.copy(description = "Reifen") }
         assertFalse(RepairField.DESCRIPTION in after.uiState.value.errors)
-    }
-
-    @Test
-    fun savedRepairLeavesNoDraft() {
-        val vehicleId = vehicles.currentVehicleId
-        val repairId = runBlocking { vehicles.saveRepair(repair(vehicleId, "Alt")) }
-        val handle = SavedStateHandle()
-        val before = RepairEditViewModel(vehicles, FakeExchangeRateRepository(), vehicleId, repairId, handle, locale)
-        before.onInputChange { it.copy(description = "Neu") }
-        before.save()
-
-        assertTrue(before.uiState.value.isSaved)
-        assertTrue(handle.keys().isEmpty())
     }
 
     @Test
