@@ -593,7 +593,7 @@ class GuidedTourNavigationTest {
             compose.onNode(hasText("Alpine loop", substring = true)).performClick()
 
             // "Wetter & Karte" ist standardmäßig aus; die Demo-Tour zeigt den "Karte"-Button trotzdem.
-            compose.onNodeWithText("Karte").assertExists()
+            compose.onNodeWithContentDescription("Karte").assertExists()
         } finally {
             clearPreferences()
         }

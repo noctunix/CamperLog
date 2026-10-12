@@ -163,6 +163,11 @@ fun TourDetailScreen(
                 BackTopBar(title = tour?.displayTitle(fallbackTitle) ?: fallbackTitle, onBack = onBack) {
                     if (tour != null) {
                         val loaded = state as DetailUiState.Loaded
+                        if (isMapAvailable(weatherMapEnabled, loaded.stations, hasTrack) || forceVisibleForTutorial) {
+                            IconButton(onClick = onOpenMap) {
+                                Icon(painterResource(R.drawable.ic_map), contentDescription = stringResource(R.string.action_map))
+                            }
+                        }
                         IconButton(onClick = onEdit) {
                             Icon(painterResource(R.drawable.ic_edit), contentDescription = stringResource(R.string.detail_edit))
                         }
@@ -248,17 +253,13 @@ fun TourDetailScreen(
                 diaryEntries = current.diaryEntries,
                 checklists = current.checklists,
                 metrics = current.metrics,
-                weatherMapEnabled = weatherMapEnabled,
-                hasTrack = hasTrack,
                 modifier = Modifier.fillMaxSize(),
                 padding = padding,
                 onOpenStation = onOpenStation,
                 onAddStop = { showTypePicker = true },
-                onOpenMap = onOpenMap,
                 onSaveCountries = { added, removed -> viewModel.saveCountries(current.tour, added, removed) },
                 trackStatusContent = trackStatusContent,
                 trackSectionContent = trackSectionContent,
-                forceVisibleForTutorial = forceVisibleForTutorial,
                 onAddDiaryEntry = { onAddDiaryEntry(current.tour.id) },
                 onOpenDiaryEntry = onOpenDiaryEntry,
                 onStartChecklist = { showChecklistPicker = true },
@@ -401,17 +402,13 @@ private fun TourDetails(
     diaryEntries: List<DiaryEntry>,
     checklists: List<Checklist>,
     metrics: TourMetrics,
-    weatherMapEnabled: Boolean,
-    hasTrack: Boolean,
     modifier: Modifier,
     padding: PaddingValues,
     onOpenStation: (Long) -> Unit,
     onAddStop: () -> Unit,
-    onOpenMap: () -> Unit,
     onSaveCountries: (Set<String>, Set<String>) -> Unit,
     trackStatusContent: (@Composable () -> Unit)?,
     trackSectionContent: (@Composable () -> Unit)?,
-    forceVisibleForTutorial: Boolean,
     onAddDiaryEntry: () -> Unit,
     onOpenDiaryEntry: (Long) -> Unit,
     onStartChecklist: () -> Unit,
@@ -448,20 +445,11 @@ private fun TourDetails(
             item { VignetteWarningsCard(warnings = vignetteWarnings, locale = locale, onOpenStation = onOpenStation) }
         }
         item {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    stringResource(R.string.stations_section_title, stations.size),
-                    modifier = Modifier.weight(1f).semantics { heading() },
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                if (isMapAvailable(weatherMapEnabled, stations, hasTrack) || forceVisibleForTutorial) {
-                    TextButton(onClick = onOpenMap) {
-                        Icon(painterResource(R.drawable.ic_map), contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.action_map))
-                    }
-                }
-            }
+            Text(
+                stringResource(R.string.stations_section_title, stations.size),
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.titleMedium,
+            )
         }
         if (stations.isEmpty()) {
             item {

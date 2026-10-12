@@ -107,7 +107,7 @@ class MapFlowTest {
 
         compose.onNodeWithText("Lofoten").performClick()
 
-        compose.onNodeWithText("Karte").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Karte").assertDoesNotExist()
     }
 
     @Test
@@ -117,7 +117,7 @@ class MapFlowTest {
 
         compose.onNodeWithText("Lofoten").performClick()
 
-        compose.onNodeWithText("Karte").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Karte").assertDoesNotExist()
     }
 
     @Test
@@ -130,7 +130,7 @@ class MapFlowTest {
         start(listOf(lofoten()), stations)
 
         compose.onNodeWithText("Lofoten").performClick()
-        compose.onNodeWithText("Karte").performClick()
+        compose.onNodeWithContentDescription("Karte").performClick()
 
         // Kartencanvas als Bild mit Zusammenfassung: "Karte mit 1 von 2 Stationen".
         compose.onNodeWithContentDescription("Karte mit 1 von 2 Stationen").assertExists()
