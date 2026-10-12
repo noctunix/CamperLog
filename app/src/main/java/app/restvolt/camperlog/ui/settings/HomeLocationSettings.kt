@@ -47,6 +47,13 @@ class HomeLocationSettings(context: Context) {
         state.update { it.copy(latitude = latitude, longitude = longitude, coordinateSource = source) }
     }
 
+    /** Ob [migrateHomeLocationToHistory] schon einmal gelaufen ist. */
+    var migratedToHistory: Boolean
+        get() = preferences.getBoolean(KEY_MIGRATED_TO_HISTORY, false)
+        set(value) {
+            preferences.edit { putBoolean(KEY_MIGRATED_TO_HISTORY, value) }
+        }
+
     private fun load(): HomeLocationPreferences = HomeLocationPreferences(
         name = preferences.getString(KEY_NAME, "").orEmpty(),
         latitude = preferences.getString(KEY_LATITUDE, null)?.toDoubleOrNull(),
@@ -59,5 +66,6 @@ class HomeLocationSettings(context: Context) {
         const val KEY_LATITUDE = "latitude"
         const val KEY_LONGITUDE = "longitude"
         const val KEY_SOURCE = "source"
+        const val KEY_MIGRATED_TO_HISTORY = "migrated_to_history"
     }
 }

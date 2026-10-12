@@ -59,6 +59,7 @@ import app.restvolt.camperlog.domain.CountryLookupRepository
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
+import app.restvolt.camperlog.domain.HomeLocationRepository
 import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.guide.DemoTourSession
 import app.restvolt.camperlog.domain.guide.GuideController
@@ -270,6 +271,7 @@ internal class NavDependencies(
     val backupSettings: BackupSettings,
     val backupFolderWriter: AndroidBackupFolderWriter,
     val homeLocationSettings: HomeLocationSettings,
+    val homeLocations: HomeLocationRepository,
     val guideController: GuideController,
     val guideProgressStore: GuideProgressStore,
     val demoTourSession: DemoTourSession,
@@ -323,6 +325,8 @@ fun CamperLogNavHost(
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     /** Aufgezeichnete Trackpunkte; in Tests ein Fake. */
     tracks: TrackRepository = (LocalContext.current.applicationContext as CamperLogApp).tracks,
+    /** Heimatadressen-Historie für den Schalter "Beginnt zu Hause"; in Tests ein Fake. */
+    homeLocations: HomeLocationRepository = (LocalContext.current.applicationContext as CamperLogApp).homeLocations,
     /**
      * Simulierte Demo-Tour des Tutorials; `null` baut sie unten aus [repository]/[stations]/[tracks]/
      * [vehicles] auf, damit Tests ohne eigenes Argument automatisch dieselben Fakes treffen, die sie
@@ -464,7 +468,7 @@ fun CamperLogNavHost(
         repository, vehicles, logbook, stations, exchangeRates, documents, diaryEntries, checklists, checklistTemplates,
         attachments, attachmentFileStore, backupImporter, locationProvider, weatherProvider, placeSearchProvider, tileLoader,
         countryLookup, attachmentPickers, tracks, reminderSettings, locationSettings, trackSettings, weatherSettings,
-        notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings, guideController, guideProgressStore,
+        notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings, homeLocations, guideController, guideProgressStore,
         resolvedDemoTourSession,
     )
     NavHost(navController, startDestination = ToursRoute) {

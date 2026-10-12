@@ -22,6 +22,8 @@ import app.restvolt.camperlog.reminders.EXTRA_OPEN_VEHICLE_ID
 import app.restvolt.camperlog.tracking.TrackRecordingService
 import app.restvolt.camperlog.share.cleanUpExports
 import app.restvolt.camperlog.ui.CamperLogNavHost
+import app.restvolt.camperlog.ui.settings.HomeLocationSettings
+import app.restvolt.camperlog.ui.settings.migrateHomeLocationToHistory
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.ThemeSettings
@@ -46,6 +48,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             lifecycleScope.launch { cleanUpExports(applicationContext) }
             lifecycleScope.launch { app.attachmentFileStore.sweepOrphanFiles(app.attachments.allFileNames(), Instant.now()) }
+            lifecycleScope.launch { migrateHomeLocationToHistory(HomeLocationSettings(applicationContext), app.homeLocations) }
             pendingGeoIntent = parseGeoIntent(intent?.dataString)
             pendingVehicleId = intent?.openVehicleIdExtra()
             pendingDocumentId = intent?.openDocumentIdExtra()
