@@ -446,6 +446,25 @@ private fun TourDetails(
         if (vignetteWarnings.isNotEmpty()) {
             item { VignetteWarningsCard(warnings = vignetteWarnings, locale = locale, onOpenStation = onOpenStation) }
         }
+        if (trackSectionContent != null) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth().guideAnchor("detail.track.section"),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            stringResource(R.string.tour_track_title),
+                            modifier = Modifier.semantics { heading() },
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        trackSectionContent()
+                    }
+                }
+            }
+        }
         item {
             Text(
                 stringResource(R.string.stations_section_title, stations.size),
@@ -512,21 +531,6 @@ private fun TourDetails(
                 locale = locale,
                 onSave = onSaveCountries,
             )
-        }
-        if (trackSectionContent != null) {
-            item {
-                var expanded by rememberSaveable { mutableStateOf(false) }
-                SectionCard(modifier = Modifier.guideAnchor("detail.track.section")) {
-                    CollapsibleSection(
-                        title = stringResource(R.string.tour_track_title),
-                        expanded = expanded,
-                        onToggle = { expanded = !expanded },
-                        summary = null,
-                    ) {
-                        trackSectionContent()
-                    }
-                }
-            }
         }
         if (tour.notes.isNotBlank() || tour.mapLink != null) {
             item {
