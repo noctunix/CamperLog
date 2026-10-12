@@ -1206,6 +1206,7 @@
     <string name="track_interval_seconds">%1$d s</string>
     <string name="track_interval_minutes">%1$d min</string>
     <string name="track_interval_hours">%1$d h</string>
+    <string name="track_duration_hours_minutes">%1$d h %2$d min</string>
     <string name="track_notification_channel_name">Track recording</string>
     <string name="track_notification_channel_description">Shown while a tour track is being recorded.</string>
     <string name="track_notification_title">%1$s: Recording track</string>

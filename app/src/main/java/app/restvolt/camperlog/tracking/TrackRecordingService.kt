@@ -46,6 +46,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -198,6 +200,13 @@ class TrackRecordingService : Service() {
             receiverRegistered = true
             scope.launch { settings.values.collect { prefs -> if (prefs.enabled) updateRequest() else stopRecording() } }
             scope.launch { motionDetector.observeIsMoving().collect { moving -> isMoving = moving } }
+            scope.launch {
+                // Aktualisiert nur die angezeigte Dauer zwischen Fixes; kein Datenzugriff, daher unkritisch.
+                while (isActive) {
+                    delay(60_000)
+                    updateNotification()
+                }
+            }
         }
         updateRequest()
     }
@@ -316,6 +325,16 @@ class TrackRecordingService : Service() {
         getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, buildNotification())
     }
 
+    /** Vergangene Zeit seit Beginn des aktuellen Aufzeichnungssegments, als "X min" oder "X h Y min". */
+    private fun formatSegmentDuration(): String {
+        val totalMinutes = ((System.currentTimeMillis() - segmentStartedAtMillis) / 60_000L).toInt().coerceAtLeast(0)
+        return if (totalMinutes < 60) {
+            getString(R.string.track_interval_minutes, totalMinutes)
+        } else {
+            getString(R.string.track_duration_hours_minutes, totalMinutes / 60, totalMinutes % 60)
+        }
+    }
+
     private fun buildNotification(): Notification {
         ensureChannel(this)
         val points = resources.getQuantityString(R.plurals.tour_track_points, segmentPointCount, segmentPointCount)
@@ -341,7 +360,7 @@ class TrackRecordingService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_route)
             .setContentTitle(getString(R.string.track_notification_title, getString(R.string.app_name)))
-            .setContentText("$points · $length")
+            .setContentText("$points · $length · ${formatSegmentDuration()}")
             .setWhen(segmentStartedAtMillis)
             .setShowWhen(true)
             .setUsesChronometer(true)
