@@ -40,6 +40,7 @@ import app.restvolt.camperlog.domain.distanceMeters
 import app.restvolt.camperlog.domain.effectiveTrackInterval
 import app.restvolt.camperlog.domain.isUsableTrackFix
 import app.restvolt.camperlog.domain.withMotionAwareness
+import app.restvolt.camperlog.ui.detail.formatTrackKm
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -79,6 +80,9 @@ class TrackRecordingService : Service() {
     private var isMoving = true
     private var receiverRegistered = false
     private var lastAcceptedLocation: Location? = null
+    private var segmentPointCount = 0
+    private var segmentLengthMeters = 0.0
+    private var segmentStartedAtMillis = 0L
 
     private val listener = LocationListenerCompat { location -> onFix(location) }
 
@@ -155,6 +159,9 @@ class TrackRecordingService : Service() {
             recording = active
             startingTourId = null
             lastAcceptedLocation = null
+            segmentPointCount = 0
+            segmentLengthMeters = 0.0
+            segmentStartedAtMillis = System.currentTimeMillis()
             startUpdates()
         }
         return START_STICKY
@@ -246,12 +253,13 @@ class TrackRecordingService : Service() {
         val accuracy = if (location.hasAccuracy()) location.accuracy.roundToInt() else null
         if (!isUsableTrackFix(accuracy)) return
         val last = lastAcceptedLocation
+        val moved = last?.let { distanceMeters(it.latitude, it.longitude, location.latitude, location.longitude) }
         val minDistance = requestedConfig?.withMotionAwareness(isMoving)?.minDistanceMeters
-        if (!isMoving && last != null && minDistance != null) {
-            val moved = distanceMeters(last.latitude, last.longitude, location.latitude, location.longitude)
-            if (moved < minDistance) return
-        }
+        if (!isMoving && moved != null && minDistance != null && moved < minDistance) return
         lastAcceptedLocation = location
+        segmentPointCount++
+        if (moved != null) segmentLengthMeters += moved
+        updateNotification()
         val point = TrackPoint(
             tourId = active.tourId,
             segment = active.segment,
@@ -310,7 +318,8 @@ class TrackRecordingService : Service() {
 
     private fun buildNotification(): Notification {
         ensureChannel(this)
-        val interval = requestedInterval ?: settings.values.value.interval
+        val points = resources.getQuantityString(R.plurals.tour_track_points, segmentPointCount, segmentPointCount)
+        val length = getString(R.string.tour_track_length, formatTrackKm(segmentLengthMeters, resources.configuration.locales[0]))
         val open = PendingIntent.getActivity(
             this,
             0,
@@ -332,7 +341,10 @@ class TrackRecordingService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_route)
             .setContentTitle(getString(R.string.track_notification_title, getString(R.string.app_name)))
-            .setContentText(getString(R.string.track_notification_text, trackIntervalLabel(resources, interval)))
+            .setContentText("$points · $length")
+            .setWhen(segmentStartedAtMillis)
+            .setShowWhen(true)
+            .setUsesChronometer(true)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
