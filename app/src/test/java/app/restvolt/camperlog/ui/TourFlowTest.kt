@@ -455,7 +455,7 @@ class TourFlowTest {
         compose.onNode(hasText("Startdatum") and hasClickAction()).assert(hasText("Pflichtfeld"))
         compose.onNode(hasText("Enddatum") and hasClickAction()).assert(!hasText("Pflichtfeld"))
         destinationField().assert(!hasText("Pflichtfeld"))
-        compose.onNodeWithText("Werden beim Beenden automatisch aus Zeitraum, Stationen und GPS-Track berechnet.").assertExists()
+        compose.onNodeWithText("Ohne Enddatum gilt diese Tour schon jetzt als laufend. Kennzahlen kommen automatisch dazu, sobald du sie beendest.").assertExists()
         compose.onNodeWithText("Kartenlink").assertDoesNotExist()
         compose.onNode(hasSetTextAction() and hasText("Notizen")).assert(!hasText("Pflichtfeld"))
 
