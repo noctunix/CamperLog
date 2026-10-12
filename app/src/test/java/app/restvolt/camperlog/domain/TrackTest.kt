@@ -96,4 +96,19 @@ class TrackTest {
         assertEquals(listOf(listOf(LatLon(50.0, 10.0), LatLon(50.1, 10.0)), listOf(LatLon(52.0, 10.0))), segments)
         assertTrue(trackSegmentsForMap(emptyList()).isEmpty())
     }
+
+    @Test
+    fun trackPointsForMap_splitsBySegmentAndSortsByTime() {
+        fun point(segment: Int, second: Long, lat: Double) =
+            TrackPoint(tourId = 1, segment = segment, recordedAt = Instant.ofEpochSecond(second), latitude = lat, longitude = 10.0)
+        val early = point(1, 1, 50.0)
+        val late = point(1, 2, 50.1)
+        val other = point(2, 5, 52.0)
+        val points = listOf(other, late, early)
+
+        val segments = trackPointsForMap(points)
+
+        assertEquals(listOf(listOf(early, late), listOf(other)), segments)
+        assertTrue(trackPointsForMap(emptyList()).isEmpty())
+    }
 }

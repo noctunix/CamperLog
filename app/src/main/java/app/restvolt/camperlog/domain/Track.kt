@@ -136,6 +136,13 @@ fun trackSegmentsForMap(points: List<TrackPoint>): List<List<LatLon>> =
         segment.sortedBy { it.recordedAt }.map { LatLon(it.latitude, it.longitude) }
     }
 
+/**
+ * Trackpunkte für die Karte, gruppiert wie [trackSegmentsForMap], aber mit vollem [TrackPoint]
+ * (statt nur Koordinate) für die Zeit-Labels der einzelnen Fixes.
+ */
+fun trackPointsForMap(points: List<TrackPoint>): List<List<TrackPoint>> =
+    points.groupBy { it.segment }.toSortedMap().values.map { segment -> segment.sortedBy { it.recordedAt } }
+
 /** Zugriff auf die gespeicherten Trackpunkte. */
 interface TrackRepository {
 

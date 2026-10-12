@@ -16,6 +16,7 @@ import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.domain.TrackPoint
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
@@ -74,7 +75,7 @@ class MapFlowTest {
         updatedAt = Instant.EPOCH,
     )
 
-    private fun start(tours: List<Tour>, stations: List<Station>): FakeTileLoader {
+    private fun start(tours: List<Tour>, stations: List<Station>, track: List<TrackPoint> = emptyList()): FakeTileLoader {
         val tileLoader = FakeTileLoader()
         val tourRepository = FakeTourRepository(tours)
         val stationRepository = FakeStationRepository(stations)
@@ -92,13 +93,21 @@ class MapFlowTest {
                     canShowStartDialogs = false,
                     countryLookup = FakeCountryLookupRepository(),
                     tileLoader = tileLoader,
-                    tracks = FakeTrackRepository(),
+                    tracks = FakeTrackRepository(track),
                     onAccentColorChange = { },
                 ) { }
             }
         }
         return tileLoader
     }
+
+    private fun trackPoint(second: Long, latitude: Double, longitude: Double) = TrackPoint(
+        tourId = 1,
+        segment = 1,
+        recordedAt = Instant.EPOCH.plusSeconds(second),
+        latitude = latitude,
+        longitude = longitude,
+    )
 
     @Test
     fun mapButton_isHiddenOnTourDetailWhenTheSwitchIsOff() {
@@ -149,6 +158,26 @@ class MapFlowTest {
 
         // Attribution ist immer sichtbar und tappbar.
         compose.onNodeWithText("© OpenStreetMap-Mitwirkende").assertExists()
+    }
+
+    @Test
+    fun mapButton_rendersTheRecordedTrackWithoutCrashing() {
+        setWeatherEnabled(true)
+        val stations = listOf(station(1, "Camping Moskenes", LocalDate.of(2020, 7, 4), 68.0912, 13.1023))
+        val track = listOf(
+            trackPoint(0, 68.09, 13.10),
+            trackPoint(60, 68.091, 13.101),
+            trackPoint(120, 68.092, 13.102),
+            trackPoint(180, 68.093, 13.103),
+        )
+        start(listOf(lofoten()), stations, track)
+
+        compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithContentDescription("Karte").performClick()
+
+        // Punkte und Zeit-Labels sind reine Canvas-Zeichnung ohne eigene Semantik; der Smoke-Test
+        // prüft nur, dass die Karte mit mehreren Trackpunkten ohne Absturz rendert.
+        compose.onNodeWithContentDescription("Karte mit 1 von 1 Station").assertExists()
     }
 
     @Test

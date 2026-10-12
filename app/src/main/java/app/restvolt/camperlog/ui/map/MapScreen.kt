@@ -64,9 +64,13 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
@@ -79,13 +83,14 @@ import app.restvolt.camperlog.domain.TileCoord
 import app.restvolt.camperlog.domain.TrackPoint
 import app.restvolt.camperlog.domain.fitBounds
 import app.restvolt.camperlog.domain.formatDate
+import app.restvolt.camperlog.domain.formatTimeOfDay
 import app.restvolt.camperlog.domain.latToWorldY
 import app.restvolt.camperlog.domain.lonToWorldX
 import app.restvolt.camperlog.domain.panCamera
 import app.restvolt.camperlog.domain.screenPosition
 import app.restvolt.camperlog.domain.stationsForMap
 import app.restvolt.camperlog.domain.toLatLon
-import app.restvolt.camperlog.domain.trackSegmentsForMap
+import app.restvolt.camperlog.domain.trackPointsForMap
 import app.restvolt.camperlog.domain.visibleTiles
 import app.restvolt.camperlog.domain.zoomCamera
 import app.restvolt.camperlog.share.tryStart
@@ -109,13 +114,23 @@ private val MapTrackColor = Color(0xFFD84315)
 /** Trackpunkte, die auf dem Bildschirm näher als dies am Vorgänger liegen, werden nicht gezeichnet. */
 private const val TRACK_MIN_STEP_PX = 2f
 
+/** Mindestabstand zweier gezeichneter Trackpunkt-Dots auf dem Bildschirm; grobe Näherung, kein exaktes Kollisionssystem. */
+private const val TRACK_DOT_MIN_STEP_PX = 10f
+
+/** Mindestabstand zweier Zeit-Labels auf dem Bildschirm, größer als der Dot-Abstand, damit sich Text wie "14:05" nicht überlappt. */
+private const val TRACK_LABEL_MIN_SPACING_PX = 56f
+
+private val TrackDotColor = MapTrackColor
+private val TrackLabelColor = Color(0xFF3E2318)
+
 /**
  * Eigene Compose-Slippy-Map einer Tour oder des Stationen-Reiters: Kachelraster mit
  * Ziehen/Kneifzoom/Doppeltipp, Zoomtasten, Einpassen, Markern und gestrichelten Verbindungen in
  * chronologischer Reihenfolge, sowie die Stationsliste im Bottom Sheet als vollwertige
  * barrierefreie Alternative. Ein aufgezeichneter [track] erscheint je Segment als durchgezogene
- * Linie. Solange der Nutzer die Karte nicht bewegt hat, passt sie sich neu ein, wenn Stationen
- * oder Trackpunkte (auch verspätet geladen) hinzukommen.
+ * Linie mit einzelnen Fix-Punkten und, soweit Platz ist, Zeit-Labels. Solange der Nutzer die
+ * Karte nicht bewegt hat, passt sie sich neu ein, wenn Stationen oder Trackpunkte (auch
+ * verspätet geladen) hinzukommen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,8 +143,10 @@ fun MapScreen(
     track: List<TrackPoint> = emptyList(),
 ) {
     val located = remember(stations) { stationsForMap(stations) }
-    val trackSegments = remember(track) { trackSegmentsForMap(track) }
-    val fitPoints = remember(located, trackSegments) { located.mapNotNull { it.toLatLon() } + trackSegments.flatten() }
+    val trackPointSegments = remember(track) { trackPointsForMap(track) }
+    val fitPoints = remember(located, trackPointSegments) {
+        located.mapNotNull { it.toLatLon() } + trackPointSegments.flatten().map { LatLon(it.latitude, it.longitude) }
+    }
     val unlocated = remember(stations) { stations.filter { it.latitude == null || it.longitude == null } }
     val tiles by viewModel.tiles.collectAsStateWithLifecycle()
     val showFailureBanner by viewModel.showFailureBanner.collectAsStateWithLifecycle()
@@ -191,7 +208,7 @@ fun MapScreen(
                     },
                     tiles = tiles,
                     located = located,
-                    trackSegments = trackSegments,
+                    trackPointSegments = trackPointSegments,
                     selectedStationId = selectedStationId,
                     onMarkerTap = { id -> selectedStationId = id },
                     viewportWidthPx = viewportWidthPx,
@@ -257,7 +274,7 @@ private fun MapCanvas(
     onCameraChange: (MapCamera) -> Unit,
     tiles: Map<TileCoord, TileState>,
     located: List<Station>,
-    trackSegments: List<List<LatLon>>,
+    trackPointSegments: List<List<TrackPoint>>,
     selectedStationId: Long?,
     onMarkerTap: (Long) -> Unit,
     viewportWidthPx: Int,
@@ -284,6 +301,7 @@ private fun MapCanvas(
     // über rememberUpdatedState statt über die zum Startzeitpunkt eingefangene Kamera.
     val liveCamera by rememberUpdatedState(camera)
     val canvasDescription = pluralStringResource(R.plurals.map_canvas_description, totalStopCount, located.size, totalStopCount)
+    val textMeasurer = rememberTextMeasurer()
 
     Box(
         Modifier
@@ -315,10 +333,26 @@ private fun MapCanvas(
             }
 
             val trackWidth = 3.dp.toPx()
-            for (segment in trackSegments) {
-                val path = trackPath(segment, camera, viewportWidthPx, viewportHeightPx) ?: continue
+            for (segment in trackPointSegments) {
+                val coordinates = segment.map { LatLon(it.latitude, it.longitude) }
+                val path = trackPath(coordinates, camera, viewportWidthPx, viewportHeightPx) ?: continue
                 drawPath(path, color = Color.White, style = Stroke(width = trackWidth + 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
                 drawPath(path, color = MapTrackColor, style = Stroke(width = trackWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            }
+
+            val dotRadius = 3.dp.toPx()
+            for (segment in trackPointSegments) {
+                val dots = declutteredDotPositions(segment, camera, viewportWidthPx, viewportHeightPx)
+                for ((_, pos) in dots) {
+                    drawCircle(color = Color.White, radius = dotRadius + 1.dp.toPx(), center = pos)
+                    drawCircle(color = TrackDotColor, radius = dotRadius, center = pos)
+                }
+                val labeled = declutteredLabelDots(dots)
+                for ((point, pos) in labeled) {
+                    val text = formatTimeOfDay(point.recordedAt.toEpochMilli(), locale)
+                    val layout = textMeasurer.measure(text, style = TextStyle(fontSize = 10.sp, color = TrackLabelColor))
+                    drawText(layout, topLeft = Offset(pos.x + dotRadius + 4.dp.toPx(), pos.y - layout.size.height / 2f))
+                }
             }
 
             val points = located.mapNotNull { station -> station.toLatLon()?.let { screenPosition(it, camera, viewportWidthPx, viewportHeightPx) } }
@@ -498,4 +532,37 @@ private fun trackPath(segment: List<LatLon>, camera: MapCamera, viewportWidthPx:
         lastY = fy
     }
     return path
+}
+
+/** Bildschirmpositionen von [segment], die einen Dot bekommen: Greedy-Skip wie [trackPath], aber mit [TRACK_DOT_MIN_STEP_PX]. */
+private fun declutteredDotPositions(
+    segment: List<TrackPoint>,
+    camera: MapCamera,
+    viewportWidthPx: Int,
+    viewportHeightPx: Int,
+): List<Pair<TrackPoint, Offset>> {
+    val result = mutableListOf<Pair<TrackPoint, Offset>>()
+    var last: Offset? = null
+    for (point in segment) {
+        val (x, y) = screenPosition(LatLon(point.latitude, point.longitude), camera, viewportWidthPx, viewportHeightPx)
+        val pos = Offset(x.toFloat(), y.toFloat())
+        if (last == null || (abs(pos.x - last.x) + abs(pos.y - last.y)) >= TRACK_DOT_MIN_STEP_PX) {
+            result += point to pos
+            last = pos
+        }
+    }
+    return result
+}
+
+/** Teilmenge von [dots], die zusätzlich ein Zeit-Label bekommt: derselbe Greedy-Skip, größere Schwelle, nur über die Dots. */
+private fun declutteredLabelDots(dots: List<Pair<TrackPoint, Offset>>): List<Pair<TrackPoint, Offset>> {
+    val result = mutableListOf<Pair<TrackPoint, Offset>>()
+    var last: Offset? = null
+    for ((point, pos) in dots) {
+        if (last == null || (abs(pos.x - last.x) + abs(pos.y - last.y)) >= TRACK_LABEL_MIN_SPACING_PX) {
+            result += point to pos
+            last = pos
+        }
+    }
+    return result
 }
