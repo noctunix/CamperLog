@@ -29,6 +29,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -202,6 +203,28 @@ class EditTourViewModelTest {
 
         viewModel.onEndDateChange(LocalDate.of(2026, 7, 4))
 
+        assertEquals(false, viewModel.uiState.value.trackSwitch)
+    }
+
+    @Test
+    fun onStartNow_setsTheStartDateAndANonBlankStartTime() = runTest {
+        val viewModel = newViewModel()
+
+        viewModel.onStartNow()
+
+        assertEquals(LocalDate.now(), viewModel.uiState.value.input.startDate)
+        assertNotNull(viewModel.uiState.value.input.startTime)
+    }
+
+    @Test
+    fun onEndNow_setsTheEndDateAndTimeAndResetsTheTrackSwitch() = runTest {
+        val viewModel = newViewModel()
+        viewModel.onTrackSwitchChange(true)
+
+        viewModel.onEndNow()
+
+        assertEquals(LocalDate.now(), viewModel.uiState.value.input.endDate)
+        assertNotNull(viewModel.uiState.value.input.endTime)
         assertEquals(false, viewModel.uiState.value.trackSwitch)
     }
 

@@ -58,6 +58,7 @@ import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -248,15 +249,17 @@ class TourFlowTest {
     }
 
     @Test
-    fun newTour_todayButtonFillsTheStartDate() {
+    fun newTour_nowButtonFillsTheStartDateAndTime() {
         val repository = start()
         compose.onNodeWithText("Neue Tour").performClick()
 
-        compose.onNodeWithText("Heute").performClick()
+        // Start- und Enddatum haben beide einen "Jetzt"-Button; der erste gehört zum Startdatum.
+        compose.onAllNodesWithText("Jetzt")[0].performClick()
         destinationField().performTextInput("Gardasee")
         leaveFormKeepingChanges()
 
         assertEquals(LocalDate.now(), repository.tours.single().startDate)
+        assertNotNull(repository.tours.single().startTime)
     }
 
     /**

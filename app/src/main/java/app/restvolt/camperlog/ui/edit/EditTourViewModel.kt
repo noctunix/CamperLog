@@ -33,6 +33,8 @@ import app.restvolt.camperlog.domain.validation
 import app.restvolt.camperlog.ui.settings.HomeLocationSettings
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.util.Currency
 import java.util.Locale
 import kotlinx.coroutines.Job
@@ -308,6 +310,25 @@ class EditTourViewModel(
         // und beendet damit auch eine eventuell schon laufende Aufzeichnung (siehe EditTourScreen).
         if (date != null) _uiState.update { it.copy(trackSwitch = false) }
         if (date != null) refreshDerivedMetrics()
+    }
+
+    fun onStartTimeChange(time: LocalTime?) = onInputChange { it.copy(startTime = time) }
+
+    fun onEndTimeChange(time: LocalTime?) = onInputChange { it.copy(endTime = time) }
+
+    /** Setzt Startdatum UND -zeit auf den exakten aktuellen Moment (Schnellausfüll-Button "Jetzt"). */
+    fun onStartNow() {
+        val now = LocalDateTime.now()
+        onInputChange { prefillTravelDays(it.copy(startDate = now.toLocalDate(), startTime = now.toLocalTime())) }
+        refreshDerivedMetrics()
+    }
+
+    /** Setzt Enddatum UND -zeit auf den exakten aktuellen Moment (Schnellausfüll-Button "Jetzt"). */
+    fun onEndNow() {
+        val now = LocalDateTime.now()
+        onInputChange { prefillTravelDays(it.copy(endDate = now.toLocalDate(), endTime = now.toLocalTime())) }
+        _uiState.update { it.copy(trackSwitch = false) }
+        refreshDerivedMetrics()
     }
 
     /**

@@ -62,6 +62,7 @@ import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LeaveDraftDialog
 import app.restvolt.camperlog.ui.LocationCaptureSection
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.TimeField
 import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
 import app.restvolt.camperlog.ui.attachments.AttachmentPickers
 import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
@@ -196,6 +197,7 @@ private fun RepairForm(
                 { date -> change { it.copy(date = date) } },
                 modifier = focusOf(RepairField.DATE),
             )
+            TimeField(stringResource(R.string.field_time), input.time) { time -> change { it.copy(time = time) } }
             FormTextField(
                 label = stringResource(R.string.field_description),
                 value = input.description,

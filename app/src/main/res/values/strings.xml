@@ -7,7 +7,7 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_close">Close</string>
     <string name="action_ok">OK</string>
-    <string name="action_today">Today</string>
+    <string name="action_now">Now</string>
     <string name="yes">yes</string>
     <string name="no">no</string>
     <string name="tour_not_found">This tour no longer exists.</string>
@@ -44,7 +44,9 @@
 
     <!-- Field labels -->
     <string name="field_start_date">Start date</string>
+    <string name="field_start_time">Start time</string>
     <string name="field_end_date">End date</string>
+    <string name="field_end_time">End time</string>
     <string name="field_destination">Destination</string>
     <string name="field_slug">Slug</string>
     <string name="edit_slug_hint">Used for export file names</string>
@@ -1271,7 +1273,7 @@
     <string name="guide_step_tourtype_body">Choose what kind of trip this is – it shows up in lists and filters.</string>
     <string name="guide_step_vehicle_body">This tour is assigned to this vehicle; pick a different one here if you have more than one.</string>
     <string name="guide_step_vehicle_create_body">You don\'t have a vehicle yet. Tap here to add one – you can fill in the details later.</string>
-    <string name="guide_step_period_body">Set the start date; tap \"Today\" to use the current date. Leave the end date empty while the tour is still running – an empty end date means an ongoing tour.</string>
+    <string name="guide_step_period_body">Set the start date; tap \"Now\" to use the current date and time. Leave the end date empty while the tour is still running – an empty end date means an ongoing tour.</string>
     <string name="guide_step_track_switch_body_enabled">Check this to record a GPS track while you drive. CamperLog asks for the location permission right now, so recording can start the moment you check it.</string>
     <string name="guide_step_track_switch_body_disabled">Recording a GPS track needs the location switch in Settings turned on first; once it is, this checkbox appears here for a running tour.</string>
     <string name="guide_step_home_switch_title">Home location</string>

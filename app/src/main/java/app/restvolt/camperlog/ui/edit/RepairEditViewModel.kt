@@ -65,6 +65,7 @@ data class RepairEditUiState(
  */
 internal fun RepairEditUiState.isUnmodifiedNewRepairDraft(): Boolean = isNew &&
     input.date == initialDate &&
+    input.time == null &&
     input.description.isBlank() &&
     input.workshopName.isBlank() &&
     input.odometerKm.isBlank() &&

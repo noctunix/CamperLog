@@ -7,7 +7,7 @@
     <string name="action_cancel">Abbrechen</string>
     <string name="action_close">Schließen</string>
     <string name="action_ok">OK</string>
-    <string name="action_today">Heute</string>
+    <string name="action_now">Jetzt</string>
     <string name="yes">ja</string>
     <string name="no">nein</string>
     <string name="tour_not_found">Diese Tour gibt es nicht mehr.</string>
@@ -44,7 +44,9 @@
 
     <!-- Field labels -->
     <string name="field_start_date">Startdatum</string>
+    <string name="field_start_time">Startzeit</string>
     <string name="field_end_date">Enddatum</string>
+    <string name="field_end_time">Endzeit</string>
     <string name="field_destination">Ziel</string>
     <string name="field_slug">Slug</string>
     <string name="edit_slug_hint">Für Dateinamen bei Berichten</string>
@@ -1260,7 +1262,7 @@
     <string name="guide_step_tourtype_body">Wähl die Art der Tour – sie taucht damit in Listen und Filtern auf.</string>
     <string name="guide_step_vehicle_body">Diese Tour gehört zu diesem Fahrzeug; wähl hier ein anderes, falls du mehr als eins hast.</string>
     <string name="guide_step_vehicle_create_body">Du hast noch kein Fahrzeug. Tippe hier, um eins anzulegen – die Details kannst du später ergänzen.</string>
-    <string name="guide_step_period_body">Setz das Startdatum; „Heute" übernimmt das aktuelle Datum. Lass das Enddatum leer, solange die Tour noch läuft – ein leeres Enddatum bedeutet eine laufende Tour.</string>
+    <string name="guide_step_period_body">Setz das Startdatum; „Jetzt" übernimmt das aktuelle Datum und die Uhrzeit. Lass das Enddatum leer, solange die Tour noch läuft – ein leeres Enddatum bedeutet eine laufende Tour.</string>
     <string name="guide_step_track_switch_body_enabled">Kreuz das an, um während der Fahrt einen GPS-Track aufzuzeichnen. CamperLog fragt die Standortberechtigung direkt jetzt an, damit die Aufzeichnung mit dem Ankreuzen starten kann.</string>
     <string name="guide_step_track_switch_body_disabled">Ein GPS-Track braucht zuerst den Standort-Schalter in den Einstellungen; ist der an, steht diese Checkbox hier für eine laufende Tour.</string>
     <string name="guide_step_home_switch_title">Zuhause-Ort</string>

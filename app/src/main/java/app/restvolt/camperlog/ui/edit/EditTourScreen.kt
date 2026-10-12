@@ -80,6 +80,7 @@ import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LabeledValue
 import app.restvolt.camperlog.ui.LeaveDraftDialog
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.TimeField
 import app.restvolt.camperlog.ui.guide.guideAnchor
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.messageRes
@@ -87,7 +88,6 @@ import app.restvolt.camperlog.ui.settings.HomeLocationSettings
 import app.restvolt.camperlog.ui.settings.trackPermissions
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.vehicleMenuLabel
-import java.time.LocalDate
 
 /**
  * Formular zum Anlegen und Bearbeiten einer Tour; jede Eingabe speichert sich implizit selbst.
@@ -229,7 +229,7 @@ private fun TourForm(
     val errors = state.errors.mapValues { (field, error) -> stringResource(error.messageRes(field)) }
     val change = viewModel::onInputChange
     val required = stringResource(R.string.edit_required)
-    val today = stringResource(R.string.action_today)
+    val now = stringResource(R.string.action_now)
     val focus = remember { TourField.entries.associateWith { FocusRequester() } }
     fun focusOf(field: TourField) = Modifier.focusRequester(focus.getValue(field))
 
@@ -311,13 +311,10 @@ private fun TourForm(
                 viewModel::onStartDateChange,
                 modifier = focusOf(TourField.START_DATE),
                 hint = required,
-                quickFillLabel = if (state.isNew && input.startDate == null) today else null,
-                onQuickFill = if (state.isNew && input.startDate == null) {
-                    { viewModel.onStartDateChange(LocalDate.now()) }
-                } else {
-                    null
-                },
+                quickFillLabel = if (state.isNew && input.startDate == null) now else null,
+                onQuickFill = if (state.isNew && input.startDate == null) { { viewModel.onStartNow() } } else null,
             )
+            TimeField(stringResource(R.string.field_start_time), input.startTime) { time -> viewModel.onStartTimeChange(time) }
             DateField(
                 stringResource(R.string.field_end_date),
                 input.endDate,
@@ -328,7 +325,12 @@ private fun TourForm(
                 modifier = focusOf(TourField.END_DATE),
                 onClear = { viewModel.onEndDateChange(null) },
                 hint = stringResource(R.string.edit_end_date_hint),
+                quickFillLabel = if (input.endDate == null) now else null,
+                onQuickFill = if (input.endDate == null) { { viewModel.onEndNow() } } else null,
             )
+            if (input.endDate != null) {
+                TimeField(stringResource(R.string.field_end_time), input.endTime) { time -> viewModel.onEndTimeChange(time) }
+            }
             if (input.endDate == null) {
                 val runningHint = state.isNew
                 Text(

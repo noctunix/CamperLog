@@ -85,6 +85,24 @@ class RepairFlowTest {
         compose.onNodeWithText("Reifen gewechselt").assertExists()
     }
 
+    /** Bestätigt im Zeitauswahl-Dialog speichert eine Uhrzeit und ersetzt das Uhr-Symbol durch "Uhrzeit entfernen". */
+    @Test
+    fun timeField_confirmingThePickerSavesTheChosenTime() {
+        start()
+        openNewRepairForm()
+        descriptionField().performTextInput("Glühbirne gewechselt")
+
+        compose.onNodeWithContentDescription("Uhrzeit wählen").performClick()
+        compose.onNodeWithText("OK").performClick()
+
+        compose.onNodeWithContentDescription("Uhrzeit entfernen").assertExists()
+
+        backKeepingChanges()
+        compose.onNodeWithText("Glühbirne gewechselt").performClick()
+
+        compose.onNodeWithContentDescription("Uhrzeit entfernen").assertExists()
+    }
+
     @Test
     fun repairsSectionIsAlwaysVisibleEvenWhenSheetIsEmpty() {
         start()
