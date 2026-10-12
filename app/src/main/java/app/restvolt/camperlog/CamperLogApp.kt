@@ -5,6 +5,8 @@ import app.restvolt.camperlog.backup.BackupImporter
 import app.restvolt.camperlog.data.AndroidAttachmentFileStore
 import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.data.CamperLogDatabase
+import app.restvolt.camperlog.data.DiagnosticsLogSettings
+import app.restvolt.camperlog.data.FileDiagnosticsLogRepository
 import app.restvolt.camperlog.data.RoomAttachmentRepository
 import app.restvolt.camperlog.data.RoomBackupImporter
 import app.restvolt.camperlog.data.RoomChecklistRepository
@@ -22,6 +24,9 @@ import app.restvolt.camperlog.data.TileHttpCache
 import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.ChecklistRepository
 import app.restvolt.camperlog.domain.ChecklistTemplateRepository
+import app.restvolt.camperlog.domain.DiagnosticsLogEntry
+import app.restvolt.camperlog.domain.DiagnosticsLogRepository
+import app.restvolt.camperlog.domain.DiagnosticsLogSource
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.HomeLocationRepository
@@ -35,12 +40,21 @@ import app.restvolt.camperlog.domain.guide.DemoTourContent
 import app.restvolt.camperlog.domain.guide.DemoTourSession
 import app.restvolt.camperlog.tracking.TrackRecordingService
 import app.restvolt.camperlog.ui.stations.StationsWhatsNewSettings
+import kotlinx.coroutines.runBlocking
+import java.time.Instant
 
 /** Application-Klasse; hält die einzige Datenbank- und Repository-Instanz. */
 class CamperLogApp : Application() {
 
+    /** Lokales, rotierendes Diagnoseprotokoll ("Fehlerprotokoll" in den Einstellungen). */
+    val diagnosticsLog: DiagnosticsLogRepository by lazy { FileDiagnosticsLogRepository(this) }
+
+    /** Schalter für die ausführlichen Diagnose-Einträge zusätzlich zur immer aktiven Absturzerfassung. */
+    val diagnosticsLogSettings: DiagnosticsLogSettings by lazy { DiagnosticsLogSettings(this) }
+
     override fun onCreate() {
         super.onCreate()
+        installCrashLogging()
         TileHttpCache.install(this)
     }
 
@@ -106,4 +120,30 @@ class CamperLogApp : Application() {
     }
 
     private val database by lazy { CamperLogDatabase.open(this) { StationsWhatsNewSettings(this).pending = true } }
+
+    /**
+     * Schreibt einen Absturz zuerst ins Diagnoseprotokoll und reicht ihn danach an den bisherigen
+     * Standard-Handler weiter - das eigentliche Absturzverhalten bleibt unverändert, der Eintrag
+     * landet synchron auf der Platte, bevor der Prozess beendet wird.
+     */
+    private fun installCrashLogging() {
+        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            runCatching {
+                runBlocking {
+                    diagnosticsLog.append(
+                        DiagnosticsLogEntry.capture(
+                            timestamp = Instant.now(),
+                            source = DiagnosticsLogSource.CRASH,
+                            fatal = true,
+                            tag = thread.name,
+                            rawMessage = throwable.message ?: throwable.toString(),
+                            rawStack = throwable.stackTraceToString(),
+                        ),
+                    )
+                }
+            }
+            previousHandler?.uncaughtException(thread, throwable)
+        }
+    }
 }
