@@ -23,6 +23,9 @@ object DiagnosticsLogRedactor {
     // Dateipfade, die einen echten Nutzernamen tragen; der eigene Sandbox-Pfad der App
     // (/data/user/0/app.restvolt.camperlog/…) bleibt bewusst unangetastet – der nennt niemanden
     // und ist genau das Detail, für das ein Diagnoseprotokoll existiert.
+    // Lint hält "/sdcard/" sonst für einen hartcodierten Speicherzugriff statt für ein
+    // Textmuster, das nur gegen bereits vorhandenen Protokolltext abgeglichen wird.
+    @Suppress("SdCardPath")
     private val pathPattern = Regex(
         """content://\S+""" + "|" +
             """/storage/emulated/\d+/\S*""" + "|" +
