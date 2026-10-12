@@ -181,6 +181,22 @@
     <string name="home_location_valid_to_hint">Leave empty if still current</string>
     <string name="home_location_add">Add address</string>
     <string name="home_location_delete">Delete address</string>
+    <string name="settings_diagnostics_log_title">Diagnostics log</string>
+    <string name="settings_diagnostics_log_support">Records detailed technical entries, e.g. for GPS track recording, to help investigate problems. Stays on this device until you share it. Crashes are always recorded, regardless of this switch.</string>
+    <string name="settings_open_diagnostics_log">Show error log</string>
+    <string name="diagnostics_log_title">Error log</string>
+    <string name="diagnostics_log_empty">No entries yet.</string>
+    <string name="diagnostics_log_share">Share</string>
+    <string name="diagnostics_log_share_subject">CamperLog error log</string>
+    <string name="diagnostics_log_share_chooser">Share error log</string>
+    <string name="diagnostics_log_clear">Clear log</string>
+    <string name="diagnostics_log_clear_title">Clear error log?</string>
+    <string name="diagnostics_log_clear_message">Deletes all entries from this device. This cannot be undone.</string>
+    <string name="diagnostics_log_fatal">Crash</string>
+    <string name="diagnostics_log_source_crash">Crash</string>
+    <string name="diagnostics_log_source_track_recording">Track recording</string>
+    <string name="diagnostics_log_show_details">Show details</string>
+    <string name="diagnostics_log_hide_details">Hide details</string>
     <string name="settings_open_about">About CamperLog</string>
 
     <!-- Detail -->

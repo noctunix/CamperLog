@@ -178,6 +178,15 @@ suspend fun writeTourExportZipExport(context: Context, baseName: String, writeZi
     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 }
 
+/** Schreibt [text] als `.txt` in den Cache-Ordner `exports/` und liefert eine teilbare Content-URI, wie [writeBackupExport]. */
+suspend fun writeDiagnosticsLogExport(context: Context, text: String): Uri = withContext(Dispatchers.IO) {
+    val dir = File(context.cacheDir, EXPORT_DIR).apply { mkdirs() }
+    deleteOldExports(dir, System.currentTimeMillis())
+    val file = uniqueFile(dir, "camperlog-fehlerprotokoll-${LocalDateTime.now().format(exportStamp)}", extension = "txt")
+    file.writeText(text, Charsets.UTF_8)
+    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
 /** Löscht Export-Dateien, die älter als eine Stunde sind; für den App-Start gedacht. */
 suspend fun cleanUpExports(context: Context) = withContext(Dispatchers.IO) {
     deleteOldExports(File(context.cacheDir, EXPORT_DIR), System.currentTimeMillis())
@@ -258,6 +267,22 @@ fun Context.shareBackupZip(uri: Uri): Boolean {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     return startChooser(send, getString(R.string.export_chooser))
+}
+
+/**
+ * Öffnet das Sharesheet für die Fehlerprotokoll-Textdatei unter [uri].
+ *
+ * @return `false`, wenn kein Sharesheet geöffnet werden konnte
+ */
+fun Context.shareDiagnosticsLog(uri: Uri): Boolean {
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_SUBJECT, getString(R.string.diagnostics_log_share_subject))
+        clipData = ClipData.newRawUri(null, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    return startChooser(send, getString(R.string.diagnostics_log_share_chooser))
 }
 
 /**

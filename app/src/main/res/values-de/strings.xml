@@ -181,6 +181,22 @@
     <string name="home_location_valid_to_hint">Leer lassen, wenn weiterhin aktuell</string>
     <string name="home_location_add">Adresse hinzufügen</string>
     <string name="home_location_delete">Adresse löschen</string>
+    <string name="settings_diagnostics_log_title">Diagnose-Protokoll</string>
+    <string name="settings_diagnostics_log_support">Zeichnet ausführliche technische Einträge auf, z. B. zur GPS-Trackaufzeichnung, um Probleme zu untersuchen. Bleibt auf diesem Gerät, bis du es teilst. Abstürze werden unabhängig von diesem Schalter immer aufgezeichnet.</string>
+    <string name="settings_open_diagnostics_log">Fehlerprotokoll anzeigen</string>
+    <string name="diagnostics_log_title">Fehlerprotokoll</string>
+    <string name="diagnostics_log_empty">Noch keine Einträge.</string>
+    <string name="diagnostics_log_share">Teilen</string>
+    <string name="diagnostics_log_share_subject">CamperLog-Fehlerprotokoll</string>
+    <string name="diagnostics_log_share_chooser">Fehlerprotokoll teilen</string>
+    <string name="diagnostics_log_clear">Protokoll löschen</string>
+    <string name="diagnostics_log_clear_title">Fehlerprotokoll löschen?</string>
+    <string name="diagnostics_log_clear_message">Löscht alle Einträge auf diesem Gerät. Das lässt sich nicht rückgängig machen.</string>
+    <string name="diagnostics_log_fatal">Absturz</string>
+    <string name="diagnostics_log_source_crash">Absturz</string>
+    <string name="diagnostics_log_source_track_recording">Trackaufzeichnung</string>
+    <string name="diagnostics_log_show_details">Details zeigen</string>
+    <string name="diagnostics_log_hide_details">Details verbergen</string>
     <string name="settings_open_about">Über CamperLog</string>
 
     <!-- Detail -->
