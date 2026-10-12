@@ -3,6 +3,12 @@
    <configuration>
       <verify-metadata>true</verify-metadata>
       <verify-signatures>false</verify-signatures>
+      <trusted-artifacts>
+         <!-- IDE-only sources jars that Android Studio fetches for "jump to source"; never
+              compiled or executed, so excluded instead of pinning 100+ checksums for them. -->
+         <trust file=".*-sources\.jar" regex="true"/>
+         <trust file="gradle-.*-src\.zip" regex="true"/>
+      </trusted-artifacts>
    </configuration>
    <components>
       <component group="androidx.activity" name="activity" version="1.13.0">
