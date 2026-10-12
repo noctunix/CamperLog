@@ -38,6 +38,7 @@ import java.io.ByteArrayInputStream
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.Currency
 
 class BackupTest {
@@ -271,7 +272,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 20" in text)
+        assert("\"schemaVersion\": 21" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -281,7 +282,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 20" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 21" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -422,6 +423,39 @@ class BackupTest {
         assertEquals(13.4132, repair.longitude)
     }
 
+    @Test
+    fun roundTrip_keepsTourAndRepairTimes() {
+        val timedTour = tour().copy(startTime = LocalTime.of(8, 30), endTime = LocalTime.of(17, 45))
+        val timedBackup = vehicleBackup.copy(
+            tours = listOf(timedTour),
+            vehicles = listOf(BackupVehicle(fullVehicle(), listOf(repair().copy(time = LocalTime.of(9, 15))), listOf(logEntry()))),
+        )
+
+        val decoded = success(encodeBackup(timedBackup))
+
+        assertEquals(LocalTime.of(8, 30), decoded.tours.single().startTime)
+        assertEquals(LocalTime.of(17, 45), decoded.tours.single().endTime)
+        assertEquals(LocalTime.of(9, 15), decoded.vehicles.single().repairs.single().time)
+    }
+
+    @Test
+    fun read_importsOlderBackupsMissingTheTourAndRepairTimeFields() {
+        val text = applyAll(
+            encodeBackup(vehicleBackup),
+            listOf(
+                "\"startTime\": null," to "",
+                "\"endTime\": null," to "",
+                "\"time\": null," to "",
+            ),
+        )
+
+        val decoded = success(text)
+
+        assertEquals(null, decoded.tours.single().startTime)
+        assertEquals(null, decoded.tours.single().endTime)
+        assertEquals(null, decoded.vehicles.single().repairs.single().time)
+    }
+
     private fun vehicleBackupWithEnergyTypes(types: Set<EnergyType>) = vehicleBackup.copy(
         vehicles = listOf(BackupVehicle(fullVehicle().copy(requiredEnergyTypes = types), listOf(repair()), listOf(logEntry()))),
     )
@@ -496,7 +530,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 20" in text)
+        assert("\"schemaVersion\": 21" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -531,13 +565,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 20", "\"schemaVersion\": 21"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 21", "\"schemaVersion\": 22"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 20", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 21", it))?.error)
         }
     }
 

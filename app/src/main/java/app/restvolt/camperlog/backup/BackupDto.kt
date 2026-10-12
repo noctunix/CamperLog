@@ -59,6 +59,10 @@ internal data class TourDto(
     val startDate: String,
     /** `null` kennzeichnet ab Sicherungsformat 11 eine laufende Tour. */
     val endDate: String? = null,
+    /** Fehlt in Sicherungen vor Formatversion 21. */
+    val startTime: String? = null,
+    /** Fehlt in Sicherungen vor Formatversion 21. */
+    val endTime: String? = null,
     val destination: String,
     /** Freitext-Name der Tour; fehlt in Sicherungen vor Formatversion 12. */
     val name: String = "",
@@ -174,6 +178,8 @@ internal data class AxleDto(
 internal data class RepairDto(
     val uuid: String,
     val date: String,
+    /** Fehlt in Sicherungen vor Formatversion 21. */
+    val time: String? = null,
     val description: String,
     val odometerKm: Int? = null,
     val cost: CostDto? = null,

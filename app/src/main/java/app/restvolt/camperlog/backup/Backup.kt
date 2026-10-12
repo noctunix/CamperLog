@@ -93,7 +93,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 20
+const val BACKUP_SCHEMA_VERSION = 21
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -698,6 +698,8 @@ private fun TourDto.toTour(schemaVersion: Int): Tour? {
         endDate == null -> return null
         else -> parseDate(endDate)?.takeIf { it >= start } ?: return null
     }
+    val startTimeValue = startTime?.let { parseTime(it) ?: return null }
+    val endTimeValue = endTime?.let { parseTime(it) ?: return null }
     val destination = destination.trim().takeIf { it.length <= MAX_DESTINATION_LENGTH } ?: return null
     val name = name.trim().takeIf { it.length <= MAX_DESTINATION_LENGTH } ?: return null
     val slug = slug.trim().takeIf { it.length <= MAX_DESTINATION_LENGTH } ?: return null
@@ -714,6 +716,8 @@ private fun TourDto.toTour(schemaVersion: Int): Tour? {
         uuid = uuid,
         startDate = start,
         endDate = end,
+        startTime = startTimeValue,
+        endTime = endTimeValue,
         destination = destination,
         name = name,
         slug = slug,
@@ -844,6 +848,7 @@ private fun VehicleDto.toVehicle(): Vehicle? {
 private fun RepairDto.toRepair(): Repair? {
     val uuid = parseUuid(uuid) ?: return null
     val date = parseDate(date) ?: return null
+    val timeValue = time?.let { parseTime(it) ?: return null }
     val description = description.trim().takeIf { it.isNotEmpty() && it.length <= MAX_DESTINATION_LENGTH } ?: return null
     if (!odometerKm.inBounds(MAX_ODOMETER_KM)) return null
     val money = cost?.let { it.toMoney() ?: return null }
@@ -854,6 +859,7 @@ private fun RepairDto.toRepair(): Repair? {
         uuid = uuid,
         vehicleId = 0,
         date = date,
+        time = timeValue,
         description = description,
         odometerKm = odometerKm,
         cost = money,
@@ -901,6 +907,8 @@ private fun Tour.toDto(vehicleUuid: String?) = TourDto(
     uuid = uuid,
     startDate = startDate.toString(),
     endDate = endDate?.toString(),
+    startTime = startTime?.toString(),
+    endTime = endTime?.toString(),
     destination = destination,
     name = name,
     slug = slug,
@@ -983,6 +991,7 @@ private fun BackupVehicle.toDto(logEntryStationUuid: Map<String, String>) = vehi
 private fun Repair.toDto() = RepairDto(
     uuid = uuid,
     date = date.toString(),
+    time = time?.toString(),
     description = description,
     odometerKm = odometerKm,
     cost = cost?.toCostDto(),
