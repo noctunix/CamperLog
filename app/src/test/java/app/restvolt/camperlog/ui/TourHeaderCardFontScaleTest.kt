@@ -7,6 +7,8 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import app.restvolt.camperlog.domain.Station
@@ -82,8 +84,12 @@ class TourHeaderCardFontScaleTest {
 
         // Unzusammengeführt: Jede Kennzahlen-Kachel fasst Wert und Bezeichner zu einer Sprachausgabe
         // zusammen (siehe MetricTile); im unzusammengeführten Baum bleiben beide Texte einzeln prüfbar.
+        // onFirst() statt eines eindeutigen Treffers: "Strecke" steckt als Substring auch im jetzt
+        // immer sichtbaren GPS-Track-Abschnitt ("...die Strecke dieser Tour..."), der im Baum nach
+        // der Kopfkarte kommt - die Kennzahlen-Kachel bleibt also der erste Treffer.
         listOf("Unterwegs · Tag 14", "Reisetage", "Übernachtungen", "Strecke", longVehicleName).forEach { label ->
-            compose.onNode(hasText(label, substring = true), useUnmergedTree = true)
+            compose.onAllNodesWithText(label, substring = true, useUnmergedTree = true)
+                .onFirst()
                 .assertIsDisplayed()
         }
     }
