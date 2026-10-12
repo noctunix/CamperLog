@@ -1,0 +1,3 @@
+• Fixed "Open in maps" for a tour: now jumps to the first station or track point instead of an empty search
+• Countries are now also detected from the GPS track when no station has coordinates
+• The map button moved into the top bar so it's easier to find

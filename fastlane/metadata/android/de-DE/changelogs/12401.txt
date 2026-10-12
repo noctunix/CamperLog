@@ -1,0 +1,3 @@
+• "In Maps öffnen" bei einer Tour springt jetzt zur ersten Station oder zum ersten Trackpunkt statt zu einer leeren Suche
+• Länder werden jetzt auch aus dem GPS-Track erkannt, wenn keine Station Koordinaten hat
+• Der Karte-Button sitzt jetzt oben in der Leiste und ist leichter zu finden
