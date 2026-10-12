@@ -39,8 +39,9 @@ import java.util.UUID
         ChecklistEntity::class,
         ChecklistItemEntity::class,
         TrackPointEntity::class,
+        HomeLocationEntity::class,
     ],
-    version = 27,
+    version = 28,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -67,6 +68,8 @@ abstract class CamperLogDatabase : RoomDatabase() {
 
     abstract fun trackPointDao(): TrackPointDao
 
+    abstract fun homeLocationDao(): HomeLocationDao
+
     companion object {
         /**
          * Öffnet die Datenbankdatei der App. Nur einmal pro Prozess aufrufen.
@@ -82,7 +85,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
                     MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
                     MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
-                    MIGRATION_26_27,
+                    MIGRATION_26_27, MIGRATION_27_28,
                 )
                 .build()
     }
@@ -885,5 +888,21 @@ internal val MIGRATION_26_27 = object : Migration(26, 27) {
         db.execSQL("ALTER TABLE `tours` ADD COLUMN `start_time` TEXT")
         db.execSQL("ALTER TABLE `tours` ADD COLUMN `end_time` TEXT")
         db.execSQL("ALTER TABLE `repairs` ADD COLUMN `time` TEXT")
+    }
+}
+
+/**
+ * Version 28: Neue Tabelle `home_locations` für die Heimatadressen-Historie mit
+ * Gültigkeitszeitraum (siehe [app.restvolt.camperlog.domain.HomeLocation]), ersetzt perspektivisch
+ * die bisherige Einzel-Einstellung in SharedPreferences. Reine Neuanlage, keine Fremdschlüssel.
+ */
+internal val MIGRATION_27_28 = object : Migration(27, 28) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `home_locations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`name` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, " +
+                "`coordinate_source` TEXT NOT NULL, `valid_from` TEXT, `valid_to` TEXT, " +
+                "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+        )
     }
 }
