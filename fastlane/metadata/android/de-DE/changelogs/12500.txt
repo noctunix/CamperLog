@@ -1,0 +1,6 @@
+• Touren und Reparaturen können jetzt eine genaue Uhrzeit haben; "Jetzt" setzt Datum und Zeit zugleich
+• Heimatadressen-Historie: mehrere Adressen mit Gültigkeitszeitraum; Touren nutzen die damals gültige
+• Ein Haken oben speichert und verlässt ein Formular sofort
+• Der GPS-Track-Abschnitt steht jetzt direkt nach der Tour-Übersicht, bleibt aufgeklappt
+• Aufzeichnungs-Benachrichtigung zeigt eine live mitlaufende Dauer
+• Die Tourkarte zeichnet Trackpunkte jetzt auch einzeln mit Zeit-Label

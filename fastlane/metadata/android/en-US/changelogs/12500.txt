@@ -1,0 +1,6 @@
+• Tours and repairs can now have an exact time, not just a date; "Now" sets both at once
+• Home address history: several addresses with a validity period; new tours use the one valid back then
+• A checkmark in the top bar saves and leaves a form immediately, no dialog
+• The GPS-track section moved right after the tour overview and stays expanded
+• The recording notification shows a live duration
+• The tour map now also draws track points with time labels, not just a line
