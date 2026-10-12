@@ -177,9 +177,8 @@ internal fun NavGraphBuilder.settingsGraph(
             locationSettings = locationSettings,
             weatherSettings = weatherSettings,
             trackSettings = trackSettings,
-            homeLocationSettings = homeLocationSettings,
             homeLocationViewModel = viewModel {
-                HomeLocationViewModel(homeLocationSettings, locationProvider, AndroidLocationPermissionGate(context))
+                HomeLocationViewModel(homeLocations, locationProvider, AndroidLocationPermissionGate(context))
             },
             guidedTours = guidedTourEntries(scope),
             onBack = { navController.popFrom(entry) },

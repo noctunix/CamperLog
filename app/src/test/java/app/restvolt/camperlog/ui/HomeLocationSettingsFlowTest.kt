@@ -11,7 +11,6 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.CoordinateSource
-import app.restvolt.camperlog.ui.settings.HomeLocationSettings
 import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
@@ -24,7 +23,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Neue "Zuhause"-Karte in den Einstellungen: Name, manuelle Koordinate und die GPS-Erfassung. */
+/** Neue "Zuhause"-Karte in den Einstellungen: Historie der Adressen, manuelle Koordinate und die GPS-Erfassung. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
 class HomeLocationSettingsFlowTest {
@@ -40,7 +39,7 @@ class HomeLocationSettingsFlowTest {
         context.getSharedPreferences("location", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
-    private fun openSettings() {
+    private fun openSettings(homeLocations: FakeHomeLocationRepository = FakeHomeLocationRepository()): FakeHomeLocationRepository {
         compose.setContent {
             CamperLogTheme {
                 CamperLogNavHost(
@@ -48,23 +47,25 @@ class HomeLocationSettingsFlowTest {
                     FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(),
                     FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(),
                     ThemeMode.SYSTEM, AccentColor.AZURE, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(),
-                    tracks = FakeTrackRepository(), onAccentColorChange = { },
+                    tracks = FakeTrackRepository(), homeLocations = homeLocations, onAccentColorChange = { },
                 ) { }
             }
         }
         compose.onNodeWithText("Fahrzeug").performClick()
         compose.onNodeWithContentDescription("Einstellungen").performClick()
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Zuhause"))
+        return homeLocations
     }
 
     @Test
     fun enteringNameAndCoordinates_persistsThem() {
-        openSettings()
+        val homeLocations = openSettings()
+        compose.onNodeWithText("Adresse hinzufügen").performClick()
 
         compose.onNodeWithText("Name").performTextInput("Elternhaus")
         compose.onNodeWithText("Koordinaten oder Kartenlink").performTextInput("52.52, 13.405")
 
-        val saved = HomeLocationSettings(context).values.value
+        val saved = homeLocations.locations.single()
         assertEquals("Elternhaus", saved.name)
         assertEquals(52.52, saved.latitude)
         assertEquals(13.405, saved.longitude)
@@ -74,6 +75,7 @@ class HomeLocationSettingsFlowTest {
     @Test
     fun locationSwitchOff_hidesTheGpsButton() {
         openSettings()
+        compose.onNodeWithText("Adresse hinzufügen").performClick()
 
         compose.onNodeWithText("Aktuellen Standort verwenden").assertDoesNotExist()
     }
@@ -83,6 +85,7 @@ class HomeLocationSettingsFlowTest {
         LocationSettings(context).enabled = true
 
         openSettings()
+        compose.onNodeWithText("Adresse hinzufügen").performClick()
 
         compose.onNodeWithText("Aktuellen Standort verwenden").assertExists()
     }

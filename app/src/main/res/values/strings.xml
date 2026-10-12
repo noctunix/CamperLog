@@ -175,6 +175,12 @@
     <string name="settings_home_section">Home</string>
     <string name="settings_home_section_hint">Used to add a start (and end) stop to new tours automatically.</string>
     <string name="home_location_default_name">Home</string>
+    <string name="home_location_valid_from">Valid from</string>
+    <string name="home_location_valid_from_hint">Leave empty if unknown or always valid</string>
+    <string name="home_location_valid_to">Valid until</string>
+    <string name="home_location_valid_to_hint">Leave empty if still current</string>
+    <string name="home_location_add">Add address</string>
+    <string name="home_location_delete">Delete address</string>
     <string name="settings_open_about">About CamperLog</string>
 
     <!-- Detail -->

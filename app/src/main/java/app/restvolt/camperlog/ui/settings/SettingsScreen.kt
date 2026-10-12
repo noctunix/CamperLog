@@ -61,7 +61,6 @@ fun SettingsScreen(
     locationSettings: LocationSettings,
     weatherSettings: WeatherSettings,
     trackSettings: TrackRecordingSettings,
-    homeLocationSettings: HomeLocationSettings,
     homeLocationViewModel: HomeLocationViewModel,
     guidedTours: List<GuidedTourEntry>,
     onBack: () -> Unit,
@@ -216,7 +215,7 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    HomeLocationSection(homeLocationSettings, locationEnabled, homeLocationViewModel.locationCapture)
+                    HomeLocationSection(homeLocationViewModel, locationEnabled)
                 }
             }
             item {

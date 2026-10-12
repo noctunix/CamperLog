@@ -28,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,15 +55,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.TileHttpCache
 import app.restvolt.camperlog.domain.CoordinateSource
+import app.restvolt.camperlog.domain.HomeLocation
 import app.restvolt.camperlog.domain.LocationCaptureController
 import app.restvolt.camperlog.domain.ParsedLocation
 import app.restvolt.camperlog.domain.formatCoordinates
 import app.restvolt.camperlog.domain.parseLocationText
 import app.restvolt.camperlog.domain.tileCacheMegabytes
 import app.restvolt.camperlog.share.openNotificationSettings
+import app.restvolt.camperlog.ui.DateField
+import app.restvolt.camperlog.ui.LocationCaptureHandlers
 import app.restvolt.camperlog.ui.LocationCaptureSection
 import app.restvolt.camperlog.ui.coordinatesContentDescription
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.rememberLocationCaptureHandlers
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineScope
@@ -328,50 +333,125 @@ internal fun MapStorageRow(snackbar: SnackbarHostState, scope: CoroutineScope) {
 }
 
 /**
- * Name und Koordinate des Zuhause-Orts für die automatische Start-/Ende-Station neuer Touren.
- * Die GPS-Erfassung erscheint nur, solange [locationEnabled] an ist; sonst bleibt die Texteingabe
- * die einzige Möglichkeit, eine Koordinate zu hinterlegen.
+ * Historie der Zuhause-Adressen für die automatische Start-/Ende-Station neuer Touren: Name,
+ * Koordinate und Gültigkeitszeitraum je Eintrag, plus ein "Hinzufügen"-Button. Die GPS-Erfassung
+ * erscheint nur, solange [locationEnabled] an ist; sonst bleibt die Texteingabe die einzige
+ * Möglichkeit, eine Koordinate zu hinterlegen.
  */
 @Composable
-internal fun HomeLocationSection(settings: HomeLocationSettings, locationEnabled: Boolean, captureController: LocationCaptureController) {
-    val preferences by settings.values.collectAsStateWithLifecycle()
-    val locale = currentLocale()
+internal fun HomeLocationSection(viewModel: HomeLocationViewModel, locationEnabled: Boolean) {
+    val locations by viewModel.locations.collectAsStateWithLifecycle()
+    val capturingForId by viewModel.capturingForId.collectAsStateWithLifecycle()
 
-    OutlinedTextField(
-        value = preferences.name,
-        onValueChange = { settings.name = it },
-        label = { Text(stringResource(R.string.field_name)) },
-        placeholder = { Text(stringResource(R.string.home_location_default_name)) },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-    )
-
-    val latitude = preferences.latitude
-    val longitude = preferences.longitude
-    if (preferences.coordinateSource == CoordinateSource.GPS && latitude != null && longitude != null) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val description = coordinatesContentDescription(latitude, longitude, null, locale)
-            Text(
-                formatCoordinates(latitude, longitude, locale),
-                modifier = Modifier.weight(1f).semantics { contentDescription = description },
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            IconButton(onClick = { settings.setLocation(null, null, null) }) {
-                Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.location_remove_coordinates))
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        locations.forEach { location ->
+            key(location.id) {
+                HomeLocationRow(
+                    location = location,
+                    locationEnabled = locationEnabled,
+                    capturingForId = capturingForId,
+                    captureController = viewModel.locationCapture,
+                    onCaptureStart = { viewModel.startCapture(location.id) },
+                    onChange = viewModel::save,
+                    onDelete = { viewModel.delete(location.id) },
+                )
             }
         }
-    } else {
-        if (locationEnabled) {
-            LocationCaptureSection(controller = captureController, buttonLabel = stringResource(R.string.location_use_current_button))
+        TextButton(onClick = viewModel::addNew) {
+            Icon(painterResource(R.drawable.ic_add), contentDescription = null)
+            Text(stringResource(R.string.home_location_add), Modifier.padding(start = 8.dp))
         }
-        HomeCoordinatesField(latitude, longitude, settings, locale)
+    }
+}
+
+/** Eine Zuhause-Adresse: Name, Koordinate und Gültigkeitszeitraum, mit eigener Löschen-Aktion. */
+@Composable
+private fun HomeLocationRow(
+    location: HomeLocation,
+    locationEnabled: Boolean,
+    capturingForId: Long?,
+    captureController: LocationCaptureController,
+    onCaptureStart: () -> Unit,
+    onChange: (HomeLocation) -> Unit,
+    onDelete: () -> Unit,
+) {
+    val locale = currentLocale()
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            OutlinedTextField(
+                value = location.name,
+                onValueChange = { onChange(location.copy(name = it)) },
+                label = { Text(stringResource(R.string.field_name)) },
+                placeholder = { Text(stringResource(R.string.home_location_default_name)) },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                shape = MaterialTheme.shapes.medium,
+            )
+            IconButton(onClick = onDelete) {
+                Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.home_location_delete))
+            }
+        }
+
+        val latitude = location.latitude
+        val longitude = location.longitude
+        if (location.coordinateSource == CoordinateSource.GPS && latitude != null && longitude != null) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val description = coordinatesContentDescription(latitude, longitude, null, locale)
+                Text(
+                    formatCoordinates(latitude, longitude, locale),
+                    modifier = Modifier.weight(1f).semantics { contentDescription = description },
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                IconButton(onClick = { onChange(location.copy(latitude = null, longitude = null, coordinateSource = null)) }) {
+                    Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.location_remove_coordinates))
+                }
+            }
+        } else {
+            // Nur die gerade erfassende Zeile (oder, im Ruhezustand, jede) zeigt den geteilten Controller
+            // an - sonst würde z. B. eine Berechtigungsrückfrage für alle Zeilen gleichzeitig aufblitzen.
+            if (locationEnabled && (capturingForId == null || capturingForId == location.id)) {
+                val defaultHandlers = rememberLocationCaptureHandlers(captureController)
+                val handlers = remember(defaultHandlers) {
+                    LocationCaptureHandlers(
+                        onTap = {
+                            onCaptureStart()
+                            defaultHandlers.onTap()
+                        },
+                        onContinueRationale = defaultHandlers.onContinueRationale,
+                    )
+                }
+                LocationCaptureSection(
+                    controller = captureController,
+                    buttonLabel = stringResource(R.string.location_use_current_button),
+                    handlers = handlers,
+                )
+            }
+            HomeCoordinatesField(latitude, longitude, locale) { lat, lon, source -> onChange(location.copy(latitude = lat, longitude = lon, coordinateSource = source)) }
+        }
+
+        DateField(
+            label = stringResource(R.string.home_location_valid_from),
+            date = location.validFrom,
+            error = null,
+            onDateSelected = { onChange(location.copy(validFrom = it)) },
+            onClear = location.validFrom?.let { { onChange(location.copy(validFrom = null)) } },
+            hint = stringResource(R.string.home_location_valid_from_hint),
+        )
+        DateField(
+            label = stringResource(R.string.home_location_valid_to),
+            date = location.validTo,
+            error = null,
+            onDateSelected = { onChange(location.copy(validTo = it)) },
+            onClear = location.validTo?.let { { onChange(location.copy(validTo = null)) } },
+            hint = stringResource(R.string.home_location_valid_to_hint),
+        )
     }
 }
 
 /** Freie Texteingabe der Zuhause-Koordinate; übernimmt erkannte Koordinaten offline wie das Stationsformular. */
 @Composable
-private fun HomeCoordinatesField(latitude: Double?, longitude: Double?, settings: HomeLocationSettings, locale: Locale) {
+private fun HomeCoordinatesField(latitude: Double?, longitude: Double?, locale: Locale, onChange: (Double?, Double?, CoordinateSource?) -> Unit) {
     var locationText by rememberSaveable { mutableStateOf(if (latitude != null && longitude != null) "$latitude, $longitude" else "") }
     val feedback = when {
         latitude != null && longitude != null -> stringResource(R.string.station_coordinates_recognized, formatCoordinates(latitude, longitude, locale))
@@ -384,8 +464,8 @@ private fun HomeCoordinatesField(latitude: Double?, longitude: Double?, settings
         onValueChange = { text ->
             locationText = text
             when (val parsed = parseLocationText(text)) {
-                is ParsedLocation.Coordinates -> settings.setLocation(parsed.latitude, parsed.longitude, CoordinateSource.ENTERED)
-                else -> if (text.isBlank()) settings.setLocation(null, null, null)
+                is ParsedLocation.Coordinates -> onChange(parsed.latitude, parsed.longitude, CoordinateSource.ENTERED)
+                else -> if (text.isBlank()) onChange(null, null, null)
             }
         },
         label = { Text(stringResource(R.string.field_coordinates)) },

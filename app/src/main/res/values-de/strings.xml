@@ -175,6 +175,12 @@
     <string name="settings_home_section">Zuhause</string>
     <string name="settings_home_section_hint">Für die automatische Start- (und Ende-)Station neuer Touren.</string>
     <string name="home_location_default_name">Zuhause</string>
+    <string name="home_location_valid_from">Gültig ab</string>
+    <string name="home_location_valid_from_hint">Leer lassen, wenn unbekannt oder schon immer gültig</string>
+    <string name="home_location_valid_to">Gültig bis</string>
+    <string name="home_location_valid_to_hint">Leer lassen, wenn weiterhin aktuell</string>
+    <string name="home_location_add">Adresse hinzufügen</string>
+    <string name="home_location_delete">Adresse löschen</string>
     <string name="settings_open_about">Über CamperLog</string>
 
     <!-- Detail -->
