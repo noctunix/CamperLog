@@ -123,6 +123,23 @@ class VehicleDocumentFlowTest {
         compose.waitForIdle()
     }
 
+    /**
+     * Der Haken in der Kopfzeile verlässt sofort, ohne die Verwerfen/Speichern-Abfrage zu zeigen -
+     * Autosave hat die Eingabe schon gespeichert.
+     */
+    @Test
+    fun saveCheckmark_leavesImmediatelyWithoutLeaveDialog() {
+        val documents = start()
+        openNewDocumentForm()
+        titleField().performTextInput("KFZ-Police")
+
+        compose.onNodeWithContentDescription("Speichern").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Formular verlassen?").assertDoesNotExist()
+        assertEquals("KFZ-Police", documents.documents.single().title)
+    }
+
     @Test
     fun addDocumentWithExpiry_showsReminderCardAndOpensItsDetail() {
         val documents = start()

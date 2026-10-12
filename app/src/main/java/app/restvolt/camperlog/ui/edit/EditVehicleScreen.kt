@@ -102,6 +102,11 @@ fun EditVehicleScreen(viewModel: EditVehicleViewModel, onDone: () -> Unit) {
             BackTopBar(
                 title = stringResource(if (state.isNew) R.string.vehicle_edit_title_new else R.string.vehicle_edit_title_existing),
                 onBack = requestBack,
+                actions = {
+                    IconButton(onClick = onDone) {
+                        Icon(painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.action_save))
+                    }
+                },
             )
         },
         bottomBar = { SnackbarHost(snackbar, Modifier.navigationBarsPadding()) },

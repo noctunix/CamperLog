@@ -87,6 +87,25 @@ class DiaryFlowTest {
         updatedAt = Instant.EPOCH,
     )
 
+    /**
+     * Der Haken in der Kopfzeile verlässt sofort, ohne die Verwerfen/Speichern-Abfrage zu zeigen -
+     * Autosave hat die Eingabe schon gespeichert.
+     */
+    @Test
+    fun saveCheckmark_leavesImmediatelyWithoutLeaveDialog() {
+        start(tour())
+        compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Tagebuch").performScrollTo().performClick()
+        compose.onNodeWithText("Tagebucheintrag hinzufügen").performScrollTo().performClick()
+        textField().performTextInput("Langer Tag am Fjord.")
+
+        compose.onNodeWithContentDescription("Speichern").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Formular verlassen?").assertDoesNotExist()
+        compose.onNodeWithText("Langer Tag am Fjord.").assertExists()
+    }
+
     @Test
     fun diarySectionIsAlwaysVisibleEvenWhenEmpty() {
         start(tour())

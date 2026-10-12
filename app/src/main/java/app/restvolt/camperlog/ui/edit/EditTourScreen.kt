@@ -27,6 +27,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -168,6 +169,11 @@ fun EditTourScreen(
                 title = stringResource(if (state.isNew) R.string.edit_title_new else R.string.edit_title_existing),
                 onBack = requestBack,
                 navigationIconModifier = if (state.isNew) Modifier.guideAnchor("edit.tour.back") else Modifier,
+                actions = {
+                    IconButton(onClick = onDone) {
+                        Icon(painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.action_save))
+                    }
+                },
             )
         },
         // Als bottomBar statt Overlay: Das Formular endet über der Snackbar, der untere Button bleibt frei.

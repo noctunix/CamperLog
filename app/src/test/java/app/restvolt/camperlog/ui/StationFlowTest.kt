@@ -202,6 +202,26 @@ class StationFlowTest {
         compose.onNodeWithText("OK").performClick()
     }
 
+    /**
+     * Der Haken in der Kopfzeile verlässt sofort, ohne die Verwerfen/Speichern-Abfrage zu zeigen -
+     * Autosave hat die Eingabe schon gespeichert.
+     */
+    @Test
+    fun saveCheckmark_leavesImmediatelyWithoutLeaveDialog() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Ort oder Adresse")).performTextInput("Fjordcamp")
+
+        compose.onNodeWithContentDescription("Speichern").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Formular verlassen?").assertDoesNotExist()
+        assertEquals("Fjordcamp", stationRepository.stations.single().place)
+    }
+
     @Test
     fun addOvernightStop_withoutExistingStations_defaultsDateToTourStart() {
         val (_, stationRepository) = start(listOf(lofoten()))

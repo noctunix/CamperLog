@@ -106,6 +106,9 @@ fun DiaryEditScreen(
                             }
                         }
                     }
+                    IconButton(onClick = onDone) {
+                        Icon(painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.action_save))
+                    }
                 },
             )
         },

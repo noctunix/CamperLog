@@ -44,6 +44,24 @@ class EditVehicleFlowTest {
         compose.waitForIdle()
     }
 
+    /**
+     * Der Haken in der Kopfzeile verlässt sofort, ohne die Verwerfen/Speichern-Abfrage zu zeigen -
+     * Autosave hat die Eingabe schon gespeichert.
+     */
+    @Test
+    fun saveCheckmark_leavesImmediatelyWithoutLeaveDialog() {
+        start()
+        compose.onNodeWithText("Fahrzeug").performClick()
+        compose.onNodeWithText("Details hinzufügen").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Wohnmobil")
+
+        compose.onNodeWithContentDescription("Speichern").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Formular verlassen?").assertDoesNotExist()
+        compose.onNodeWithText("Wohnmobil").assertExists()
+    }
+
     @Test
     fun emptyVehicle_showsHintAndAddDetailsOpensForm() {
         start()

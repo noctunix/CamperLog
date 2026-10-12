@@ -68,6 +68,23 @@ class RepairFlowTest {
         compose.waitForIdle()
     }
 
+    /**
+     * Der Haken in der Kopfzeile verlässt sofort, ohne die Verwerfen/Speichern-Abfrage zu zeigen -
+     * Autosave hat die Eingabe schon gespeichert.
+     */
+    @Test
+    fun saveCheckmark_leavesImmediatelyWithoutLeaveDialog() {
+        start()
+        openNewRepairForm()
+        descriptionField().performTextInput("Reifen gewechselt")
+
+        compose.onNodeWithContentDescription("Speichern").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Formular verlassen?").assertDoesNotExist()
+        compose.onNodeWithText("Reifen gewechselt").assertExists()
+    }
+
     @Test
     fun repairsSectionIsAlwaysVisibleEvenWhenSheetIsEmpty() {
         start()
