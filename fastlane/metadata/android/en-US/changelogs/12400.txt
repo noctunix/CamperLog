@@ -1,0 +1,5 @@
+• All forms (tours, repairs, stations, diary, vehicles, documents) autosave as you type - no more Save button
+• Checklist templates: pin with quick-start on Tours tab, new packing list template
+• Vehicles: tyre size per axle, seller/buyer names on purchase/sale
+• Repairs: workshop name, GPS coordinate. Diary: time, odometer, weather
+• GPS tracking more reliable; notification shows points/distance/duration; map now works for track-only tours

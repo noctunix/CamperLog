@@ -1,0 +1,5 @@
+• Alle Formulare (Touren, Reparaturen, Stationen, Tagebuch, Fahrzeuge, Dokumente) speichern jetzt beim Eintippen
+• Checklisten-Vorlagen anpinnbar, Schnellstart im Touren-Tab, neue Packlisten-Vorlage
+• Fahrzeuge: Reifengröße pro Achse, Käufer/Verkäufer bei Kauf/Verkauf
+• Reparaturen: Werkstattname, GPS-Koordinate. Tagebuch: Uhrzeit, Kilometerstand, Wetter
+• GPS-Aufzeichnung zuverlässiger; Benachrichtigung zeigt Punkte/Strecke/Dauer; Karte auch nur mit Track nutzbar

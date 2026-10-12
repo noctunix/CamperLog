@@ -2,6 +2,7 @@
 
 Shipped features, newest first.
 
+- 1.24.0 – All forms (tours, repairs, stations, diary, vehicles, documents) now autosave as you type; pinned checklist templates with a Tours-tab quick start and a packing list template; per-axle vehicle tyre size and seller/buyer names on purchase/sale; workshop name and GPS coordinate on repairs; time, odometer and weather on diary entries; GPS track recording drops its motion-triggered relocation churn and writes points immediately instead of buffering; the recording notification shows live points/distance/duration; the tour map now also opens for a track-only tour without a located station
 - 1.23.2 – Fixed saving a new tour with "Starts at home" enabled when no vehicle exists yet (the home station was created with an invalid vehicle reference, failing the save)
 
 - 1.23.1 – A scheduled GPS-track auto-resume now survives a device restart; the tutorial shows which vehicle a new tour is assigned to even with just one vehicle; cleared up a misdiagnosed "DatePicker doesn't open during a tutorial" report (it was a test bug, not an app bug)
