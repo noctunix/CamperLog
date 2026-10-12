@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 28,
-    "identityHash": "5721099120dd34044d70bc782a5833c7",
+    "identityHash": "fffc2afbb2a81b25ceeddc3ac6df58c6",
     "entities": [
       {
         "tableName": "tours",
@@ -2033,7 +2033,7 @@
       },
       {
         "tableName": "home_locations",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `coordinate_source` TEXT NOT NULL, `valid_from` TEXT, `valid_to` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, `coordinate_source` TEXT, `valid_from` TEXT, `valid_to` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -2050,20 +2050,17 @@
           {
             "fieldPath": "latitude",
             "columnName": "latitude",
-            "affinity": "REAL",
-            "notNull": true
+            "affinity": "REAL"
           },
           {
             "fieldPath": "longitude",
             "columnName": "longitude",
-            "affinity": "REAL",
-            "notNull": true
+            "affinity": "REAL"
           },
           {
             "fieldPath": "coordinateSource",
             "columnName": "coordinate_source",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "validFrom",
@@ -2098,7 +2095,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5721099120dd34044d70bc782a5833c7')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fffc2afbb2a81b25ceeddc3ac6df58c6')"
     ]
   }
 }

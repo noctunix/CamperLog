@@ -900,8 +900,8 @@ internal val MIGRATION_27_28 = object : Migration(27, 28) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS `home_locations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
-                "`name` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, " +
-                "`coordinate_source` TEXT NOT NULL, `valid_from` TEXT, `valid_to` TEXT, " +
+                "`name` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, " +
+                "`coordinate_source` TEXT, `valid_from` TEXT, `valid_to` TEXT, " +
                 "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
         )
     }

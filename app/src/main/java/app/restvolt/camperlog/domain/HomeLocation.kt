@@ -13,14 +13,17 @@ import java.time.LocalDate
 data class HomeLocation(
     val id: Long = 0,
     val name: String = "",
-    val latitude: Double,
-    val longitude: Double,
-    val coordinateSource: CoordinateSource,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val coordinateSource: CoordinateSource? = null,
     val validFrom: LocalDate? = null,
     val validTo: LocalDate? = null,
     val createdAt: Instant = Instant.EPOCH,
     val updatedAt: Instant = Instant.EPOCH,
-)
+) {
+    /** `true`, sobald eine Koordinate gesetzt wurde. */
+    val hasLocation: Boolean get() = latitude != null && longitude != null
+}
 
 /** Zugriff auf die Heimatadressen-Historie. */
 interface HomeLocationRepository {

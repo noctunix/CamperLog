@@ -968,8 +968,8 @@ class MigrationTest {
             val saved = repository.observeAll().first().single()
             assertEquals(id, saved.id)
             assertEquals("Zuhause", saved.name)
-            assertEquals(48.1, saved.latitude, 0.0)
-            assertEquals(11.6, saved.longitude, 0.0)
+            assertEquals(48.1, saved.latitude!!, 0.0)
+            assertEquals(11.6, saved.longitude!!, 0.0)
             assertEquals(CoordinateSource.ENTERED, saved.coordinateSource)
             assertEquals(LocalDate.of(2026, 1, 1), saved.validFrom)
             assertEquals(null, saved.validTo)
@@ -977,6 +977,29 @@ class MigrationTest {
 
             assertEquals(saved, repository.locationAt(LocalDate.of(2026, 6, 1)))
             assertEquals(null, repository.locationAt(LocalDate.of(2025, 1, 1)))
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun migration27To28AllowsHomeLocationWithoutCoordinateButNeverMatchesIt() = runTest {
+        createVersion27()
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val repository = RoomHomeLocationRepository(db) { Instant.ofEpochMilli(5000) }
+
+            val id = repository.save(HomeLocation(name = "Neuer Entwurf"))
+
+            val saved = repository.observeAll().first().single()
+            assertEquals(id, saved.id)
+            assertEquals(null, saved.latitude)
+            assertEquals(null, saved.longitude)
+            assertEquals(null, saved.coordinateSource)
+            assertEquals(false, saved.hasLocation)
+
+            assertEquals(null, repository.locationAt(LocalDate.of(2026, 6, 1)))
         } finally {
             db.close()
         }
