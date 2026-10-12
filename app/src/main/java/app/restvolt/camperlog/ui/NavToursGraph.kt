@@ -175,6 +175,7 @@ internal fun NavGraphBuilder.toursGraph(
                 )
             },
             weatherMapEnabled = weatherMapEnabled,
+            hasTrack = trackSummary.points > 0,
             checklistTemplates = checklistTemplateList,
             trackStatusContent = detailTour?.takeIf { it.endDate == null }?.let {
                 { TrackRecordingStatusRow(tourId, trackSettings) }

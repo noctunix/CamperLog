@@ -113,6 +113,7 @@ import java.util.Locale
 fun TourDetailScreen(
     viewModel: TourDetailViewModel,
     weatherMapEnabled: Boolean,
+    hasTrack: Boolean,
     checklistTemplates: List<ChecklistTemplate>,
     /** Status- und Pausieren-Zeile der Kopfkarte; `null` ohne laufende Aufzeichnung dieser Tour. */
     trackStatusContent: (@Composable () -> Unit)? = null,
@@ -248,6 +249,7 @@ fun TourDetailScreen(
                 checklists = current.checklists,
                 metrics = current.metrics,
                 weatherMapEnabled = weatherMapEnabled,
+                hasTrack = hasTrack,
                 modifier = Modifier.fillMaxSize(),
                 padding = padding,
                 onOpenStation = onOpenStation,
@@ -400,6 +402,7 @@ private fun TourDetails(
     checklists: List<Checklist>,
     metrics: TourMetrics,
     weatherMapEnabled: Boolean,
+    hasTrack: Boolean,
     modifier: Modifier,
     padding: PaddingValues,
     onOpenStation: (Long) -> Unit,
@@ -451,7 +454,7 @@ private fun TourDetails(
                     modifier = Modifier.weight(1f).semantics { heading() },
                     style = MaterialTheme.typography.titleMedium,
                 )
-                if (isMapAvailable(weatherMapEnabled, stations) || forceVisibleForTutorial) {
+                if (isMapAvailable(weatherMapEnabled, stations, hasTrack) || forceVisibleForTutorial) {
                     TextButton(onClick = onOpenMap) {
                         Icon(painterResource(R.drawable.ic_map), contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(6.dp))

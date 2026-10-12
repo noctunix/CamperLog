@@ -54,6 +54,18 @@ class MapVisibilityTest {
     }
 
     @Test
+    fun isMapAvailable_trueWithTrackButNoLocatedStation() {
+        val stations = listOf(station(), station())
+        assertTrue(isMapAvailable(weatherMapEnabled = true, stations = stations, hasTrack = true))
+    }
+
+    @Test
+    fun isMapAvailable_falseWithTrackWhenTheSwitchIsOff() {
+        val stations = listOf(station(), station())
+        assertFalse(isMapAvailable(weatherMapEnabled = false, stations = stations, hasTrack = true))
+    }
+
+    @Test
     fun stationsWithCoordinates_dropsStationsMissingEitherCoordinate() {
         val located = station(id = 1, latitude = 1.0, longitude = 2.0)
         val unlocated = station(id = 2)
