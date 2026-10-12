@@ -15,6 +15,7 @@ import app.restvolt.camperlog.domain.TourType
 import java.time.Instant
 import java.time.LocalDate
 import java.util.Currency
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -554,5 +555,34 @@ class TrackRecordingServiceTest {
         assertEquals(5L, settings.trackedTourId)
         val started = shadowOf(app).nextStartedService
         assertEquals(5L, started.getLongExtra("tour_id", -1))
+    }
+
+    @Test
+    fun diagnosticsLog_staysEmptyWhileTheSwitchIsOff() {
+        grantLocation()
+        TrackRecordingSettings.get(app).enabled = true
+        val tourId = createTour()
+        val diagnosticsLog = (app as CamperLogApp).diagnosticsLog
+        runBlocking { diagnosticsLog.clear() }
+
+        Robolectric.buildService(TrackRecordingService::class.java, startIntent(tourId)).create().startCommand(0, 1)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertTrue(runBlocking { diagnosticsLog.observeAll().first() }.isEmpty())
+    }
+
+    @Test
+    fun diagnosticsLog_recordsEntriesOnceTheSwitchIsOn() {
+        grantLocation()
+        TrackRecordingSettings.get(app).enabled = true
+        (app as CamperLogApp).diagnosticsLogSettings.setEnabled(true)
+        val tourId = createTour()
+        val diagnosticsLog = (app as CamperLogApp).diagnosticsLog
+        runBlocking { diagnosticsLog.clear() }
+
+        Robolectric.buildService(TrackRecordingService::class.java, startIntent(tourId)).create().startCommand(0, 1)
+        idleUntil { runBlocking { diagnosticsLog.observeAll().first() }.isNotEmpty() }
+
+        assertTrue(runBlocking { diagnosticsLog.observeAll().first() }.any { it.message.contains("onStartCommand") })
     }
 }

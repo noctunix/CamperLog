@@ -29,7 +29,11 @@ import app.restvolt.camperlog.CamperLogApp
 import app.restvolt.camperlog.MainActivity
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.AndroidMotionDetector
+import app.restvolt.camperlog.data.DiagnosticsLogSettings
 import app.restvolt.camperlog.data.LOCATION_PERMISSIONS
+import app.restvolt.camperlog.domain.DiagnosticsLogEntry
+import app.restvolt.camperlog.domain.DiagnosticsLogRepository
+import app.restvolt.camperlog.domain.DiagnosticsLogSource
 import app.restvolt.camperlog.domain.MotionDetector
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TrackInterval
@@ -72,6 +76,8 @@ class TrackRecordingService : Service() {
     private lateinit var tours: TourRepository
     private lateinit var tracks: TrackRepository
     private lateinit var motionDetector: MotionDetector
+    private lateinit var diagnosticsLogSettings: DiagnosticsLogSettings
+    private lateinit var diagnosticsLog: DiagnosticsLogRepository
     private val locationManager get() = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
     private var recording: ActiveRecording? = null
@@ -92,6 +98,7 @@ class TrackRecordingService : Service() {
         override fun onReceive(context: Context, intent: Intent) {
             charging = intent.action == Intent.ACTION_POWER_CONNECTED
             Log.d(TAG, "Stromanschluss-Ereignis: action=${intent.action}, charging=$charging")
+            logDiagnostics("Stromanschluss-Ereignis: action=${intent.action}, charging=$charging")
             updateRequest()
         }
     }
@@ -104,10 +111,21 @@ class TrackRecordingService : Service() {
         tours = (application as CamperLogApp).repository
         tracks = (application as CamperLogApp).tracks
         motionDetector = AndroidMotionDetector(this)
+        diagnosticsLogSettings = (application as CamperLogApp).diagnosticsLogSettings
+        diagnosticsLog = (application as CamperLogApp).diagnosticsLog
+    }
+
+    /** Schreibt [message] zusätzlich ins Diagnoseprotokoll, aber nur solange der Schalter dafür an ist. */
+    private fun logDiagnostics(message: String) {
+        if (!diagnosticsLogSettings.enabled.value) return
+        scope.launch {
+            diagnosticsLog.append(DiagnosticsLogEntry.capture(Instant.now(), DiagnosticsLogSource.TRACK_RECORDING, fatal = false, TAG, message))
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand: action=${intent?.action}, tourId=${intent?.getLongExtra(EXTRA_TOUR_ID, -1L)?.takeIf { it > 0 } ?: "keine"}")
+        logDiagnostics("onStartCommand: action=${intent?.action}, tourId=${intent?.getLongExtra(EXTRA_TOUR_ID, -1L)?.takeIf { it > 0 } ?: "keine"}")
         if (intent?.action == ACTION_STOP) {
             settings.activeRecording = null
             settings.trackedTourId = null
@@ -132,6 +150,7 @@ class TrackRecordingService : Service() {
         }
         if (recording?.tourId == tourId || startingTourId == tourId) {
             Log.d(TAG, "Start übersprungen: Segment für Tour $tourId läuft bereits oder startet gerade")
+            logDiagnostics("Start übersprungen: Segment für Tour $tourId läuft bereits oder startet gerade")
             return START_STICKY
         }
         if (!enterForeground()) {
@@ -165,6 +184,7 @@ class TrackRecordingService : Service() {
             settings.activeRecording = active
             recording = active
             Log.d(TAG, "Neues Segment angelegt: tourId=$tourId, segment=$segment")
+            logDiagnostics("Neues Segment angelegt: tourId=$tourId, segment=$segment")
             startingTourId = null
             lastAcceptedLocation = null
             segmentPointCount = 0
@@ -189,6 +209,7 @@ class TrackRecordingService : Service() {
         ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
         settings.lastActiveElapsedRealtime = SystemClock.elapsedRealtime()
         Log.d(TAG, "In den Vordergrund gewechselt")
+        logDiagnostics("In den Vordergrund gewechselt")
         true
     } catch (e: RuntimeException) {
         // ForegroundServiceStartNotAllowedException oder SecurityException ohne Berechtigung.
@@ -200,6 +221,7 @@ class TrackRecordingService : Service() {
         if (!receiverRegistered) {
             charging = isCharging()
             Log.d(TAG, "Erstanmeldung: Receiver und Collector werden registriert, charging=$charging")
+            logDiagnostics("Erstanmeldung: Receiver und Collector werden registriert, charging=$charging")
             val filter = IntentFilter().apply {
                 addAction(Intent.ACTION_POWER_CONNECTED)
                 addAction(Intent.ACTION_POWER_DISCONNECTED)
@@ -211,6 +233,7 @@ class TrackRecordingService : Service() {
                 motionDetector.observeIsMoving().collect { moving ->
                     isMoving = moving
                     Log.d(TAG, "Bewegungszustand: isMoving=$moving")
+                    logDiagnostics("Bewegungszustand: isMoving=$moving")
                 }
             }
             scope.launch {
@@ -234,6 +257,10 @@ class TrackRecordingService : Service() {
         if (config != requestedConfig) {
             Log.d(
                 TAG,
+                "Standort-Update neu angefordert: altes Intervall $requestedInterval -> neues $interval " +
+                    "(Grund: charging=$charging, isMoving=$isMoving), config=$config",
+            )
+            logDiagnostics(
                 "Standort-Update neu angefordert: altes Intervall $requestedInterval -> neues $interval " +
                     "(Grund: charging=$charging, isMoving=$isMoving), config=$config",
             )
@@ -283,6 +310,7 @@ class TrackRecordingService : Service() {
         val accuracyLabel = accuracy?.toString() ?: "unbekannt"
         if (!isUsableTrackFix(accuracy)) {
             Log.d(TAG, "Fix verworfen (Genauigkeit): time=${location.time}, accuracy=$accuracyLabel")
+            logDiagnostics("Fix verworfen (Genauigkeit): time=${location.time}, accuracy=$accuracyLabel")
             return
         }
         val last = lastAcceptedLocation
@@ -290,12 +318,14 @@ class TrackRecordingService : Service() {
         val minDistance = requestedConfig?.withMotionAwareness(isMoving)?.minDistanceMeters
         if (!isMoving && moved != null && minDistance != null && moved < minDistance) {
             Log.d(TAG, "Fix verworfen (Stillstand): time=${location.time}, accuracy=$accuracyLabel, moved=${moved}m < ${minDistance}m")
+            logDiagnostics("Fix verworfen (Stillstand): time=${location.time}, accuracy=$accuracyLabel, moved=${moved}m < ${minDistance}m")
             return
         }
         lastAcceptedLocation = location
         segmentPointCount++
         if (moved != null) segmentLengthMeters += moved
         Log.d(TAG, "Fix akzeptiert: time=${location.time}, accuracy=$accuracyLabel, segmentPointCount=$segmentPointCount")
+        logDiagnostics("Fix akzeptiert: time=${location.time}, accuracy=$accuracyLabel, segmentPointCount=$segmentPointCount")
         updateNotification()
         val point = TrackPoint(
             tourId = active.tourId,
@@ -314,6 +344,7 @@ class TrackRecordingService : Service() {
         try {
             withContext(NonCancellable) { tracks.addAll(points) }
             Log.d(TAG, "Trackpunkte gespeichert: ${points.size}")
+            logDiagnostics("Trackpunkte gespeichert: ${points.size}")
         } catch (e: android.database.SQLException) {
             Log.w(TAG, "Trackpunkte konnten nicht gespeichert werden", e)
             settings.activeRecording = null
@@ -338,6 +369,7 @@ class TrackRecordingService : Service() {
 
     override fun onDestroy() {
         Log.d(TAG, "Dienst wird beendet")
+        logDiagnostics("Dienst wird beendet")
         removeUpdates()
         if (receiverRegistered) unregisterReceiver(powerReceiver)
         receiverRegistered = false
