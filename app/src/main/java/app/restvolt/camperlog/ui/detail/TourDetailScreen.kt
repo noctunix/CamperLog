@@ -80,6 +80,7 @@ import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.FUEL_SERVICES
 import app.restvolt.camperlog.domain.isMapAvailable
+import app.restvolt.camperlog.domain.LatLon
 import app.restvolt.camperlog.domain.period
 import app.restvolt.camperlog.domain.SUPPLY_SERVICES
 import app.restvolt.camperlog.domain.sumByCurrency
@@ -114,6 +115,7 @@ fun TourDetailScreen(
     viewModel: TourDetailViewModel,
     weatherMapEnabled: Boolean,
     hasTrack: Boolean,
+    firstTrackPoint: LatLon?,
     checklistTemplates: List<ChecklistTemplate>,
     /** Status- und Pausieren-Zeile der Kopfkarte; `null` ohne laufende Aufzeichnung dieser Tour. */
     trackStatusContent: (@Composable () -> Unit)? = null,
@@ -198,7 +200,7 @@ fun TourDetailScreen(
                                 text = { Text(stringResource(R.string.detail_open_maps)) },
                                 onClick = {
                                     overflowExpanded = false
-                                    if (!context.openInMaps(tour)) {
+                                    if (!context.openInMaps(tour, loaded.stations, firstTrackPoint)) {
                                         scope.launch { snackbar.showSnackbar(resources.getString(R.string.detail_no_maps_app)) }
                                     }
                                 },

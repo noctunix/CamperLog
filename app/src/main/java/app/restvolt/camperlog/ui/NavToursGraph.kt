@@ -17,6 +17,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.LatLon
 import app.restvolt.camperlog.domain.TrackSummary
 import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_FAB_ACTION
 import app.restvolt.camperlog.domain.guide.CREATE_FIRST_TOUR_ID
@@ -41,6 +42,7 @@ import app.restvolt.camperlog.ui.overview.OverviewScreen
 import app.restvolt.camperlog.ui.overview.OverviewViewModel
 import app.restvolt.camperlog.ui.tours.ToursScreen
 import app.restvolt.camperlog.ui.tours.ToursViewModel
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /** Navigationsziele: Touren-Reiter mit Tourdetail, Tagebuch, Tourkarte und Übersicht. */
@@ -156,6 +158,9 @@ internal fun NavGraphBuilder.toursGraph(
         // aufgezeichnete Punkte soll in der Liste gar keinen (auch keinen leeren) Platz belegen.
         val trackSummary by remember(tracks, tourId) { tracks.observeSummary(tourId) }
             .collectAsStateWithLifecycle(initialValue = TrackSummary.EMPTY)
+        val firstTrackPointLatLon by remember(tracks, tourId) {
+            tracks.observeForTour(tourId).map { points -> points.minByOrNull { it.recordedAt }?.let { LatLon(it.latitude, it.longitude) } }
+        }.collectAsStateWithLifecycle(initialValue = null)
         TourDetailScreen(
             viewModel = viewModel {
                 TourDetailViewModel(
@@ -176,6 +181,7 @@ internal fun NavGraphBuilder.toursGraph(
             },
             weatherMapEnabled = weatherMapEnabled,
             hasTrack = trackSummary.points > 0,
+            firstTrackPoint = firstTrackPointLatLon,
             checklistTemplates = checklistTemplateList,
             trackStatusContent = detailTour?.takeIf { it.endDate == null }?.let {
                 { TrackRecordingStatusRow(tourId, trackSettings) }

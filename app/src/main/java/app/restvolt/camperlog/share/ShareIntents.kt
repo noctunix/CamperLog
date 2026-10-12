@@ -11,10 +11,13 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.backup.sanitizeZipName
+import app.restvolt.camperlog.domain.LatLon
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.formatCoordinates
 import app.restvolt.camperlog.domain.isWebUrl
+import app.restvolt.camperlog.domain.stationsForMap
+import app.restvolt.camperlog.domain.toLatLon
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -354,19 +357,29 @@ fun Context.openNotificationSettings(): Boolean =
     tryStart(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
 
 /**
- * Öffnet den Kartenlink der Tour oder sucht das Ziel in einer Karten-App.
- * Der gespeicherte Link wird nur verwendet, wenn er eine http(s)-URL ist.
+ * Öffnet die Tour in einer Karten-App: an der ersten verorteten Station, sonst am ersten
+ * Trackpunkt, sonst über ihren gespeicherten Kartenlink, sonst über eine Suche nach dem Zielnamen.
  *
  * @return `false`, wenn keine App den Link öffnen kann
  */
-fun Context.openInMaps(tour: Tour): Boolean = mapIntents(tour).any(::tryStart)
+fun Context.openInMaps(tour: Tour, stations: List<Station>, firstTrackPoint: LatLon? = null): Boolean =
+    mapIntents(tour, stations, firstTrackPoint).any(::tryStart)
 
 /** Kandidaten zum Öffnen von [tour] in einer Karten-App, in absteigender Priorität. */
-internal fun mapIntents(tour: Tour): List<Intent> = buildList {
-    val query = Uri.encode(tour.destination)
+internal fun mapIntents(tour: Tour, stations: List<Station>, firstTrackPoint: LatLon?): List<Intent> = buildList {
     tour.mapLink?.takeIf(::isWebUrl)?.let { add(browsable(it.toUri())) }
-    add(Intent(Intent.ACTION_VIEW, "geo:0,0?q=$query".toUri()))
-    add(browsable("https://www.google.com/maps/search/?api=1&query=$query".toUri()))
+    val point = stationsForMap(stations).firstOrNull()?.toLatLon() ?: firstTrackPoint
+    if (point != null) {
+        val query = "${point.latitude},${point.longitude}"
+        // https zuerst: CamperLogs eigener geo:-Intent-Filter (für "Position teilen -> Station
+        // anlegen") matcht sonst die eigene Anfrage und erscheint im Systemdialog "Öffnen mit" unpassend.
+        add(browsable("https://www.google.com/maps/search/?api=1&query=$query".toUri()))
+        add(Intent(Intent.ACTION_VIEW, "geo:$query?q=$query".toUri()))
+    } else {
+        val query = Uri.encode(tour.destination)
+        add(browsable("https://www.google.com/maps/search/?api=1&query=$query".toUri()))
+        add(Intent(Intent.ACTION_VIEW, "geo:0,0?q=$query".toUri()))
+    }
 }
 
 /**

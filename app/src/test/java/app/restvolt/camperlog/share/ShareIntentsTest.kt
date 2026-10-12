@@ -3,6 +3,7 @@ package app.restvolt.camperlog.share
 import android.content.Intent
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.LatLon
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
@@ -47,7 +48,7 @@ class ShareIntentsTest {
 
     @Test
     fun webMapLinkIsOpenedFirstAndOnlyAsBrowsable() {
-        val intents = mapIntents(tour.copy(mapLink = "https://example.org/karte"))
+        val intents = mapIntents(tour.copy(mapLink = "https://example.org/karte"), stations = emptyList(), firstTrackPoint = null)
 
         assertEquals("https://example.org/karte", intents.first().dataString)
         assertTrue(intents.first().hasCategory(Intent.CATEGORY_BROWSABLE))
@@ -56,9 +57,36 @@ class ShareIntentsTest {
 
     @Test
     fun nonWebMapLinkIsIgnored() {
-        val intents = mapIntents(tour.copy(mapLink = "intent://evil#Intent;end"))
+        val intents = mapIntents(tour.copy(mapLink = "intent://evil#Intent;end"), stations = emptyList(), firstTrackPoint = null)
 
-        assertEquals(listOf("geo", "https"), intents.map { it.data?.scheme })
+        assertEquals(listOf("https", "geo"), intents.map { it.data?.scheme })
+    }
+
+    @Test
+    fun locatedStationIsUsedOverFreeTextSearch() {
+        val located = station(name = "Camping Moskenes", latitude = 68.0912, longitude = 13.1023)
+        val intents = mapIntents(tour, stations = listOf(located), firstTrackPoint = null)
+
+        assertEquals("https", intents.first().data?.scheme)
+        assertTrue(intents.first().dataString!!.contains("68.0912,13.1023"))
+    }
+
+    @Test
+    fun firstTrackPointIsUsedWithoutLocatedStation() {
+        val point = LatLon(68.0912, 13.1023)
+        val intents = mapIntents(tour, stations = emptyList(), firstTrackPoint = point)
+
+        assertEquals("https", intents.first().data?.scheme)
+        assertTrue(intents.first().dataString!!.contains("68.0912,13.1023"))
+    }
+
+    @Test
+    fun locatedStationTakesPriorityOverFirstTrackPoint() {
+        val located = station(name = "Camping Moskenes", latitude = 68.0912, longitude = 13.1023)
+        val trackPoint = LatLon(1.0, 2.0)
+        val intents = mapIntents(tour, stations = listOf(located), firstTrackPoint = trackPoint)
+
+        assertTrue(intents.first().dataString!!.contains("68.0912,13.1023"))
     }
 
     private fun station(
