@@ -2,6 +2,7 @@ package app.restvolt.camperlog.domain
 
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
@@ -37,6 +38,25 @@ private fun tollStation(kind: TollKind, country: String) = Station(
     updatedAt = Instant.EPOCH,
 )
 
+private fun trackPointAt(lat: Double, lon: Double) = TrackPoint(
+    tourId = 1,
+    segment = 0,
+    recordedAt = Instant.EPOCH,
+    latitude = lat,
+    longitude = lon,
+)
+
+/** Zählt die Nachschläge, um die Heruntersampelung des Tracks zu überprüfen. */
+private class CountingCountryLookupRepository(private val delegate: CountryLookupRepository) : CountryLookupRepository {
+    var lookups = 0
+        private set
+
+    override suspend fun countryAt(latitude: Double, longitude: Double): String? {
+        lookups++
+        return delegate.countryAt(latitude, longitude)
+    }
+}
+
 /** Aggregation der Länder einer Tour: Erkennung aus Koordinaten/Vignetten plus manuelle Anpassungen. */
 class TourCountriesTest {
 
@@ -62,6 +82,23 @@ class TourCountriesTest {
         val stations = listOf(overnightStationAt(56.0, 3.0))
 
         assertEquals(emptySet<String>(), autoDetectedCountries(stations, lookup))
+    }
+
+    @Test
+    fun autoDetectedCountriesFallsBackToTrackWhenNoStationHasCoordinates() = runTest {
+        val track = listOf(trackPointAt(48.0, 8.2), trackPointAt(45.6, 10.68))
+
+        assertEquals(setOf("DE", "IT"), autoDetectedCountries(emptyList(), lookup, track))
+    }
+
+    @Test
+    fun autoDetectedCountriesSamplesLongTracksInsteadOfLookingUpEveryPoint() = runTest {
+        val counting = CountingCountryLookupRepository(lookup)
+        val track = (0 until 500).map { trackPointAt(48.0, 8.2) }
+
+        autoDetectedCountries(emptyList(), counting, track)
+
+        assertTrue(counting.lookups <= 40)
     }
 
     @Test

@@ -167,7 +167,7 @@ class TourDetailViewModel(
                 totalCosts = totalCosts,
                 categoryCosts = stationList.costsByCategory(),
                 conversion = if (totalCosts.all { it.currency == main }) null else convert(totalCosts, main, rates),
-                autoDetectedCountries = autoDetectedCountries(stationList, countryLookup),
+                autoDetectedCountries = autoDetectedCountries(stationList, countryLookup, content.trackPoints),
                 diaryEntries = content.diaryEntries,
                 checklists = content.checklists,
                 metrics = metrics,
