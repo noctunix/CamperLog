@@ -91,6 +91,7 @@ class TrackRecordingService : Service() {
     private val powerReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             charging = intent.action == Intent.ACTION_POWER_CONNECTED
+            Log.d(TAG, "Stromanschluss-Ereignis: action=${intent.action}, charging=$charging")
             updateRequest()
         }
     }
@@ -106,6 +107,7 @@ class TrackRecordingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand: action=${intent?.action}, tourId=${intent?.getLongExtra(EXTRA_TOUR_ID, -1L)?.takeIf { it > 0 } ?: "keine"}")
         if (intent?.action == ACTION_STOP) {
             settings.activeRecording = null
             settings.trackedTourId = null
@@ -128,7 +130,10 @@ class TrackRecordingService : Service() {
             abortStart(intent)
             return START_NOT_STICKY
         }
-        if (recording?.tourId == tourId || startingTourId == tourId) return START_STICKY
+        if (recording?.tourId == tourId || startingTourId == tourId) {
+            Log.d(TAG, "Start übersprungen: Segment für Tour $tourId läuft bereits oder startet gerade")
+            return START_STICKY
+        }
         if (!enterForeground()) {
             // Android lässt einen Standortdienst nicht aus dem Hintergrund starten; die Oberfläche setzt fort.
             settings.reportStartFailed()
@@ -159,6 +164,7 @@ class TrackRecordingService : Service() {
             val active = ActiveRecording(tourId, segment)
             settings.activeRecording = active
             recording = active
+            Log.d(TAG, "Neues Segment angelegt: tourId=$tourId, segment=$segment")
             startingTourId = null
             lastAcceptedLocation = null
             segmentPointCount = 0
@@ -182,6 +188,7 @@ class TrackRecordingService : Service() {
     private fun enterForeground(): Boolean = try {
         ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
         settings.lastActiveElapsedRealtime = SystemClock.elapsedRealtime()
+        Log.d(TAG, "In den Vordergrund gewechselt")
         true
     } catch (e: RuntimeException) {
         // ForegroundServiceStartNotAllowedException oder SecurityException ohne Berechtigung.
@@ -192,6 +199,7 @@ class TrackRecordingService : Service() {
     private fun startUpdates() {
         if (!receiverRegistered) {
             charging = isCharging()
+            Log.d(TAG, "Erstanmeldung: Receiver und Collector werden registriert, charging=$charging")
             val filter = IntentFilter().apply {
                 addAction(Intent.ACTION_POWER_CONNECTED)
                 addAction(Intent.ACTION_POWER_DISCONNECTED)
@@ -199,7 +207,12 @@ class TrackRecordingService : Service() {
             ContextCompat.registerReceiver(this, powerReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
             receiverRegistered = true
             scope.launch { settings.values.collect { prefs -> if (prefs.enabled) updateRequest() else stopRecording() } }
-            scope.launch { motionDetector.observeIsMoving().collect { moving -> isMoving = moving } }
+            scope.launch {
+                motionDetector.observeIsMoving().collect { moving ->
+                    isMoving = moving
+                    Log.d(TAG, "Bewegungszustand: isMoving=$moving")
+                }
+            }
             scope.launch {
                 // Aktualisiert nur die angezeigte Dauer zwischen Fixes; kein Datenzugriff, daher unkritisch.
                 while (isActive) {
@@ -218,6 +231,13 @@ class TrackRecordingService : Service() {
         val prefs = settings.values.value
         val interval = effectiveTrackInterval(prefs.interval, prefs.fasterWhileCharging, charging)
         val config = TrackSamplingConfig.forInterval(interval)
+        if (config != requestedConfig) {
+            Log.d(
+                TAG,
+                "Standort-Update neu angefordert: altes Intervall $requestedInterval -> neues $interval " +
+                    "(Grund: charging=$charging, isMoving=$isMoving), config=$config",
+            )
+        }
         if (config == requestedConfig) return
         if (!hasLocationPermission(this)) {
             stopRecording()
@@ -260,14 +280,22 @@ class TrackRecordingService : Service() {
     private fun onFix(location: Location) {
         val active = recording ?: return
         val accuracy = if (location.hasAccuracy()) location.accuracy.roundToInt() else null
-        if (!isUsableTrackFix(accuracy)) return
+        val accuracyLabel = accuracy?.toString() ?: "unbekannt"
+        if (!isUsableTrackFix(accuracy)) {
+            Log.d(TAG, "Fix verworfen (Genauigkeit): time=${location.time}, accuracy=$accuracyLabel")
+            return
+        }
         val last = lastAcceptedLocation
         val moved = last?.let { distanceMeters(it.latitude, it.longitude, location.latitude, location.longitude) }
         val minDistance = requestedConfig?.withMotionAwareness(isMoving)?.minDistanceMeters
-        if (!isMoving && moved != null && minDistance != null && moved < minDistance) return
+        if (!isMoving && moved != null && minDistance != null && moved < minDistance) {
+            Log.d(TAG, "Fix verworfen (Stillstand): time=${location.time}, accuracy=$accuracyLabel, moved=${moved}m < ${minDistance}m")
+            return
+        }
         lastAcceptedLocation = location
         segmentPointCount++
         if (moved != null) segmentLengthMeters += moved
+        Log.d(TAG, "Fix akzeptiert: time=${location.time}, accuracy=$accuracyLabel, segmentPointCount=$segmentPointCount")
         updateNotification()
         val point = TrackPoint(
             tourId = active.tourId,
@@ -285,6 +313,7 @@ class TrackRecordingService : Service() {
     private suspend fun persist(points: List<TrackPoint>) {
         try {
             withContext(NonCancellable) { tracks.addAll(points) }
+            Log.d(TAG, "Trackpunkte gespeichert: ${points.size}")
         } catch (e: android.database.SQLException) {
             Log.w(TAG, "Trackpunkte konnten nicht gespeichert werden", e)
             settings.activeRecording = null
@@ -308,6 +337,7 @@ class TrackRecordingService : Service() {
     }
 
     override fun onDestroy() {
+        Log.d(TAG, "Dienst wird beendet")
         removeUpdates()
         if (receiverRegistered) unregisterReceiver(powerReceiver)
         receiverRegistered = false
