@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.data.DiagnosticsLogSettings
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CurrencyPicker
@@ -62,10 +63,12 @@ fun SettingsScreen(
     weatherSettings: WeatherSettings,
     trackSettings: TrackRecordingSettings,
     homeLocationViewModel: HomeLocationViewModel,
+    diagnosticsLogSettings: DiagnosticsLogSettings,
     guidedTours: List<GuidedTourEntry>,
     onBack: () -> Unit,
     onOpenRates: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenDiagnosticsLog: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val locale = currentLocale()
@@ -79,6 +82,7 @@ fun SettingsScreen(
     var notificationPermissionDenied by rememberSaveable { mutableStateOf(false) }
     val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
     val weatherEnabled by weatherSettings.values.collectAsStateWithLifecycle()
+    val diagnosticsLogEnabled by diagnosticsLogSettings.enabled.collectAsStateWithLifecycle()
     var pickOilInterval by rememberSaveable { mutableStateOf(false) }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -237,6 +241,19 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(stringResource(R.string.about_action_support))
+                }
+            }
+            item {
+                SectionCard {
+                    SwitchSettingRow(
+                        title = stringResource(R.string.settings_diagnostics_log_title),
+                        supportingText = stringResource(R.string.settings_diagnostics_log_support),
+                        checked = diagnosticsLogEnabled,
+                        onCheckedChange = diagnosticsLogSettings::setEnabled,
+                    )
+                    OutlinedButton(onClick = onOpenDiagnosticsLog, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.settings_open_diagnostics_log))
+                    }
                 }
             }
             item {

@@ -28,6 +28,7 @@ import app.restvolt.camperlog.ui.rates.RatesScreen
 import app.restvolt.camperlog.ui.rates.RatesViewModel
 import app.restvolt.camperlog.ui.search.SearchScreen
 import app.restvolt.camperlog.ui.search.SearchViewModel
+import app.restvolt.camperlog.ui.settings.DiagnosticsLogScreen
 import app.restvolt.camperlog.ui.settings.HomeLocationViewModel
 import app.restvolt.camperlog.ui.settings.SettingsScreen
 import app.restvolt.camperlog.ui.theme.AccentColor
@@ -180,11 +181,16 @@ internal fun NavGraphBuilder.settingsGraph(
             homeLocationViewModel = viewModel {
                 HomeLocationViewModel(homeLocations, locationProvider, AndroidLocationPermissionGate(context))
             },
+            diagnosticsLogSettings = diagnosticsLogSettings,
             guidedTours = guidedTourEntries(scope),
             onBack = { navController.popFrom(entry) },
             onOpenRates = { navController.navigate(RatesRoute) },
             onOpenAbout = { navController.navigate(AboutRoute) },
+            onOpenDiagnosticsLog = { navController.navigate(DiagnosticsLogRoute) },
         )
+    }
+    composable<DiagnosticsLogRoute> { entry ->
+        DiagnosticsLogScreen(repository = diagnosticsLog, onBack = { navController.popFrom(entry) })
     }
     composable<AboutRoute> { entry ->
         val scope = rememberCoroutineScope()

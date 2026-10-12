@@ -52,10 +52,12 @@ import app.restvolt.camperlog.data.AndroidPlaceSearchProvider
 import app.restvolt.camperlog.data.AndroidWeatherProvider
 import app.restvolt.camperlog.data.AssetCountryLookupRepository
 import app.restvolt.camperlog.data.AttachmentFileStore
+import app.restvolt.camperlog.data.DiagnosticsLogSettings
 import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.ChecklistRepository
 import app.restvolt.camperlog.domain.ChecklistTemplateRepository
 import app.restvolt.camperlog.domain.CountryLookupRepository
+import app.restvolt.camperlog.domain.DiagnosticsLogRepository
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
@@ -235,6 +237,10 @@ internal object SettingsRoute
 @Serializable
 internal object AboutRoute
 
+/** Lokales Diagnoseprotokoll ("Fehlerprotokoll" in den Einstellungen). */
+@Serializable
+internal object DiagnosticsLogRoute
+
 @Serializable
 internal object DataRoute
 
@@ -275,6 +281,8 @@ internal class NavDependencies(
     val guideController: GuideController,
     val guideProgressStore: GuideProgressStore,
     val demoTourSession: DemoTourSession,
+    val diagnosticsLog: DiagnosticsLogRepository,
+    val diagnosticsLogSettings: DiagnosticsLogSettings,
 )
 
 /** Navigationsgraph der App mit Start auf der Tourenliste. */
@@ -327,6 +335,10 @@ fun CamperLogNavHost(
     tracks: TrackRepository = (LocalContext.current.applicationContext as CamperLogApp).tracks,
     /** Heimatadressen-Historie für den Schalter "Beginnt zu Hause"; in Tests ein Fake. */
     homeLocations: HomeLocationRepository = (LocalContext.current.applicationContext as CamperLogApp).homeLocations,
+    /** Lokales Diagnoseprotokoll; in Tests ein Fake. */
+    diagnosticsLog: DiagnosticsLogRepository = (LocalContext.current.applicationContext as CamperLogApp).diagnosticsLog,
+    /** Schalter für die ausführlichen Diagnose-Einträge; dieselbe Instanz wie [TrackRecordingService], damit beide synchron bleiben. */
+    diagnosticsLogSettings: DiagnosticsLogSettings = (LocalContext.current.applicationContext as CamperLogApp).diagnosticsLogSettings,
     /**
      * Simulierte Demo-Tour des Tutorials; `null` baut sie unten aus [repository]/[stations]/[tracks]/
      * [vehicles] auf, damit Tests ohne eigenes Argument automatisch dieselben Fakes treffen, die sie
@@ -469,7 +481,7 @@ fun CamperLogNavHost(
         attachments, attachmentFileStore, backupImporter, locationProvider, weatherProvider, placeSearchProvider, tileLoader,
         countryLookup, attachmentPickers, tracks, reminderSettings, locationSettings, trackSettings, weatherSettings,
         notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings, homeLocations, guideController, guideProgressStore,
-        resolvedDemoTourSession,
+        resolvedDemoTourSession, diagnosticsLog, diagnosticsLogSettings,
     )
     NavHost(navController, startDestination = ToursRoute) {
         toursGraph(navController, deps, bottomBar)
