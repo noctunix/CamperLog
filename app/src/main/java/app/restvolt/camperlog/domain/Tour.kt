@@ -2,6 +2,7 @@ package app.restvolt.camperlog.domain
 
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 
 /**
  * Eine Wohnmobil-Tour. [costs] enthält höchstens einen Betrag je Währung.
@@ -20,6 +21,10 @@ data class Tour(
     val startDate: LocalDate,
     /** Abschlussdatum; `null` kennzeichnet eine laufende Tour. */
     val endDate: LocalDate?,
+    /** Uhrzeit zum Start, falls bekannt. */
+    val startTime: LocalTime? = null,
+    /** Uhrzeit zum Ende, falls bekannt. */
+    val endTime: LocalTime? = null,
     val destination: String,
     /** Freitext-Name der Tour; leer bedeutet, dass [displayTitle] auf [destination] zurückfällt. */
     val name: String = "",

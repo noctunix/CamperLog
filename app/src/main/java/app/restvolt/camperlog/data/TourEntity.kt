@@ -31,6 +31,8 @@ data class TourEntity(
     @ColumnInfo(name = "vehicle_id") val vehicleId: Long,
     @ColumnInfo(name = "start_date") val startDate: String,
     @ColumnInfo(name = "end_date") val endDate: String?,
+    @ColumnInfo(name = "start_time") val startTime: String?,
+    @ColumnInfo(name = "end_time") val endTime: String?,
     val destination: String,
     @ColumnInfo(defaultValue = "") val name: String,
     @ColumnInfo(defaultValue = "") val slug: String,

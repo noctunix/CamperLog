@@ -3,6 +3,7 @@ package app.restvolt.camperlog.domain
 import kotlinx.serialization.Serializable
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.Currency
 import java.util.Locale
 
@@ -10,6 +11,7 @@ import java.util.Locale
 @Serializable
 data class RepairInput(
     @Serializable(with = LocalDateSerializer::class) val date: LocalDate? = null,
+    @Serializable(with = LocalTimeSerializer::class) val time: LocalTime? = null,
     val description: String = "",
     val odometerKm: String = "",
     val cost: String = "",
@@ -63,6 +65,7 @@ fun RepairInput.toRepair(original: Repair?, vehicleId: Long, locale: Locale): Re
     uuid = original?.uuid.orEmpty(),
     vehicleId = vehicleId,
     date = checkNotNull(date) { "Datum muss vor dem Speichern validiert sein" },
+    time = time,
     description = description.trim(),
     odometerKm = parseOptionalInt(odometerKm),
     cost = parseMoney(cost, costCurrency, locale),
@@ -76,6 +79,7 @@ fun RepairInput.toRepair(original: Repair?, vehicleId: Long, locale: Locale): Re
 /** Wandelt eine gespeicherte Reparatur in editierbare Formulardaten im Zahlenformat von [locale] um. */
 fun Repair.toInput(locale: Locale): RepairInput = RepairInput(
     date = date,
+    time = time,
     description = description,
     odometerKm = odometerKm?.toString().orEmpty(),
     cost = cost.toInput(locale),

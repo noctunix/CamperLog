@@ -8,6 +8,7 @@ import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.YearTotals
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.Currency
 
 internal fun TourWithCosts.toDomain(): Tour = tour.toDomain(
@@ -22,6 +23,8 @@ private fun TourEntity.toDomain(costs: List<Money>, manualCountriesAdded: Set<St
     vehicleId = vehicleId,
     startDate = LocalDate.parse(startDate),
     endDate = endDate?.let(LocalDate::parse),
+    startTime = startTime?.let(LocalTime::parse),
+    endTime = endTime?.let(LocalTime::parse),
     destination = destination,
     name = name,
     slug = slug,
@@ -45,6 +48,8 @@ internal fun Tour.toEntity(): TourEntity = TourEntity(
     vehicleId = vehicleId,
     startDate = startDate.toString(),
     endDate = endDate?.toString(),
+    startTime = startTime?.toString(),
+    endTime = endTime?.toString(),
     destination = destination,
     name = name,
     slug = slug,

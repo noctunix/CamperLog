@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import java.net.URI
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 import java.util.Currency
 import java.util.Locale
@@ -15,6 +16,8 @@ data class TourInput(
     val vehicleId: Long = 0,
     @Serializable(with = LocalDateSerializer::class) val startDate: LocalDate? = null,
     @Serializable(with = LocalDateSerializer::class) val endDate: LocalDate? = null,
+    @Serializable(with = LocalTimeSerializer::class) val startTime: LocalTime? = null,
+    @Serializable(with = LocalTimeSerializer::class) val endTime: LocalTime? = null,
     val destination: String = "",
     /** Freitext-Name der Tour; leer bedeutet, dass die Oberfläche stattdessen [destination] anzeigt. */
     val name: String = "",
@@ -114,6 +117,8 @@ fun TourInput.toTour(original: Tour?, locale: Locale): Tour = Tour(
     vehicleId = vehicleId,
     startDate = checkNotNull(startDate),
     endDate = endDate,
+    startTime = startTime,
+    endTime = endTime,
     destination = destination.trim(),
     name = name.trim(),
     slug = slug.trim(),
@@ -143,6 +148,8 @@ fun Tour.toInput(locale: Locale): TourInput = TourInput(
     vehicleId = vehicleId,
     startDate = startDate,
     endDate = endDate,
+    startTime = startTime,
+    endTime = endTime,
     destination = destination,
     name = name,
     slug = slug,

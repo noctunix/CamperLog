@@ -9,6 +9,7 @@ import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.withMinimumAxles
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.Currency
 
 internal fun VehicleEntity.toDomain(): Vehicle = Vehicle(
@@ -145,6 +146,7 @@ internal fun RepairEntity.toDomain(): Repair = Repair(
     uuid = uuid,
     vehicleId = vehicleId,
     date = LocalDate.parse(date),
+    time = time?.let(LocalTime::parse),
     description = description,
     odometerKm = odometerKm,
     cost = moneyOf(costCurrency, costMinor),
@@ -160,6 +162,7 @@ internal fun Repair.toEntity(): RepairEntity = RepairEntity(
     uuid = uuid,
     vehicleId = vehicleId,
     date = date.toString(),
+    time = time?.toString(),
     description = description,
     odometerKm = odometerKm,
     costCurrency = cost?.currency?.currencyCode,

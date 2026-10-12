@@ -125,6 +125,7 @@ data class RepairEntity(
     val uuid: String = "",
     @ColumnInfo(name = "vehicle_id") val vehicleId: Long,
     val date: String,
+    val time: String? = null,
     val description: String,
     @ColumnInfo(name = "odometer_km") val odometerKm: Int? = null,
     @ColumnInfo(name = "cost_currency") val costCurrency: String? = null,

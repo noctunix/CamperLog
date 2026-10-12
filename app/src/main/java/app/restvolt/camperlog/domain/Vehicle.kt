@@ -3,6 +3,7 @@ package app.restvolt.camperlog.domain
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.Currency
 
 /**
@@ -131,6 +132,8 @@ data class Repair(
     val uuid: String = "",
     val vehicleId: Long,
     val date: LocalDate,
+    /** Uhrzeit der Reparatur, falls bekannt. */
+    val time: LocalTime? = null,
     val description: String,
     val odometerKm: Int? = null,
     val cost: Money? = null,

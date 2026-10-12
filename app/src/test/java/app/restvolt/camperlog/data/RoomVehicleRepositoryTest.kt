@@ -330,6 +330,8 @@ class RoomVehicleRepositoryTest {
                 vehicleId = vehicleId,
                 startDate = "2026-05-01",
                 endDate = "2026-05-01",
+                startTime = null,
+                endTime = null,
                 destination = "Ziel",
                 name = "",
                 slug = "",
