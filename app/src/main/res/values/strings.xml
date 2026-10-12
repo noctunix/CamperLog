@@ -225,6 +225,7 @@
     <string name="edit_home_switch_support_start">Adds a stop at %1$s right away.</string>
     <string name="edit_home_switch_support_both">Adds a stop at %1$s for the start and the end right away.</string>
     <string name="tour_metrics_title">Trip metrics</string>
+    <string name="edit_new_tour_running_hint">Without an end date, this tour already counts as running. Stats are added automatically once you finish it.</string>
     <string name="tour_metrics_automatic_hint">Calculated automatically from dates, stops, and the GPS track when the tour ends.</string>
     <string name="tour_metrics_editable_hint">Calculated automatically. You can adjust the saved values.</string>
     <string name="edit_pick_date">Choose %1$s</string>

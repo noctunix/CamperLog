@@ -324,10 +324,11 @@ private fun TourForm(
                 hint = stringResource(R.string.edit_end_date_hint),
             )
             if (input.endDate == null) {
+                val runningHint = state.isNew
                 Text(
-                    stringResource(R.string.tour_metrics_automatic_hint),
+                    stringResource(if (runningHint) R.string.edit_new_tour_running_hint else R.string.tour_metrics_automatic_hint),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (runningHint) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

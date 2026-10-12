@@ -225,6 +225,7 @@
     <string name="edit_home_switch_support_start">Legt sofort eine Station bei %1$s an.</string>
     <string name="edit_home_switch_support_both">Legt sofort je eine Station bei %1$s für Start und Ende an.</string>
     <string name="tour_metrics_title">Kennzahlen</string>
+    <string name="edit_new_tour_running_hint">Ohne Enddatum gilt diese Tour schon jetzt als laufend. Kennzahlen kommen automatisch dazu, sobald du sie beendest.</string>
     <string name="tour_metrics_automatic_hint">Werden beim Beenden automatisch aus Zeitraum, Stationen und GPS-Track berechnet.</string>
     <string name="tour_metrics_editable_hint">Automatisch berechnet. Die gespeicherten Werte können angepasst werden.</string>
     <string name="edit_pick_date">%1$s wählen</string>
