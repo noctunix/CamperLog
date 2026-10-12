@@ -36,6 +36,7 @@ import app.restvolt.camperlog.domain.TrackInterval
 import app.restvolt.camperlog.domain.TrackPoint
 import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.TrackSamplingConfig
+import app.restvolt.camperlog.domain.distanceMeters
 import app.restvolt.camperlog.domain.effectiveTrackInterval
 import app.restvolt.camperlog.domain.isUsableTrackFix
 import app.restvolt.camperlog.domain.withMotionAwareness
@@ -44,11 +45,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import kotlin.math.roundToInt
@@ -57,17 +54,16 @@ import kotlin.math.roundToInt
  * Vordergrunddienst der Trackaufzeichnung (Typ `location`). Wird nur aus der Oberfläche gestartet,
  * daher reicht die Standortberechtigung "bei Nutzung der App"; ACCESS_BACKGROUND_LOCATION ist nicht nötig.
  *
- * Fixes kommen über `LocationManagerCompat` mit Intervall, Mindestdistanz und Batching
- * ([TrackSamplingConfig]); die Mindestdistanz gilt dabei nur im erkannten Stillstand
- * ([MotionDetector], [withMotionAwareness]). Unbrauchbare Fixes ([isUsableTrackFix]) werden
- * verworfen. Punkte sammeln sich im Speicher und werden gebündelt geschrieben ([FLUSH_POINTS],
- * [FLUSH_INTERVAL_MILLIS]) sowie beim Beenden.
+ * Fixes kommen über `LocationManagerCompat` strikt im angeforderten Zeitintervall und ohne
+ * betriebssystemseitige Mindestdistanz ([TrackSamplingConfig]). Der Stillstandsfilter
+ * ([MotionDetector], [withMotionAwareness]) arbeitet clientseitig in [onFix] anhand des letzten
+ * übernommenen Punkts, damit ein Bewegungswechsel keine Neuanmeldung der Standortanfrage mehr
+ * auslöst. Unbrauchbare Fixes ([isUsableTrackFix]) werden verworfen, akzeptierte Punkte sofort
+ * geschrieben.
  */
 class TrackRecordingService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private val bufferLock = Mutex()
-    private val buffer = mutableListOf<TrackPoint>()
 
     private lateinit var settings: TrackRecordingSettings
     private lateinit var tours: TourRepository
@@ -82,6 +78,7 @@ class TrackRecordingService : Service() {
     private var charging = false
     private var isMoving = true
     private var receiverRegistered = false
+    private var lastAcceptedLocation: Location? = null
 
     private val listener = LocationListenerCompat { location -> onFix(location) }
 
@@ -134,7 +131,6 @@ class TrackRecordingService : Service() {
         }
         startingTourId = tourId
         scope.launch {
-            flush()
             // Die Tour kann inzwischen gelöscht sein (z. B. Sicherung im Ersetzen-Modus eingespielt);
             // ohne diese Prüfung würde nextSegment() trotzdem ein Segment liefern und der Dienst liefe
             // als Geisteraufzeichnung weiter, bis ein Schreibzugriff am Fremdschlüssel scheitert.
@@ -158,6 +154,7 @@ class TrackRecordingService : Service() {
             settings.activeRecording = active
             recording = active
             startingTourId = null
+            lastAcceptedLocation = null
             startUpdates()
         }
         return START_STICKY
@@ -193,13 +190,7 @@ class TrackRecordingService : Service() {
             ContextCompat.registerReceiver(this, powerReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
             receiverRegistered = true
             scope.launch { settings.values.collect { prefs -> if (prefs.enabled) updateRequest() else stopRecording() } }
-            scope.launch { motionDetector.observeIsMoving().collect { moving -> isMoving = moving; updateRequest() } }
-            scope.launch {
-                while (isActive) {
-                    delay(FLUSH_INTERVAL_MILLIS)
-                    flush()
-                }
-            }
+            scope.launch { motionDetector.observeIsMoving().collect { moving -> isMoving = moving } }
         }
         updateRequest()
     }
@@ -210,14 +201,14 @@ class TrackRecordingService : Service() {
         if (recording == null) return
         val prefs = settings.values.value
         val interval = effectiveTrackInterval(prefs.interval, prefs.fasterWhileCharging, charging)
-        val config = TrackSamplingConfig.forInterval(interval).withMotionAwareness(isMoving)
+        val config = TrackSamplingConfig.forInterval(interval)
         if (config == requestedConfig) return
         if (!hasLocationPermission(this)) {
             stopRecording()
             return
         }
         val request = LocationRequestCompat.Builder(config.intervalMillis)
-            .setMinUpdateDistanceMeters(config.minDistanceMeters)
+            .setMinUpdateDistanceMeters(0f)
             .setMaxUpdateDelayMillis(config.maxUpdateDelayMillis)
             .setQuality(
                 if (interval.seconds <= TrackInterval.MINUTES_2.seconds) LocationRequestCompat.QUALITY_HIGH_ACCURACY
@@ -254,6 +245,13 @@ class TrackRecordingService : Service() {
         val active = recording ?: return
         val accuracy = if (location.hasAccuracy()) location.accuracy.roundToInt() else null
         if (!isUsableTrackFix(accuracy)) return
+        val last = lastAcceptedLocation
+        val minDistance = requestedConfig?.withMotionAwareness(isMoving)?.minDistanceMeters
+        if (!isMoving && last != null && minDistance != null) {
+            val moved = distanceMeters(last.latitude, last.longitude, location.latitude, location.longitude)
+            if (moved < minDistance) return
+        }
+        lastAcceptedLocation = location
         val point = TrackPoint(
             tourId = active.tourId,
             segment = active.segment,
@@ -263,21 +261,13 @@ class TrackRecordingService : Service() {
             accuracyM = accuracy,
             altitudeM = if (location.hasAltitude()) location.altitude.roundToInt() else null,
         )
-        scope.launch {
-            val full = bufferLock.withLock {
-                buffer += point
-                buffer.size >= FLUSH_POINTS
-            }
-            if (full) flush()
-        }
+        scope.launch { persist(listOf(point)) }
     }
 
-    /** Schreibt gesammelte Punkte. Scheitert das (z. B. Tour gelöscht), endet die Aufzeichnung. */
-    private suspend fun flush() {
-        val pending = bufferLock.withLock { buffer.toList().also { buffer.clear() } }
-        if (pending.isEmpty()) return
+    /** Schreibt [points]. Scheitert das (z. B. Tour gelöscht), endet die Aufzeichnung. */
+    private suspend fun persist(points: List<TrackPoint>) {
         try {
-            withContext(NonCancellable) { tracks.addAll(pending) }
+            withContext(NonCancellable) { tracks.addAll(points) }
         } catch (e: android.database.SQLException) {
             Log.w(TAG, "Trackpunkte konnten nicht gespeichert werden", e)
             settings.activeRecording = null
@@ -304,12 +294,6 @@ class TrackRecordingService : Service() {
         removeUpdates()
         if (receiverRegistered) unregisterReceiver(powerReceiver)
         receiverRegistered = false
-        // Restliche Punkte noch schreiben, unabhängig vom beendeten Dienst-Scope.
-        val pending = buffer.toList()
-        buffer.clear()
-        if (pending.isNotEmpty()) {
-            CoroutineScope(Dispatchers.IO).launch { runCatching { tracks.addAll(pending) } }
-        }
         scope.cancel()
         super.onDestroy()
     }
@@ -368,12 +352,6 @@ class TrackRecordingService : Service() {
         private const val ACTION_STOP = "app.restvolt.camperlog.tracking.STOP"
         private const val EXTRA_TOUR_ID = "tour_id"
         private const val AUTO_RESUME_REQUEST_CODE = 3
-
-        /** Spätestens nach so vielen Punkten wird geschrieben. */
-        const val FLUSH_POINTS = 20
-
-        /** Spätestens nach dieser Zeit wird geschrieben. */
-        const val FLUSH_INTERVAL_MILLIS = 5 * 60_000L
 
         fun hasLocationPermission(context: Context): Boolean = LOCATION_PERMISSIONS.any {
             ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
