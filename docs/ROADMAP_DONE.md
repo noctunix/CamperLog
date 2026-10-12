@@ -2,6 +2,7 @@
 
 Shipped features, newest first.
 
+- 1.26.0 – New local diagnostics log (Settings → Diagnostics log): records detailed entries for GPS track recording when enabled, crashes always; view and share from Settings. Entries are redacted (coordinates, amounts, plates, real file paths) before they could ever leave the device
 - 1.25.1 – No user-visible change; added debug logging to the GPS track recording service to investigate reports of missing points
 - 1.25.0 – Tours and repairs can have an exact start/end time, not just a date, with a "Now" quick-fill setting both at once; home address history with a validity period per address, managed in Settings, so a new tour's "starts at home" station uses whichever address was valid back then; a quick-save checkmark leaves an autosaving form immediately without the discard/keep dialog; the GPS-track section moved right after the tour overview and stays expanded; the recording notification shows a live duration; the tour map draws individual track points with time labels, decluttered by zoom level, not just a line
 - 1.24.1 – "Open in maps" on a tour now uses its first located station or track point instead of an empty text search; countries are detected from the GPS track too when no station has coordinates; the map button moved from the stations heading into the top app bar so it's easier to find

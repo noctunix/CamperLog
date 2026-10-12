@@ -1,0 +1,2 @@
+• New: a local diagnostics log (Settings → Diagnostics log) records detailed entries for GPS track recording when enabled, plus crashes always; view and share it from Settings
+• Entries are redacted (coordinates, amounts, plates, real file paths) before they could ever be shared

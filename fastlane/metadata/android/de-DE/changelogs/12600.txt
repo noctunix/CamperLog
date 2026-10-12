@@ -1,0 +1,2 @@
+• Neu: ein lokales Diagnose-Protokoll (Einstellungen → Diagnose-Protokoll) zeichnet bei Bedarf ausführliche Einträge zur GPS-Trackaufzeichnung auf, Abstürze immer; ansehen und teilen direkt in den Einstellungen
+• Einträge werden vor dem möglichen Teilen geschwärzt (Koordinaten, Beträge, Kennzeichen, echte Dateipfade)
