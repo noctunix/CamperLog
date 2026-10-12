@@ -1,11 +1,10 @@
 package app.restvolt.camperlog.ui.edit
 
-import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
-import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.Checklist
 import app.restvolt.camperlog.domain.CoordinateSource
+import app.restvolt.camperlog.domain.HomeLocation
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TrackPoint
@@ -13,12 +12,12 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourInput
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.FakeChecklistRepository
+import app.restvolt.camperlog.ui.FakeHomeLocationRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
 import app.restvolt.camperlog.ui.FakeTourRepository
 import app.restvolt.camperlog.ui.FakeTrackRepository
 import app.restvolt.camperlog.ui.FakeVehicleRepository
 import app.restvolt.camperlog.ui.defaultVehicle
-import app.restvolt.camperlog.ui.settings.HomeLocationSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -49,22 +48,16 @@ class EditTourViewModelTest {
 
     private val locale = { Locale.US }
 
-    private val context get() = ApplicationProvider.getApplicationContext<Context>()
-
     @Before
-    fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
-        context.getSharedPreferences("home_location", Context.MODE_PRIVATE).edit().clear().commit()
-    }
+    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun homeLocationSettings(name: String = "", latitude: Double = 52.52, longitude: Double = 13.405) =
-        HomeLocationSettings(context).also {
-            it.name = name
-            it.setLocation(latitude, longitude, CoordinateSource.ENTERED)
-        }
+    private fun homeLocationRepository(name: String = "", latitude: Double = 52.52, longitude: Double = 13.405) =
+        FakeHomeLocationRepository(
+            listOf(HomeLocation(id = 1, name = name, latitude = latitude, longitude = longitude, coordinateSource = CoordinateSource.ENTERED)),
+        )
 
     @Test
     fun changingTheVehicleMovesStationsAndChecklistsOfTheTour() = runTest {
@@ -360,7 +353,7 @@ class EditTourViewModelTest {
             0,
             SavedStateHandle(),
             locale,
-            homeLocationSettings = homeLocationSettings(name = "Elternhaus"),
+            homeLocations = homeLocationRepository(name = "Elternhaus"),
         )
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
         viewModel.onDestinationChange("Gardasee")
@@ -387,7 +380,7 @@ class EditTourViewModelTest {
             0,
             SavedStateHandle(),
             locale,
-            homeLocationSettings = homeLocationSettings(),
+            homeLocations = homeLocationRepository(),
             defaultHomeStationName = { "Zuhause" },
         )
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
@@ -401,6 +394,43 @@ class EditTourViewModelTest {
         assertTrue(stations.stations.all { it.name == "Zuhause" && it.nights == null })
     }
 
+    /** Startet eine Tour während der Gültigkeit der zweiten von zwei Zuhause-Adressen: die Station bekommt deren Adresse. */
+    @Test
+    fun homeSwitchOn_withTwoHomeLocations_usesTheOneValidAtTheStartDate() = runTest {
+        val stations = FakeStationRepository()
+        val homeLocations = FakeHomeLocationRepository(
+            listOf(
+                HomeLocation(
+                    id = 1, name = "Altes Zuhause", latitude = 52.52, longitude = 13.405,
+                    coordinateSource = CoordinateSource.ENTERED, validTo = LocalDate.of(2026, 6, 30),
+                ),
+                HomeLocation(
+                    id = 2, name = "Neues Zuhause", latitude = 48.137, longitude = 11.576,
+                    coordinateSource = CoordinateSource.ENTERED, validFrom = LocalDate.of(2026, 7, 1),
+                ),
+            ),
+        )
+        val viewModel = EditTourViewModel(
+            FakeTourRepository(),
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            stations,
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            locale,
+            homeLocations = homeLocations,
+        )
+        viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
+        viewModel.onDestinationChange("Gardasee")
+
+        viewModel.onHomeSwitchChange(true)
+
+        val saved = stations.stations.single()
+        assertEquals("Neues Zuhause", saved.name)
+        assertEquals(48.137, saved.latitude)
+        assertEquals(11.576, saved.longitude)
+    }
+
     @Test
     fun homeSwitchOff_createsNoHomeStation() = runTest {
         val stations = FakeStationRepository()
@@ -412,7 +442,7 @@ class EditTourViewModelTest {
             0,
             SavedStateHandle(),
             locale,
-            homeLocationSettings = homeLocationSettings(),
+            homeLocations = homeLocationRepository(),
         )
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
         viewModel.onDestinationChange("Gardasee")
@@ -432,7 +462,7 @@ class EditTourViewModelTest {
             0,
             SavedStateHandle(),
             locale,
-            homeLocationSettings = homeLocationSettings(name = "Elternhaus"),
+            homeLocations = homeLocationRepository(name = "Elternhaus"),
         )
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
         viewModel.onDestinationChange("Gardasee")
@@ -453,7 +483,7 @@ class EditTourViewModelTest {
             0,
             SavedStateHandle(),
             locale,
-            homeLocationSettings = HomeLocationSettings(context),
+            homeLocations = FakeHomeLocationRepository(),
         )
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
         viewModel.onDestinationChange("Gardasee")
@@ -475,7 +505,7 @@ class EditTourViewModelTest {
             0,
             SavedStateHandle(),
             locale,
-            homeLocationSettings = homeLocationSettings(name = "Elternhaus"),
+            homeLocations = homeLocationRepository(name = "Elternhaus"),
         )
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
         viewModel.onHomeSwitchChange(true)
@@ -498,7 +528,7 @@ class EditTourViewModelTest {
             0,
             SavedStateHandle(),
             locale,
-            homeLocationSettings = homeLocationSettings(name = "Elternhaus"),
+            homeLocations = homeLocationRepository(name = "Elternhaus"),
         )
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
         viewModel.onHomeSwitchChange(true)

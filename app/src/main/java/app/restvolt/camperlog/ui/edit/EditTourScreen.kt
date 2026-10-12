@@ -68,6 +68,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.HomeLocation
+import app.restvolt.camperlog.domain.HomeLocationRepository
 import app.restvolt.camperlog.domain.TourField
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.Vehicle
@@ -84,10 +86,10 @@ import app.restvolt.camperlog.ui.TimeField
 import app.restvolt.camperlog.ui.guide.guideAnchor
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.messageRes
-import app.restvolt.camperlog.ui.settings.HomeLocationSettings
 import app.restvolt.camperlog.ui.settings.trackPermissions
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.vehicleMenuLabel
+import java.time.LocalDate
 
 /**
  * Formular zum Anlegen und Bearbeiten einer Tour; jede Eingabe speichert sich implizit selbst.
@@ -97,7 +99,7 @@ import app.restvolt.camperlog.ui.vehicleMenuLabel
 fun EditTourScreen(
     viewModel: EditTourViewModel,
     trackSettings: TrackRecordingSettings,
-    homeLocationSettings: HomeLocationSettings,
+    homeLocations: HomeLocationRepository,
     /**
      * Nur innerhalb der Pilot-Tour "Erste Tour anlegen" `true`: pausiert und setzt die geführte Tour
      * automatisch rund um die Standortberechtigungsabfrage fort, die beim Ankreuzen von "GPS-Track
@@ -113,7 +115,7 @@ fun EditTourScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val trackPreferences by trackSettings.values.collectAsStateWithLifecycle()
-    val homeLocationPreferences by homeLocationSettings.values.collectAsStateWithLifecycle()
+    val homeLocationsList by homeLocations.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
     var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
@@ -186,8 +188,8 @@ fun EditTourScreen(
                 state = state,
                 viewModel = viewModel,
                 showTrackSwitch = state.isNew && state.input.endDate == null && trackPreferences.enabled,
-                showHomeSwitch = state.isNew && homeLocationPreferences.hasLocation,
-                homeName = homeLocationPreferences.name.ifBlank { stringResource(R.string.home_location_default_name) },
+                showHomeSwitch = state.isNew && homeLocationsList.any { it.hasLocation },
+                homeName = homeLocationsList.homeNameAt(state.input.startDate ?: LocalDate.now()),
                 onAddVehicle = onAddVehicle,
                 modifier = Modifier
                     .padding(padding)
@@ -214,6 +216,20 @@ fun EditTourScreen(
 }
 
 private val METRICS_FIELDS = setOf(TourField.TRAVEL_DAYS, TourField.OVERNIGHT_STAYS, TourField.DISTANCE_KM)
+
+/**
+ * Anzeigename der Zuhause-Station: die zu [date] gültige Adresse, sonst eine beliebige mit
+ * Koordinate (z. B. solange noch kein Startdatum gewählt ist), sonst der Standardname.
+ */
+@Composable
+private fun List<HomeLocation>.homeNameAt(date: LocalDate): String {
+    val current = firstOrNull { it.hasLocation && it.isValidAt(date) } ?: firstOrNull(HomeLocation::hasLocation)
+    return current?.name?.ifBlank { stringResource(R.string.home_location_default_name) } ?: stringResource(R.string.home_location_default_name)
+}
+
+/** Ob [date] innerhalb des Gültigkeitszeitraums dieser Adresse liegt - dieselbe Regel wie die Datenbankabfrage. */
+private fun HomeLocation.isValidAt(date: LocalDate): Boolean =
+    (validFrom == null || !validFrom.isAfter(date)) && (validTo == null || !validTo.isBefore(date))
 
 @Composable
 private fun TourForm(

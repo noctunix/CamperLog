@@ -100,14 +100,14 @@ internal fun NavGraphBuilder.toursGraph(
                 tourId,
                 createSavedStateHandle(),
                 tracks = tracks,
-                homeLocationSettings = homeLocationSettings,
+                homeLocations = homeLocations,
                 defaultHomeStationName = { resources.getString(R.string.home_location_default_name) },
             )
         }
         EditTourScreen(
             viewModel = editTourViewModel,
             trackSettings = trackSettings,
-            homeLocationSettings = homeLocationSettings,
+            homeLocations = homeLocations,
             requestTrackPermissionEarly = isCreateFirstTourGuide,
             onBeforeSystemDialog = guideController::pause,
             onAfterSystemDialog = guideController::resume,

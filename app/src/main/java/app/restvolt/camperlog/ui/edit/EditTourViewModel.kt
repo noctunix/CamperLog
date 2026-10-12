@@ -11,6 +11,8 @@ import app.restvolt.camperlog.domain.ALL_CURRENCIES
 import app.restvolt.camperlog.domain.ChecklistRepository
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostInput
+import app.restvolt.camperlog.domain.HomeLocation
+import app.restvolt.camperlog.domain.HomeLocationRepository
 import app.restvolt.camperlog.domain.QUICK_CURRENCIES
 import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.Station
@@ -30,7 +32,6 @@ import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toTour
 import app.restvolt.camperlog.domain.travelDaysBetween
 import app.restvolt.camperlog.domain.validation
-import app.restvolt.camperlog.ui.settings.HomeLocationSettings
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -139,8 +140,8 @@ internal data class TourDraft(
  * @param checklists zieht die Checklisten der Tour mit, wenn sie das Fahrzeug wechselt
  * @param locale liefert die aktuelle Sprache für Beträge; wird bei jedem Zugriff neu gelesen,
  *   damit ein Sprachwechsel bei laufendem ViewModel greift
- * @param homeLocationSettings liefert die Zuhause-Koordinate für den Schalter "Beginnt zu Hause"; `null` blendet ihn aus
- * @param defaultHomeStationName liefert den Anzeigenamen der Zuhause-Station, falls [homeLocationSettings] keinen eigenen Namen trägt
+ * @param homeLocations liefert die Zuhause-Adressen-Historie für den Schalter "Beginnt zu Hause"; `null` blendet ihn aus
+ * @param defaultHomeStationName liefert den Anzeigenamen der Zuhause-Station, falls die passende Adresse keinen eigenen Namen trägt
  */
 class EditTourViewModel(
     private val repository: TourRepository,
@@ -151,7 +152,7 @@ class EditTourViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val locale: () -> Locale = { app.restvolt.camperlog.domain.supportedLocale(Locale.getDefault()) },
     private val tracks: TrackRepository? = null,
-    private val homeLocationSettings: HomeLocationSettings? = null,
+    private val homeLocations: HomeLocationRepository? = null,
     private val defaultHomeStationName: () -> String = { "" },
 ) : ViewModel() {
 
@@ -432,29 +433,36 @@ class EditTourViewModel(
     /**
      * Legt beim Einschalten des Schalters "Beginnt zu Hause" sofort eine Übernachtungs-Station am
      * Zuhause-Ort zum aktuellen Startdatum der (schon angelegten) Tour an; ist ein Enddatum gesetzt,
-     * zusätzlich eine zweite dazu. `nights` bleibt für beide ungesetzt, damit sie die
-     * Übernachtungsstatistik nicht verzerren.
+     * zusätzlich eine zweite dazu, mit der zu diesem Datum gültigen Adresse (fällt keine Adresse auf
+     * das Enddatum, wird die Startadresse übernommen). `nights` bleibt für beide ungesetzt, damit sie
+     * die Übernachtungsstatistik nicht verzerren.
      */
     private suspend fun createHomeStationsNow() {
         val basis = original ?: return
-        val home = homeLocationSettings?.values?.value ?: return
-        val latitude = home.latitude ?: return
-        val longitude = home.longitude ?: return
-        val name = home.name.ifBlank { defaultHomeStationName() }
-        fun homeStation(date: LocalDate) = Station(
-            vehicleId = basis.vehicleId,
-            tourId = basis.id,
-            type = StationType.OVERNIGHT,
-            date = date,
-            name = name,
-            latitude = latitude,
-            longitude = longitude,
-            coordinateSource = CoordinateSource.ENTERED,
-            createdAt = Instant.EPOCH,
-            updatedAt = Instant.EPOCH,
-        )
-        val ids = mutableListOf(stations.save(homeStation(basis.startDate)))
-        basis.endDate?.let { ids += stations.save(homeStation(it)) }
+        val repo = homeLocations ?: return
+        fun homeStation(date: LocalDate, home: HomeLocation): Station? {
+            val latitude = home.latitude ?: return null
+            val longitude = home.longitude ?: return null
+            return Station(
+                vehicleId = basis.vehicleId,
+                tourId = basis.id,
+                type = StationType.OVERNIGHT,
+                date = date,
+                name = home.name.ifBlank { defaultHomeStationName() },
+                latitude = latitude,
+                longitude = longitude,
+                coordinateSource = CoordinateSource.ENTERED,
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            )
+        }
+        val startHome = repo.locationAt(basis.startDate) ?: return
+        val ids = mutableListOf<Long>()
+        homeStation(basis.startDate, startHome)?.let { ids += stations.save(it) }
+        basis.endDate?.let { end ->
+            val endHome = repo.locationAt(end) ?: startHome
+            homeStation(end, endHome)?.let { ids += stations.save(it) }
+        }
         homeStationIds = ids
         saveDraft()
     }
@@ -462,14 +470,17 @@ class EditTourViewModel(
     /**
      * Entfernt beim Ausschalten des Schalters "Beginnt zu Hause" die zuletzt dafür angelegten
      * Zuhause-Station(en) wieder, aber nur jene, die seitdem unverändert sind - hat der Nutzer eine
-     * davon selbst bearbeitet, bleibt sie als eigenständige Station stehen.
+     * davon selbst bearbeitet, bleibt sie als eigenständige Station stehen. Die erwartete Adresse
+     * wird je Station erneut anhand ihres eigenen Datums nachgeschlagen, nicht anhand eines einzigen
+     * festen Standes.
      */
     private suspend fun removeTrackedHomeStations() {
         if (homeStationIds.isEmpty()) return
-        val home = homeLocationSettings?.values?.value
-        val expectedName = home?.name?.ifBlank { defaultHomeStationName() }
+        val repo = homeLocations
         for (id in homeStationIds) {
             val current = stations.observeStation(id).first() ?: continue
+            val home = repo?.locationAt(current.date)
+            val expectedName = home?.name?.ifBlank { defaultHomeStationName() }
             val untouched = home != null &&
                 current.type == StationType.OVERNIGHT &&
                 current.name == expectedName &&
