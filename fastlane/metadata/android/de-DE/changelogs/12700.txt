@@ -1,0 +1,2 @@
+• Neu: App-Symbol lange drücken für Kurzbefehle – neue Tour, neuer Stopp, Pannen-/Unfallhilfe
+• Während einer laufenden Tour erscheint dafür automatisch ein eigener Kurzbefehl

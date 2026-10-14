@@ -1,0 +1,2 @@
+• New: launcher shortcuts (long-press the app icon) for a new tour, a new stop, and breakdown/accident help
+• The running tour gets its own shortcut automatically while a tour is active
