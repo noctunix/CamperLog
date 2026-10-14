@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_tour"
+        android:enabled="true"
+        android:icon="@drawable/ic_route"
+        android:shortcutShortLabel="@string/shortcut_new_tour_short"
+        android:shortcutLongLabel="@string/shortcut_new_tour_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="app.restvolt.camperlog"
+            android:targetClass="app.restvolt.camperlog.MainActivity">
+            <extra android:name="app.restvolt.camperlog.EXTRA_OPEN_NEW_TOUR" android:value="true" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="new_stop"
+        android:enabled="true"
+        android:icon="@drawable/ic_location_on"
+        android:shortcutShortLabel="@string/shortcut_new_stop_short"
+        android:shortcutLongLabel="@string/shortcut_new_stop_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="app.restvolt.camperlog"
+            android:targetClass="app.restvolt.camperlog.MainActivity">
+            <extra android:name="app.restvolt.camperlog.EXTRA_OPEN_NEW_STOP" android:value="true" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="breakdown"
+        android:enabled="true"
+        android:icon="@drawable/ic_car_crash"
+        android:shortcutShortLabel="@string/shortcut_breakdown_short"
+        android:shortcutLongLabel="@string/shortcut_breakdown_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="app.restvolt.camperlog"
+            android:targetClass="app.restvolt.camperlog.MainActivity">
+            <extra android:name="app.restvolt.camperlog.EXTRA_OPEN_BREAKDOWN" android:value="true" />
+        </intent>
+    </shortcut>
+</shortcuts>

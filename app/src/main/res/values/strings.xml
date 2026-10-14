@@ -1322,4 +1322,14 @@
     <string name="demo_station_1_name">Lakeside pitch</string>
     <string name="demo_station_2_name">Mountain pass stop</string>
     <string name="demo_station_3_name">Forest campsite</string>
+
+    <!-- Launcher shortcuts -->
+    <string name="shortcut_new_tour_short">New tour</string>
+    <string name="shortcut_new_tour_long">Start a new tour</string>
+    <string name="shortcut_new_stop_short">New stop</string>
+    <string name="shortcut_new_stop_long">Add a new stop</string>
+    <string name="shortcut_breakdown_short">Breakdown help</string>
+    <string name="shortcut_breakdown_long">Breakdown &amp; accident help</string>
+    <string name="shortcut_running_tour_short">Current tour</string>
+    <string name="shortcut_running_tour_long">Open the running tour</string>
 </resources>

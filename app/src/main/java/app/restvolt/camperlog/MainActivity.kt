@@ -19,6 +19,11 @@ import app.restvolt.camperlog.domain.parseGeoIntent
 import app.restvolt.camperlog.reminders.EXTRA_OPEN_DATA
 import app.restvolt.camperlog.reminders.EXTRA_OPEN_DOCUMENT_ID
 import app.restvolt.camperlog.reminders.EXTRA_OPEN_VEHICLE_ID
+import app.restvolt.camperlog.shortcuts.EXTRA_OPEN_BREAKDOWN
+import app.restvolt.camperlog.shortcuts.EXTRA_OPEN_NEW_STOP
+import app.restvolt.camperlog.shortcuts.EXTRA_OPEN_NEW_TOUR
+import app.restvolt.camperlog.shortcuts.EXTRA_OPEN_TOUR_ID
+import app.restvolt.camperlog.shortcuts.syncRunningTourShortcut
 import app.restvolt.camperlog.tracking.TrackRecordingService
 import app.restvolt.camperlog.share.cleanUpExports
 import app.restvolt.camperlog.ui.CamperLogNavHost
@@ -41,6 +46,9 @@ class MainActivity : ComponentActivity() {
     private var pendingVehicleId by mutableStateOf<Long?>(null)
     private var pendingDocumentId by mutableStateOf<Long?>(null)
     private var pendingOpenData by mutableStateOf(false)
+    private var pendingNewTour by mutableStateOf(false)
+    private var pendingBreakdown by mutableStateOf(false)
+    private var pendingTourId by mutableStateOf<Long?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,10 +57,14 @@ class MainActivity : ComponentActivity() {
             lifecycleScope.launch { cleanUpExports(applicationContext) }
             lifecycleScope.launch { app.attachmentFileStore.sweepOrphanFiles(app.attachments.allFileNames(), Instant.now()) }
             lifecycleScope.launch { migrateHomeLocationToHistory(HomeLocationSettings(applicationContext), app.homeLocations) }
-            pendingGeoIntent = parseGeoIntent(intent?.dataString)
+            lifecycleScope.launch { syncRunningTourShortcut(applicationContext, app.vehicles, app.repository) }
+            pendingGeoIntent = parseGeoIntent(intent?.dataString) ?: intent?.newStopPickerExtra()
             pendingVehicleId = intent?.openVehicleIdExtra()
             pendingDocumentId = intent?.openDocumentIdExtra()
             pendingOpenData = intent?.getBooleanExtra(EXTRA_OPEN_DATA, false) == true
+            pendingNewTour = intent?.hasExtra(EXTRA_OPEN_NEW_TOUR) == true
+            pendingBreakdown = intent?.hasExtra(EXTRA_OPEN_BREAKDOWN) == true
+            pendingTourId = intent?.openTourIdExtra()
         }
         setContent {
             val themeSettings = remember { ThemeSettings(this) }
@@ -89,6 +101,12 @@ class MainActivity : ComponentActivity() {
                     onDocumentIntentHandled = { pendingDocumentId = null },
                     pendingOpenData = pendingOpenData,
                     onOpenDataHandled = { pendingOpenData = false },
+                    pendingNewTour = pendingNewTour,
+                    onNewTourHandled = { pendingNewTour = false },
+                    pendingBreakdown = pendingBreakdown,
+                    onBreakdownHandled = { pendingBreakdown = false },
+                    pendingTourId = pendingTourId,
+                    onTourIntentHandled = { pendingTourId = null },
                     onThemeModeChange = { selected ->
                         themeSettings.mode = selected
                         themeMode = selected
@@ -112,15 +130,24 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        pendingGeoIntent = parseGeoIntent(intent.dataString)
+        pendingGeoIntent = parseGeoIntent(intent.dataString) ?: intent.newStopPickerExtra()
         pendingVehicleId = intent.openVehicleIdExtra()
         pendingDocumentId = intent.openDocumentIdExtra()
         pendingOpenData = intent.getBooleanExtra(EXTRA_OPEN_DATA, false)
+        pendingNewTour = intent.hasExtra(EXTRA_OPEN_NEW_TOUR)
+        pendingBreakdown = intent.hasExtra(EXTRA_OPEN_BREAKDOWN)
+        pendingTourId = intent.openTourIdExtra()
     }
 }
 
 /** Fahrzeug-id einer getippten Wartungs-Benachrichtigung, oder `null` ohne diesen Extra. */
 private fun Intent.openVehicleIdExtra(): Long? = getLongExtra(EXTRA_OPEN_VEHICLE_ID, -1L).takeIf { it > 0 }
+
+/** Tour-id aus dem dynamischen "Laufende Tour"-Shortcut, oder `null` ohne diesen Extra. */
+private fun Intent.openTourIdExtra(): Long? = getLongExtra(EXTRA_OPEN_TOUR_ID, -1L).takeIf { it > 0 }
+
+/** Leere Ortsangabe für den "Neuer Stopp"-Shortcut: öffnet dieselbe Typauswahl wie ein `geo:`-Link, ohne Vorbelegung. */
+private fun Intent.newStopPickerExtra(): GeoIntentLocation? = if (hasExtra(EXTRA_OPEN_NEW_STOP)) GeoIntentLocation() else null
 
 /** Fahrzeugdokument-id einer getippten Ablauf-Erinnerung, oder `null` ohne diesen Extra. */
 private fun Intent.openDocumentIdExtra(): Long? = getLongExtra(EXTRA_OPEN_DOCUMENT_ID, -1L).takeIf { it > 0 }

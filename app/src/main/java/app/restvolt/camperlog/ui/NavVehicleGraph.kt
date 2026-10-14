@@ -50,6 +50,10 @@ internal fun NavGraphBuilder.vehicleGraph(
     navController: NavController,
     deps: NavDependencies,
     bottomBar: @Composable () -> Unit,
+    /** Launcher-Shortcut "Panne & Unfall" soll beim Erreichen dieses Reiters direkt das "Wo bin ich?"-Sheet öffnen. */
+    openWhereAmI: Boolean = false,
+    /** [openWhereAmI] wurde übernommen und soll nicht erneut ausgelöst werden. */
+    onWhereAmIOpened: () -> Unit = {},
 ) = with(deps) {
     composable<LogbookRoute> {
         LogbookScreen(
@@ -80,6 +84,8 @@ internal fun NavGraphBuilder.vehicleGraph(
             whereAmIViewModel = viewModel { WhereAmIViewModel(locationProvider, AndroidLocationPermissionGate(vehicleContext)) },
             locationEnabled = locationEnabled,
             reminderSettings = reminderSettings,
+            openWhereAmI = openWhereAmI,
+            onWhereAmIOpened = onWhereAmIOpened,
             onOpenSearch = { navController.navigate(SearchRoute) },
             onOpenData = { navController.navigate(DataRoute) },
             onOpenSettings = { navController.navigate(SettingsRoute) },

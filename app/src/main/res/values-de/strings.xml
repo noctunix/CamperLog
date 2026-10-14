@@ -1311,4 +1311,14 @@
     <string name="demo_station_1_name">Platz am See</string>
     <string name="demo_station_2_name">Rast am Pass</string>
     <string name="demo_station_3_name">Waldlager</string>
+
+    <!-- Launcher shortcuts -->
+    <string name="shortcut_new_tour_short">Neue Tour</string>
+    <string name="shortcut_new_tour_long">Neue Tour anlegen</string>
+    <string name="shortcut_new_stop_short">Neuer Stopp</string>
+    <string name="shortcut_new_stop_long">Neuen Stopp anlegen</string>
+    <string name="shortcut_breakdown_short">Pannenhilfe</string>
+    <string name="shortcut_breakdown_long">Panne &amp; Unfall: Hilfe</string>
+    <string name="shortcut_running_tour_short">Laufende Tour</string>
+    <string name="shortcut_running_tour_long">Laufende Tour öffnen</string>
 </resources>

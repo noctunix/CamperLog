@@ -319,6 +319,18 @@ fun CamperLogNavHost(
     pendingOpenData: Boolean = false,
     /** [pendingOpenData] wurde übernommen und soll nicht erneut ausgelöst werden. */
     onOpenDataHandled: () -> Unit = {},
+    /** Direkt eine neue Tour soll angelegt werden, aus dem gleichnamigen Launcher-Shortcut. */
+    pendingNewTour: Boolean = false,
+    /** [pendingNewTour] wurde übernommen und soll nicht erneut ausgelöst werden. */
+    onNewTourHandled: () -> Unit = {},
+    /** Direkt das "Wo bin ich?"-Sheet soll geöffnet werden, aus dem Panne/Unfall-Launcher-Shortcut. */
+    pendingBreakdown: Boolean = false,
+    /** [pendingBreakdown] wurde übernommen und soll nicht erneut ausgelöst werden. */
+    onBreakdownHandled: () -> Unit = {},
+    /** Tour-id aus dem dynamischen "Laufende Tour"-Launcher-Shortcut; `null` außerhalb dieses Starts. */
+    pendingTourId: Long? = null,
+    /** [pendingTourId] wurde übernommen und soll nicht erneut ausgelöst werden. */
+    onTourIntentHandled: () -> Unit = {},
     /** Standorthardware für das Stationsformular und "Wo bin ich?"; in Tests ein Fake. */
     locationProvider: LocationProvider = AndroidLocationProvider(LocalContext.current),
     /** Wetterabfrage für die "Wetter"-Karte im Stationsformular; in Tests ein Fake. */
@@ -476,6 +488,35 @@ fun CamperLogNavHost(
         }
     }
 
+    // Launcher-Shortcut "Neue Tour".
+    LaunchedEffect(pendingNewTour) {
+        if (pendingNewTour) {
+            navController.navigateToToursTabRootAndAwait()
+            navController.navigate(EditRoute())
+            onNewTourHandled()
+        }
+    }
+
+    // Launcher-Shortcut "Panne & Unfall": öffnet den Fahrzeug-Reiter und direkt das "Wo bin ich?"-Sheet.
+    var openWhereAmIFromShortcut by remember { mutableStateOf(false) }
+    LaunchedEffect(pendingBreakdown) {
+        if (pendingBreakdown) {
+            navController.navigateToTab(VehicleRoute)
+            openWhereAmIFromShortcut = true
+            onBreakdownHandled()
+        }
+    }
+
+    // Dynamischer Launcher-Shortcut "Laufende Tour öffnen".
+    LaunchedEffect(pendingTourId) {
+        val tourId = pendingTourId
+        if (tourId != null) {
+            navController.navigateToToursTabRootAndAwait()
+            navController.navigate(DetailRoute(tourId))
+            onTourIntentHandled()
+        }
+    }
+
     val deps = NavDependencies(
         repository, vehicles, logbook, stations, exchangeRates, documents, diaryEntries, checklists, checklistTemplates,
         attachments, attachmentFileStore, backupImporter, locationProvider, weatherProvider, placeSearchProvider, tileLoader,
@@ -485,7 +526,11 @@ fun CamperLogNavHost(
     )
     NavHost(navController, startDestination = ToursRoute) {
         toursGraph(navController, deps, bottomBar)
-        vehicleGraph(navController, deps, bottomBar)
+        vehicleGraph(
+            navController, deps, bottomBar,
+            openWhereAmI = openWhereAmIFromShortcut,
+            onWhereAmIOpened = { openWhereAmIFromShortcut = false },
+        )
         stationsGraph(navController, deps, bottomBar)
         settingsGraph(navController, deps, themeMode, onThemeModeChange, accentColor, onAccentColorChange)
     }

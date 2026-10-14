@@ -96,6 +96,10 @@ fun VehicleScreen(
     whereAmIViewModel: WhereAmIViewModel,
     locationEnabled: Boolean,
     reminderSettings: ReminderSettings,
+    /** Launcher-Shortcut "Panne & Unfall": öffnet das "Wo bin ich?"-Sheet direkt beim Erreichen dieses Reiters. */
+    openWhereAmI: Boolean = false,
+    /** [openWhereAmI] wurde übernommen und soll nicht erneut ausgelöst werden. */
+    onWhereAmIOpened: () -> Unit = {},
     onOpenSearch: () -> Unit,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -188,6 +192,13 @@ fun VehicleScreen(
 
     if (showWhereAmI) {
         WhereAmISheet(viewModel = whereAmIViewModel, onDismiss = { showWhereAmI = false })
+    }
+
+    LaunchedEffect(openWhereAmI) {
+        if (openWhereAmI) {
+            showWhereAmI = true
+            onWhereAmIOpened()
+        }
     }
 
     LaunchedEffect(message) {
