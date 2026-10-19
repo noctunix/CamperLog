@@ -952,7 +952,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val repository = RoomHomeLocationRepository(db) { Instant.ofEpochMilli(5000) }
+            val repository = RoomHomeLocationRepository(db, clock = { Instant.ofEpochMilli(5000) })
             assertEquals(emptyList<HomeLocation>(), repository.observeAll().first())
 
             val id = repository.save(
@@ -988,7 +988,7 @@ class MigrationTest {
 
         val db = CamperLogDatabase.open(context)
         try {
-            val repository = RoomHomeLocationRepository(db) { Instant.ofEpochMilli(5000) }
+            val repository = RoomHomeLocationRepository(db, clock = { Instant.ofEpochMilli(5000) })
 
             val id = repository.save(HomeLocation(name = "Neuer Entwurf"))
 
@@ -1005,11 +1005,41 @@ class MigrationTest {
         }
     }
 
-    /** Legt `camperlog.db` im Stand von Version 27 nach `schemas/…/27.json` an und füllt sie mit [inserts]. */
-    private fun createVersion27(vararg inserts: String) = createDatabase(
-        version = 27,
-        identityHash = "11c56fb2590459a848df7e115cfd3e2d",
-        schema = listOf(
+    @Test
+    fun migration28To29AddsUuidColumnToHomeLocationsAndBackfillsExistingRowsAndKeepsThemEditable() = runTest {
+        createVersion28(
+            "INSERT INTO home_locations (id, name, latitude, longitude, coordinate_source, valid_from, created_at, updated_at) VALUES " +
+                "(1, 'Zuhause', 48.1, 11.6, 'ENTERED', '2026-01-01', 1000, 2000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val repository = RoomHomeLocationRepository(db, clock = { Instant.ofEpochMilli(5000) })
+            val backfilled = repository.observeAll().first().single()
+            assertTrue(backfilled.uuid.isNotBlank())
+
+            val updated = backfilled.copy(name = "Altes Zuhause")
+            repository.save(updated)
+            val saved = repository.observeAll().first().single()
+            assertEquals(backfilled.uuid, saved.uuid)
+            assertEquals("Altes Zuhause", saved.name)
+        } finally {
+            db.close()
+        }
+    }
+
+    /** Legt `camperlog.db` im Stand von Version 28 nach `schemas/…/28.json` an und füllt sie mit [inserts]. */
+    private fun createVersion28(vararg inserts: String) = createDatabase(
+        version = 28,
+        identityHash = "fffc2afbb2a81b25ceeddc3ac6df58c6",
+        schema = createVersion27Schema + listOf(
+            "CREATE TABLE IF NOT EXISTS `home_locations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, `coordinate_source` TEXT, `valid_from` TEXT, `valid_to` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+        ),
+        inserts = inserts.toList(),
+    )
+
+    /** Tabellen von Version 27 (unverändert seit [createVersion27] nach [createVersion28]), für beide Schema-Stände gemeinsam. */
+    private val createVersion27Schema: List<String> = listOf(
             "CREATE TABLE IF NOT EXISTS `tours` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL DEFAULT '', `vehicle_id` INTEGER NOT NULL, `start_date` TEXT NOT NULL, `end_date` TEXT, `start_time` TEXT, `end_time` TEXT, `destination` TEXT NOT NULL, `name` TEXT NOT NULL DEFAULT '', `slug` TEXT NOT NULL DEFAULT '', `tour_type` TEXT NOT NULL, `travel_days` INTEGER NOT NULL, `overnight_stays` INTEGER NOT NULL, `distance_km` INTEGER NOT NULL, `notes` TEXT NOT NULL, `map_link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `is_demo` INTEGER NOT NULL DEFAULT 0, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
             "CREATE INDEX IF NOT EXISTS `index_tours_start_date` ON `tours` (`start_date`)",
             "CREATE UNIQUE INDEX IF NOT EXISTS `index_tours_uuid` ON `tours` (`uuid`)",
@@ -1053,7 +1083,13 @@ class MigrationTest {
             "CREATE TABLE IF NOT EXISTS `checklist_items` (`checklist_id` INTEGER NOT NULL, `position` INTEGER NOT NULL, `text` TEXT NOT NULL, `checked` INTEGER NOT NULL, PRIMARY KEY(`checklist_id`, `position`), FOREIGN KEY(`checklist_id`) REFERENCES `checklists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
             "CREATE TABLE IF NOT EXISTS `track_points` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tour_id` INTEGER NOT NULL, `segment` INTEGER NOT NULL, `recorded_at` INTEGER NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `accuracy_m` INTEGER, `altitude_m` INTEGER, FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
             "CREATE UNIQUE INDEX IF NOT EXISTS `index_track_points_tour_id_recorded_at` ON `track_points` (`tour_id`, `recorded_at`)",
-        ),
+    )
+
+    /** Legt `camperlog.db` im Stand von Version 27 nach `schemas/…/27.json` an und füllt sie mit [inserts]. */
+    private fun createVersion27(vararg inserts: String) = createDatabase(
+        version = 27,
+        identityHash = "11c56fb2590459a848df7e115cfd3e2d",
+        schema = createVersion27Schema,
         inserts = inserts.toList(),
     )
 

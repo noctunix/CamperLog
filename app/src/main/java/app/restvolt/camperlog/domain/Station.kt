@@ -95,6 +95,9 @@ enum class SiteKind(val csvValue: String) {
     CAMPSITE("campingplatz"),
     MOTORHOME_AREA("stellplatz"),
     WILD("frei_stehen"),
+    HOTEL("hotel"),
+    VACATION_RENTAL("ferienwohnung"),
+    HOSTEL("hostel"),
 }
 
 /** Herkunft gespeicherter Koordinaten, mit stabilem Exportwert [csvValue]. */

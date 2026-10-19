@@ -41,7 +41,7 @@ import java.util.UUID
         TrackPointEntity::class,
         HomeLocationEntity::class,
     ],
-    version = 28,
+    version = 29,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -85,7 +85,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
                     MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
                     MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
-                    MIGRATION_26_27, MIGRATION_27_28,
+                    MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29,
                 )
                 .build()
     }
@@ -904,5 +904,22 @@ internal val MIGRATION_27_28 = object : Migration(27, 28) {
                 "`coordinate_source` TEXT, `valid_from` TEXT, `valid_to` TEXT, " +
                 "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
         )
+    }
+}
+
+/**
+ * Version 29: Heimatadressen bekommen eine eindeutige UUID für den Sicherungs-Export, analog zu
+ * Fahrzeugen und Touren. Bestehende Zeilen erhalten eine zufällige UUID (Version 4) direkt in SQL,
+ * damit die Migration ohne Kotlin-Schleife auskommt.
+ */
+internal val MIGRATION_28_29 = object : Migration(28, 29) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `home_locations` ADD COLUMN `uuid` TEXT NOT NULL DEFAULT ''")
+        db.execSQL(
+            "UPDATE `home_locations` SET `uuid` = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || " +
+                "substr(hex(randomblob(2)), 2) || '-' || substr('89ab', 1 + (abs(random()) % 4), 1) || " +
+                "substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))",
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_home_locations_uuid` ON `home_locations` (`uuid`)")
     }
 }

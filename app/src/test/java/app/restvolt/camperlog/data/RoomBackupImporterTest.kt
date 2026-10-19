@@ -21,6 +21,7 @@ import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.HomeLocation
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Money
@@ -92,6 +93,7 @@ class RoomBackupImporterTest {
     private fun diaryEntryUuid(n: Int) = "50000000-0000-4000-8000-%012d".format(n)
     private fun checklistTemplateUuid(n: Int) = "60000000-0000-4000-8000-%012d".format(n)
     private fun checklistUuid(n: Int) = "70000000-0000-4000-8000-%012d".format(n)
+    private fun homeLocationUuid(n: Int) = "80000000-0000-4000-8000-%012d".format(n)
 
     private fun tour(n: Int, destination: String = "Ziel $n", updatedAt: String = "2026-07-10T10:00:00Z") = Tour(
         uuid = uuid(n),
@@ -179,6 +181,13 @@ class RoomBackupImporterTest {
         tourUuid,
     )
 
+    private fun homeLocation(n: Int, name: String = "Zuhause $n", updatedAt: String = "2026-07-01T10:00:00Z") = HomeLocation(
+        uuid = homeLocationUuid(n),
+        name = name,
+        createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+        updatedAt = Instant.parse(updatedAt),
+    )
+
     private fun backup(
         tours: List<Tour>,
         rates: List<ExchangeRate> = emptyList(),
@@ -194,6 +203,7 @@ class RoomBackupImporterTest {
         checklistTemplates: List<ChecklistTemplate> = emptyList(),
         checklists: List<BackupChecklist> = emptyList(),
         tracks: List<BackupTrack> = emptyList(),
+        homeLocations: List<HomeLocation> = emptyList(),
     ) = Backup(
         exportedAt = Instant.parse("2026-10-04T12:00:00Z"),
         mainCurrency = main,
@@ -210,6 +220,7 @@ class RoomBackupImporterTest {
         checklistTemplates = checklistTemplates,
         checklists = checklists,
         tracks = tracks,
+        homeLocations = homeLocations,
     )
 
     /** Gespeicherte Touren ohne Datenbank-id, damit sie mit Sicherungs-Touren vergleichbar sind. */
@@ -877,6 +888,44 @@ class RoomBackupImporterTest {
 
         assertEquals(1, result.addedChecklistTemplates)
         assertEquals(listOf("Import"), RoomChecklistTemplateRepository(db).observeAll().first().map { it.name })
+    }
+
+    @Test
+    fun merge_homeLocations_addsNewUpdatesNewerKeepsOlderOrEqualUnchanged() = runTest {
+        db.homeLocationDao().insert(homeLocation(1, name = "Lokal alt", updatedAt = "2026-07-10T10:00:00Z").toEntity())
+        db.homeLocationDao().insert(homeLocation(2, name = "Lokal neu", updatedAt = "2026-07-20T10:00:00Z").toEntity())
+
+        val result = importer.import(
+            backup(
+                tours = emptyList(),
+                homeLocations = listOf(
+                    homeLocation(1, name = "Import neu", updatedAt = "2026-07-15T10:00:00Z"),
+                    homeLocation(2, name = "Import alt", updatedAt = "2026-07-15T10:00:00Z"),
+                    homeLocation(3, name = "Import zusätzlich"),
+                ),
+            ),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(1, result.addedHomeLocations)
+        assertEquals(1, result.updatedHomeLocations)
+        assertEquals(
+            setOf("Import neu", "Lokal neu", "Import zusätzlich"),
+            RoomHomeLocationRepository(db).observeAll().first().map { it.name }.toSet(),
+        )
+    }
+
+    @Test
+    fun replace_homeLocations_removesEverythingNotInBackup() = runTest {
+        db.homeLocationDao().insert(homeLocation(1, name = "Lokal").toEntity())
+
+        val result = importer.import(
+            backup(tours = emptyList(), homeLocations = listOf(homeLocation(2, name = "Import"))),
+            ImportMode.REPLACE,
+        )
+
+        assertEquals(1, result.addedHomeLocations)
+        assertEquals(listOf("Import"), RoomHomeLocationRepository(db).observeAll().first().map { it.name })
     }
 
     @Test

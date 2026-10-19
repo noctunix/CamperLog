@@ -413,6 +413,8 @@ private fun Resources.importedText(result: ImportResult): String {
         result.updatedChecklistTemplates,
         result.addedChecklists,
         result.updatedChecklists,
+        result.addedHomeLocations,
+        result.updatedHomeLocations,
         logEntries,
         rates,
         attachments,
@@ -435,6 +437,7 @@ private fun Resources.backupErrorMessage(failure: BackupReadResult.Failure): Str
         failure.checklistTemplateNumber != null -> getString(R.string.import_error_invalid_checklist_template, failure.checklistTemplateNumber)
         failure.checklistNumber != null -> getString(R.string.import_error_invalid_checklist, failure.checklistNumber)
         failure.trackNumber != null -> getString(R.string.import_error_invalid_track, failure.trackNumber)
+        failure.homeLocationNumber != null -> getString(R.string.import_error_invalid_home_location, failure.homeLocationNumber)
         failure.attachmentNumber != null -> getString(R.string.import_error_invalid_attachment, failure.attachmentNumber)
         else -> getString(R.string.import_error_invalid)
     }

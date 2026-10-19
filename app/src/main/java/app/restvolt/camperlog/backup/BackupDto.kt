@@ -37,6 +37,8 @@ internal data class BackupDto(
     val checklists: List<JsonElement> = emptyList(),
     /** Einzeln als [TrackDto] gelesen; fehlt in Sicherungen vor Formatversion 10. */
     val tracks: List<JsonElement> = emptyList(),
+    /** Einzeln als [HomeLocationDto] gelesen; fehlt in Sicherungen vor Formatversion 22. */
+    val homeLocations: List<JsonElement> = emptyList(),
 )
 
 @Serializable
@@ -368,6 +370,19 @@ internal data class TrackDto(
 internal data class TrackSegmentDto(
     val segment: Int,
     val points: List<String> = emptyList(),
+)
+
+@Serializable
+internal data class HomeLocationDto(
+    val uuid: String,
+    val name: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val coordinateSource: String? = null,
+    val validFrom: String? = null,
+    val validTo: String? = null,
+    val createdAt: String,
+    val updatedAt: String,
 )
 
 @Serializable

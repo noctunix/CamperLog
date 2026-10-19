@@ -3,6 +3,7 @@ package app.restvolt.camperlog.data
 import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
@@ -13,9 +14,10 @@ import kotlinx.coroutines.flow.Flow
  * Datenbankzeile einer Heimatadresse. [validFrom]/[validTo] sind ISO-Texte (`yyyy-MM-dd`) oder
  * `NULL` für "schon immer" bzw. "bis auf Weiteres".
  */
-@Entity(tableName = "home_locations")
+@Entity(tableName = "home_locations", indices = [Index(value = ["uuid"], unique = true)])
 data class HomeLocationEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val uuid: String = "",
     val name: String,
     val latitude: Double?,
     val longitude: Double?,
@@ -48,4 +50,19 @@ interface HomeLocationDao {
 
     @Query("DELETE FROM home_locations WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    /** Löscht alle Heimatadressen, für den vollständigen Ersatz beim Sicherungs-Import. */
+    @Query("DELETE FROM home_locations")
+    suspend fun deleteAll()
+
+    /** id und Änderungszeit aller Heimatadressen nach UUID, für den Abgleich beim Import. */
+    @Query("SELECT uuid, id, updated_at FROM home_locations")
+    suspend fun getVersions(): List<HomeLocationVersionRow>
 }
+
+/** Stand einer gespeicherten Heimatadresse für den Import-Abgleich. */
+data class HomeLocationVersionRow(
+    val uuid: String,
+    val id: Long,
+    @ColumnInfo(name = "updated_at") val updatedAtMillis: Long,
+)

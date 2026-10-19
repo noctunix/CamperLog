@@ -6,6 +6,7 @@ import app.restvolt.camperlog.domain.ChecklistRepository
 import app.restvolt.camperlog.domain.ChecklistTemplateRepository
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
+import app.restvolt.camperlog.domain.HomeLocationRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
@@ -33,6 +34,7 @@ suspend fun buildBackup(
     checklists: ChecklistRepository,
     tracks: TrackRepository,
     attachments: AttachmentRepository,
+    homeLocations: HomeLocationRepository,
     exportedAt: Instant,
 ): Backup {
     // Demo-Daten des Tutorials (siehe DemoTourSession) gehören nie in die Sicherung: ein beim
@@ -102,6 +104,7 @@ suspend fun buildBackup(
             }
             ownerUuid?.let { BackupAttachment(attachment, it) }
         },
+        homeLocations = homeLocations.observeAll().first(),
     )
     val zipPaths = buildAttachmentZipPaths(backup)
     return backup.copy(attachments = backup.attachments.map { it.copy(zipPath = zipPaths.getValue(it.attachment.uuid)) })

@@ -25,6 +25,7 @@ import app.restvolt.camperlog.domain.ChecklistRepository
 import app.restvolt.camperlog.domain.ChecklistTemplateRepository
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
+import app.restvolt.camperlog.domain.HomeLocationRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.Station
@@ -111,6 +112,7 @@ class DataViewModel(
     private val checklists: ChecklistRepository,
     private val tracks: TrackRepository,
     private val attachments: AttachmentRepository,
+    private val homeLocations: HomeLocationRepository,
     private val attachmentFileStore: AttachmentFileStore,
     private val importer: BackupImporter,
     private val files: DataFiles,
@@ -286,7 +288,10 @@ class DataViewModel(
     }
 
     private suspend fun currentBackup(): Backup =
-        buildBackup(repository, exchangeRates, vehicles, logs, stations, documents, diaryEntries, checklistTemplates, checklists, tracks, attachments, clock())
+        buildBackup(
+            repository, exchangeRates, vehicles, logs, stations, documents, diaryEntries, checklistTemplates, checklists, tracks,
+            attachments, homeLocations, clock(),
+        )
 
     /** Schreibt [json] und die Dateien der [backup]-Anhänge direkt in den gelieferten Ausgabestrom. */
     private fun zipWriter(json: String, backup: Backup): (OutputStream) -> Unit = { output ->

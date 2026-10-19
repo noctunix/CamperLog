@@ -19,6 +19,7 @@ import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.HomeLocation
 import app.restvolt.camperlog.domain.LATITUDE_RANGE
 import app.restvolt.camperlog.domain.LONGITUDE_RANGE
 import app.restvolt.camperlog.domain.LegacyPitchFields
@@ -93,7 +94,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 21
+const val BACKUP_SCHEMA_VERSION = 22
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -121,6 +122,7 @@ internal const val MAX_CHECKLIST_TEMPLATE_ITEMS = 500
 internal const val MAX_CHECKLISTS = 200_000
 internal const val MAX_CHECKLIST_ITEMS = 500
 internal const val MAX_CHECKLIST_ITEM_TEXT_LENGTH = 500
+internal const val MAX_HOME_LOCATIONS = 1_000
 internal const val MAX_TRACK_SEGMENTS = 10_000
 internal const val MAX_TRACK_POINTS = 2_000_000
 private const val MAX_ABS_ALTITUDE_M = 12_000
@@ -171,7 +173,8 @@ private val MAX_INSTANT = Instant.parse("2199-12-31T00:00:00Z")
  * Sicherungen. Eine Sicherung ohne Dateien (JSON-only-Export) enthält [attachments] trotzdem als
  * Metadaten, nur ohne die zugehörigen Dateien im ZIP. [diaryEntries] enthält alle Tagebucheinträge
  * (Formatversion 8); fehlt in älteren Sicherungen. [checklistTemplates] und [checklists]
- * (Formatversion 9) fehlen ebenfalls in älteren Sicherungen, genau wie [tracks] (Formatversion 10).
+ * (Formatversion 9) fehlen ebenfalls in älteren Sicherungen, genau wie [tracks] (Formatversion 10)
+ * und [homeLocations] (Formatversion 22).
  */
 data class Backup(
     val exportedAt: Instant,
@@ -191,6 +194,7 @@ data class Backup(
     val checklistTemplates: List<ChecklistTemplate> = emptyList(),
     val checklists: List<BackupChecklist> = emptyList(),
     val tracks: List<BackupTrack> = emptyList(),
+    val homeLocations: List<HomeLocation> = emptyList(),
 )
 
 /** Ein Fahrzeug einer Sicherung mit seinen Reparaturen und Bordbuch-Einträgen. */
@@ -263,6 +267,7 @@ sealed interface BackupReadResult {
         val checklistTemplateNumber: Int? = null,
         val checklistNumber: Int? = null,
         val trackNumber: Int? = null,
+        val homeLocationNumber: Int? = null,
     ) : BackupReadResult
 }
 
@@ -300,6 +305,7 @@ fun encodeBackup(backup: Backup): String = json.encodeToString(
         checklistTemplates = backup.checklistTemplates.map { json.encodeToJsonElement(ChecklistTemplateDto.serializer(), it.toDto()) },
         checklists = backup.checklists.map { json.encodeToJsonElement(ChecklistDto.serializer(), it.toDto()) },
         tracks = backup.tracks.map { json.encodeToJsonElement(TrackDto.serializer(), it.toDto()) },
+        homeLocations = backup.homeLocations.map { json.encodeToJsonElement(HomeLocationDto.serializer(), it.toDto()) },
     ),
 )
 
@@ -562,6 +568,19 @@ private fun BackupDto.toBackup(): BackupReadResult {
         template
     }
 
+    if (homeLocations.size > MAX_HOME_LOCATIONS) return invalid
+    val seenHomeLocationUuids = HashSet<String>()
+    val backupHomeLocations = homeLocations.mapIndexed { index, element ->
+        val homeLocationNumber = index + 1
+        val dto = decodeJson(HomeLocationDto.serializer(), element)
+            ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, homeLocationNumber = homeLocationNumber)
+        val location = dto.toHomeLocation() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, homeLocationNumber = homeLocationNumber)
+        if (!seenHomeLocationUuids.add(location.uuid)) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, homeLocationNumber = homeLocationNumber)
+        }
+        location
+    }
+
     if (checklists.size > MAX_CHECKLISTS) return invalid
     val seenChecklistUuids = HashSet<String>()
     val backupChecklists = checklists.mapIndexed { index, element ->
@@ -657,6 +676,7 @@ private fun BackupDto.toBackup(): BackupReadResult {
             checklistTemplates = backupChecklistTemplates,
             checklists = backupChecklists,
             tracks = backupTracks,
+            homeLocations = backupHomeLocations,
         ),
     )
 }
@@ -1299,6 +1319,43 @@ private fun ChecklistTemplate.toDto() = ChecklistTemplateDto(
     name = name,
     items = items,
     pinned = pinned,
+    createdAt = createdAt.toString(),
+    updatedAt = updatedAt.toString(),
+)
+
+private fun HomeLocationDto.toHomeLocation(): HomeLocation? {
+    val uuid = parseUuid(uuid) ?: return null
+    val nameValue = name.trim().takeIf { it.length <= MAX_DESTINATION_LENGTH } ?: return null
+    if ((latitude == null) != (longitude == null)) return null
+    if (latitude != null && longitude != null && (latitude !in LATITUDE_RANGE || longitude !in LONGITUDE_RANGE)) return null
+    val source = coordinateSource?.let { enumOrNull<CoordinateSource>(it) ?: return null }
+    val from = validFrom?.let { parseDate(it) ?: return null }
+    val to = validTo?.let {
+        val value = parseDate(it) ?: return null
+        if (from != null && value < from) return null
+        value
+    }
+    return HomeLocation(
+        uuid = uuid,
+        name = nameValue,
+        latitude = latitude,
+        longitude = longitude,
+        coordinateSource = source,
+        validFrom = from,
+        validTo = to,
+        createdAt = parseInstant(createdAt) ?: return null,
+        updatedAt = parseInstant(updatedAt) ?: return null,
+    )
+}
+
+private fun HomeLocation.toDto() = HomeLocationDto(
+    uuid = uuid,
+    name = name,
+    latitude = latitude,
+    longitude = longitude,
+    coordinateSource = coordinateSource?.name,
+    validFrom = validFrom?.toString(),
+    validTo = validTo?.toString(),
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
 )

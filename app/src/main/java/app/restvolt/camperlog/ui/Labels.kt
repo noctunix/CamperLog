@@ -449,6 +449,9 @@ val SiteKind.labelRes: Int
         SiteKind.CAMPSITE -> R.string.site_kind_campsite
         SiteKind.MOTORHOME_AREA -> R.string.site_kind_motorhome_area
         SiteKind.WILD -> R.string.site_kind_wild
+        SiteKind.HOTEL -> R.string.site_kind_hotel
+        SiteKind.VACATION_RENTAL -> R.string.site_kind_vacation_rental
+        SiteKind.HOSTEL -> R.string.site_kind_hostel
     }
 
 /** Bezeichnung des Formularfelds, z. B. für die Fehlerzusammenfassung. */

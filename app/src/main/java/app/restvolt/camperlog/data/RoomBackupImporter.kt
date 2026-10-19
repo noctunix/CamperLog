@@ -14,6 +14,7 @@ import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.HomeLocation
 import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
@@ -53,6 +54,7 @@ class RoomBackupImporter(
         val checklistTemplateDao = database.checklistTemplateDao()
         val checklistDao = database.checklistDao()
         val attachmentDao = database.attachmentDao()
+        val homeLocationDao = database.homeLocationDao()
 
         val importedVehicles = backup.vehicles.map { it.notAfter(now, today) }
 
@@ -60,6 +62,7 @@ class RoomBackupImporter(
             attachmentDao.deleteAll()
             checklistDao.deleteAll()
             checklistTemplateDao.deleteAll()
+            homeLocationDao.deleteAll()
             documentDao.deleteAll()
             diaryEntryDao.deleteAll()
             stationDao.deleteAll()
@@ -361,6 +364,32 @@ class RoomBackupImporter(
             }
         }
 
+        // --- Heimatadressen: flache Liste ohne Fremdschlüssel, wie Checklisten-Vorlagen über ihre UUID abgeglichen ---
+        val importedHomeLocations = backup.homeLocations.map { it.notAfter(now) }
+        var addedHomeLocations = 0
+        var updatedHomeLocations = 0
+        if (mode == ImportMode.REPLACE) {
+            importedHomeLocations.forEach { location ->
+                homeLocationDao.insert(location.copy(id = 0).toEntity())
+                addedHomeLocations++
+            }
+        } else {
+            val storedHomeLocations = homeLocationDao.getVersions().associateBy(HomeLocationVersionRow::uuid)
+            for (location in importedHomeLocations) {
+                val existing = storedHomeLocations[location.uuid]
+                when {
+                    existing == null -> {
+                        homeLocationDao.insert(location.copy(id = 0).toEntity())
+                        addedHomeLocations++
+                    }
+                    location.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
+                        homeLocationDao.update(location.copy(id = existing.id).toEntity())
+                        updatedHomeLocations++
+                    }
+                }
+            }
+        }
+
         // --- Checklisten: Fahrzeug und Tour kommen aus ihren UUIDs, wie bei Stationen ---
         val importedChecklists = backup.checklists.mapNotNull { backupChecklist ->
             val localVehicleId = localIdByVehicleUuid[backupChecklist.vehicleUuid] ?: return@mapNotNull null
@@ -450,6 +479,8 @@ class RoomBackupImporter(
             updatedChecklistTemplates = updatedChecklistTemplates,
             addedChecklists = addedChecklists,
             updatedChecklists = updatedChecklists,
+            addedHomeLocations = addedHomeLocations,
+            updatedHomeLocations = updatedHomeLocations,
             addedAttachments = addedAttachments,
             addedTrackPoints = addedTrackPoints,
         )
@@ -488,6 +519,12 @@ private fun DiaryEntry.notAfter(now: Instant, today: LocalDate): DiaryEntry = co
 )
 
 private fun ChecklistTemplate.notAfter(now: Instant): ChecklistTemplate = copy(
+    createdAt = minOf(createdAt, now),
+    updatedAt = minOf(updatedAt, now),
+)
+
+/** [validFrom]/[validTo] bleiben unverändert: eine zukünftige Gültigkeit (ein geplanter Umzug) ist hier der Normalfall. */
+private fun HomeLocation.notAfter(now: Instant): HomeLocation = copy(
     createdAt = minOf(createdAt, now),
     updatedAt = minOf(updatedAt, now),
 )

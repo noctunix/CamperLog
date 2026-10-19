@@ -44,6 +44,8 @@ data class ImportResult(
     val updatedChecklistTemplates: Int = 0,
     val addedChecklists: Int = 0,
     val updatedChecklists: Int = 0,
+    val addedHomeLocations: Int = 0,
+    val updatedHomeLocations: Int = 0,
     val addedAttachments: Int = 0,
     val addedTrackPoints: Int = 0,
 )

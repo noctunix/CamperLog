@@ -8,10 +8,12 @@ import java.time.LocalDate
  * Eine Heimatadresse mit Gültigkeitszeitraum, für die automatische "Beginnt zu Hause"-Station
  * neuer Touren. [validFrom]/[validTo] `null` bedeutet "schon immer" bzw. "bis auf Weiteres"; bei
  * mehreren Einträgen dürfen sich ihre Zeiträume nicht überlappen (wird von der Oberfläche
- * durchgesetzt, nicht hier).
+ * durchgesetzt, nicht hier). [uuid] identifiziert die Adresse geräteübergreifend (z. B. beim
+ * Sicherungs-Import); leer bedeutet „noch nicht vergeben", das Repository vergibt sie beim Anlegen.
  */
 data class HomeLocation(
     val id: Long = 0,
+    val uuid: String = "",
     val name: String = "",
     val latitude: Double? = null,
     val longitude: Double? = null,

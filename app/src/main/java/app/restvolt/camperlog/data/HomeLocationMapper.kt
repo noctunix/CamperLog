@@ -7,6 +7,7 @@ import java.time.LocalDate
 
 internal fun HomeLocationEntity.toDomain(): HomeLocation = HomeLocation(
     id = id,
+    uuid = uuid,
     name = name,
     latitude = latitude,
     longitude = longitude,
@@ -19,6 +20,7 @@ internal fun HomeLocationEntity.toDomain(): HomeLocation = HomeLocation(
 
 internal fun HomeLocation.toEntity(): HomeLocationEntity = HomeLocationEntity(
     id = id,
+    uuid = uuid,
     name = name,
     latitude = latitude,
     longitude = longitude,

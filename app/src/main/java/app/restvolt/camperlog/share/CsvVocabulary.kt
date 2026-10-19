@@ -110,6 +110,9 @@ fun SiteKind.csvValue(vocabulary: CsvVocabulary): String = if (vocabulary == Csv
         SiteKind.CAMPSITE -> "campsite"
         SiteKind.MOTORHOME_AREA -> "motorhome_area"
         SiteKind.WILD -> "wild_camping"
+        SiteKind.HOTEL -> "hotel"
+        SiteKind.VACATION_RENTAL -> "vacation_rental"
+        SiteKind.HOSTEL -> "hostel"
     }
 }
 
