@@ -304,9 +304,9 @@ Builds:
       - rm ne.geojson
     gradleprops:
       - unsignedRelease
-  - versionName: 1.28.0
-    versionCode: 12800
-    commit: v1.28.0
+  - versionName: 1.28.1
+    versionCode: 12801
+    commit: v1.28.1
     subdir: app
     gradle:
       - yes
@@ -327,5 +327,5 @@ AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
 UpdateCheckData: app/build.gradle.kts|val appVersionCode = (\d+)|.|val appVersion
   = "(.+)"
-CurrentVersion: 1.28.0
-CurrentVersionCode: 12800
+CurrentVersion: 1.28.1
+CurrentVersionCode: 12801
