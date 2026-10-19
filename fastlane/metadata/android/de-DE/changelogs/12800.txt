@@ -1,0 +1,2 @@
+• Neu: Übernachtungen lassen sich jetzt auch als Hotel, Ferienwohnung oder Hostel markieren, nicht nur als Campingplatz, Stellplatz oder Frei stehen
+• Heimatadressen (die „Beginnt zu Hause"-Historie) sind jetzt Teil der Sicherung und werden beim Wiederherstellen übernommen

@@ -1,0 +1,2 @@
+• New: overnight stays can now be tagged as hotel, vacation rental, or hostel, not just campsite, motorhome area, or wild camping
+• Home addresses (the "starts at home" history) are now included in backups and carried over on restore
