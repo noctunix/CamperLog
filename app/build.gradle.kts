@@ -92,6 +92,11 @@ android {
         warningsAsErrors = true
         // Release APKs target arm64 only; ChromeOS/x86_64 is not supported.
         disable += "ChromeOsAbiSupport"
+        // These two query Maven Central/services.gradle.org for the latest release at analysis time,
+        // so they can fail CI on an untouched commit the moment upstream publishes - unrelated to any
+        // change here. Versions are still bumped deliberately; this just keeps that decoupled from CI.
+        disable += "AndroidGradlePluginVersion"
+        disable += "NewerVersionAvailable"
     }
 
     // Keep both English and German Material calendar resources in the app bundle.
