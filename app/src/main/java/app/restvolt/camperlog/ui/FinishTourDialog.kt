@@ -1,7 +1,6 @@
 package app.restvolt.camperlog.ui
 
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SelectableDates
@@ -14,7 +13,7 @@ import androidx.compose.ui.res.stringResource
 import app.restvolt.camperlog.R
 import java.time.LocalDate
 
-/** Datumsdialog zum Abschließen einer Tour; erlaubt nur Tage vom Tourstart bis heute. */
+/** Datumsdialog zum Abschließen einer Tour; erlaubt nur Tage vom früheren von Tourstart/heute bis heute. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun FinishTourDialog(
@@ -24,7 +23,7 @@ internal fun FinishTourDialog(
     onDismiss: () -> Unit,
 ) {
     val selectableDates = remember(tourStart, today) {
-        val first = tourStart.toEpochDay()
+        val first = minOf(tourStart, today).toEpochDay()
         val last = today.toEpochDay()
         object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean =
@@ -33,13 +32,13 @@ internal fun FinishTourDialog(
     }
     val state = rememberDatePickerState(
         initialSelectedDateMillis = today.toEpochDay() * MILLIS_PER_DAY,
-        selectableDates = if (today >= tourStart) selectableDates else DatePickerDefaults.AllDates,
+        selectableDates = selectableDates,
     )
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(
-                enabled = today >= tourStart && state.selectedDateMillis != null,
+                enabled = state.selectedDateMillis != null,
                 onClick = {
                     state.selectedDateMillis?.let { onConfirm(LocalDate.ofEpochDay(Math.floorDiv(it, MILLIS_PER_DAY))) }
                 },
