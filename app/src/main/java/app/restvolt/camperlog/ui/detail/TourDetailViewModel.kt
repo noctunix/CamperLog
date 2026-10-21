@@ -51,6 +51,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -82,7 +83,10 @@ sealed interface DetailUiState {
         val diaryEntries: List<DiaryEntry> = emptyList(),
         /** Checklisten der Tour, neueste zuerst. */
         val checklists: List<Checklist> = emptyList(),
-        /** Bordbuch-Einträge während dieser Tour, aufsteigend nach Datum, rein über das Datum zugeordnet, nicht persistiert. */
+        /**
+         * Unverknüpfte Bordbuch-Einträge während dieser Tour, aufsteigend nach Datum, rein über das
+         * Datum zugeordnet, nicht persistiert; stationsverknüpfte Einträge erscheinen schon in [stations].
+         */
         val logEntries: List<LogEntry> = emptyList(),
         /** Kennzahlen für laufende Touren live abgeleitet, für abgeschlossene aus den gespeicherten Werten. */
         val metrics: TourMetrics = TourMetrics(tour.travelDays, tour.overnightStays, tour.distanceKm),
@@ -147,7 +151,12 @@ class TourDetailViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val logEntriesInRange: Flow<List<LogEntry>> = repository.observeTour(tourId).flatMapLatest { tour ->
-        if (tour == null) flowOf(emptyList()) else logs.observeForVehicleInRange(tour.vehicleId, tour.startDate, tour.endDate ?: today())
+        if (tour == null) {
+            flowOf(emptyList())
+        } else {
+            logs.observeForVehicleInRange(tour.vehicleId, tour.startDate, tour.endDate ?: today())
+                .map { entries -> entries.filter { it.stationId == null } }
+        }
     }
 
     val uiState: StateFlow<DetailUiState> = combine(

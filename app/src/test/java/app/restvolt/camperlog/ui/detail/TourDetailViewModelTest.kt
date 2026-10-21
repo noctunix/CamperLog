@@ -71,13 +71,14 @@ class TourDetailViewModelTest {
         updatedAt = Instant.EPOCH,
     )
 
-    private fun logEntry(id: Long, vehicleId: Long, date: LocalDate) = LogEntry(
+    private fun logEntry(id: Long, vehicleId: Long, date: LocalDate, stationId: Long? = null) = LogEntry(
         id = id,
         uuid = "log-$id",
         vehicleId = vehicleId,
         type = LogType.CASSETTE_EMPTIED,
         date = date,
         createdAt = Instant.EPOCH,
+        stationId = stationId,
     )
 
     private fun viewModel(
@@ -118,6 +119,20 @@ class TourDetailViewModelTest {
 
         val loaded = viewModel.uiState.value as DetailUiState.Loaded
         assertEquals(listOf(inRange.id), loaded.logEntries.map { it.id })
+    }
+
+    @Test
+    fun stationLinkedEntries_areExcluded_becauseTheyAlreadyShowAsAStation() = runTest {
+        val tours = FakeTourRepository(listOf(tour()))
+        val unlinked = logEntry(1, vehicleId = 1, date = LocalDate.of(2026, 7, 5))
+        val linked = logEntry(2, vehicleId = 1, date = LocalDate.of(2026, 7, 6), stationId = 42)
+        val logs = FakeLogRepository(listOf(unlinked, linked))
+        val viewModel = viewModel(tours, logs)
+        collect(viewModel.uiState)
+        advanceUntilIdle()
+
+        val loaded = viewModel.uiState.value as DetailUiState.Loaded
+        assertEquals(listOf(unlinked.id), loaded.logEntries.map { it.id })
     }
 
     @Test
