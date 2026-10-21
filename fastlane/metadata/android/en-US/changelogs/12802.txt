@@ -1,0 +1,6 @@
+• Tours with a future start date can now be finished
+• Breakdown-help shortcut no longer hides emergency info behind the GPS screen; now shows basic accident steps too
+• Place search shows translated categories instead of raw OpenStreetMap codes
+• Renamed "Diesel tank" to "Fuel tank"
+• Fixed a misleading "other costs" tutorial example (prepaid toll vignette)
+• Tutorial dialogs no longer overflow at large font sizes

@@ -1,0 +1,6 @@
+• Touren mit Startdatum in der Zukunft lassen sich jetzt beenden
+• Pannenhilfe-Shortcut verdeckt Notfallinfos nicht mehr mit dem GPS-Bildschirm, zeigt jetzt auch Grundtipps für den Unfallfall
+• Ortssuche zeigt übersetzte Kategorien statt roher OpenStreetMap-Codes
+• "Diesel" im Fahrzeug-Datenblatt heißt jetzt "Kraftstoff"
+• Irreführendes Vignetten-Beispiel im Rundgang bei "Sonstige Kosten" korrigiert
+• Rundgang-Dialoge laufen bei großer Schrift nicht mehr über
