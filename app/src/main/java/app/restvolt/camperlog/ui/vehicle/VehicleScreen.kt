@@ -53,6 +53,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Checklist
+import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Reminder
 import app.restvolt.camperlog.domain.ReminderKind
 import app.restvolt.camperlog.domain.Repair
@@ -79,6 +80,7 @@ import app.restvolt.camperlog.ui.VehicleSwitcherTitle
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
 import app.restvolt.camperlog.ui.labelRes
+import app.restvolt.camperlog.ui.logDateText
 import app.restvolt.camperlog.ui.text
 import app.restvolt.camperlog.ui.theme.ReminderSettings
 import app.restvolt.camperlog.ui.vehicleDisplayName
@@ -162,6 +164,7 @@ fun VehicleScreen(
                 repairs = state.repairs,
                 documents = state.documents,
                 checklistsWithoutTour = state.checklistsWithoutTour,
+                logbookLatest = state.logbookLatest,
                 locationEnabled = locationEnabled,
                 onWhereAmI = { showWhereAmI = true },
                 onAddDetails = { onEditVehicle(vehicle.id) },
@@ -216,6 +219,7 @@ private fun VehicleSheet(
     repairs: List<Repair>,
     documents: List<VehicleDocument>,
     checklistsWithoutTour: List<Checklist>,
+    logbookLatest: Map<LogType, LocalDate>,
     locationEnabled: Boolean,
     onWhereAmI: () -> Unit,
     onAddDetails: () -> Unit,
@@ -298,6 +302,33 @@ private fun VehicleSheet(
         RepairsSection(repairs, onAddRepair, onOpenRepair)
         DocumentsSection(documents, today, onAddDocument, onOpenDocument)
         ChecklistsSummaryCard(checklistsWithoutTour, onOpenChecklists)
+        LogbookSummaryCard(logbookLatest, today)
+    }
+}
+
+/** Übersicht über die letzte Erfassung jeder Bordbuch-Art; rein lesend, Erfassung bleibt dem Bordbuch-Reiter vorbehalten. */
+@Composable
+private fun LogbookSummaryCard(logbookLatest: Map<LogType, LocalDate>, today: LocalDate) {
+    val locale = currentLocale()
+    SectionCard {
+        SectionHeading(stringResource(R.string.vehicle_logbook_summary_title))
+        LogType.entries.forEach { type -> LogbookSummaryRow(type, logbookLatest[type], today, locale) }
+    }
+}
+
+@Composable
+private fun LogbookSummaryRow(type: LogType, lastDate: LocalDate?, today: LocalDate, locale: Locale) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(painterResource(type.iconRes), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Text(stringResource(type.labelRes), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        val dateText = lastDate?.let { logDateText(it, today, locale) } ?: stringResource(R.string.logbook_not_recorded)
+        Text(dateText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

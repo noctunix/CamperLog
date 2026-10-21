@@ -1181,6 +1181,7 @@
         <item quantity="one">%1$d open checklist</item>
         <item quantity="other">%1$d open checklists</item>
     </plurals>
+    <string name="vehicle_logbook_summary_title">Logbook</string>
     <string name="checklist_suggested_departure_name">Departure</string>
     <string-array name="checklist_suggested_departure_items">
         <item>Close roof vents and skylights</item>

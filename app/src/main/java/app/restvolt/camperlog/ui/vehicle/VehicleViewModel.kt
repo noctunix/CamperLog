@@ -7,11 +7,14 @@ import androidx.lifecycle.viewModelScope
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.Checklist
 import app.restvolt.camperlog.domain.ChecklistRepository
+import app.restvolt.camperlog.domain.LogRepository
+import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleDocument
 import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
+import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,6 +38,8 @@ data class VehicleUiState(
     val documents: List<VehicleDocument> = emptyList(),
     /** Checklisten des Fahrzeugs ohne Tourbezug (z. B. Einwintern), für die Checklisten-Karte. */
     val checklistsWithoutTour: List<Checklist> = emptyList(),
+    /** Jüngstes Datum je Bordbuch-Art des Fahrzeugs, für die Bordbuch-Übersichtskarte. */
+    val logbookLatest: Map<LogType, LocalDate> = emptyMap(),
 )
 
 /** Rückmeldungen, die der Fahrzeug-Reiter als Snackbar anzeigt. */
@@ -48,6 +53,7 @@ class VehicleViewModel(
     private val vehicles: VehicleRepository,
     private val documents: VehicleDocumentRepository,
     private val checklists: ChecklistRepository,
+    private val logs: LogRepository,
 ) : ViewModel() {
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -58,8 +64,9 @@ class VehicleViewModel(
                     vehicles.observeRepairs(current.id),
                     documents.observeForVehicle(current.id),
                     checklists.observeForVehicleWithoutTour(current.id),
-                ) { repairs, documents, checklistList ->
-                    VehicleUiState(list, current.id, current, repairs, documents, checklistList)
+                    logs.observeLatest(current.id),
+                ) { repairs, documents, checklistList, logbookLatest ->
+                    VehicleUiState(list, current.id, current, repairs, documents, checklistList, logbookLatest)
                 }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), VehicleUiState())

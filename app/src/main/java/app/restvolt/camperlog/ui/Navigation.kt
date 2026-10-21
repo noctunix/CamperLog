@@ -703,9 +703,10 @@ internal fun NavController.vehicleViewModel(
     vehicles: VehicleRepository,
     documents: VehicleDocumentRepository,
     checklists: ChecklistRepository,
+    logbook: LogRepository,
 ): VehicleViewModel {
     val vehicleEntry = remember(entry) { getBackStackEntry<VehicleRoute>() }
-    return viewModel(viewModelStoreOwner = vehicleEntry) { VehicleViewModel(vehicles, documents, checklists) }
+    return viewModel(viewModelStoreOwner = vehicleEntry) { VehicleViewModel(vehicles, documents, checklists, logbook) }
 }
 
 /**
