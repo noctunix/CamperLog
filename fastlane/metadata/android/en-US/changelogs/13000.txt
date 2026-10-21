@@ -1,0 +1,2 @@
+• New: the vehicle sheet now shows when each logbook action (cassette, grey water, heater, gas bottle) was last recorded
+• Fixed: deleting or undoing a logbook entry that's linked to a stop now keeps the stop's checkmarks in sync instead of leaving them stale

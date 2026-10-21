@@ -1,0 +1,2 @@
+• Neu: Das Fahrzeug-Datenblatt zeigt jetzt, wann jede Bordbuch-Aktion (Kassette, Grauwasser, Heizung, Gasflasche) zuletzt erfasst wurde
+• Fix: Löschen oder Rückgängig eines mit einer Station verknüpften Bordbuch-Eintrags hält jetzt die Häkchen der Station korrekt aktuell
