@@ -1294,7 +1294,7 @@
     <string name="guide_step_home_switch_title">Zuhause-Ort</string>
     <string name="guide_step_home_switch_body_set">Kreuz das an, um sofort automatisch eine Station an deinem Zuhause-Ort anzulegen.</string>
     <string name="guide_step_home_switch_body_unset">Legst du in den Einstellungen → Zuhause einen Ort fest, legt eine Checkbox hier automatisch eine Station dort an.</string>
-    <string name="guide_step_other_costs_body">Trag hier Kosten ein, die für die ganze Tour gelten, zum Beispiel eine vorab gekaufte Vignette.</string>
+    <string name="guide_step_other_costs_body">Trag hier Kosten ein, die für die ganze Tour gelten, zum Beispiel einen Jahresbeitrag für die Pannenhilfe.</string>
     <string name="guide_step_advanced_body">Der Slug ist ein kurzer, dateinamensicherer Kurzname für Berichte und Exporte; CamperLog schlägt automatisch einen vor.</string>
     <string name="guide_step_save_body">Alles ist schon gespeichert – tippe auf Zurück, wenn du fertig bist.</string>
     <string name="guide_step_station_fab_body">Leg hier deine erste Station an – ein Campingplatz, eine Tankstelle oder irgendein anderer Stopp.</string>

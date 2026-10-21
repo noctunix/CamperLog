@@ -1305,7 +1305,7 @@
     <string name="guide_step_home_switch_title">Home location</string>
     <string name="guide_step_home_switch_body_set">Check this to add a stop at your home location automatically, right away.</string>
     <string name="guide_step_home_switch_body_unset">Once you set a home location in Settings → Home, a checkbox here adds a stop there automatically.</string>
-    <string name="guide_step_other_costs_body">Add any extra costs for the whole tour here, like a toll bought in advance.</string>
+    <string name="guide_step_other_costs_body">Add any extra costs for the whole tour here, like an annual breakdown cover membership fee.</string>
     <string name="guide_step_advanced_body">The slug is a short, file-name-safe label used for exports and reports; CamperLog suggests one automatically.</string>
     <string name="guide_step_save_body">Everything is already saved – tap Back when you\'re done.</string>
     <string name="guide_step_station_fab_body">Add your first stop here – a campsite, a fuel stop, or anything else along the way.</string>
