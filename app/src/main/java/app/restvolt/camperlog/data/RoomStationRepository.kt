@@ -41,6 +41,9 @@ class RoomStationRepository(
     override fun observeStation(id: Long): Flow<Station?> =
         dao.observeById(id).distinctUntilChanged().map { it?.toDomain() }
 
+    override suspend fun findSupplyStation(vehicleId: Long, date: LocalDate): Station? =
+        dao.findSupplyStation(vehicleId, date.toString())?.toDomain()
+
     override suspend fun allStations(): List<Station> = dao.getAll().map(StationWithCosts::toDomain)
 
     override suspend fun save(station: Station): Long = database.withTransaction {

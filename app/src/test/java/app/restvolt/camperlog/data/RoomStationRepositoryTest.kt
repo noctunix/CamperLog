@@ -290,5 +290,29 @@ class RoomStationRepositoryTest {
         assertEquals(costs, stations.allStations().single().costs)
     }
 
+    @Test
+    fun findSupplyStation_returnsTheMatchingVehicleDateAndType() = runTest {
+        val id = stations.save(station(date = LocalDate.of(2026, 7, 4), services = setOf(StationService.CASSETTE)))
+
+        val found = stations.findSupplyStation(vehicleId, LocalDate.of(2026, 7, 4))
+
+        assertEquals(id, found?.id)
+    }
+
+    @Test
+    fun findSupplyStation_withoutAMatch_returnsNull() = runTest {
+        assertNull(stations.findSupplyStation(vehicleId, LocalDate.of(2026, 7, 4)))
+    }
+
+    @Test
+    fun findSupplyStation_ignoresOtherTypesAndOtherVehiclesAndOtherDates() = runTest {
+        val otherVehicleId = db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-2", createdAtMillis = 0, updatedAtMillis = 0))
+        stations.save(station(date = LocalDate.of(2026, 7, 4)).copy(type = StationType.OVERNIGHT))
+        stations.save(station(date = LocalDate.of(2026, 7, 5)))
+        stations.save(station(date = LocalDate.of(2026, 7, 4), vehicleId = otherVehicleId))
+
+        assertNull(stations.findSupplyStation(vehicleId, LocalDate.of(2026, 7, 4)))
+    }
+
     private fun costRows(): Int = db.query("SELECT COUNT(*) FROM station_costs", null).use { it.moveToFirst(); it.getInt(0) }
 }
