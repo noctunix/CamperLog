@@ -16,8 +16,9 @@ suspend fun completeTour(
     tracks: TrackRepository,
 ): Boolean {
     val tour = tours.observeTour(tourId).first() ?: return false
-    if (tour.endDate != null || endDate < tour.startDate || endDate > today) return false
-    val completed = tour.copy(endDate = endDate)
+    if (tour.endDate != null || endDate > today) return false
+    val effectiveStart = minOf(tour.startDate, endDate)
+    val completed = tour.copy(startDate = effectiveStart, endDate = endDate)
     val metrics = completed.derivedMetrics(
         stations = stations.observeForTour(tourId).first(),
         trackPoints = tracks.observeForTour(tourId).first(),

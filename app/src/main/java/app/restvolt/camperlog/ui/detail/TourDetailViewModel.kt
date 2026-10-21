@@ -185,7 +185,7 @@ class TourDetailViewModel(
     fun finish(endDate: LocalDate) {
         val loaded = uiState.value as? DetailUiState.Loaded ?: return
         val tour = loaded.tour
-        if (tour.endDate != null || endDate < tour.startDate || endDate > today() || _finishing.value) return
+        if (tour.endDate != null || endDate > today() || _finishing.value) return
         _finishing.value = true
         viewModelScope.launch {
             try {
