@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui.guide
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
@@ -195,7 +197,10 @@ private fun GuideCard(
                 modifier = Modifier.semantics { heading() },
             )
             if (state.phase == GuidePhase.PAUSED) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                ) {
                     TextButton(onClick = onEnd, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text(stringResource(R.string.guide_end))
                     }
@@ -209,7 +214,10 @@ private fun GuideCard(
                     text = stringResource(R.string.guide_step_counter, state.stepIndex + 1, state.stepCount),
                     style = MaterialTheme.typography.labelMedium,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                ) {
                     if (state.stepIndex > 0) {
                         TextButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) {
                             Text(stringResource(R.string.guide_back))
