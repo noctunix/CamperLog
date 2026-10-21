@@ -758,6 +758,42 @@
     <string name="site_kind_vacation_rental">Ferienwohnung</string>
     <string name="site_kind_hostel">Hostel</string>
 
+    <!-- Ortssuche: lokalisierte OSM-Kategorien -->
+    <string name="place_category_camp_site">Campingplatz</string>
+    <string name="place_category_caravan_site">Wohnmobilstellplatz</string>
+    <string name="place_category_hotel">Hotel</string>
+    <string name="place_category_guest_house">Gästehaus</string>
+    <string name="place_category_motel">Motel</string>
+    <string name="place_category_hostel">Hostel</string>
+    <string name="place_category_alpine_hut">Alpenhütte</string>
+    <string name="place_category_viewpoint">Aussichtspunkt</string>
+    <string name="place_category_picnic_site">Picknickplatz</string>
+    <string name="place_category_fuel">Tankstelle</string>
+    <string name="place_category_restaurant">Restaurant</string>
+    <string name="place_category_cafe">Café</string>
+    <string name="place_category_fast_food">Schnellimbiss</string>
+    <string name="place_category_parking">Parkplatz</string>
+    <string name="place_category_toilets">Toiletten</string>
+    <string name="place_category_drinking_water">Trinkwasser</string>
+    <string name="place_category_bank">Bank</string>
+    <string name="place_category_pharmacy">Apotheke</string>
+    <string name="place_category_hospital">Krankenhaus</string>
+    <string name="place_category_fire_station">Feuerwehr</string>
+    <string name="place_category_police">Polizei</string>
+    <string name="place_category_supermarket">Supermarkt</string>
+    <string name="place_category_bakery">Bäckerei</string>
+    <string name="place_category_convenience">Kiosk</string>
+    <string name="place_category_peak">Gipfel</string>
+    <string name="place_category_beach">Strand</string>
+    <string name="place_category_castle">Burg</string>
+    <string name="place_category_monument">Denkmal</string>
+    <string name="place_category_ruins">Ruine</string>
+    <string name="place_category_city">Großstadt</string>
+    <string name="place_category_town">Stadt</string>
+    <string name="place_category_village">Dorf</string>
+    <string name="place_category_hamlet">Weiler</string>
+    <string name="place_category_suburb">Stadtteil</string>
+
     <!-- Tourdetail: Warnung zu ablaufenden Vignetten -->
     <string name="vignette_warning_country">Vignette %1$s endet am %2$s, vor dem Tourende</string>
     <string name="vignette_warning">Vignette endet am %1$s, vor dem Tourende</string>
