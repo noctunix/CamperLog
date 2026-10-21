@@ -16,6 +16,10 @@ interface LogDao {
     @Query("SELECT * FROM log_entries WHERE vehicle_id = :vehicleId AND type = :type ORDER BY date DESC, id DESC")
     fun observeEntries(vehicleId: Long, type: String): Flow<List<LogEntryEntity>>
 
+    /** Einträge eines Fahrzeugs im Datumsbereich [from]/[to] (inklusive), aufsteigend nach Datum. */
+    @Query("SELECT * FROM log_entries WHERE vehicle_id = :vehicleId AND date BETWEEN :from AND :to ORDER BY date ASC, id ASC")
+    fun observeForVehicleBetween(vehicleId: Long, from: String, to: String): Flow<List<LogEntryEntity>>
+
     /** Alle Bordbuch-Einträge aller Fahrzeuge, live aktualisiert, für die Volltextsuche. */
     @Query("SELECT * FROM log_entries ORDER BY date DESC, id DESC")
     fun observeAllEntries(): Flow<List<LogEntryEntity>>
