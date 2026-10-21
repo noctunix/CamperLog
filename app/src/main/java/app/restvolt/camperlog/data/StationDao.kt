@@ -33,6 +33,11 @@ interface StationDao {
     @Query("SELECT * FROM stations WHERE id = :id")
     suspend fun getById(id: Long): StationWithCosts?
 
+    /** Die Ver-/Entsorgungs-Station eines Fahrzeugs an einem Tag, für die Bordbuch-Schnellerfassung. */
+    @Transaction
+    @Query("SELECT * FROM stations WHERE vehicle_id = :vehicleId AND date = :date AND type = 'SUPPLY' LIMIT 1")
+    suspend fun findSupplyStation(vehicleId: Long, date: String): StationWithCosts?
+
     @Transaction
     @Query("SELECT * FROM stations WHERE tour_id = :tourId")
     suspend fun getForTour(tourId: Long): List<StationWithCosts>

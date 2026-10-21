@@ -6,6 +6,7 @@ import app.restvolt.camperlog.domain.LogSyncAction
 import app.restvolt.camperlog.domain.SYNCED_SERVICE_LOG_TYPES
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.syncStationLogEntries
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +43,9 @@ class FakeStationRepository(initial: List<Station> = emptyList(), private val lo
     }
 
     override fun observeStation(id: Long): Flow<Station?> = state.map { list -> list.firstOrNull { it.id == id } }
+
+    override suspend fun findSupplyStation(vehicleId: Long, date: LocalDate): Station? =
+        state.value.firstOrNull { it.vehicleId == vehicleId && it.date == date && it.type == StationType.SUPPLY }
 
     override suspend fun allStations(): List<Station> = state.value
 

@@ -202,6 +202,9 @@ interface StationRepository {
     /** Liefert die Station mit [id] oder `null`, falls sie nicht (mehr) existiert. */
     fun observeStation(id: Long): Flow<Station?>
 
+    /** Liefert die Ver-/Entsorgungs-Station ([StationType.SUPPLY]) von [vehicleId] an [date], falls schon vorhanden. */
+    suspend fun findSupplyStation(vehicleId: Long, date: LocalDate): Station?
+
     /** Liefert alle Stationen für den Sicherungs-Export, ohne festgelegte Reihenfolge. */
     suspend fun allStations(): List<Station>
 
