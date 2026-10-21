@@ -44,6 +44,7 @@ import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.TabTopBar
 import app.restvolt.camperlog.ui.VehicleSwitcherTitle
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.iconRes
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.logDateText
 import java.time.LocalDate
@@ -150,7 +151,7 @@ private fun LogTile(
                 .clickable(onClickLabel = historyLabel, onClick = onOpenHistory),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Icon(painterResource(tile.type.iconRes()), contentDescription = null)
+            Icon(painterResource(tile.type.iconRes), contentDescription = null)
             Column {
                 Text(stringResource(tile.type.labelRes), style = MaterialTheme.typography.titleMedium)
                 val dateText = tile.lastDate?.let { logDateText(it, today, locale) } ?: stringResource(R.string.logbook_not_recorded)
@@ -199,11 +200,3 @@ private fun notAfter(maxDate: LocalDate) = object : SelectableDates {
 }
 
 private const val MILLIS_PER_DAY = 86_400_000L
-
-private fun LogType.iconRes() = when (this) {
-    LogType.CASSETTE_EMPTIED -> R.drawable.ic_toilet
-    LogType.GREY_WATER_EMPTIED -> R.drawable.ic_water_drop
-    LogType.DIESEL_HEATER_RUN -> R.drawable.ic_local_fire
-    LogType.GAS_HEATER_RUN -> R.drawable.ic_gas_flame
-    LogType.GAS_BOTTLE_SWAPPED -> R.drawable.ic_gas_bottle
-}
