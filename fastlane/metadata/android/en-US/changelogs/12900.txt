@@ -1,0 +1,2 @@
+• New: a tour's detail page now shows logbook entries (like heater runs) that happened during that tour
+• Logging "cassette emptied", "grey water emptied" or "gas bottle swapped" from the logbook now also creates a matching stop, so it shows up on the tour's timeline too, instead of two separate, unconnected records
