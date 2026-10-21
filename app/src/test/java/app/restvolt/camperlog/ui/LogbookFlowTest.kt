@@ -41,7 +41,7 @@ class LogbookFlowTest {
         val repository = FakeTourRepository(emptyList()) { vehicles.currentVehicleId }
         compose.setContent {
             CamperLogTheme {
-                CamperLogNavHost(repository, vehicles, logs, FakeStationRepository(), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, AccentColor.AZURE, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = FakeTrackRepository(), onAccentColorChange = { }) { }
+                CamperLogNavHost(repository, vehicles, logs, FakeStationRepository(logs = logs), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, AccentColor.AZURE, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = FakeTrackRepository(), onAccentColorChange = { }) { }
             }
         }
         compose.onNodeWithText("Bordbuch").performClick()

@@ -1,7 +1,10 @@
 package app.restvolt.camperlog.ui.logbook
 
 import app.restvolt.camperlog.domain.LogType
+import app.restvolt.camperlog.domain.StationService
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.ui.FakeLogRepository
+import app.restvolt.camperlog.ui.FakeStationRepository
 import app.restvolt.camperlog.ui.FakeVehicleRepository
 import app.restvolt.camperlog.ui.defaultVehicle
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +47,7 @@ class LogbookViewModelTest {
         val vehicles = FakeVehicleRepository()
         logs.add(1, LogType.GAS_HEATER_RUN, today)
         logs.add(1, LogType.CASSETTE_EMPTIED, today.minusDays(3))
-        val viewModel = LogbookViewModel(logs, vehicles) { today }
+        val viewModel = LogbookViewModel(logs, vehicles, FakeStationRepository(logs = logs)) { today }
         collect(viewModel.uiState)
 
         val tiles = viewModel.uiState.value.tiles
@@ -67,7 +70,7 @@ class LogbookViewModelTest {
         val vehicles = FakeVehicleRepository(initial = listOf(defaultVehicle(1), defaultVehicle(2)))
         logs.add(1, LogType.CASSETTE_EMPTIED, today)
         logs.add(2, LogType.CASSETTE_EMPTIED, today.minusDays(5))
-        val viewModel = LogbookViewModel(logs, vehicles) { today }
+        val viewModel = LogbookViewModel(logs, vehicles, FakeStationRepository(logs = logs)) { today }
         collect(viewModel.uiState)
 
         assertEquals(today, viewModel.uiState.value.tiles.first { it.type == LogType.CASSETTE_EMPTIED }.lastDate)
@@ -81,7 +84,7 @@ class LogbookViewModelTest {
     fun recordToday_addsAnEntryWithTodaysDateAndReportsIt() = runTest(dispatcher) {
         val logs = FakeLogRepository()
         val vehicles = FakeVehicleRepository()
-        val viewModel = LogbookViewModel(logs, vehicles) { today }
+        val viewModel = LogbookViewModel(logs, vehicles, FakeStationRepository(logs = logs)) { today }
         collect(viewModel.uiState)
 
         viewModel.recordToday(LogType.CASSETTE_EMPTIED)
@@ -96,7 +99,7 @@ class LogbookViewModelTest {
     fun recordDate_withAnOlderDate_reportsItAsNotToday() = runTest(dispatcher) {
         val logs = FakeLogRepository()
         val vehicles = FakeVehicleRepository()
-        val viewModel = LogbookViewModel(logs, vehicles) { today }
+        val viewModel = LogbookViewModel(logs, vehicles, FakeStationRepository(logs = logs)) { today }
 
         viewModel.recordDate(LogType.GREY_WATER_EMPTIED, today.minusDays(2))
 
@@ -106,10 +109,58 @@ class LogbookViewModelTest {
     }
 
     @Test
+    fun recordToday_withASyncedType_createsALinkedSupplyStationInsteadOfAPlainEntry() = runTest(dispatcher) {
+        val logs = FakeLogRepository()
+        val vehicles = FakeVehicleRepository()
+        val stations = FakeStationRepository(logs = logs)
+        val viewModel = LogbookViewModel(logs, vehicles, stations) { today }
+
+        viewModel.recordToday(LogType.CASSETTE_EMPTIED)
+
+        val station = stations.stations.single()
+        assertEquals(StationType.SUPPLY, station.type)
+        assertEquals(setOf(StationService.CASSETTE), station.services)
+        val entry = logs.entries.single()
+        assertEquals(station.id, entry.stationId)
+        assertEquals(LogType.CASSETTE_EMPTIED, entry.type)
+    }
+
+    @Test
+    fun recordToday_withTwoSyncedTypesOnTheSameDay_shareTheSameStation() = runTest(dispatcher) {
+        val logs = FakeLogRepository()
+        val vehicles = FakeVehicleRepository()
+        val stations = FakeStationRepository(logs = logs)
+        val viewModel = LogbookViewModel(logs, vehicles, stations) { today }
+
+        viewModel.recordToday(LogType.CASSETTE_EMPTIED)
+        viewModel.recordToday(LogType.GREY_WATER_EMPTIED)
+
+        assertEquals(1, stations.stations.size)
+        assertEquals(setOf(StationService.CASSETTE, StationService.GREY_WATER), stations.stations.single().services)
+        assertEquals(2, logs.entries.size)
+        assertTrue(logs.entries.all { it.stationId == stations.stations.single().id })
+    }
+
+    @Test
+    fun recordToday_withAHeaterType_stillAddsAPlainUnlinkedEntry() = runTest(dispatcher) {
+        val logs = FakeLogRepository()
+        val vehicles = FakeVehicleRepository()
+        val stations = FakeStationRepository(logs = logs)
+        val viewModel = LogbookViewModel(logs, vehicles, stations) { today }
+
+        viewModel.recordToday(LogType.DIESEL_HEATER_RUN)
+
+        assertEquals(emptyList<Any>(), stations.stations)
+        val entry = logs.entries.single()
+        assertNull(entry.stationId)
+        assertEquals(LogType.DIESEL_HEATER_RUN, entry.type)
+    }
+
+    @Test
     fun undoRecord_removesTheEntryAgain() = runTest(dispatcher) {
         val logs = FakeLogRepository()
         val vehicles = FakeVehicleRepository()
-        val viewModel = LogbookViewModel(logs, vehicles) { today }
+        val viewModel = LogbookViewModel(logs, vehicles, FakeStationRepository(logs = logs)) { today }
         collect(viewModel.uiState)
         viewModel.recordToday(LogType.DIESEL_HEATER_RUN)
         val entry = (viewModel.message.value as LogbookMessage.Recorded).entry
@@ -120,10 +171,42 @@ class LogbookViewModelTest {
     }
 
     @Test
+    fun undoRecord_withASyncedTypeAndAnotherServiceLeft_keepsTheStationWithoutThatService() = runTest(dispatcher) {
+        val logs = FakeLogRepository()
+        val vehicles = FakeVehicleRepository()
+        val stations = FakeStationRepository(logs = logs)
+        val viewModel = LogbookViewModel(logs, vehicles, stations) { today }
+        viewModel.recordToday(LogType.CASSETTE_EMPTIED)
+        viewModel.recordToday(LogType.GREY_WATER_EMPTIED)
+        val entry = logs.entries.single { it.type == LogType.CASSETTE_EMPTIED }
+
+        viewModel.undoRecord(entry)
+
+        val station = stations.stations.single()
+        assertEquals(setOf(StationService.GREY_WATER), station.services)
+        assertEquals(LogType.GREY_WATER_EMPTIED, logs.entries.single().type)
+    }
+
+    @Test
+    fun undoRecord_withTheLastServiceAndNoOtherContent_deletesTheStation() = runTest(dispatcher) {
+        val logs = FakeLogRepository()
+        val vehicles = FakeVehicleRepository()
+        val stations = FakeStationRepository(logs = logs)
+        val viewModel = LogbookViewModel(logs, vehicles, stations) { today }
+        viewModel.recordToday(LogType.CASSETTE_EMPTIED)
+        val entry = logs.entries.single()
+
+        viewModel.undoRecord(entry)
+
+        assertEquals(emptyList<Any>(), stations.stations)
+        assertEquals(emptyList<Any>(), logs.entries)
+    }
+
+    @Test
     fun onMessageShown_clearsOnlyTheMessageItWasCalledFor() = runTest(dispatcher) {
         val logs = FakeLogRepository()
         val vehicles = FakeVehicleRepository()
-        val viewModel = LogbookViewModel(logs, vehicles) { today }
+        val viewModel = LogbookViewModel(logs, vehicles, FakeStationRepository(logs = logs)) { today }
         viewModel.recordToday(LogType.CASSETTE_EMPTIED)
         val stale = viewModel.message.value as LogbookMessage.Recorded
         viewModel.recordToday(LogType.GREY_WATER_EMPTIED)
