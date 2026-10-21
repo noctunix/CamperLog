@@ -28,6 +28,7 @@ import app.restvolt.camperlog.domain.MAX_TIRE_PRESSURE_BAR
 import app.restvolt.camperlog.domain.MAX_WEIGHT_KG
 import androidx.annotation.DrawableRes
 import app.restvolt.camperlog.domain.PitchSlope
+import app.restvolt.camperlog.domain.PlaceCategoryKind
 import app.restvolt.camperlog.domain.Reminder
 import app.restvolt.camperlog.domain.ReminderKind
 import app.restvolt.camperlog.domain.RepairError
@@ -452,6 +453,46 @@ val SiteKind.labelRes: Int
         SiteKind.HOTEL -> R.string.site_kind_hotel
         SiteKind.VACATION_RENTAL -> R.string.site_kind_vacation_rental
         SiteKind.HOSTEL -> R.string.site_kind_hostel
+    }
+
+/** Anzeigetext einer bekannten OSM-Kategorie der Ortssuche. */
+@get:StringRes
+val PlaceCategoryKind.labelRes: Int
+    get() = when (this) {
+        PlaceCategoryKind.CAMP_SITE -> R.string.place_category_camp_site
+        PlaceCategoryKind.CARAVAN_SITE -> R.string.place_category_caravan_site
+        PlaceCategoryKind.HOTEL -> R.string.place_category_hotel
+        PlaceCategoryKind.GUEST_HOUSE -> R.string.place_category_guest_house
+        PlaceCategoryKind.MOTEL -> R.string.place_category_motel
+        PlaceCategoryKind.HOSTEL -> R.string.place_category_hostel
+        PlaceCategoryKind.ALPINE_HUT -> R.string.place_category_alpine_hut
+        PlaceCategoryKind.VIEWPOINT -> R.string.place_category_viewpoint
+        PlaceCategoryKind.PICNIC_SITE -> R.string.place_category_picnic_site
+        PlaceCategoryKind.FUEL -> R.string.place_category_fuel
+        PlaceCategoryKind.RESTAURANT -> R.string.place_category_restaurant
+        PlaceCategoryKind.CAFE -> R.string.place_category_cafe
+        PlaceCategoryKind.FAST_FOOD -> R.string.place_category_fast_food
+        PlaceCategoryKind.PARKING -> R.string.place_category_parking
+        PlaceCategoryKind.TOILETS -> R.string.place_category_toilets
+        PlaceCategoryKind.DRINKING_WATER -> R.string.place_category_drinking_water
+        PlaceCategoryKind.BANK -> R.string.place_category_bank
+        PlaceCategoryKind.PHARMACY -> R.string.place_category_pharmacy
+        PlaceCategoryKind.HOSPITAL -> R.string.place_category_hospital
+        PlaceCategoryKind.FIRE_STATION -> R.string.place_category_fire_station
+        PlaceCategoryKind.POLICE -> R.string.place_category_police
+        PlaceCategoryKind.SUPERMARKET -> R.string.place_category_supermarket
+        PlaceCategoryKind.BAKERY -> R.string.place_category_bakery
+        PlaceCategoryKind.CONVENIENCE -> R.string.place_category_convenience
+        PlaceCategoryKind.PEAK -> R.string.place_category_peak
+        PlaceCategoryKind.BEACH -> R.string.place_category_beach
+        PlaceCategoryKind.CASTLE -> R.string.place_category_castle
+        PlaceCategoryKind.MONUMENT -> R.string.place_category_monument
+        PlaceCategoryKind.RUINS -> R.string.place_category_ruins
+        PlaceCategoryKind.CITY -> R.string.place_category_city
+        PlaceCategoryKind.TOWN -> R.string.place_category_town
+        PlaceCategoryKind.VILLAGE -> R.string.place_category_village
+        PlaceCategoryKind.HAMLET -> R.string.place_category_hamlet
+        PlaceCategoryKind.SUBURB -> R.string.place_category_suburb
     }
 
 /** Bezeichnung des Formularfelds, z. B. für die Fehlerzusammenfassung. */

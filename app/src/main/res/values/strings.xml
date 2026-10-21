@@ -769,6 +769,42 @@
     <string name="site_kind_vacation_rental">Vacation rental</string>
     <string name="site_kind_hostel">Hostel</string>
 
+    <!-- Place search: localized OSM categories -->
+    <string name="place_category_camp_site">Campsite</string>
+    <string name="place_category_caravan_site">Caravan site</string>
+    <string name="place_category_hotel">Hotel</string>
+    <string name="place_category_guest_house">Guest house</string>
+    <string name="place_category_motel">Motel</string>
+    <string name="place_category_hostel">Hostel</string>
+    <string name="place_category_alpine_hut">Alpine hut</string>
+    <string name="place_category_viewpoint">Viewpoint</string>
+    <string name="place_category_picnic_site">Picnic site</string>
+    <string name="place_category_fuel">Fuel station</string>
+    <string name="place_category_restaurant">Restaurant</string>
+    <string name="place_category_cafe">Café</string>
+    <string name="place_category_fast_food">Fast food</string>
+    <string name="place_category_parking">Parking</string>
+    <string name="place_category_toilets">Toilets</string>
+    <string name="place_category_drinking_water">Drinking water</string>
+    <string name="place_category_bank">Bank</string>
+    <string name="place_category_pharmacy">Pharmacy</string>
+    <string name="place_category_hospital">Hospital</string>
+    <string name="place_category_fire_station">Fire station</string>
+    <string name="place_category_police">Police</string>
+    <string name="place_category_supermarket">Supermarket</string>
+    <string name="place_category_bakery">Bakery</string>
+    <string name="place_category_convenience">Convenience store</string>
+    <string name="place_category_peak">Peak</string>
+    <string name="place_category_beach">Beach</string>
+    <string name="place_category_castle">Castle</string>
+    <string name="place_category_monument">Monument</string>
+    <string name="place_category_ruins">Ruins</string>
+    <string name="place_category_city">City</string>
+    <string name="place_category_town">Town</string>
+    <string name="place_category_village">Village</string>
+    <string name="place_category_hamlet">Hamlet</string>
+    <string name="place_category_suburb">Suburb</string>
+
     <!-- Tour detail: vignette expiry warning -->
     <string name="vignette_warning_country">Vignette %1$s ends on %2$s, before the tour ends</string>
     <string name="vignette_warning">Vignette ends on %1$s, before the tour ends</string>

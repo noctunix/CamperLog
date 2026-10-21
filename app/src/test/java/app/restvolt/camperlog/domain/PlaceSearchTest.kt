@@ -31,4 +31,18 @@ class PlaceSearchTest {
 
         assertEquals(true, url.file.contains("limit=5"))
     }
+
+    @Test
+    fun placeCategoryKind_recognizesKnownOsmCombinations() {
+        assertEquals(PlaceCategoryKind.CAMP_SITE, placeCategoryKind("tourism", "camp_site"))
+        assertEquals(PlaceCategoryKind.FUEL, placeCategoryKind("amenity", "fuel"))
+        assertEquals(PlaceCategoryKind.CITY, placeCategoryKind("place", "city"))
+    }
+
+    @Test
+    fun placeCategoryKind_returnsNullForUnknownOrMissingCombinations() {
+        assertEquals(null, placeCategoryKind("leisure", "park"))
+        assertEquals(null, placeCategoryKind("amenity", null))
+        assertEquals(null, placeCategoryKind(null, null))
+    }
 }

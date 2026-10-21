@@ -44,6 +44,8 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.PlaceSearchController
 import app.restvolt.camperlog.domain.PlaceSearchHit
 import app.restvolt.camperlog.domain.PlaceSearchState
+import app.restvolt.camperlog.domain.placeCategoryKind
+import app.restvolt.camperlog.ui.labelRes
 
 /**
  * Ortssuche über Nominatim als Sheet: Eingabefeld mit [initialQuery], ausschließlich auf
@@ -142,6 +144,14 @@ private fun PlaceSearchResults(state: PlaceSearchState, onPick: (PlaceSearchHit)
     }
 }
 
-/** Nominatims Klassifikation als Nebentext, z. B. "place · city"; `null`, wenn beides fehlt. */
-private fun placeSearchKind(hit: PlaceSearchHit): String? =
-    listOfNotNull(hit.category, hit.type).distinct().joinToString(" · ").ifBlank { null }
+/**
+ * Lokalisierter Anzeigetext der Klassifikation des Treffers; für bekannte OSM-Kombinationen aus
+ * [PlaceSearchHit.category]/[PlaceSearchHit.type] (siehe [placeCategoryKind]), sonst deren rohe
+ * Darstellung, z. B. "place · city". `null`, wenn beides fehlt.
+ */
+@Composable
+private fun placeSearchKind(hit: PlaceSearchHit): String? {
+    val kind = placeCategoryKind(hit.category, hit.type)
+    if (kind != null) return stringResource(kind.labelRes)
+    return listOfNotNull(hit.category, hit.type).distinct().joinToString(" · ").ifBlank { null }
+}
