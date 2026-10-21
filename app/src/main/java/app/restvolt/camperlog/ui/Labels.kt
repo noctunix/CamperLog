@@ -138,6 +138,17 @@ val LogType.labelRes: Int
         LogType.GAS_BOTTLE_SWAPPED -> R.string.log_type_gas_bottle_swapped
     }
 
+/** Symbol der Bordbuch-Art. */
+@get:DrawableRes
+val LogType.iconRes: Int
+    get() = when (this) {
+        LogType.CASSETTE_EMPTIED -> R.drawable.ic_toilet
+        LogType.GREY_WATER_EMPTIED -> R.drawable.ic_water_drop
+        LogType.DIESEL_HEATER_RUN -> R.drawable.ic_local_fire
+        LogType.GAS_HEATER_RUN -> R.drawable.ic_gas_flame
+        LogType.GAS_BOTTLE_SWAPPED -> R.drawable.ic_gas_bottle
+    }
+
 /** Anzeigetext der zeitlichen Einordnung, z. B. „Heute" oder „vor 3 Tagen". */
 @Composable
 fun LogRecency.text(): String = when (this) {
