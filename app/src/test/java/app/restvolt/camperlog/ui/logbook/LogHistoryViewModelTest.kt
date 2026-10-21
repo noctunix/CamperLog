@@ -1,6 +1,9 @@
 package app.restvolt.camperlog.ui.logbook
 
 import app.restvolt.camperlog.domain.LogType
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationService
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.ui.FakeLogRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +19,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import java.time.Instant
 import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -51,7 +55,7 @@ class LogHistoryViewModelTest {
     }
 
     @Test
-    fun delete_removesTheEntryAndUndoRestoresIt() = runTest(dispatcher) {
+    fun delete_removesAnUnlinkedEntryAndUndoRestoresIt() = runTest(dispatcher) {
         val logs = FakeLogRepository()
         val entry = logs.add(1, LogType.DIESEL_HEATER_RUN, LocalDate.of(2026, 5, 1))
         val viewModel = LogHistoryViewModel(logs, FakeStationRepository(), vehicleId = 1, type = LogType.DIESEL_HEATER_RUN)
@@ -60,10 +64,78 @@ class LogHistoryViewModelTest {
         viewModel.delete(entry)
 
         assertEquals(emptyList<Long>(), viewModel.uiState.value.entries.map { it.id })
-        assertEquals(LogHistoryMessage.Deleted(entry), viewModel.message.value)
+        assertEquals(LogHistoryMessage.Deleted(entry, station = null), viewModel.message.value)
 
-        viewModel.undoDelete(entry)
+        viewModel.undoDelete(viewModel.message.value as LogHistoryMessage.Deleted)
 
         assertEquals(listOf(entry.id), viewModel.uiState.value.entries.map { it.id })
+    }
+
+    @Test
+    fun delete_withAStationLinkedEntryAndAnotherServiceLeft_removesOnlyThatServiceAndUndoRestoresBoth() = runTest(dispatcher) {
+        val logs = FakeLogRepository()
+        val stations = FakeStationRepository(logs = logs)
+        val date = LocalDate.of(2026, 5, 1)
+        val station = Station(
+            vehicleId = 1,
+            type = StationType.SUPPLY,
+            date = date,
+            services = setOf(StationService.CASSETTE, StationService.GREY_WATER),
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        val stationId = stations.save(station)
+        val cassetteEntry = logs.entries.single { it.type == LogType.CASSETTE_EMPTIED }
+        val greyWaterEntry = logs.entries.single { it.type == LogType.GREY_WATER_EMPTIED }
+        val viewModel = LogHistoryViewModel(logs, stations, vehicleId = 1, type = LogType.CASSETTE_EMPTIED)
+        collect(viewModel.uiState)
+
+        viewModel.delete(cassetteEntry)
+
+        assertEquals(emptyList<Long>(), viewModel.uiState.value.entries.map { it.id })
+        assertEquals(setOf(StationService.GREY_WATER), stations.stations.single().services)
+        assertEquals(listOf(greyWaterEntry.id), logs.entries.map { it.id })
+
+        viewModel.undoDelete(viewModel.message.value as LogHistoryMessage.Deleted)
+
+        assertEquals(listOf(cassetteEntry.id), viewModel.uiState.value.entries.map { it.id })
+        val restoredStation = stations.stations.single()
+        assertEquals(stationId, restoredStation.id)
+        assertEquals(setOf(StationService.CASSETTE, StationService.GREY_WATER), restoredStation.services)
+        assertEquals(setOf(cassetteEntry.id, greyWaterEntry.id), logs.entries.map { it.id }.toSet())
+        assertEquals(cassetteEntry, logs.entries.single { it.id == cassetteEntry.id })
+    }
+
+    @Test
+    fun delete_withAStationLinkedEntryAsTheOnlyService_deletesTheStationAndUndoRestoresBoth() = runTest(dispatcher) {
+        val logs = FakeLogRepository()
+        val stations = FakeStationRepository(logs = logs)
+        val date = LocalDate.of(2026, 5, 1)
+        val station = Station(
+            vehicleId = 1,
+            type = StationType.SUPPLY,
+            date = date,
+            services = setOf(StationService.CASSETTE),
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        val stationId = stations.save(station)
+        val entry = logs.entries.single()
+        val viewModel = LogHistoryViewModel(logs, stations, vehicleId = 1, type = LogType.CASSETTE_EMPTIED)
+        collect(viewModel.uiState)
+
+        viewModel.delete(entry)
+
+        assertEquals(emptyList<Long>(), viewModel.uiState.value.entries.map { it.id })
+        assertEquals(emptyList<Station>(), stations.stations)
+        assertEquals(emptyList<Long>(), logs.entries.map { it.id })
+
+        viewModel.undoDelete(viewModel.message.value as LogHistoryMessage.Deleted)
+
+        assertEquals(listOf(entry.id), viewModel.uiState.value.entries.map { it.id })
+        val restoredStation = stations.stations.single()
+        assertEquals(stationId, restoredStation.id)
+        assertEquals(setOf(StationService.CASSETTE), restoredStation.services)
+        assertEquals(entry, logs.entries.single())
     }
 }

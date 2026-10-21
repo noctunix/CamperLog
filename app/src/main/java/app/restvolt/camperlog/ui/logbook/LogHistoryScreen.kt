@@ -112,7 +112,7 @@ fun LogHistoryScreen(
                     withDismissAction = true,
                     duration = SnackbarDuration.Long,
                 )
-                if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete(current.entry)
+                if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete(current)
             }
             is LogHistoryMessage.Failed -> snackbar.showSnackbar(resources.getString(current.text), withDismissAction = true)
         }
