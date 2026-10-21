@@ -76,7 +76,7 @@ internal fun NavGraphBuilder.vehicleGraph(
         val vehicleContext = LocalContext.current
         val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
         VehicleScreen(
-            viewModel = viewModel { VehicleViewModel(vehicles, documents, checklists) },
+            viewModel = viewModel { VehicleViewModel(vehicles, documents, checklists, logbook) },
             whereAmIViewModel = viewModel { WhereAmIViewModel(locationProvider, AndroidLocationPermissionGate(vehicleContext)) },
             locationEnabled = locationEnabled,
             reminderSettings = reminderSettings,
@@ -126,7 +126,7 @@ internal fun NavGraphBuilder.vehicleGraph(
     }
     composable<RepairEditRoute> { entry ->
         val route = entry.toRoute<RepairEditRoute>()
-        val vehicleViewModel = navController.vehicleViewModel(entry, vehicles, documents, checklists)
+        val vehicleViewModel = navController.vehicleViewModel(entry, vehicles, documents, checklists, logbook)
         val repairContext = LocalContext.current
         val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
         RepairEditScreen(
