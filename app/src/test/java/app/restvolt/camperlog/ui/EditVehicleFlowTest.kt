@@ -82,7 +82,7 @@ class EditVehicleFlowTest {
         compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Wohnmobil")
         compose.onNode(hasSetTextAction() and hasText("Länge")).performScrollTo().performTextInput("636")
         compose.onNode(hasSetTextAction() and hasText("Leistung")).performScrollTo().performTextInput("120")
-        compose.onNode(hasSetTextAction() and hasText("Diesel")).performScrollTo().performTextInput("90")
+        compose.onNode(hasSetTextAction() and hasText("Kraftstoff")).performScrollTo().performTextInput("90")
 
         leaveFormAndKeep()
 
@@ -184,7 +184,7 @@ class EditVehicleFlowTest {
         compose.onNode(hasText("Diesel") and hasClickAction() and !hasSetTextAction()).performScrollTo().performClick()
         compose.onNode(hasText("Strom") and hasClickAction() and !hasSetTextAction()).performScrollTo().performClick()
 
-        compose.onNode(hasSetTextAction() and hasText("Diesel")).assertExists()
+        compose.onNode(hasSetTextAction() and hasText("Kraftstoff")).assertExists()
         compose.onNode(hasSetTextAction() and hasText("AdBlue")).assertDoesNotExist()
         compose.onNode(hasSetTextAction() and hasText("Batteriekapazität")).assertExists()
         compose.onNode(hasSetTextAction() and hasText("Frischwasser")).assertExists()
