@@ -1,0 +1,2 @@
+• Neu: Die Tour-Detailseite zeigt jetzt auch Bordbuch-Einträge (z. B. Heizungslauf), die während der Tour passiert sind
+• "Kassette entleert", "Grauwasser abgelassen" oder "Gasflasche getauscht" im Bordbuch legt jetzt auch eine passende Station an, statt zwei getrennte, unverknüpfte Einträge zu erzeugen
