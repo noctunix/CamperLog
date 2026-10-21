@@ -96,10 +96,6 @@ fun VehicleScreen(
     whereAmIViewModel: WhereAmIViewModel,
     locationEnabled: Boolean,
     reminderSettings: ReminderSettings,
-    /** Launcher-Shortcut "Panne & Unfall": öffnet das "Wo bin ich?"-Sheet direkt beim Erreichen dieses Reiters. */
-    openWhereAmI: Boolean = false,
-    /** [openWhereAmI] wurde übernommen und soll nicht erneut ausgelöst werden. */
-    onWhereAmIOpened: () -> Unit = {},
     onOpenSearch: () -> Unit,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -192,13 +188,6 @@ fun VehicleScreen(
 
     if (showWhereAmI) {
         WhereAmISheet(viewModel = whereAmIViewModel, onDismiss = { showWhereAmI = false })
-    }
-
-    LaunchedEffect(openWhereAmI) {
-        if (openWhereAmI) {
-            showWhereAmI = true
-            onWhereAmIOpened()
-        }
     }
 
     LaunchedEffect(message) {
@@ -462,7 +451,8 @@ private fun RepairRow(repair: Repair, locale: Locale, onClick: () -> Unit) {
 
 /**
  * Karte „Panne & Unfall" am Kopf des Datenblatts; nur sichtbar, wenn [Vehicle.hasBreakdownInfo] gilt.
- * "Wo bin ich?" erscheint nur, wenn [locationEnabled] an ist.
+ * Zeigt neben Kontakten auch statische Notfall-Verhaltenshinweise. "Wo bin ich?" erscheint nur, wenn
+ * [locationEnabled] an ist.
  */
 @Composable
 private fun BreakdownAssistanceCard(vehicle: Vehicle, onCall: (String) -> Unit, locationEnabled: Boolean, onWhereAmI: () -> Unit) {
@@ -511,6 +501,9 @@ private fun BreakdownAssistanceCard(vehicle: Vehicle, onCall: (String) -> Unit, 
                 onCall = onCall,
             )
         }
+        HorizontalDivider()
+        Text(stringResource(R.string.vehicle_emergency_heading), style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.vehicle_emergency_body), style = MaterialTheme.typography.bodyMedium)
         if (locationEnabled) {
             TextButton(onClick = onWhereAmI) {
                 Icon(painterResource(R.drawable.ic_my_location), contentDescription = null)

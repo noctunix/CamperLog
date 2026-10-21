@@ -497,12 +497,10 @@ fun CamperLogNavHost(
         }
     }
 
-    // Launcher-Shortcut "Panne & Unfall": öffnet den Fahrzeug-Reiter und direkt das "Wo bin ich?"-Sheet.
-    var openWhereAmIFromShortcut by remember { mutableStateOf(false) }
+    // Launcher-Shortcut "Panne & Unfall": öffnet den Fahrzeug-Reiter mit seiner Infokarte am Kopf.
     LaunchedEffect(pendingBreakdown) {
         if (pendingBreakdown) {
             navController.navigateToTab(VehicleRoute)
-            openWhereAmIFromShortcut = true
             onBreakdownHandled()
         }
     }
@@ -526,11 +524,7 @@ fun CamperLogNavHost(
     )
     NavHost(navController, startDestination = ToursRoute) {
         toursGraph(navController, deps, bottomBar)
-        vehicleGraph(
-            navController, deps, bottomBar,
-            openWhereAmI = openWhereAmIFromShortcut,
-            onWhereAmIOpened = { openWhereAmIFromShortcut = false },
-        )
+        vehicleGraph(navController, deps, bottomBar)
         stationsGraph(navController, deps, bottomBar)
         settingsGraph(navController, deps, themeMode, onThemeModeChange, accentColor, onAccentColorChange)
     }

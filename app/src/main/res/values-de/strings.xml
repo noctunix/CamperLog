@@ -947,6 +947,10 @@
     <string name="location_remove_coordinates">Koordinaten entfernen</string>
     <string name="location_approximate_hint_body">Für genaue Positionen erlaube in den App-Einstellungen „Genauer Standort“.</string>
 
+    <!-- Verhaltenshinweise im Notfall (Panne-&-Unfall-Karte) -->
+    <string name="vehicle_emergency_heading">Im Notfall</string>
+    <string name="vehicle_emergency_body">Warnblinker an und Warnweste anziehen, bevor du aussteigst.\nUnfallstelle mit Warndreieck absichern.\nBei Personenschaden Rettungsdienst und Polizei rufen.\nSchäden fotografieren und Kontakt- sowie Versicherungsdaten austauschen.</string>
+
     <!-- Wo bin ich? (Panne-&-Unfall-Karte) -->
     <string name="vehicle_where_am_i">Wo bin ich?</string>
     <string name="where_am_i_title">Aktuelle Position</string>

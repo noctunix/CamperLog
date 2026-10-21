@@ -90,6 +90,8 @@ class VehicleBreakdownFlowTest {
         compose.onNodeWithText("Mitgliedsnummer 123 456 789").assertExists()
         compose.onNodeWithText("+49 89 22 22 22").assertExists()
         compose.onNodeWithText("480 kg").assertExists()
+        compose.onNodeWithText("Im Notfall").assertExists()
+        compose.onNodeWithText("Warnblinker", substring = true).assertExists()
     }
 
     @Test
