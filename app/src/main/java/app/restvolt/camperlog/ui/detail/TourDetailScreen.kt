@@ -65,6 +65,7 @@ import app.restvolt.camperlog.domain.ChecklistTemplate
 import app.restvolt.camperlog.domain.Conversion
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.DiaryEntry
+import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.checkedCount
 import app.restvolt.camperlog.domain.displayTitle
@@ -254,6 +255,7 @@ fun TourDetailScreen(
                 autoDetectedCountries = current.autoDetectedCountries,
                 diaryEntries = current.diaryEntries,
                 checklists = current.checklists,
+                logEntries = current.logEntries,
                 metrics = current.metrics,
                 modifier = Modifier.fillMaxSize(),
                 padding = padding,
@@ -403,6 +405,7 @@ private fun TourDetails(
     autoDetectedCountries: Set<String>,
     diaryEntries: List<DiaryEntry>,
     checklists: List<Checklist>,
+    logEntries: List<LogEntry>,
     metrics: TourMetrics,
     modifier: Modifier,
     padding: PaddingValues,
@@ -506,6 +509,20 @@ private fun TourDetails(
                         ?.let { pluralStringResource(R.plurals.diary_entry_count, it.size, it.size) },
                 ) {
                     DiarySection(entries = diaryEntries, locale = locale, onOpenEntry = onOpenDiaryEntry, onAdd = onAddDiaryEntry)
+                }
+            }
+        }
+        item {
+            var expanded by rememberSaveable { mutableStateOf(false) }
+            SectionCard {
+                CollapsibleSection(
+                    title = stringResource(R.string.tour_section_logbook),
+                    expanded = expanded,
+                    onToggle = { expanded = !expanded },
+                    summary = logEntries.takeIf { it.isNotEmpty() }
+                        ?.let { pluralStringResource(R.plurals.tour_logbook_entry_count, it.size, it.size) },
+                ) {
+                    LogbookSection(entries = logEntries, locale = locale)
                 }
             }
         }
@@ -871,6 +888,28 @@ private fun DiaryEntryRow(entry: DiaryEntry, locale: Locale, onClick: () -> Unit
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+@Composable
+private fun LogbookSection(entries: List<LogEntry>, locale: Locale) {
+    if (entries.isEmpty()) {
+        Text(stringResource(R.string.tour_logbook_empty), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            entries.forEach { entry -> LogbookEntryRow(entry, locale) }
+        }
+    }
+}
+
+@Composable
+private fun LogbookEntryRow(entry: LogEntry, locale: Locale) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(formatDate(entry.date, locale), style = MaterialTheme.typography.bodyLarge)
+        Text(stringResource(entry.type.labelRes), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

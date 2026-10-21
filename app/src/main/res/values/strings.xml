@@ -820,6 +820,14 @@
         <item quantity="other">%1$d nights</item>
     </plurals>
 
+    <!-- Tour detail: logbook section -->
+    <string name="tour_section_logbook">Logbook during this tour</string>
+    <plurals name="tour_logbook_entry_count">
+        <item quantity="one">%1$d entry</item>
+        <item quantity="other">%1$d entries</item>
+    </plurals>
+    <string name="tour_logbook_empty">No logbook entries during this tour.</string>
+
     <!-- Diary -->
     <string name="diary_section_title">Diary</string>
     <plurals name="diary_entry_count">

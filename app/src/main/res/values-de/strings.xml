@@ -809,6 +809,14 @@
         <item quantity="other">%1$d Nächte</item>
     </plurals>
 
+    <!-- Tourdetail: Bordbuch-Abschnitt -->
+    <string name="tour_section_logbook">Bordbuch während der Tour</string>
+    <plurals name="tour_logbook_entry_count">
+        <item quantity="one">%1$d Eintrag</item>
+        <item quantity="other">%1$d Einträge</item>
+    </plurals>
+    <string name="tour_logbook_empty">Keine Bordbuch-Einträge während dieser Tour.</string>
+
     <!-- Tagebuch -->
     <string name="diary_section_title">Tagebuch</string>
     <plurals name="diary_entry_count">

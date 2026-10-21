@@ -720,6 +720,7 @@ internal fun NavController.tourDetailViewModel(
     stations: StationRepository,
     diaryEntries: DiaryEntryRepository,
     checklists: ChecklistRepository,
+    logbook: LogRepository,
     exchangeRates: ExchangeRateRepository,
     countryLookup: CountryLookupRepository,
     attachments: AttachmentRepository,
@@ -731,7 +732,7 @@ internal fun NavController.tourDetailViewModel(
     val context = LocalContext.current
     return viewModel(viewModelStoreOwner = detailEntry) {
         TourDetailViewModel(
-            tours, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore,
+            tours, vehicles, stations, diaryEntries, checklists, logbook, exchangeRates, countryLookup, attachments, attachmentFileStore,
             AndroidTourExportFiles(context), tracks, tourId,
         )
     }

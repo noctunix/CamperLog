@@ -169,6 +169,7 @@ internal fun NavGraphBuilder.toursGraph(
                     stations,
                     diaryEntries,
                     checklists,
+                    logbook,
                     exchangeRates,
                     countryLookup,
                     attachments,
@@ -224,7 +225,7 @@ internal fun NavGraphBuilder.toursGraph(
     composable<DiaryEditRoute> { entry ->
         val route = entry.toRoute<DiaryEditRoute>()
         val tourDetailViewModel =
-            navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)
+            navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, logbook, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)
         DiaryEditScreen(
             viewModel = viewModel {
                 DiaryEditViewModel(diaryEntries, repository, route.tourId, route.entryId, createSavedStateHandle())
@@ -241,7 +242,7 @@ internal fun NavGraphBuilder.toursGraph(
     composable<TourMapRoute> { entry ->
         val route = entry.toRoute<TourMapRoute>()
         val tourDetailViewModel =
-            navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)
+            navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, logbook, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)
         val detailState by tourDetailViewModel.uiState.collectAsStateWithLifecycle()
         val loaded = detailState as? DetailUiState.Loaded
         val track by remember(route.tourId) { tracks.observeForTour(route.tourId) }

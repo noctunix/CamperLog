@@ -161,7 +161,7 @@ internal fun NavGraphBuilder.stationsGraph(
             route.fromStationsTab && navController.hasRoute<StationsRoute>() ->
                 navController.stationsViewModel(entry, stations, repository, vehicles)::deleteStation
             navController.hasRoute<DetailRoute>() ->
-                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)::deleteStation
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, logbook, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)::deleteStation
             else -> { station -> fallbackDeleteScope.launch { stations.delete(station.id) } }
         }
         StationDetailScreen(
