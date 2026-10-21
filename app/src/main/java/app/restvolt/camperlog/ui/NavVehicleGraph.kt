@@ -53,7 +53,7 @@ internal fun NavGraphBuilder.vehicleGraph(
 ) = with(deps) {
     composable<LogbookRoute> {
         LogbookScreen(
-            viewModel = viewModel { LogbookViewModel(logbook, vehicles) },
+            viewModel = viewModel { LogbookViewModel(logbook, vehicles, stations) },
             onOpenHistory = { vehicleId, type -> navController.navigate(LogHistoryRoute(vehicleId, type.name)) },
             onOpenSearch = { navController.navigate(SearchRoute) },
             onOpenData = { navController.navigate(DataRoute) },
