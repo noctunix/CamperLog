@@ -32,6 +32,9 @@ interface LogRepository {
     /** Liefert die Einträge eines Fahrzeugs und einer Art, neueste zuerst. */
     fun observeEntries(vehicleId: Long, type: LogType): Flow<List<LogEntry>>
 
+    /** Liefert die Einträge eines Fahrzeugs zwischen [from] und [to] (inklusive), aufsteigend nach Datum. */
+    fun observeForVehicleInRange(vehicleId: Long, from: LocalDate, to: LocalDate): Flow<List<LogEntry>>
+
     /** Liefert alle Einträge aller Fahrzeuge für den Sicherungs-Export. */
     suspend fun allEntries(): List<LogEntry>
 

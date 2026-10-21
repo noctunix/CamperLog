@@ -31,6 +31,9 @@ class RoomLogRepository(
     override fun observeEntries(vehicleId: Long, type: LogType): Flow<List<LogEntry>> =
         dao.observeEntries(vehicleId, type.name).map { rows -> rows.map(LogEntryEntity::toDomain) }
 
+    override fun observeForVehicleInRange(vehicleId: Long, from: LocalDate, to: LocalDate): Flow<List<LogEntry>> =
+        dao.observeForVehicleBetween(vehicleId, from.toString(), to.toString()).map { rows -> rows.map(LogEntryEntity::toDomain) }
+
     override suspend fun allEntries(): List<LogEntry> = dao.getAll().map(LogEntryEntity::toDomain)
 
     override fun observeAllEntries(): Flow<List<LogEntry>> = dao.observeAllEntries().map { rows -> rows.map(LogEntryEntity::toDomain) }

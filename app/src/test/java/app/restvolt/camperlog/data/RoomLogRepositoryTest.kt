@@ -87,6 +87,21 @@ class RoomLogRepositoryTest {
     }
 
     @Test
+    fun observeForVehicleInRangeExcludesOutsideDatesAndOtherVehicles() = runTest {
+        val otherVehicleId = db.vehicleDao().insert(VehicleEntity(uuid = "vehicle-2", createdAtMillis = 0, updatedAtMillis = 0))
+        val before = repository.add(vehicleId, LogType.CASSETTE_EMPTIED, LocalDate.of(2026, 1, 9))
+        val inRangeFirst = repository.add(vehicleId, LogType.CASSETTE_EMPTIED, LocalDate.of(2026, 1, 10))
+        val inRangeSecond = repository.add(vehicleId, LogType.GREY_WATER_EMPTIED, LocalDate.of(2026, 1, 15))
+        val after = repository.add(vehicleId, LogType.CASSETTE_EMPTIED, LocalDate.of(2026, 1, 21))
+        repository.add(otherVehicleId, LogType.CASSETTE_EMPTIED, LocalDate.of(2026, 1, 12))
+
+        val entries = repository.observeForVehicleInRange(vehicleId, LocalDate.of(2026, 1, 10), LocalDate.of(2026, 1, 20)).first()
+
+        assertEquals(listOf(inRangeFirst.id, inRangeSecond.id), entries.map { it.id })
+        assertFalse(entries.any { it.id == before.id || it.id == after.id })
+    }
+
+    @Test
     fun deletingAnEntryAlsoDeletesItsAttachments() = runTest {
         val entry = repository.add(vehicleId, LogType.GAS_HEATER_RUN, LocalDate.of(2026, 1, 1))
         db.attachmentDao().insert(

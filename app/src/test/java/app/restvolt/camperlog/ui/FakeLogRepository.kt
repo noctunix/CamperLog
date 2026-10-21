@@ -30,6 +30,12 @@ class FakeLogRepository(initial: List<LogEntry> = emptyList()) : LogRepository {
                 .sortedWith(compareByDescending<LogEntry> { it.date }.thenByDescending { it.id })
         }
 
+    override fun observeForVehicleInRange(vehicleId: Long, from: LocalDate, to: LocalDate): Flow<List<LogEntry>> =
+        state.map { list ->
+            list.filter { it.vehicleId == vehicleId && it.date >= from && it.date <= to }
+                .sortedWith(compareBy<LogEntry> { it.date }.thenBy { it.id })
+        }
+
     override suspend fun allEntries(): List<LogEntry> = state.value
 
     override fun observeAllEntries(): Flow<List<LogEntry>> =
