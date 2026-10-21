@@ -18,6 +18,8 @@ import app.restvolt.camperlog.domain.CountryLookupRepository
 import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
+import app.restvolt.camperlog.domain.LogEntry
+import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
@@ -39,12 +41,16 @@ import app.restvolt.camperlog.domain.derivedMetrics
 import app.restvolt.camperlog.share.CsvVocabulary
 import app.restvolt.camperlog.share.tourExportBaseName
 import app.restvolt.camperlog.share.writeTourExportZip
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -76,6 +82,8 @@ sealed interface DetailUiState {
         val diaryEntries: List<DiaryEntry> = emptyList(),
         /** Checklisten der Tour, neueste zuerst. */
         val checklists: List<Checklist> = emptyList(),
+        /** Bordbuch-Einträge während dieser Tour, aufsteigend nach Datum, rein über das Datum zugeordnet, nicht persistiert. */
+        val logEntries: List<LogEntry> = emptyList(),
         /** Kennzahlen für laufende Touren live abgeleitet, für abgeschlossene aus den gespeicherten Werten. */
         val metrics: TourMetrics = TourMetrics(tour.travelDays, tour.overnightStays, tour.distanceKm),
     ) : DetailUiState
@@ -123,6 +131,7 @@ class TourDetailViewModel(
     private val stations: StationRepository,
     private val diaryEntries: DiaryEntryRepository,
     private val checklists: ChecklistRepository,
+    private val logs: LogRepository,
     exchangeRates: ExchangeRateRepository,
     private val countryLookup: CountryLookupRepository,
     private val attachments: AttachmentRepository,
@@ -136,6 +145,11 @@ class TourDetailViewModel(
     private val onTourFinished: () -> Unit = {},
 ) : ViewModel() {
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val logEntriesInRange: Flow<List<LogEntry>> = repository.observeTour(tourId).flatMapLatest { tour ->
+        if (tour == null) flowOf(emptyList()) else logs.observeForVehicleInRange(tour.vehicleId, tour.startDate, tour.endDate ?: today())
+    }
+
     val uiState: StateFlow<DetailUiState> = combine(
         repository.observeTour(tourId),
         vehicles.observeVehicles(),
@@ -148,7 +162,8 @@ class TourDetailViewModel(
             TourContent(stationList, diaryList, checklistList, trackPoints)
         },
         combine(exchangeRates.observeMainCurrency(), exchangeRates.observeRates()) { main, rates -> main to rates },
-    ) { tour, vehicleList, content, (main, rates) ->
+        logEntriesInRange,
+    ) { tour, vehicleList, content, (main, rates), logEntries ->
         if (tour == null) {
             DetailUiState.NotFound
         } else {
@@ -170,6 +185,7 @@ class TourDetailViewModel(
                 autoDetectedCountries = autoDetectedCountries(stationList, countryLookup, content.trackPoints),
                 diaryEntries = content.diaryEntries,
                 checklists = content.checklists,
+                logEntries = logEntries,
                 metrics = metrics,
             )
         }
