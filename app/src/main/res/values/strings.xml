@@ -958,6 +958,10 @@
     <string name="location_remove_coordinates">Remove coordinates</string>
     <string name="location_approximate_hint_body">For exact positions, allow \"Precise location\" in the app settings.</string>
 
+    <!-- Emergency behaviour hints (breakdown card) -->
+    <string name="vehicle_emergency_heading">In an emergency</string>
+    <string name="vehicle_emergency_body">Switch on the hazard lights and put on a high-visibility vest before leaving the vehicle.\nSecure the scene with a warning triangle.\nCall emergency services if anyone is injured.\nPhotograph all damage and exchange contact and insurance details.</string>
+
     <!-- Where am I? (breakdown card) -->
     <string name="vehicle_where_am_i">Where am I?</string>
     <string name="where_am_i_title">Current position</string>
