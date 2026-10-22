@@ -100,6 +100,38 @@ enum class SiteKind(val csvValue: String) {
     HOSTEL("hostel"),
 }
 
+/** Verpflegungsstufe einer Übernachtung, nur bei [SiteKind.HOTEL], [SiteKind.VACATION_RENTAL] oder [SiteKind.HOSTEL] relevant. */
+enum class BoardType(val csvValue: String) {
+    NONE("keine"),
+    BREAKFAST("fruehstueck"),
+    HALF_BOARD("halbpension"),
+    FULL_BOARD("vollpension"),
+}
+
+/** Ausstattungsmerkmal einer Hotel-/Ferienwohnungs-/Hostel-Übernachtung, mit stabilem Exportwert [csvValue]. */
+enum class LodgingAmenity(val csvValue: String) {
+    POOL("pool"),
+    SAUNA("sauna"),
+    FITNESS_ROOM("fitnessraum"),
+    WELLNESS("wellness"),
+    PRIVATE_BATHROOM("eigenes_bad"),
+    AIR_CONDITIONING("klimaanlage"),
+    FRIDGE("kuehlschrank"),
+    MINIBAR("minibar"),
+    BALCONY("balkon"),
+    SAFE("safe"),
+    PARKING("parkplatz"),
+    EV_CHARGING("e_ladestation"),
+    BIKE_RENTAL("fahrradverleih"),
+    RECEPTION_24_7("rezeption_24_7"),
+    RESTAURANT("restaurant"),
+    LAUNDRY_SERVICE("waeschedienst"),
+    ELEVATOR("aufzug"),
+    PETS_ALLOWED("haustiere_erlaubt"),
+    NON_SMOKING("nichtraucher"),
+    SKI_ROOM("skiraum"),
+}
+
 /** Herkunft gespeicherter Koordinaten, mit stabilem Exportwert [csvValue]. */
 enum class CoordinateSource(val csvValue: String) {
     GPS("gps"),
@@ -125,6 +157,10 @@ data class WeatherSnapshot(
  * [date] und [time] sind Wanduhrzeiten am Ort; nur [WeatherSnapshot.observedAt] ist ein [Instant].
  * Die typspezifischen Felder ([nights] bis [levelingBlocksUsed]) sind nur bei [StationType.OVERNIGHT]
  * gesetzt, `null` bedeutet dort "nicht angegeben". [favorite] markiert "gerne wieder".
+ *
+ * WLAN-Qualität ([wifiQuality]) und -Kosten ([wifiCost]) gelten wie [lteQuality] für jede Übernachtung,
+ * unabhängig von [siteKind]. [boardType] und [lodgingAmenities] betreffen nur [SiteKind.HOTEL],
+ * [SiteKind.VACATION_RENTAL] und [SiteKind.HOSTEL]; welche Stationen sie anzeigen, entscheidet die Oberfläche.
  *
  * Die Stromabrechnung ([electricityBilling] bis [electricityKwhUsed]) gilt nur bei [StationType.OVERNIGHT]:
  * [electricityBilling] `null` bedeutet "nicht angegeben", alle Beträge teilen sich [electricityCurrency];
@@ -158,6 +194,10 @@ data class Station(
     val lteQuality: LteQuality? = null,
     val pitchSlope: PitchSlope? = null,
     val levelingBlocksUsed: Boolean? = null,
+    val wifiQuality: LteQuality? = null,
+    val wifiCost: Money? = null,
+    val boardType: BoardType? = null,
+    val lodgingAmenities: Set<LodgingAmenity> = emptySet(),
     val electricityBilling: ElectricityBilling? = null,
     val electricityCurrency: Currency? = null,
     val electricityFlatAmount: Money? = null,
