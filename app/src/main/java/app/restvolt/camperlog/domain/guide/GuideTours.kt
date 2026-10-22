@@ -4,7 +4,7 @@ import app.restvolt.camperlog.R
 
 /** Id und Version des Rundgangs durch die Hauptbereiche; startet einmalig nach der Ersteinrichtung. */
 const val INTRODUCTION_TOUR_ID = "tour.introduction"
-const val INTRODUCTION_TOUR_VERSION = 2
+const val INTRODUCTION_TOUR_VERSION = 3
 
 /**
  * Rundgang für Einsteiger: Begriffe (Tour, Station, Bordbuch), die vier Reiter samt Stationsarten,
@@ -29,13 +29,24 @@ fun introductionTour() = TourDefinition(
         TourStep("logbook", "nav.tab.logbook", R.string.title_intro_logbook, R.string.body_intro_logbook, StepCompletion.Information),
         TourStep("vehicle", "nav.tab.vehicle", R.string.title_intro_vehicle, R.string.body_intro_vehicle, StepCompletion.Information),
         TourStep("checklists", "nav.tab.vehicle", R.string.title_intro_checklists, R.string.body_intro_checklists, StepCompletion.Information),
-        TourStep("data", "nav.data", R.string.title_intro_data, R.string.body_intro_data, StepCompletion.Information),
+        TourStep(
+            "statistics", "overview.totals", R.string.title_intro_statistics, R.string.body_intro_statistics,
+            StepCompletion.Information, GuideScreen.DEMO_STATISTICS,
+        ),
+        TourStep(
+            "map", "map.view", R.string.title_intro_map, R.string.body_intro_map,
+            StepCompletion.Information, GuideScreen.DEMO_MAP,
+        ),
+        TourStep(
+            "data", "nav.data", R.string.title_intro_data, R.string.body_intro_data,
+            StepCompletion.Information, GuideScreen.TOURS_ROOT,
+        ),
     ),
 )
 
 /** Id und Version der Pilot-Tour "Erste Tour anlegen". */
 const val CREATE_FIRST_TOUR_ID = "tour.create-first"
-const val CREATE_FIRST_TOUR_VERSION = 2
+const val CREATE_FIRST_TOUR_VERSION = 3
 
 /** Aktion, die den FAB-Schritt von [CREATE_FIRST_TOUR_ID] beim echten Klick auf den FAB freischaltet. */
 const val CREATE_FIRST_TOUR_FAB_ACTION = "tour.fab.clicked"

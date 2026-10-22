@@ -73,6 +73,11 @@ class DemoTourSession(
     var active: Boolean = false
         private set
 
+    /** Id der laufenden Demo-Tour, solange [active]; sonst `null`. */
+    @Volatile
+    var tourId: Long? = null
+        private set
+
     /**
      * Räumt Reste eines abgebrochenen vorherigen Durchlaufs auf ([sweepOrphans]) und legt dann eine
      * neue, bereits beendete Demo-Tour mit eigenem Demo-Fahrzeug, sechs Stationen (Übernachtung,
@@ -89,6 +94,7 @@ class DemoTourSession(
         demoStations(tourId, vehicleId, start, now).forEach { stations.save(it) }
         tracks.addAll(demoTrackPoints(tourId, start))
         active = true
+        this.tourId = tourId
         tourId
     }
 
@@ -96,6 +102,7 @@ class DemoTourSession(
     suspend fun end() = mutex.withLock {
         sweepOrphansLocked()
         active = false
+        tourId = null
     }
 
     /**
