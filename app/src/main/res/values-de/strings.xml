@@ -706,11 +706,21 @@
 
     <!-- Introduction tour -->
     <string name="title_intro_welcome">Willkommen bei CamperLog</string>
-    <string name="body_intro_welcome">Eine Tour ist deine gesamte Reise – vom Start bis zum Beenden. Stationen sind die einzelnen Stopps und Übernachtungen innerhalb dieser Tour. Daraus berechnet CamperLog Reisetage, Nächte, Strecke und deine Kosten.\n\nWährend eine Tour läuft, kannst du optional ihren GPS-Track starten. Er zeichnet deine Strecke erst nach deinem Start auf, bleibt auf diesem Gerät und lässt sich jederzeit stoppen oder löschen.\n\nPinne eine Checklisten-Vorlage an, um sie hier als Schnellstart zu sehen.</string>
+    <string name="body_intro_welcome">CamperLog ist dein Reisetagebuch fürs Wohnmobil. Es dreht sich um drei Dinge:\n\n• Tour: deine ganze Reise, zum Beispiel „Gardasee 2026“.\n• Station: jeder Stopp unterwegs, etwa Übernachtung, Tankstelle oder Maut.\n• Bordbuch: Aufgaben am Fahrzeug, etwa Kassette leeren oder Heizung laufen lassen.\n\nDaraus berechnet CamperLog Reisetage, Nächte, Strecke und Kosten.</string>
+    <string name="title_intro_tours">Touren</string>
+    <string name="body_intro_tours">Hier liegen alle deine Touren, laufende und beendete. Mit „+“ legst du eine neue an. Solange eine Tour läuft, kannst du optional ihren GPS-Track starten. Er zeichnet deine Strecke erst nach deinem Start auf, bleibt auf diesem Gerät und lässt sich jederzeit stoppen oder löschen.</string>
+    <string name="title_intro_stations">Stationen</string>
+    <string name="body_intro_stations">Im Reiter Stationen siehst du alle Stopps aus allen Touren auf einen Blick. Neue Stationen legst du in der jeweiligen Tour an. Jede Station kann Datum, Ort, Kosten und Notizen haben.</string>
+    <string name="title_intro_station_types_trip">Stationsarten: unterwegs</string>
+    <string name="body_intro_station_types_trip">• Schlafplatz: Campingplatz, Stellplatz oder frei stehen.\n• Ver-/Entsorgung: Frischwasser auffüllen, Grauwasser ablassen, Kassette leeren.\n• Tanken &amp; Laden: Diesel, Gas oder Strom, mit Menge und Kosten.</string>
+    <string name="title_intro_station_types_extras">Stationsarten: Extras</string>
+    <string name="body_intro_station_types_extras">• Maut: Autobahn, Tunnel oder Vignette, mit Land und Gültigkeit.\n• Fähre\n• Essen\n• Sehenswertes\n• Sonstiges: für alles, was nirgends sonst passt.</string>
     <string name="title_intro_logbook">Bordbuch</string>
-    <string name="body_intro_logbook">Ein Tipp auf „Heute“ trägt Kassette, Grauwasser oder Heizung ein – genau dann, wenn du sie leerst oder laufen lässt.</string>
+    <string name="body_intro_logbook">Im Reiter Bordbuch hältst du fest, was am Fahrzeug passiert. Ein Tipp auf „Heute“ trägt Kassette, Grauwasser, Gasflasche oder Heizung ein – genau dann, wenn du sie leerst, wechselst oder laufen lässt. Ver- und Entsorgung sowie Tanken aus einer Station landen hier automatisch.</string>
     <string name="title_intro_vehicle">Fahrzeug</string>
-    <string name="body_intro_vehicle">Führe ein Datenblatt und Wartungstermine mit Erinnerungen in der App. CamperLog verwaltet auch mehrere Fahrzeuge. Dort gibt es auch Checklisten-Vorlagen (z. B. Abfahrt oder Einwintern), die du bearbeiten und für den Schnellstart an den Touren-Tab anpinnen kannst.</string>
+    <string name="body_intro_vehicle">Führe ein Datenblatt und Wartungstermine mit Erinnerungen in der App. CamperLog verwaltet auch mehrere Fahrzeuge.</string>
+    <string name="title_intro_checklists">Checklisten</string>
+    <string name="body_intro_checklists">Im Reiter Fahrzeug findest du Checklisten-Vorlagen, zum Beispiel für die Abfahrt oder zum Einwintern. Du kannst sie bearbeiten und abhaken. Pinne eine Vorlage an den Touren-Reiter, dann hast du sie dort als Schnellstart.</string>
     <string name="title_intro_data">Deine Daten</string>
     <string name="body_intro_data">Deine Touren, Stationen und Fahrzeugdaten bleiben auf diesem Gerät. Kein Konto, keine Werbung, keine Analyse. Standort und Internet bleiben aus, bis du sie selbst einschaltest. Sicherungen erstellst du jederzeit über Daten.</string>
     <string name="title_intro_settings">Einstellungen</string>

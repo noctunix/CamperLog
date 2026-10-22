@@ -8,11 +8,24 @@ import org.junit.Test
 class GuideToursTest {
 
     @Test
-    fun introductionTour_pointsAtTheFourMainAnchorsInOrder() {
+    fun introductionTour_walksThroughTermsTabsAndDataInOrder() {
         val tour = introductionTour()
 
         assertEquals(INTRODUCTION_TOUR_ID, tour.id)
-        assertEquals(listOf("nav.tab.tours", "nav.tab.logbook", "nav.tab.vehicle", "nav.data"), tour.steps.map { it.anchorId })
+        assertEquals(
+            listOf(
+                "welcome", "tours", "stations", "station-types-trip", "station-types-extras",
+                "logbook", "vehicle", "checklists", "data",
+            ),
+            tour.steps.map { it.id },
+        )
+        assertEquals(
+            listOf(
+                null, "nav.tab.tours", "nav.tab.stations", "nav.tab.stations", "nav.tab.stations",
+                "nav.tab.logbook", "nav.tab.vehicle", "nav.tab.vehicle", "nav.data",
+            ),
+            tour.steps.map { it.anchorId },
+        )
         assertTrue(tour.steps.all { it.completion is StepCompletion.Information })
     }
 
