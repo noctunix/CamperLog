@@ -15,16 +15,24 @@ class GuideToursTest {
         assertEquals(
             listOf(
                 "welcome", "tours", "stations", "station-types-trip", "station-types-extras",
-                "logbook", "vehicle", "checklists", "data",
+                "logbook", "vehicle", "checklists", "statistics", "map", "data",
             ),
             tour.steps.map { it.id },
         )
         assertEquals(
             listOf(
                 null, "nav.tab.tours", "nav.tab.stations", "nav.tab.stations", "nav.tab.stations",
-                "nav.tab.logbook", "nav.tab.vehicle", "nav.tab.vehicle", "nav.data",
+                "nav.tab.logbook", "nav.tab.vehicle", "nav.tab.vehicle", "overview.totals", "map.view", "nav.data",
             ),
             tour.steps.map { it.anchorId },
+        )
+        assertEquals(
+            mapOf(
+                "statistics" to GuideScreen.DEMO_STATISTICS,
+                "map" to GuideScreen.DEMO_MAP,
+                "data" to GuideScreen.TOURS_ROOT,
+            ),
+            tour.steps.filter { it.screen != GuideScreen.UNCHANGED }.associate { it.id to it.screen },
         )
         assertTrue(tour.steps.all { it.completion is StepCompletion.Information })
     }

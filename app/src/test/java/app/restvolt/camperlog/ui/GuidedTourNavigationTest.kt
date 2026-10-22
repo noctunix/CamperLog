@@ -198,16 +198,21 @@ class GuidedTourNavigationTest {
             clickWeiter()
             compose.onNodeWithText("Checklisten").assertExists()
             clickWeiter()
+            compose.waitUntil(5_000) { compose.onAllNodesWithText("Statistik").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Statistik").assertExists()
+            clickWeiter()
+            compose.waitUntil(5_000) { compose.onAllNodesWithText("Karte").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Karte").assertExists()
+            clickWeiter()
+            compose.waitUntil(5_000) { compose.onAllNodesWithText("Deine Daten").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Deine Daten").assertExists()
             compose.onNodeWithText("Fertig").performClick()
 
             compose.onNodeWithText("Deine Daten").assertDoesNotExist()
             assertTrue(GuideProgressStore(context).isCompleted(INTRODUCTION_TOUR_ID, INTRODUCTION_TOUR_VERSION))
 
-            // Erneut geöffnet (von der Einstellungsseite aus, auf der "Über CamperLog" steht), zeigt
-            // "Über CamperLog" jetzt das Häkchen für den Rundgang.
-            compose.onNodeWithContentDescription("Zurück").performClick()
-            compose.onNodeWithText("Über CamperLog").performClick()
+            // Der Rundgang endet auf der Tourenliste; "Über CamperLog" zeigt jetzt das Häkchen.
+            openAbout()
             compose.onNodeWithText("Abgeschlossen").assertExists()
             compose.onAllNodesWithText("Wiederholen").assertCountEquals(1)
         } finally {

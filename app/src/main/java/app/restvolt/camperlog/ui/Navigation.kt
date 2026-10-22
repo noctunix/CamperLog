@@ -67,6 +67,8 @@ import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.guide.DemoTourSession
 import app.restvolt.camperlog.domain.guide.GuideController
 import app.restvolt.camperlog.domain.guide.GuidePhase
+import app.restvolt.camperlog.domain.guide.GuideScreen
+import app.restvolt.camperlog.domain.guide.INTRODUCTION_TOUR_ID
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Station
@@ -167,9 +169,12 @@ internal data class EditRoute(val tourId: Long = 0)
 @Serializable
 internal data class DetailRoute(val tourId: Long)
 
-/** Karte der Stationen einer Tour; nur erreichbar, wenn [isMapAvailable] zutrifft. */
+/**
+ * Karte der Stationen einer Tour; nur erreichbar, wenn [isMapAvailable] zutrifft. [offline]
+ * unterdrückt jeden Kachelabruf (Rundgang).
+ */
 @Serializable
-internal data class TourMapRoute(val tourId: Long)
+internal data class TourMapRoute(val tourId: Long, val offline: Boolean = false)
 
 /** Tagebuchformular; [entryId] 0 legt einen neuen Eintrag an. */
 @Serializable
@@ -225,9 +230,12 @@ internal data class StationDetailRoute(
     val justSavedLoggedServices: List<String>? = null,
 )
 
-/** [vehicleId] `null` zeigt die Kennzahlen aller Fahrzeuge, sonst nur die von [vehicleId]. */
+/**
+ * [vehicleId] `null` zeigt die Kennzahlen aller Fahrzeuge, sonst nur die von [vehicleId]. [demo]
+ * zeigt ausschließlich die Demo-Tour des Rundgangs.
+ */
 @Serializable
-internal data class OverviewRoute(val vehicleId: Long? = null)
+internal data class OverviewRoute(val vehicleId: Long? = null, val demo: Boolean = false)
 
 @Serializable
 internal object RatesRoute
@@ -408,10 +416,36 @@ fun CamperLogNavHost(
     val guideController = guideViewModel.controller
     val guideProgressStore = remember { GuideProgressStore(context) }
     val guideState by guideController.state.collectAsStateWithLifecycle()
+    // Der Rundgang öffnet für Statistik- und Kartenschritt die jeweiligen Bildschirme mit der
+    // Demo-Tour und kehrt für die übrigen Schritte zur Tourenliste zurück.
+    LaunchedEffect(guideState.tour?.id, guideState.currentStep?.id, guideState.phase) {
+        val step = guideState.currentStep
+        if (guideState.tour?.id != INTRODUCTION_TOUR_ID || step == null) return@LaunchedEffect
+        if (guideState.phase == GuidePhase.IDLE || guideState.phase == GuidePhase.ENDED) return@LaunchedEffect
+        val onDemoScreen = navController.currentBackStackEntry?.destination
+            ?.let { it.hasRoute<OverviewRoute>() || it.hasRoute<TourMapRoute>() || it.hasRoute<DetailRoute>() } == true
+        when (step.screen) {
+            GuideScreen.DEMO_STATISTICS, GuideScreen.DEMO_MAP -> {
+                val demoTourId = resolvedDemoTourSession.tourId ?: resolvedDemoTourSession.begin()
+                navController.navigate(if (step.screen == GuideScreen.DEMO_STATISTICS) OverviewRoute(demo = true) else DetailRoute(demoTourId)) {
+                    popUpTo(ToursRoute) { inclusive = false }
+                    launchSingleTop = true
+                }
+                // Die Karte liegt über dem Tourdetail, dessen ViewModel sie teilt.
+                if (step.screen == GuideScreen.DEMO_MAP) navController.navigate(TourMapRoute(demoTourId, offline = true))
+            }
+            GuideScreen.TOURS_ROOT -> navController.navigateToToursTabRoot()
+            GuideScreen.UNCHANGED -> if (onDemoScreen) navController.navigateToToursTabRoot()
+        }
+    }
     LaunchedEffect(guideState.phase, guideState.tour?.id) {
         val tour = guideState.tour
         if (guideState.phase == GuidePhase.ENDED) {
             if (tour != null) guideProgressStore.markCompleted(tour.id, tour.version)
+            // Ein Abbruch auf Statistik oder Karte der Demo-Tour verlässt diese Bildschirme vor dem Aufräumen.
+            val onDemoScreen = navController.currentBackStackEntry?.destination
+                ?.let { it.hasRoute<OverviewRoute>() || it.hasRoute<TourMapRoute>() || it.hasRoute<DetailRoute>() } == true
+            if (tour?.id == INTRODUCTION_TOUR_ID && onDemoScreen) navController.navigateToToursTabRoot()
             // Deckt sowohl den erfolgreichen Abschluss als auch einen Abbruch der Pilot-Tour ab:
             // beide landen hier, egal ob die Demo-Tour dabei je angelegt wurde.
             resolvedDemoTourSession.end()

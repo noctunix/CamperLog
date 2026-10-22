@@ -251,6 +251,7 @@ internal fun NavGraphBuilder.toursGraph(
         MapScreen(
             stations = loaded?.stations ?: emptyList(),
             track = track,
+            offline = route.offline,
             title = loaded?.tour?.displayTitle(fallbackTitle) ?: fallbackTitle,
             viewModel = viewModel(key = "map_tour_${route.tourId}") { MapViewModel(tileLoader) },
             onBack = { navController.popFrom(entry) },
@@ -258,9 +259,11 @@ internal fun NavGraphBuilder.toursGraph(
         )
     }
     composable<OverviewRoute> { entry ->
-        val vehicleId = entry.toRoute<OverviewRoute>().vehicleId
+        val overviewRoute = entry.toRoute<OverviewRoute>()
         OverviewScreen(
-            viewModel = viewModel { OverviewViewModel(repository, exchangeRates, stations, countryLookup, vehicleId) },
+            viewModel = viewModel {
+                OverviewViewModel(repository, exchangeRates, stations, countryLookup, overviewRoute.vehicleId, overviewRoute.demo)
+            },
             onBack = { navController.popFrom(entry) },
             onOpenRates = { navController.navigate(RatesRoute) },
         )

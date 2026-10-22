@@ -732,6 +732,10 @@
     <string name="body_intro_vehicle">Keep a data sheet and maintenance dates, with in-app reminders when something is due. CamperLog also handles several vehicles.</string>
     <string name="title_intro_checklists">Checklists</string>
     <string name="body_intro_checklists">On the Vehicle tab you find checklist templates, for example for departure or winterizing. You can edit them and tick items off. Pin a template to the Tours tab to have it there as a quick start.</string>
+    <string name="title_intro_statistics">Statistics</string>
+    <string name="body_intro_statistics">The statistics add up distances, nights and costs of all your tours, by year and by country. Here you see the example tour only; your real tours appear once you have recorded them.</string>
+    <string name="title_intro_map">Map</string>
+    <string name="body_intro_map">Every tour has a map with its stops and, if you record one, the driven track. Here it is shown without the map background, so nothing is loaded from the internet. On your own tours the map tiles are fetched from OpenStreetMap when you open the map.</string>
     <string name="title_intro_data">Your data</string>
     <string name="body_intro_data">Your tours, stops and vehicle data stay on this device. No account, no ads, no analytics. Location and internet stay off until you turn them on. Make backups anytime via Data.</string>
     <string name="title_intro_settings">Settings</string>
