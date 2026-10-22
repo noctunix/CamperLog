@@ -59,6 +59,7 @@ class RoomBackupImporter(
         val importedVehicles = backup.vehicles.map { it.notAfter(now, today) }
 
         if (mode == ImportMode.REPLACE) {
+            database.formDraftDao().deleteAll()
             attachmentDao.deleteAll()
             checklistDao.deleteAll()
             checklistTemplateDao.deleteAll()

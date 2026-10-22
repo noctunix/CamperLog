@@ -76,6 +76,7 @@ class RoomTourRepository(
     }
 
     override suspend fun delete(id: Long) = database.withTransaction {
+        database.formDraftDao().deleteForTour(id)
         stationDao.idsForTour(id).takeIf { it.isNotEmpty() }?.let { attachmentDao.deleteForOwners(AttachmentOwnerType.STATION.name, it) }
         dao.deleteById(id)
     }

@@ -694,6 +694,16 @@ class RoomBackupImporterTest {
     }
 
     @Test
+    fun replacingDataClearsLocalDraftsButMergingKeepsThem() = runTest {
+        db.formDraftDao().put(FormDraftEntity("TOUR", 1, "raw draft", 1))
+        val empty = backup(tours = emptyList(), vehicles = emptyList())
+        importer.import(empty, ImportMode.MERGE)
+        assertEquals("raw draft", db.formDraftDao().get("TOUR", 1))
+        importer.import(empty, ImportMode.REPLACE)
+        assertEquals(null, db.formDraftDao().get("TOUR", 1))
+    }
+
+    @Test
     fun mergeAndReplace_preserveWifiExpenseChoice() = runTest {
         val importedStation = station(1).copy(wifiCost = Money(500, EUR), wifiCostIsExpense = true)
         val importedVehicle = BackupVehicle(vehicle(1), emptyList(), emptyList())

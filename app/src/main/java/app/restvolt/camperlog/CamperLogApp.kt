@@ -14,6 +14,7 @@ import app.restvolt.camperlog.data.RoomChecklistTemplateRepository
 import app.restvolt.camperlog.data.RoomDiaryEntryRepository
 import app.restvolt.camperlog.data.RoomExchangeRateRepository
 import app.restvolt.camperlog.data.RoomHomeLocationRepository
+import app.restvolt.camperlog.data.RoomFormDraftStore
 import app.restvolt.camperlog.data.RoomLogRepository
 import app.restvolt.camperlog.data.RoomStationRepository
 import app.restvolt.camperlog.data.RoomTourRepository
@@ -69,6 +70,9 @@ class CamperLogApp : Application() {
 
     /** Heimatadressen-Historie für die automatische "Beginnt zu Hause"-Station neuer Touren. */
     val homeLocations: HomeLocationRepository by lazy { RoomHomeLocationRepository(database) }
+
+    /** Dauerhafte Rohentwürfe von Formularen, getrennt von bestätigten Fachdaten. */
+    val formDraftStore by lazy { RoomFormDraftStore(database.formDraftDao()) }
 
     /** Bordbuch-Einträge. */
     val logbook: LogRepository by lazy { RoomLogRepository(database) }
