@@ -422,17 +422,25 @@ fun CamperLogNavHost(
         val step = guideState.currentStep
         if (guideState.tour?.id != INTRODUCTION_TOUR_ID || step == null) return@LaunchedEffect
         if (guideState.phase == GuidePhase.IDLE || guideState.phase == GuidePhase.ENDED) return@LaunchedEffect
-        val onDemoScreen = navController.currentBackStackEntry?.destination
-            ?.let { it.hasRoute<OverviewRoute>() || it.hasRoute<TourMapRoute>() || it.hasRoute<DetailRoute>() } == true
+        val destination = navController.currentBackStackEntry?.destination
+        val onDemoScreen = destination?.let { it.hasRoute<OverviewRoute>() || it.hasRoute<TourMapRoute>() || it.hasRoute<DetailRoute>() } == true
+        // Nach einer Bildschirmdrehung läuft der Effekt erneut; der passende Bildschirm bleibt dann unverändert.
         when (step.screen) {
-            GuideScreen.DEMO_STATISTICS, GuideScreen.DEMO_MAP -> {
-                val demoTourId = resolvedDemoTourSession.tourId ?: resolvedDemoTourSession.begin()
-                navController.navigate(if (step.screen == GuideScreen.DEMO_STATISTICS) OverviewRoute(demo = true) else DetailRoute(demoTourId)) {
+            GuideScreen.DEMO_STATISTICS -> if (destination?.hasRoute<OverviewRoute>() != true) {
+                resolvedDemoTourSession.ensure()
+                navController.navigate(OverviewRoute(demo = true)) {
+                    popUpTo(ToursRoute) { inclusive = false }
+                    launchSingleTop = true
+                }
+            }
+            GuideScreen.DEMO_MAP -> if (destination?.hasRoute<TourMapRoute>() != true) {
+                val demoTourId = resolvedDemoTourSession.ensure()
+                navController.navigate(DetailRoute(demoTourId)) {
                     popUpTo(ToursRoute) { inclusive = false }
                     launchSingleTop = true
                 }
                 // Die Karte liegt über dem Tourdetail, dessen ViewModel sie teilt.
-                if (step.screen == GuideScreen.DEMO_MAP) navController.navigate(TourMapRoute(demoTourId, offline = true))
+                navController.navigate(TourMapRoute(demoTourId, offline = true))
             }
             GuideScreen.TOURS_ROOT -> navController.navigateToToursTabRoot()
             GuideScreen.UNCHANGED -> if (onDemoScreen) navController.navigateToToursTabRoot()
