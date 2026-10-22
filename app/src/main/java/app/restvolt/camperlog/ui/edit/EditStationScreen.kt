@@ -245,7 +245,7 @@ private fun StationForm(
             StationField.NOTES to FocusRequester(),
             StationField.TOLL_COUNTRY to FocusRequester(),
             StationField.TOLL_VALID_UNTIL to FocusRequester(),
-            StationField.TOLL_PAYMENT_METHOD to FocusRequester(),
+            StationField.PAYMENT_METHOD to FocusRequester(),
             StationField.FERRY_BOOKING_REFERENCE to FocusRequester(),
             StationField.COST to FocusRequester(),
             StationField.ODOMETER_KM to FocusRequester(),
@@ -404,6 +404,14 @@ private fun StationForm(
                 onNoteChange = viewModel::onCostNoteChange,
                 onAdd = viewModel::onAddCost,
                 onRemove = viewModel::onRemoveCost,
+            )
+            FormTextField(
+                label = stringResource(R.string.field_payment_method),
+                value = input.paymentMethod,
+                error = errors[StationField.PAYMENT_METHOD],
+                onValueChange = { value -> viewModel.onInputChange { it.copy(paymentMethod = value) } },
+                modifier = focusOf(StationField.PAYMENT_METHOD),
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
             )
         }
         PhotoAttachmentsSection(

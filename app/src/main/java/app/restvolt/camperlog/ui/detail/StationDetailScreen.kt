@@ -278,12 +278,6 @@ private fun StationDetails(
                         )
                     }
                 }
-                if (station.tollPaymentMethod.isNotBlank()) {
-                    Text(
-                        stringResource(R.string.station_summary_field, stringResource(R.string.field_toll_payment_method), station.tollPaymentMethod),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                }
             }
         }
         if (station.type == StationType.FERRY && station.ferryBookingReference.isNotBlank()) {
@@ -296,7 +290,7 @@ private fun StationDetails(
             }
         }
         val costs = station.effectiveCosts()
-        if (costs.isNotEmpty()) {
+        if (costs.isNotEmpty() || station.paymentMethod.isNotBlank()) {
             SectionCard {
                 DetailHeading(stringResource(R.string.station_section_costs))
                 costs.sortedBy { it.category.ordinal }.forEach { cost ->
@@ -304,6 +298,12 @@ private fun StationDetails(
                     val valueText = if (cost.note.isBlank()) amountText else "$amountText · ${cost.note}"
                     Text(
                         stringResource(R.string.station_summary_field, stringResource(cost.category.labelRes), valueText),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+                if (station.paymentMethod.isNotBlank()) {
+                    Text(
+                        stringResource(R.string.station_summary_field, stringResource(R.string.field_payment_method), station.paymentMethod),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }

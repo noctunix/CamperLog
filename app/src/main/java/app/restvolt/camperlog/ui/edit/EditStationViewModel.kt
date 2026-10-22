@@ -468,7 +468,7 @@ class EditStationViewModel(
         if (StationField.ELECTRICITY in errors) sanitized = sanitized.copy(electricityBilling = null)
         if (StationField.TOLL_COUNTRY in errors) sanitized = sanitized.copy(tollCountry = "")
         if (StationField.TOLL_VALID_UNTIL in errors) sanitized = sanitized.copy(tollValidUntil = null)
-        if (StationField.TOLL_PAYMENT_METHOD in errors) sanitized = sanitized.copy(tollPaymentMethod = "")
+        if (StationField.PAYMENT_METHOD in errors) sanitized = sanitized.copy(paymentMethod = "")
         if (StationField.FERRY_BOOKING_REFERENCE in errors) sanitized = sanitized.copy(ferryBookingReference = "")
         if (StationField.ODOMETER_KM in errors) sanitized = sanitized.copy(odometerKm = "")
         if (StationField.MANUAL_TEMPERATURE in errors) sanitized = sanitized.copy(manualTemperatureC = "")

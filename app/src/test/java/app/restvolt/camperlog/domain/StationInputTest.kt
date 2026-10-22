@@ -373,12 +373,17 @@ class StationInputTest {
     }
 
     @Test
-    fun tollPaymentMethodTooLongIsInvalid() {
+    fun paymentMethodTooLongIsInvalid() {
         assertEquals(
             StationError.TOO_LONG,
-            validToll.copy(tollPaymentMethod = "x".repeat(MAX_TOLL_PAYMENT_METHOD_LENGTH + 1)).validate()[StationField.TOLL_PAYMENT_METHOD],
+            validToll.copy(paymentMethod = "x".repeat(MAX_PAYMENT_METHOD_LENGTH + 1)).validate()[StationField.PAYMENT_METHOD],
         )
-        assertTrue(validToll.copy(tollPaymentMethod = "x".repeat(MAX_TOLL_PAYMENT_METHOD_LENGTH)).validate().isEmpty())
+        assertEquals(
+            StationError.TOO_LONG,
+            validToll.copy(type = StationType.OVERNIGHT, nights = "1", paymentMethod = "x".repeat(MAX_PAYMENT_METHOD_LENGTH + 1))
+                .validate()[StationField.PAYMENT_METHOD],
+        )
+        assertTrue(validToll.copy(paymentMethod = "x".repeat(MAX_PAYMENT_METHOD_LENGTH)).validate().isEmpty())
     }
 
     @Test
@@ -420,13 +425,13 @@ class StationInputTest {
     fun toStationKeepsTollFieldsOnlyForTollStations() {
         val station = validToll.copy(
             tollKind = TollKind.VIGNETTE,
-            tollPaymentMethod = "App",
+            paymentMethod = "App",
             tollCountry = "at",
             tollValidFrom = LocalDate.of(2026, 1, 1),
             tollValidUntil = LocalDate.of(2026, 12, 31),
         ).toStation(null)
         assertEquals(TollKind.VIGNETTE, station.tollKind)
-        assertEquals("App", station.tollPaymentMethod)
+        assertEquals("App", station.paymentMethod)
         assertEquals("AT", station.tollCountry)
         assertEquals(LocalDate.of(2026, 1, 1), station.tollValidFrom)
         assertEquals(LocalDate.of(2026, 12, 31), station.tollValidUntil)
@@ -434,7 +439,12 @@ class StationInputTest {
         val notToll = validToll.copy(type = StationType.OVERNIGHT, nights = "1", tollKind = TollKind.VIGNETTE, tollCountry = "at").toStation(null)
         assertNull(notToll.tollKind)
         assertNull(notToll.tollCountry)
-        assertEquals("", notToll.tollPaymentMethod)
+    }
+
+    @Test
+    fun toStationKeepsTheTrimmedPaymentMethodForEveryStationType() {
+        val station = validToll.copy(type = StationType.OVERNIGHT, nights = "1", tollKind = null, paymentMethod = "  Bar ").toStation(null)
+        assertEquals("Bar", station.paymentMethod)
     }
 
     @Test
@@ -516,7 +526,7 @@ class StationInputTest {
     fun roundTripThroughInputIsLosslessForTollStations() {
         val station = validToll.toStation(null).copy(
             tollKind = TollKind.VIGNETTE,
-            tollPaymentMethod = "App",
+            paymentMethod = "App",
             tollCountry = "AT",
             tollValidFrom = LocalDate.of(2026, 1, 1),
             tollValidUntil = LocalDate.of(2026, 12, 31),

@@ -60,13 +60,6 @@ internal fun TollSection(
                 minDate = input.tollValidFrom,
             )
         }
-        FormTextField(
-            label = stringResource(R.string.field_toll_payment_method),
-            value = input.tollPaymentMethod,
-            error = errors[StationField.TOLL_PAYMENT_METHOD],
-            onValueChange = { value -> change { it.copy(tollPaymentMethod = value) } },
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
-        )
     }
 }
 

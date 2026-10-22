@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.backup
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
@@ -255,7 +256,7 @@ internal data class StationDto(
     /** Getankte Liter einer Tanken-Station; fehlt in Sicherungen vor Formatversion 24. */
     val fuelLiters: String? = null,
     val tollKind: String? = null,
-    val tollPaymentMethod: String = "",
+    @SerialName("tollPaymentMethod") val paymentMethod: String = "",
     val tollCountry: String? = null,
     val tollValidFrom: String? = null,
     val tollValidUntil: String? = null,
