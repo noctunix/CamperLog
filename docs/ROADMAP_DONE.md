@@ -2,6 +2,7 @@
 
 Shipped features, newest first.
 
+- 1.32.0 – Payment method on every kind of stop, picked from an editable list in Settings (part of backups); one-tap "Fueled" logbook tile with optional litres and derived price per litre; gas-bottle switch and refill tiles; quick-facts popup for logbook entries
 - 1.28.1 – Overnight stays can be tagged as hotel, vacation rental or hostel, not just campsite/motorhome area/wild camping; home address history is now part of backups and carried over on restore (1.28.0 never shipped: its tagged commit failed CI when lint's upstream-version checks happened to flag a newer Gradle/dependency release at analysis time, unrelated to the change itself)
 - 1.27.0 – Launcher shortcuts (long-press the app icon): new tour, new stop, breakdown/accident help; a dynamic shortcut for the running tour appears automatically while one is active
 - 1.26.0 – New local diagnostics log (Settings → Diagnostics log): records detailed entries for GPS track recording when enabled, crashes always; view and share from Settings. Entries are redacted (coordinates, amounts, plates, real file paths) before they could ever leave the device
