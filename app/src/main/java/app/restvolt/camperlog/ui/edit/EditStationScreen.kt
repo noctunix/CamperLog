@@ -373,7 +373,7 @@ private fun StationForm(
                 SectionHeading(stringResource(R.string.station_section_used_here))
                 ServicesChips(SUPPLY_SERVICES, input.services, servicesError) { service -> change { it.copy(services = it.services.toggled(service)) } }
             }
-            StationType.FUEL -> FuelSection(input, state.vehicles, change, servicesError)
+            StationType.FUEL -> FuelSection(input, state.vehicles, change, servicesError, errors[StationField.FUEL_LITERS])
             StationType.TOLL -> TollSection(input, errors, change)
             StationType.FERRY -> FerrySection(input, errors[StationField.FERRY_BOOKING_REFERENCE], change)
             StationType.SIGHT, StationType.FOOD, StationType.OTHER -> Unit
@@ -574,10 +574,23 @@ private fun OvernightSection(
 }
 
 @Composable
-private fun FuelSection(input: StationInput, vehicles: List<Vehicle>, change: ((StationInput) -> StationInput) -> Unit, servicesError: String?) {
+private fun FuelSection(
+    input: StationInput,
+    vehicles: List<Vehicle>,
+    change: ((StationInput) -> StationInput) -> Unit,
+    servicesError: String?,
+    litersError: String?,
+) {
     SectionCard {
         SectionHeading(stringResource(R.string.station_section_fuelled))
         ServicesChips(fuelServicesFor(vehicles), input.services, error = null) { service -> change { it.copy(services = it.services.toggled(service)) } }
+        FormTextField(
+            label = stringResource(R.string.field_fuel_liters),
+            value = input.fuelLiters,
+            error = litersError,
+            onValueChange = { value -> change { it.copy(fuelLiters = value) } },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+        )
 
         var usedHereExpanded by rememberSaveable(input.type) { mutableStateOf(input.services.any { it in SUPPLY_SERVICES }) }
         CollapsibleSection(
