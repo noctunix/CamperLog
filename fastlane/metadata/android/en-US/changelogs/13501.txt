@@ -1,0 +1,1 @@
+• Fixed: the back button now steps back through the tour instead of navigating the app underneath
