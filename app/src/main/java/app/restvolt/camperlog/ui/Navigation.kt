@@ -73,6 +73,7 @@ import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TileLoader
+import app.restvolt.camperlog.domain.FormDraftStore
 import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
@@ -281,6 +282,7 @@ internal class NavDependencies(
     val demoTourSession: DemoTourSession,
     val diagnosticsLog: DiagnosticsLogRepository,
     val diagnosticsLogSettings: DiagnosticsLogSettings,
+    val formDraftStore: FormDraftStore,
 )
 
 /** Navigationsgraph der App mit Start auf der Tourenliste. */
@@ -349,6 +351,8 @@ fun CamperLogNavHost(
     diagnosticsLog: DiagnosticsLogRepository = (LocalContext.current.applicationContext as CamperLogApp).diagnosticsLog,
     /** Schalter für die ausführlichen Diagnose-Einträge; dieselbe Instanz wie [TrackRecordingService], damit beide synchron bleiben. */
     diagnosticsLogSettings: DiagnosticsLogSettings = (LocalContext.current.applicationContext as CamperLogApp).diagnosticsLogSettings,
+    /** Dauerhafte lokale Rohentwürfe; Produktionsinstanz aus der App-Datenbank. */
+    formDraftStore: FormDraftStore = (LocalContext.current.applicationContext as CamperLogApp).formDraftStore,
     /**
      * Simulierte Demo-Tour des Tutorials; `null` baut sie unten aus [repository]/[stations]/[tracks]/
      * [vehicles] auf, damit Tests ohne eigenes Argument automatisch dieselben Fakes treffen, die sie
@@ -499,7 +503,7 @@ fun CamperLogNavHost(
         attachments, attachmentFileStore, backupImporter, locationProvider, weatherProvider, placeSearchProvider, tileLoader,
         countryLookup, attachmentPickers, tracks, reminderSettings, locationSettings, trackSettings, weatherSettings,
         notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings, homeLocations, guideController, guideProgressStore,
-        resolvedDemoTourSession, diagnosticsLog, diagnosticsLogSettings,
+        resolvedDemoTourSession, diagnosticsLog, diagnosticsLogSettings, formDraftStore,
     )
     NavHost(navController, startDestination = ToursRoute) {
         toursGraph(navController, deps, bottomBar)

@@ -1,6 +1,6 @@
 package app.restvolt.camperlog.domain
 
-/** Dauerhafte lokale Rohentwürfe, getrennt von bestätigten Fachdaten und Sicherungen. */
+/** Dauerhafte lokale Rohentwürfe, getrennt von bestätigten Fachdaten. */
 interface FormDraftStore {
     /** Liest den Entwurf für [kind] und [recordId], falls vorhanden. */
     suspend fun get(kind: String, recordId: Long): String?

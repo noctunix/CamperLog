@@ -1,0 +1,10 @@
+<resources>
+    <string name="tour_draft_notice">Gültige Änderungen werden automatisch gespeichert. Bei Fehlern bleibt der letzte gültige Tourstand unverändert. Mit Fertig bestätigst du deine Eingaben.</string>
+    <string name="tour_finish_new">Tour anlegen</string>
+    <string name="tour_finish_existing">Änderungen übernehmen</string>
+    <string name="tour_leave_title">Tourentwurf verlassen?</string>
+    <string name="tour_leave_text">Behalte den lokalen Entwurf zur späteren Fortsetzung, verwirf deine Änderungen oder bleib hier.</string>
+    <string name="tour_keep_draft">Entwurf behalten</string>
+    <string name="tour_discard_draft">Verwerfen</string>
+    <string name="tour_cancel_leave">Hierbleiben</string>
+</resources>

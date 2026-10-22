@@ -51,6 +51,7 @@ class NotificationNavigationFlowTest {
                     tracks = FakeTrackRepository(),
                     pendingVehicleId = 2,
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) {}
             }
         }
@@ -79,6 +80,7 @@ class NotificationNavigationFlowTest {
                     tracks = FakeTrackRepository(),
                     pendingOpenData = true,
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) {}
             }
         }
@@ -116,6 +118,7 @@ class NotificationNavigationFlowTest {
                     tracks = FakeTrackRepository(),
                     pendingDocumentId = 7,
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) {}
             }
         }

@@ -50,6 +50,7 @@ class NavLabelsFontScaleTest {
                         countryLookup = FakeCountryLookupRepository(),
                         tracks = FakeTrackRepository(),
                         onAccentColorChange = { },
+                        formDraftStore = FakeFormDraftStore(),
                     ) { }
                 }
             }

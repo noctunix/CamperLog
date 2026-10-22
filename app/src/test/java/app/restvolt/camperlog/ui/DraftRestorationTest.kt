@@ -78,13 +78,15 @@ class DraftRestorationTest {
     fun newTourInputSurvivesProcessDeath() {
         val repository = FakeTourRepository()
         val handle = SavedStateHandle()
-        val before = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle, locale)
+        val before = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle,
+            FakeFormDraftStore(), locale)
         before.onInputChange { it.copy(destination = "Gardasee", notes = "Stellplatz 12") }
         before.onStartDateChange(LocalDate.of(2026, 7, 1))
         before.onCostAmountChange(0, "139.90")
         before.onCostCurrencyChange(0, chf)
 
-        val after = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle.afterProcessDeath(), locale)
+        val after = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle.afterProcessDeath(),
+            FakeFormDraftStore(), locale)
 
         val state = after.uiState.value
         assertEquals(before.uiState.value.input, state.input)
@@ -98,11 +100,15 @@ class DraftRestorationTest {
             listOf(defaultVehicle(id = 1, name = "Wohnmobil A"), defaultVehicle(id = 2, name = "Wohnmobil B")),
             currentVehicleId = 1,
         )
+        val repository = FakeTourRepository()
+        val drafts = FakeFormDraftStore()
         val handle = SavedStateHandle()
-        val before = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle, locale)
+        val before = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle,
+            drafts, locale)
         before.onVehicleChange(2)
 
-        val after = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle.afterProcessDeath(), locale)
+        val after = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle.afterProcessDeath(),
+            drafts, locale)
 
         assertEquals(2L, after.uiState.value.input.vehicleId)
     }
@@ -111,9 +117,11 @@ class DraftRestorationTest {
     fun draftWinsOverStoredTour() {
         val repository = FakeTourRepository(listOf(tour()))
         val handle = SavedStateHandle()
-        EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 1, handle, locale).onInputChange { it.copy(destination = "Ostsee") }
+        EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 1, handle,
+            FakeFormDraftStore(), locale).onInputChange { it.copy(destination = "Ostsee") }
 
-        val after = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 1, handle.afterProcessDeath(), locale)
+        val after = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 1, handle.afterProcessDeath(),
+            FakeFormDraftStore(), locale)
 
         val state = after.uiState.value
         assertFalse(state.isLoading)
@@ -124,28 +132,35 @@ class DraftRestorationTest {
 
     @Test
     fun visibleErrorsSurviveProcessDeath() {
+        val repository = FakeTourRepository()
+        val drafts = FakeFormDraftStore()
         val handle = SavedStateHandle()
-        val before = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle, locale)
-        // Eine neue Tour hat keinen Speichern-Button mehr; schon die erste Eingabe macht die
-        // aktuellen Fehler sichtbar (hier das noch fehlende Startdatum).
-        before.onDestinationChange("Gardasee")
+        val before = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle,
+            drafts, locale)
+        // Schon die erste Eingabe macht aktuelle Fehler sichtbar; das Startdatum ist inzwischen vorbefüllt.
+        before.onInputChange { it.copy(destination = "Gardasee", travelDays = "-1") }
 
-        val after = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle.afterProcessDeath(), locale)
+        val after = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle.afterProcessDeath(),
+            drafts, locale)
 
-        assertEquals(TourError.REQUIRED, after.uiState.value.errors[TourField.START_DATE])
-        after.onInputChange { it.copy(startDate = LocalDate.of(2026, 1, 1)) }
-        assertFalse(TourField.START_DATE in after.uiState.value.errors)
+        assertEquals(TourError.NEGATIVE_NUMBER, after.uiState.value.errors[TourField.TRAVEL_DAYS])
+        after.onInputChange { it.copy(travelDays = "2") }
+        assertFalse(TourField.TRAVEL_DAYS in after.uiState.value.errors)
     }
 
     @Test
     fun prefilledTravelDaysKeepFollowingDatesAfterRestore() {
+        val repository = FakeTourRepository()
+        val drafts = FakeFormDraftStore()
         val handle = SavedStateHandle()
-        val before = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle, locale)
+        val before = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle,
+            drafts, locale)
         before.onStartDateChange(LocalDate.of(2026, 7, 1))
         before.onEndDateChange(LocalDate.of(2026, 7, 3))
         assertEquals("3", before.uiState.value.input.travelDays)
 
-        val after = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle.afterProcessDeath(), locale)
+        val after = EditTourViewModel(repository, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, handle.afterProcessDeath(),
+            drafts, locale)
         after.onEndDateChange(LocalDate.of(2026, 7, 5))
 
         assertEquals("5", after.uiState.value.input.travelDays)
@@ -154,7 +169,8 @@ class DraftRestorationTest {
     @Test
     fun untouchedFormStoresNothing() {
         val handle = SavedStateHandle()
-        EditTourViewModel(FakeTourRepository(listOf(tour())), vehicles, FakeStationRepository(), FakeChecklistRepository(), 1, handle, locale)
+        EditTourViewModel(FakeTourRepository(listOf(tour())), vehicles, FakeStationRepository(), FakeChecklistRepository(), 1, handle,
+            FakeFormDraftStore(), locale)
         RateEditViewModel(FakeExchangeRateRepository(), null, handle, { LocalDate.of(2026, 10, 2) }, locale)
 
         assertTrue(handle.keys().isEmpty())

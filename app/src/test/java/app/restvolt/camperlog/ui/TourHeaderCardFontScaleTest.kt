@@ -75,6 +75,7 @@ class TourHeaderCardFontScaleTest {
                         countryLookup = FakeCountryLookupRepository(),
                         tracks = FakeTrackRepository(),
                         onAccentColorChange = { },
+                        formDraftStore = FakeFormDraftStore(),
                     ) { }
                 }
             }

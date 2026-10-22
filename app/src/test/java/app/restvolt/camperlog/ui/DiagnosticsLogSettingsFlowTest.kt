@@ -51,6 +51,7 @@ class DiagnosticsLogSettingsFlowTest {
                     tracks = FakeTrackRepository(), homeLocations = FakeHomeLocationRepository(),
                     diagnosticsLog = diagnosticsLog, diagnosticsLogSettings = DiagnosticsLogSettings(context),
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) { }
             }
         }

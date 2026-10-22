@@ -67,6 +67,7 @@ class FirstRunSetupFlowTest {
                     tracks = FakeTrackRepository(),
                     onAccentColorChange = { },
                     onThemeModeChange = onThemeModeChange,
+                    formDraftStore = FakeFormDraftStore(),
                 )
             }
         }
