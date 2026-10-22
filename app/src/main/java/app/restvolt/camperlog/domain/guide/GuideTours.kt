@@ -6,14 +6,29 @@ import app.restvolt.camperlog.R
 const val INTRODUCTION_TOUR_ID = "tour.introduction"
 const val INTRODUCTION_TOUR_VERSION = 2
 
-/** Rundgang über die vier Hauptreiter (Touren, Bordbuch, Fahrzeug) und den Daten-Button. */
+/**
+ * Rundgang für Einsteiger: Begriffe (Tour, Station, Bordbuch), die vier Reiter samt Stationsarten,
+ * Checklisten und der Daten-Button. Er wechselt die Reiter nicht selbst, sondern hebt jeweils den
+ * Reiter hervor, über den die Karte spricht.
+ */
 fun introductionTour() = TourDefinition(
     id = INTRODUCTION_TOUR_ID,
     version = INTRODUCTION_TOUR_VERSION,
     steps = listOf(
-        TourStep("welcome", "nav.tab.tours", R.string.title_intro_welcome, R.string.body_intro_welcome, StepCompletion.Information),
+        TourStep("welcome", null, R.string.title_intro_welcome, R.string.body_intro_welcome, StepCompletion.Information),
+        TourStep("tours", "nav.tab.tours", R.string.title_intro_tours, R.string.body_intro_tours, StepCompletion.Information),
+        TourStep("stations", "nav.tab.stations", R.string.title_intro_stations, R.string.body_intro_stations, StepCompletion.Information),
+        TourStep(
+            "station-types-trip", "nav.tab.stations",
+            R.string.title_intro_station_types_trip, R.string.body_intro_station_types_trip, StepCompletion.Information,
+        ),
+        TourStep(
+            "station-types-extras", "nav.tab.stations",
+            R.string.title_intro_station_types_extras, R.string.body_intro_station_types_extras, StepCompletion.Information,
+        ),
         TourStep("logbook", "nav.tab.logbook", R.string.title_intro_logbook, R.string.body_intro_logbook, StepCompletion.Information),
         TourStep("vehicle", "nav.tab.vehicle", R.string.title_intro_vehicle, R.string.body_intro_vehicle, StepCompletion.Information),
+        TourStep("checklists", "nav.tab.vehicle", R.string.title_intro_checklists, R.string.body_intro_checklists, StepCompletion.Information),
         TourStep("data", "nav.data", R.string.title_intro_data, R.string.body_intro_data, StepCompletion.Information),
     ),
 )

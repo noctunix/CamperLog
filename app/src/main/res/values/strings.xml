@@ -717,11 +717,21 @@
 
     <!-- Introduction tour -->
     <string name="title_intro_welcome">Welcome to CamperLog</string>
-    <string name="body_intro_welcome">A tour is your whole journey, from starting it until you end it. Stops are the individual visits and overnight stays within that tour. CamperLog uses them to calculate travel days, nights, distance, and your costs.\n\nWhile a tour is ongoing, you can optionally start its GPS track. It records your route only after you start it, stays on this device, and can be stopped or deleted anytime.\n\nPin a checklist template to see it here as a quick start.</string>
+    <string name="body_intro_welcome">CamperLog is your travel diary for your motorhome. It revolves around three things:\n\n• Tour: your whole trip, for example \"Lake Garda 2026\".\n• Stop: every stop along the way, such as an overnight stay, a filling station or a toll.\n• Logbook: jobs on the vehicle, such as emptying the cassette or running the heater.\n\nFrom these CamperLog calculates travel days, nights, distance and costs.</string>
+    <string name="title_intro_tours">Tours</string>
+    <string name="body_intro_tours">All your tours live here, ongoing and finished. Tap \"+\" to create a new one. While a tour is ongoing, you can optionally start its GPS track. It records your route only after you start it, stays on this device, and can be stopped or deleted anytime.</string>
+    <string name="title_intro_stations">Stops</string>
+    <string name="body_intro_stations">The Stops tab shows every stop from all your tours at a glance. You add new stops inside the tour they belong to. Each stop can have a date, a place, costs and notes.</string>
+    <string name="title_intro_station_types_trip">Stop kinds: on the road</string>
+    <string name="body_intro_station_types_trip">• Overnight: campsite, pitch or wild camping.\n• Water &amp; waste: fill up fresh water, empty grey water, empty the cassette.\n• Fuel &amp; charging: diesel, gas or electricity, with amount and costs.</string>
+    <string name="title_intro_station_types_extras">Stop kinds: extras</string>
+    <string name="body_intro_station_types_extras">• Toll: motorway, tunnel or vignette, with country and validity.\n• Ferry\n• Food\n• Sightseeing\n• Other: for anything that fits nowhere else.</string>
     <string name="title_intro_logbook">Logbook</string>
-    <string name="body_intro_logbook">One tap on \"Today\" records the cassette, grey water or heater – right when you empty or run it.</string>
+    <string name="body_intro_logbook">The Logbook tab is where you record what happens on the vehicle. One tap on \"Today\" records the cassette, grey water, gas bottle or heater – right when you empty, swap or run it. Supply and fuel stops from a stop land here automatically.</string>
     <string name="title_intro_vehicle">Vehicle</string>
-    <string name="body_intro_vehicle">Keep a data sheet and maintenance dates, with in-app reminders when something is due. CamperLog also handles several vehicles. It also has checklist templates (e.g. departure or winterizing) you can edit and pin to the tours tab for a quick start.</string>
+    <string name="body_intro_vehicle">Keep a data sheet and maintenance dates, with in-app reminders when something is due. CamperLog also handles several vehicles.</string>
+    <string name="title_intro_checklists">Checklists</string>
+    <string name="body_intro_checklists">On the Vehicle tab you find checklist templates, for example for departure or winterizing. You can edit them and tick items off. Pin a template to the Tours tab to have it there as a quick start.</string>
     <string name="title_intro_data">Your data</string>
     <string name="body_intro_data">Your tours, stops and vehicle data stay on this device. No account, no ads, no analytics. Location and internet stay off until you turn them on. Make backups anytime via Data.</string>
     <string name="title_intro_settings">Settings</string>

@@ -186,9 +186,17 @@ class GuidedTourNavigationTest {
 
             compose.onNodeWithText("Willkommen bei CamperLog").assertExists()
             clickWeiter()
+            clickWeiter() // Stationen
+            clickWeiter() // Stationsarten: unterwegs
+            compose.onNodeWithText("Stationsarten: unterwegs").assertExists()
+            clickWeiter()
+            compose.onNodeWithText("Stationsarten: Extras").assertExists()
+            clickWeiter()
             compose.onNodeWithText("Bordbuch").assertExists()
             clickWeiter()
             compose.onNodeWithText("Fahrzeug").assertExists()
+            clickWeiter()
+            compose.onNodeWithText("Checklisten").assertExists()
             clickWeiter()
             compose.onNodeWithText("Deine Daten").assertExists()
             compose.onNodeWithText("Fertig").performClick()
