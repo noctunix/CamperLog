@@ -12,8 +12,10 @@ import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.DiaryEntryError
 import app.restvolt.camperlog.domain.DiaryEntryField
 import app.restvolt.camperlog.domain.DocumentKind
+import app.restvolt.camperlog.domain.BoardType
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.EnergyType
+import app.restvolt.camperlog.domain.LodgingAmenity
 import app.restvolt.camperlog.domain.LogRecency
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
@@ -464,6 +466,42 @@ val SiteKind.labelRes: Int
         SiteKind.HOTEL -> R.string.site_kind_hotel
         SiteKind.VACATION_RENTAL -> R.string.site_kind_vacation_rental
         SiteKind.HOSTEL -> R.string.site_kind_hostel
+    }
+
+/** Anzeigetext der Verpflegungsstufe einer Hotel-/Ferienwohnungs-/Hostel-Übernachtung. */
+@get:StringRes
+val BoardType.labelRes: Int
+    get() = when (this) {
+        BoardType.NONE -> R.string.board_type_none
+        BoardType.BREAKFAST -> R.string.board_type_breakfast
+        BoardType.HALF_BOARD -> R.string.board_type_half_board
+        BoardType.FULL_BOARD -> R.string.board_type_full_board
+    }
+
+/** Anzeigetext eines Ausstattungsmerkmals einer Hotel-/Ferienwohnungs-/Hostel-Übernachtung. */
+@get:StringRes
+val LodgingAmenity.labelRes: Int
+    get() = when (this) {
+        LodgingAmenity.POOL -> R.string.lodging_amenity_pool
+        LodgingAmenity.SAUNA -> R.string.lodging_amenity_sauna
+        LodgingAmenity.FITNESS_ROOM -> R.string.lodging_amenity_fitness_room
+        LodgingAmenity.WELLNESS -> R.string.lodging_amenity_wellness
+        LodgingAmenity.PRIVATE_BATHROOM -> R.string.lodging_amenity_private_bathroom
+        LodgingAmenity.AIR_CONDITIONING -> R.string.lodging_amenity_air_conditioning
+        LodgingAmenity.FRIDGE -> R.string.lodging_amenity_fridge
+        LodgingAmenity.MINIBAR -> R.string.lodging_amenity_minibar
+        LodgingAmenity.BALCONY -> R.string.lodging_amenity_balcony
+        LodgingAmenity.SAFE -> R.string.lodging_amenity_safe
+        LodgingAmenity.PARKING -> R.string.lodging_amenity_parking
+        LodgingAmenity.EV_CHARGING -> R.string.lodging_amenity_ev_charging
+        LodgingAmenity.BIKE_RENTAL -> R.string.lodging_amenity_bike_rental
+        LodgingAmenity.RECEPTION_24_7 -> R.string.lodging_amenity_reception_24_7
+        LodgingAmenity.RESTAURANT -> R.string.lodging_amenity_restaurant
+        LodgingAmenity.LAUNDRY_SERVICE -> R.string.lodging_amenity_laundry_service
+        LodgingAmenity.ELEVATOR -> R.string.lodging_amenity_elevator
+        LodgingAmenity.PETS_ALLOWED -> R.string.lodging_amenity_pets_allowed
+        LodgingAmenity.NON_SMOKING -> R.string.lodging_amenity_non_smoking
+        LodgingAmenity.SKI_ROOM -> R.string.lodging_amenity_ski_room
     }
 
 /** Anzeigetext einer bekannten OSM-Kategorie der Ortssuche. */
