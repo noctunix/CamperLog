@@ -1439,8 +1439,11 @@
     <string name="demo_vehicle_name">Sample camper</string>
     <string name="demo_tour_destination">Alpine loop</string>
     <string name="demo_station_1_name">Lakeside pitch</string>
-    <string name="demo_station_2_name">Mountain pass stop</string>
-    <string name="demo_station_3_name">Forest campsite</string>
+    <string name="demo_station_2_name">Fresh water at the harbour</string>
+    <string name="demo_station_3_name">Filling station</string>
+    <string name="demo_station_4_name">Mountain tunnel</string>
+    <string name="demo_station_5_name">Mountain pass viewpoint</string>
+    <string name="demo_station_6_name">Forest campsite</string>
 
     <!-- Launcher shortcuts -->
     <string name="shortcut_new_tour_short">New tour</string>

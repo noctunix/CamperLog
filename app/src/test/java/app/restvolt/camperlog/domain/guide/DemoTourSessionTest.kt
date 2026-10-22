@@ -2,6 +2,7 @@ package app.restvolt.camperlog.domain.guide
 
 import app.restvolt.camperlog.domain.SYNCED_SERVICE_LOG_TYPES
 import app.restvolt.camperlog.domain.StationService
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.FakeStationRepository
@@ -28,7 +29,7 @@ class DemoTourSessionTest {
     private val session = DemoTourSession(tours, stations, tracks, vehicles) { tourId -> stoppedTrackingFor += tourId }
 
     @Test
-    fun begin_createsAFinishedDemoTourWithItsOwnVehicleThreeStationsAndTwoTrackSegments() = runTest {
+    fun begin_createsAFinishedDemoTourWithItsOwnVehicleSixStationsOfFiveKindsAndFiveTrackSegments() = runTest {
         val demoTourId = session.begin()
 
         val tour = tours.tours.single { it.id == demoTourId }
@@ -41,7 +42,13 @@ class DemoTourSessionTest {
         assertTrue(vehicle.id != 1L) // nicht das echte Fahrzeug, siehe Owner-Entscheidung.
 
         val demoStations = stations.stations.filter { it.tourId == demoTourId }
-        assertEquals(3, demoStations.size)
+        assertEquals(6, demoStations.size)
+        assertEquals(
+            listOf(StationType.OVERNIGHT, StationType.SUPPLY, StationType.FUEL, StationType.TOLL, StationType.SIGHT, StationType.OVERNIGHT),
+            demoStations.sortedBy { it.id }.map { it.type },
+        )
+        assertTrue(demoStations.all { it.name.isNotBlank() && it.latitude != null })
+        assertTrue(demoStations.all { it.date >= tour.startDate && it.date <= tour.endDate })
         // Keine der Ver-/Entsorgungs-Dienste, die Bordbuch-Einträge erzeugen würden; kein Kilometerstand.
         assertTrue(demoStations.all { it.services.none { service -> service in SYNCED_SERVICE_LOG_TYPES } })
         assertTrue(demoStations.none { it.services.contains(StationService.CASSETTE) })
@@ -49,7 +56,7 @@ class DemoTourSessionTest {
 
         val points = tracks.points.filter { it.tourId == demoTourId }
         assertTrue(points.isNotEmpty())
-        assertEquals(setOf(1, 2), points.map { it.segment }.toSet())
+        assertEquals(setOf(1, 2, 3, 4, 5), points.map { it.segment }.toSet())
     }
 
     @Test

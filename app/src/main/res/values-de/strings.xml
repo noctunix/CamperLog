@@ -1428,8 +1428,11 @@
     <string name="demo_vehicle_name">Beispiel-Wohnmobil</string>
     <string name="demo_tour_destination">Alpenrunde</string>
     <string name="demo_station_1_name">Platz am See</string>
-    <string name="demo_station_2_name">Rast am Pass</string>
-    <string name="demo_station_3_name">Waldlager</string>
+    <string name="demo_station_2_name">Frischwasser am Hafen</string>
+    <string name="demo_station_3_name">Tankstelle</string>
+    <string name="demo_station_4_name">Bergtunnel</string>
+    <string name="demo_station_5_name">Aussicht am Pass</string>
+    <string name="demo_station_6_name">Waldlager</string>
 
     <!-- Launcher shortcuts -->
     <string name="shortcut_new_tour_short">Neue Tour</string>

@@ -119,6 +119,9 @@ class CamperLogApp : Application() {
                     getString(R.string.demo_station_1_name),
                     getString(R.string.demo_station_2_name),
                     getString(R.string.demo_station_3_name),
+                    getString(R.string.demo_station_4_name),
+                    getString(R.string.demo_station_5_name),
+                    getString(R.string.demo_station_6_name),
                 ),
             ),
         ) { tourId -> TrackRecordingService.stopIfTracking(this, tourId) }
