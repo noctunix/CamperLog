@@ -24,6 +24,14 @@ interface StationDao {
     )
     fun observeForVehicle(vehicleId: Long?): Flow<List<StationWithCosts>>
 
+    /** Wie [observeForVehicle], aber nur Stationen echter (`demo = false`) oder nur der Demo-Fahrzeuge (`demo = true`), für die Statistik. */
+    @Transaction
+    @Query(
+        "SELECT * FROM stations WHERE (:vehicleId IS NULL OR vehicle_id = :vehicleId) " +
+            "AND vehicle_id IN (SELECT id FROM vehicles WHERE is_demo = :demo)",
+    )
+    fun observeForTotals(vehicleId: Long?, demo: Boolean): Flow<List<StationWithCosts>>
+
     @Transaction
     @Query("SELECT * FROM stations WHERE id = :id")
     fun observeById(id: Long): Flow<StationWithCosts?>

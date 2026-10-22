@@ -43,9 +43,12 @@ interface TourRepository {
     /** Liefert die Währung des letzten Kostenbetrags der zuletzt geänderten Tour oder `null` ohne Kosten. */
     suspend fun lastUsedCurrency(): Currency?
 
-    /** Liefert die Gesamtwerte über alle Touren, oder nur über die von [vehicleId], falls angegeben. */
-    fun observeTotals(vehicleId: Long? = null): Flow<TourTotals>
+    /**
+     * Liefert die Gesamtwerte über alle Touren, oder nur über die von [vehicleId], falls angegeben.
+     * Die Demo-Tour des Tutorials zählt nicht mit; mit [demo] `true` zeigt es ausschließlich sie.
+     */
+    fun observeTotals(vehicleId: Long? = null, demo: Boolean = false): Flow<TourTotals>
 
-    /** Liefert die Werte pro Jahr, absteigend nach Jahr sortiert, optional gefiltert nach [vehicleId]. */
-    fun observeYearTotals(vehicleId: Long? = null): Flow<List<YearTotals>>
+    /** Liefert die Werte pro Jahr, absteigend nach Jahr sortiert, optional gefiltert nach [vehicleId]; [demo] wie bei [observeTotals]. */
+    fun observeYearTotals(vehicleId: Long? = null, demo: Boolean = false): Flow<List<YearTotals>>
 }
