@@ -6,6 +6,7 @@ import app.restvolt.camperlog.domain.AmountReading
 import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.Axle
+import app.restvolt.camperlog.domain.BoardType
 import app.restvolt.camperlog.domain.Checklist
 import app.restvolt.camperlog.domain.ChecklistItem
 import app.restvolt.camperlog.domain.ChecklistTemplate
@@ -23,6 +24,7 @@ import app.restvolt.camperlog.domain.HomeLocation
 import app.restvolt.camperlog.domain.LATITUDE_RANGE
 import app.restvolt.camperlog.domain.LONGITUDE_RANGE
 import app.restvolt.camperlog.domain.LegacyPitchFields
+import app.restvolt.camperlog.domain.LodgingAmenity
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
@@ -94,7 +96,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 22
+const val BACKUP_SCHEMA_VERSION = 23
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -1081,6 +1083,25 @@ private fun StationDto.toStation(): Station? {
         enumOrNull<PitchSlope>(it) ?: return null
     }
     val blocks = levelingBlocksUsed?.also { if (stationType != StationType.OVERNIGHT) return null }
+    val wifi = wifiQuality?.let {
+        if (stationType != StationType.OVERNIGHT) return null
+        enumOrNull<LteQuality>(it) ?: return null
+    }
+    val wifiCostCurrencyValue = wifiCostCurrency?.let {
+        if (stationType != StationType.OVERNIGHT) return null
+        parseCurrency(it) ?: return null
+    }
+    if (wifiCostAmount != null && wifiCostCurrencyValue == null) return null
+    val wifiCostMoney = wifiCostAmount?.let {
+        if (stationType != StationType.OVERNIGHT) return null
+        it.toMoneyWith(checkNotNull(wifiCostCurrencyValue)) ?: return null
+    }
+    val board = boardType?.let {
+        if (stationType != StationType.OVERNIGHT) return null
+        enumOrNull<BoardType>(it) ?: return null
+    }
+    val amenities = lodgingAmenities.map { enumOrNull<LodgingAmenity>(it) ?: return null }.toSet()
+    if (amenities.isNotEmpty() && stationType != StationType.OVERNIGHT) return null
 
     val billing = when {
         electricityBilling != null -> {
@@ -1191,6 +1212,10 @@ private fun StationDto.toStation(): Station? {
         lteQuality = lte,
         pitchSlope = slope,
         levelingBlocksUsed = blocks,
+        wifiQuality = wifi,
+        wifiCost = wifiCostMoney,
+        boardType = board,
+        lodgingAmenities = amenities,
         electricityBilling = billing,
         electricityCurrency = electricityCurrencyValue,
         electricityFlatAmount = flatAmountMoney,
@@ -1504,6 +1529,11 @@ private fun Station.toDto(vehicleUuid: String, tourUuid: String?) = StationDto(
     lteQuality = lteQuality?.name,
     pitchSlope = pitchSlope?.name,
     levelingBlocksUsed = levelingBlocksUsed,
+    wifiQuality = wifiQuality?.name,
+    wifiCostCurrency = wifiCost?.currency?.currencyCode,
+    wifiCostAmount = wifiCost?.toCostDto()?.amount,
+    boardType = boardType?.name,
+    lodgingAmenities = lodgingAmenities.map { it.name },
     electricityFlatRate = null,
     electricityBilling = electricityBilling?.name,
     electricityCurrency = electricityCurrency?.currencyCode,
