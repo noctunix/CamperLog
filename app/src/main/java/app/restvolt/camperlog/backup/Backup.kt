@@ -33,6 +33,7 @@ import app.restvolt.camperlog.domain.MAX_DIMENSION_CM
 import app.restvolt.camperlog.domain.MAX_DISPLACEMENT_CC
 import app.restvolt.camperlog.domain.MAX_ELECTRICITY_COINS
 import app.restvolt.camperlog.domain.MAX_ELECTRICITY_KWH
+import app.restvolt.camperlog.domain.MAX_FUEL_LITERS
 import app.restvolt.camperlog.domain.MAX_FERRY_BOOKING_REFERENCE_LENGTH
 import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
 import app.restvolt.camperlog.domain.MAX_POWER_KW
@@ -96,7 +97,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 23
+const val BACKUP_SCHEMA_VERSION = 24
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -1155,6 +1156,10 @@ private fun StationDto.toStation(): Station? {
         if (billing == null) return null
         parseKwh(it, MAX_ELECTRICITY_KWH) ?: return null
     }
+    val fuelLitersValue = fuelLiters?.let {
+        if (stationType != StationType.FUEL) return null
+        parseKwh(it, MAX_FUEL_LITERS) ?: return null
+    }
 
     if (stationType != StationType.TOLL) {
         if (tollKind != null || tollPaymentMethod.isNotEmpty() || tollCountry != null || tollValidFrom != null || tollValidUntil != null) {
@@ -1227,6 +1232,7 @@ private fun StationDto.toStation(): Station? {
         electricityMeterStart = meterStartValue,
         electricityMeterEnd = meterEndValue,
         electricityKwhUsed = kwhUsedValue,
+        fuelLiters = fuelLitersValue,
         tollKind = tollKindValue,
         tollPaymentMethod = tollPaymentMethod,
         tollCountry = tollCountryValue,
@@ -1546,6 +1552,7 @@ private fun Station.toDto(vehicleUuid: String, tourUuid: String?) = StationDto(
     electricityMeterStart = electricityMeterStart?.stripTrailingZeros()?.toPlainString(),
     electricityMeterEnd = electricityMeterEnd?.stripTrailingZeros()?.toPlainString(),
     electricityKwhUsed = electricityKwhUsed?.stripTrailingZeros()?.toPlainString(),
+    fuelLiters = fuelLiters?.stripTrailingZeros()?.toPlainString(),
     tollKind = tollKind?.name,
     tollPaymentMethod = tollPaymentMethod,
     tollCountry = tollCountry,
