@@ -13,6 +13,7 @@ import app.restvolt.camperlog.data.RoomChecklistRepository
 import app.restvolt.camperlog.data.RoomChecklistTemplateRepository
 import app.restvolt.camperlog.data.RoomDiaryEntryRepository
 import app.restvolt.camperlog.data.RoomExchangeRateRepository
+import app.restvolt.camperlog.data.PreferencesPaymentMethodRepository
 import app.restvolt.camperlog.data.RoomHomeLocationRepository
 import app.restvolt.camperlog.data.RoomLogRepository
 import app.restvolt.camperlog.data.RoomStationRepository
@@ -30,6 +31,7 @@ import app.restvolt.camperlog.domain.DiagnosticsLogSource
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.HomeLocationRepository
+import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
@@ -69,6 +71,9 @@ class CamperLogApp : Application() {
 
     /** Heimatadressen-Historie für die automatische "Beginnt zu Hause"-Station neuer Touren. */
     val homeLocations: HomeLocationRepository by lazy { RoomHomeLocationRepository(database) }
+
+    /** Konfigurierbare Zahlungsarten für das Stationsformular. */
+    val paymentMethods: PaymentMethodRepository by lazy { PreferencesPaymentMethodRepository(this) }
 
     /** Bordbuch-Einträge. */
     val logbook: LogRepository by lazy { RoomLogRepository(database) }

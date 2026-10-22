@@ -37,6 +37,7 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.DiagnosticsLogSettings
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.ui.BackTopBar
+import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.ui.CurrencyPicker
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.about.GuidedTourEntry
@@ -64,6 +65,7 @@ fun SettingsScreen(
     trackSettings: TrackRecordingSettings,
     homeLocationViewModel: HomeLocationViewModel,
     diagnosticsLogSettings: DiagnosticsLogSettings,
+    paymentMethods: PaymentMethodRepository,
     guidedTours: List<GuidedTourEntry>,
     onBack: () -> Unit,
     onOpenRates: () -> Unit,
@@ -131,6 +133,7 @@ fun SettingsScreen(
                     Text(stringResource(R.string.settings_open_rates))
                 }
             }
+            item { PaymentMethodsSection(paymentMethods) }
             item {
                 SectionCard {
                     Text(
