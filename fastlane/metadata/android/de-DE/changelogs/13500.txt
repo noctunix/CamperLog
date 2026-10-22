@@ -1,0 +1,3 @@
+• Neu: Der Rundgang endet mit einem „Los geht's“-Schritt zum Anlegen der ersten Tour
+• Behoben: Eine bestehende Tanken-Station legt beim erneuten Speichern den fehlenden Bordbuch-Eintrag an
+• Verbessert: Der Import meldet Zahlungsarten, die nicht mehr in die Liste passen

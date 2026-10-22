@@ -1,0 +1,3 @@
+• New: the introduction tour ends with a "Let's go" step for creating your first tour
+• Fixed: re-saving an existing fuel stop adds the missing logbook entry
+• Improved: import reports payment methods that no longer fit into the list
