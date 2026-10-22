@@ -878,6 +878,16 @@
     <string name="field_toll_valid_from">Gültig ab</string>
     <string name="field_toll_valid_until">Gültig bis</string>
     <string name="field_payment_method">Zahlungsart</string>
+    <string name="payment_method_credit_card">Kreditkarte</string>
+    <string name="payment_method_cash">Bar</string>
+    <string name="payment_method_debit_card">EC-Karte</string>
+    <string name="payment_method_paypal">PayPal</string>
+    <string name="settings_payment_methods">Zahlungsarten</string>
+    <string name="settings_payment_methods_hint">Vorschläge für die Zahlungsart eines Stopps. Dort ist weiterhin jeder Text erlaubt.</string>
+    <string name="settings_payment_methods_add">Neue Zahlungsart</string>
+    <string name="settings_payment_methods_add_action">Hinzufügen</string>
+    <string name="settings_payment_methods_remove">%1$s entfernen</string>
+    <string name="settings_payment_methods_reset">Vorgaben wiederherstellen</string>
     <string name="field_ferry_booking_reference">Buchungsnummer</string>
     <string name="field_rating">Bewertung</string>
     <string name="field_manual_temperature">Temperatur (°C)</string>

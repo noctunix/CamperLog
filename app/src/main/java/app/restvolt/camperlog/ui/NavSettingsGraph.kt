@@ -183,6 +183,7 @@ internal fun NavGraphBuilder.settingsGraph(
                 HomeLocationViewModel(homeLocations, locationProvider, AndroidLocationPermissionGate(context))
             },
             diagnosticsLogSettings = diagnosticsLogSettings,
+            paymentMethods = paymentMethods,
             guidedTours = guidedTourEntries(scope),
             onBack = { navController.popFrom(entry) },
             onOpenRates = { navController.navigate(RatesRoute) },

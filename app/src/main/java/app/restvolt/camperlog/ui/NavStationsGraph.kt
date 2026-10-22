@@ -116,6 +116,7 @@ internal fun NavGraphBuilder.stationsGraph(
             attachments = attachments,
             attachmentFileStore = attachmentFileStore,
             attachmentPickers = attachmentPickers,
+            paymentMethods = paymentMethods,
             onDone = {
                 // Die Station speichert sich schon laufend selbst; beim Verlassen entscheidet sich nur
                 // noch, wohin es geht und ob die Bordbuch-Meldung für diese Sitzung noch aussteht.

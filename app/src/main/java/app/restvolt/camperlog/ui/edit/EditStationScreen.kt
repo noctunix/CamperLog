@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -83,6 +84,7 @@ import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.SUPPLY_SERVICES
 import app.restvolt.camperlog.domain.SiteKind
+import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.StationField
 import app.restvolt.camperlog.domain.StationInput
 import app.restvolt.camperlog.domain.StationService
@@ -141,9 +143,11 @@ fun EditStationScreen(
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
+    paymentMethods: PaymentMethodRepository? = null,
     onDone: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val paymentMethodSuggestions = paymentMethods?.methods?.collectAsStateWithLifecycle()?.value.orEmpty()
     val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
     val weatherEnabled by weatherSettings.values.collectAsStateWithLifecycle()
     var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
@@ -188,6 +192,7 @@ fun EditStationScreen(
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
                 attachmentPickers = attachmentPickers,
+                paymentMethodSuggestions = paymentMethodSuggestions,
                 snackbarHostState = snackbar,
                 modifier = Modifier
                     .padding(padding)
@@ -223,6 +228,7 @@ private fun StationForm(
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers,
+    paymentMethodSuggestions: List<String>,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier,
 ) {
@@ -413,6 +419,11 @@ private fun StationForm(
                 modifier = focusOf(StationField.PAYMENT_METHOD),
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
             )
+            PaymentMethodChips(
+                suggestions = paymentMethodSuggestions,
+                selected = input.paymentMethod,
+                onSelect = { value -> viewModel.onInputChange { it.copy(paymentMethod = value) } },
+            )
         }
         PhotoAttachmentsSection(
             ownerType = AttachmentOwnerType.STATION,
@@ -473,6 +484,23 @@ private val AMENITY_GROUPS: List<Pair<Int, Set<LodgingAmenity>>> = listOf(
     ),
     R.string.amenities_group_rules to setOf(LodgingAmenity.PETS_ALLOWED, LodgingAmenity.NON_SMOKING, LodgingAmenity.SKI_ROOM),
 )
+
+/** Vorschläge aus der Zahlungsarten-Liste der Einstellungen; ein erneuter Tipp auf die gewählte Zahlungsart leert das Feld. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PaymentMethodChips(suggestions: List<String>, selected: String, onSelect: (String) -> Unit) {
+    if (suggestions.isEmpty()) return
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        suggestions.forEach { name ->
+            val isSelected = selected.trim() == name
+            FilterChip(
+                selected = isSelected,
+                onClick = { onSelect(if (isSelected) "" else name) },
+                label = { Text(name) },
+            )
+        }
+    }
+}
 
 @Composable
 private fun OvernightSection(
