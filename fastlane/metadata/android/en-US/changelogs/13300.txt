@@ -1,0 +1,3 @@
+• New: rewritten introduction tour for newcomers – explains tour, stop and logbook, all tabs, the kinds of stops and checklists
+• Improved: the example tour in the first-tour guide now has six stops of different kinds with costs
+• Improved: the first-tour guide follows the order of the form and explains the destination field
