@@ -1,0 +1,3 @@
+• New: stops at a hotel, vacation rental or hostel can now record board type (breakfast, half/full board) and amenities (pool, sauna, parking, pets allowed, and more)
+• New: Wi-Fi quality and cost, alongside the existing LTE reception field, for every kind of overnight stop
+• Pitch details (assigned pitch, slope, levelling blocks) only show for campsites, motorhome areas and wild camping now, not for hotels or similar stays

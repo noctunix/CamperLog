@@ -1,0 +1,3 @@
+• Neu: Bei Hotel, Ferienwohnung oder Hostel lassen sich jetzt Verpflegung (Frühstück, Halb-/Vollpension) und Annehmlichkeiten (Pool, Sauna, Parkplatz, Haustiere erlaubt und mehr) erfassen
+• Neu: WLAN-Qualität und -Kosten, zusätzlich zum bestehenden LTE-Empfangsfeld, bei jeder Übernachtungsart
+• Stellplatz-Details (zugewiesener Platz, Gefälle, Keile) erscheinen jetzt nur noch bei Campingplatz, Stellplatz und Frei stehen, nicht mehr bei Hotel & Co.
