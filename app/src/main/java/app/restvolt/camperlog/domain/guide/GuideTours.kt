@@ -41,6 +41,7 @@ fun introductionTour() = TourDefinition(
             "data", "nav.data", R.string.title_intro_data, R.string.body_intro_data,
             StepCompletion.Information, GuideScreen.TOURS_ROOT,
         ),
+        TourStep("start", "tours.fab.add", R.string.title_intro_start, R.string.body_intro_start, StepCompletion.Information),
     ),
 )
 

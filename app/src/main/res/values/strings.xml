@@ -742,6 +742,8 @@
     <string name="body_intro_map">Every tour has a map with its stops and, if you record one, the driven track. Here it is shown without the map background, so nothing is loaded from the internet. On your own tours the map tiles are fetched from OpenStreetMap when you open the map.</string>
     <string name="title_intro_data">Your data</string>
     <string name="body_intro_data">Your tours, stops and vehicle data stay on this device. No account, no ads, no analytics. Location and internet stay off until you turn them on. Make backups anytime via Data.</string>
+    <string name="title_intro_start">Let\'s go</string>
+    <string name="body_intro_start">Tap New tour to log your first trip. A short guide walks you through the form.</string>
     <string name="title_intro_settings">Settings</string>
     <string name="body_intro_settings">Pick an appearance and how early reminders should show up. You can change both later anytime in Settings.</string>
     <string name="btn_intro_skip">Skip</string>
