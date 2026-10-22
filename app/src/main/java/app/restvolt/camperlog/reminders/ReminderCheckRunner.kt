@@ -29,7 +29,11 @@ data class BackupReminderInput(
  * "unverändert". Getrennt von den Seiteneffekten (Benachrichtigungen, Dateischreiben), damit
  * [ReminderCheckRunner] mit Fakes vollständig ohne Android/Robolectric testbar bleibt.
  */
-data class ReminderCheckOutcome(val backupWrittenAt: Instant? = null, val backupNotifiedBaseline: Instant? = null)
+data class ReminderCheckOutcome(
+    val backupWrittenAt: Instant? = null,
+    val backupNotifiedBaseline: Instant? = null,
+    val folderBackupAttempted: Boolean = false,
+)
 
 /**
  * Logik des täglichen Hintergrund-Checks, losgelöst von [androidx.work.CoroutineWorker]:
@@ -93,13 +97,13 @@ class ReminderCheckRunner(
                 }
                 writtenName != null
             }
-        return if (wroteAutomatically) {
+        return (if (wroteAutomatically) {
             ReminderCheckOutcome(backupWrittenAt = now, backupNotifiedBaseline = baseline)
         } else if (notificationsEnabled && shouldNotifyBackupOverdue(backup.lastBackupAt, backup.reminderWeeks, now, backup.lastNotifiedBackupBaseline)) {
             notifier.notifyBackupOverdue()
             ReminderCheckOutcome(backupNotifiedBaseline = baseline)
         } else {
             ReminderCheckOutcome()
-        }
+        }).copy(folderBackupAttempted = backup.autoBackupToFolder && folderUri != null)
     }
 }

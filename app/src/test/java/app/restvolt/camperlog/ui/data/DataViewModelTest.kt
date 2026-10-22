@@ -66,6 +66,7 @@ class DataViewModelTest {
     private val files = FakeDataFiles()
     private val folderWriter = FakeBackupFolderWriter()
     private val backupSavedAt = mutableListOf<Instant>()
+    private val folderResults = mutableListOf<Triple<String, Boolean, Instant?>>()
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -110,6 +111,7 @@ class DataViewModelTest {
             FakeBackupImporter(),
             files,
             folderWriter,
+            onFolderBackupResult = { _, _, _ -> },
             clock = { exportedAt },
             background = dispatcher,
         )
@@ -153,6 +155,7 @@ class DataViewModelTest {
             FakeBackupImporter(),
             files,
             folderWriter,
+            onFolderBackupResult = { _, _, _ -> },
             background = dispatcher,
         )
 
@@ -186,6 +189,7 @@ class DataViewModelTest {
             importer,
             files,
             folderWriter,
+            onFolderBackupResult = { uri, includeFiles, at -> folderResults += Triple(uri, includeFiles, at) },
             onBackupSaved = { backupSavedAt += it },
             background = dispatcher,
             vocabulary = { vocabulary },
@@ -284,6 +288,7 @@ class DataViewModelTest {
             FakeBackupImporter(),
             files,
             folderWriter,
+            onFolderBackupResult = { _, _, _ -> },
             background = dispatcher,
         )
 
@@ -317,6 +322,7 @@ class DataViewModelTest {
             FakeBackupImporter(),
             files,
             folderWriter,
+            onFolderBackupResult = { _, _, _ -> },
             background = dispatcher,
             vocabulary = { CsvVocabulary.ENGLISH },
         )
@@ -374,6 +380,7 @@ class DataViewModelTest {
             FakeBackupImporter(),
             files,
             folderWriter,
+            onFolderBackupResult = { _, _, _ -> },
             background = dispatcher,
         )
 
@@ -433,6 +440,7 @@ class DataViewModelTest {
             FakeBackupImporter(),
             files,
             folderWriter,
+            onFolderBackupResult = { _, _, _ -> },
             background = dispatcher,
         )
 
@@ -469,6 +477,7 @@ class DataViewModelTest {
         assertEquals(listOf(tour), (decodeBackup(folderWriter.written.single()) as BackupReadResult.Success).backup.tours)
         assertEquals(1, folderWriter.zipWrites)
         assertEquals(DataMessage.BackedUpToFolder("Sicherungen"), viewModel.message.value)
+        assertEquals(Triple("content://folder", true, backupSavedAt.single()), folderResults.single())
         assertEquals(1, backupSavedAt.size)
     }
 
@@ -481,6 +490,7 @@ class DataViewModelTest {
 
         assertTrue(folderWriter.written.isEmpty())
         assertEquals(DataMessage.Text(R.string.data_backup_folder_failed), viewModel.message.value)
+        assertEquals(Triple("content://folder", true, null), folderResults.single())
         assertTrue(backupSavedAt.isEmpty())
     }
 

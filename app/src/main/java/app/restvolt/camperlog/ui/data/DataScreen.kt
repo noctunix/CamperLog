@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -88,6 +89,10 @@ fun DataScreen(
     val snackbar = remember { SnackbarHostState() }
     val busy by viewModel.busy.collectAsStateWithLifecycle()
     val backupPrefs by backupSettings.values.collectAsStateWithLifecycle()
+    DisposableEffect(backupSettings) {
+        val subscription = backupSettings.observeExternalChanges()
+        onDispose { subscription.close() }
+    }
     val notificationsEnabled by notificationSettings.values.collectAsStateWithLifecycle()
     var pickBackupReminderWeeks by rememberSaveable { mutableStateOf(false) }
 
@@ -253,6 +258,16 @@ fun DataScreen(
                             },
                             style = MaterialTheme.typography.bodyLarge,
                         )
+                        val confirmed = backupPrefs.lastFolderBackup?.takeIf { it.folderUri == folderUri }
+                        if (confirmed != null) {
+                            Text(lastBackupText(confirmed.at), style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(if (confirmed.includeFiles) R.string.backup_scope_with_files else R.string.backup_scope_data_only))
+                        } else {
+                            Text(stringResource(R.string.backup_folder_no_confirmed_run), style = MaterialTheme.typography.bodyMedium)
+                        }
+                        if (backupPrefs.lastFolderBackupFailedFor == folderUri) {
+                            Text(stringResource(R.string.backup_folder_last_failed), color = MaterialTheme.colorScheme.error)
+                        }
                         Button(
                             onClick = { viewModel.backUpToFolder(folderUri, backupPrefs.autoBackupIncludeFilesOverride) },
                             enabled = !busy && resolvedFolderName != null,

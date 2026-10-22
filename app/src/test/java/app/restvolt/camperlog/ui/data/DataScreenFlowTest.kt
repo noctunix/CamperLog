@@ -79,7 +79,7 @@ class DataScreenFlowTest {
 
     private fun start(folderWriter: FakeScreenBackupFolderWriter = FakeScreenBackupFolderWriter(), notificationsEnabled: Boolean = false): BackupSettings {
         clearPreferences()
-        val backupSettings = BackupSettings(context)
+        val backupSettings = BackupSettings(context, NoOpReminderWorkScheduler())
         val notificationSettings = NotificationSettings(context, NoOpReminderWorkScheduler())
         notificationSettings.enabled = notificationsEnabled
         compose.setContent {
@@ -100,6 +100,7 @@ class DataScreenFlowTest {
                             FakeBackupImporter(),
                             NoOpDataFiles,
                             folderWriter,
+                            onFolderBackupResult = backupSettings::recordFolderBackupResult,
                             // Unconfined statt des echten Dispatchers.IO: der Compose-Test steuert sonst nur die
                             // virtuelle Zeit des Main-Dispatchers, nicht einen echten Thread-Wechsel.
                             background = Dispatchers.Unconfined,

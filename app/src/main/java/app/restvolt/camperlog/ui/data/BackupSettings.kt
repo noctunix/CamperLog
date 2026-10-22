@@ -14,6 +14,9 @@ import java.time.Instant
 /** Standard-Vorlauf der Sicherungs-Erinnerung in Wochen; `0` bedeutet "aus". */
 const val DEFAULT_BACKUP_REMINDER_WEEKS = 4
 
+/** Letzter bestätigter Stand eines Sicherungsordners mit tatsächlichem Dateiumfang. */
+data class FolderBackupRecord(val at: Instant, val folderUri: String, val includeFiles: Boolean)
+
 /**
  * Einstellungen und Zustand der Sicherungs-Erinnerung und des Sicherungsordners.
  * [lastNotifiedBackupBaseline] wird nur vom täglichen Hintergrund-Check gelesen/geschrieben, siehe
@@ -25,6 +28,8 @@ data class BackupPreferences(
     val lastNotifiedBackupBaseline: Instant? = null,
     val folderUri: String? = null,
     val autoBackupToFolder: Boolean = false,
+    val lastFolderBackup: FolderBackupRecord? = null,
+    val lastFolderBackupFailedFor: String? = null,
     /**
      * Ob die automatische Sicherung in den Sicherungsordner Fotos und Dokumente mit einschließen soll;
      * `null`, solange niemand das bewusst gewählt hat; dann bleiben Dateien eingeschlossen.
@@ -40,6 +45,14 @@ class BackupSettings(private val context: Context, private val scheduler: Remind
 
     init {
         if (state.value.autoBackupToFolder && state.value.folderUri != null && state.value.reminderWeeks > 0) scheduler.enqueue()
+    }
+
+    /** Hält die Anzeige auch bei Änderungen durch den Hintergrundjob aktuell; Rückgabe beim Verlassen schließen. */
+    fun observeExternalChanges(): java.io.Closeable {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> state.value = load() }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        state.value = load()
+        return java.io.Closeable { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
     /** Aktuelle Werte; Änderungen über die Setter dieser Instanz werden sofort sichtbar. */
@@ -95,12 +108,37 @@ class BackupSettings(private val context: Context, private val scheduler: Remind
         lastBackupAt = at
     }
 
+    /** Merkt den tatsächlich geschriebenen Umfang; [at] ist bei einem fehlgeschlagenen Versuch `null`. */
+    fun recordFolderBackupResult(folderUri: String, includeFiles: Boolean, at: Instant?) {
+        preferences.edit {
+            if (at != null) {
+                putLong(KEY_LAST_FOLDER_AT, at.toEpochMilli())
+                putString(KEY_LAST_FOLDER_URI, folderUri)
+                putBoolean(KEY_LAST_FOLDER_FILES, includeFiles)
+                putLong(KEY_LAST_BACKUP, at.toEpochMilli())
+                remove(KEY_LAST_FOLDER_FAILED)
+            } else {
+                putString(KEY_LAST_FOLDER_FAILED, folderUri)
+            }
+        }
+        state.update { current ->
+            if (at != null) current.copy(lastFolderBackup = FolderBackupRecord(at, folderUri, includeFiles), lastBackupAt = at, lastFolderBackupFailedFor = null)
+            else current.copy(lastFolderBackupFailedFor = folderUri)
+        }
+    }
+
     private fun load(): BackupPreferences = BackupPreferences(
         reminderWeeks = preferences.getInt(KEY_REMINDER_WEEKS, DEFAULT_BACKUP_REMINDER_WEEKS),
         lastBackupAt = preferences.getLong(KEY_LAST_BACKUP, -1).takeIf { it >= 0 }?.let(Instant::ofEpochMilli),
         lastNotifiedBackupBaseline = preferences.getLong(KEY_LAST_NOTIFIED_BASELINE, -1).takeIf { it >= 0 }?.let(Instant::ofEpochMilli),
         folderUri = preferences.getString(KEY_FOLDER_URI, null),
         autoBackupToFolder = preferences.getBoolean(KEY_AUTO_BACKUP, false),
+        lastFolderBackup = preferences.getLong(KEY_LAST_FOLDER_AT, -1).takeIf { it >= 0 }?.let { at ->
+            preferences.getString(KEY_LAST_FOLDER_URI, null)?.let { uri ->
+                FolderBackupRecord(Instant.ofEpochMilli(at), uri, preferences.getBoolean(KEY_LAST_FOLDER_FILES, true))
+            }
+        },
+        lastFolderBackupFailedFor = preferences.getString(KEY_LAST_FOLDER_FAILED, null),
         autoBackupIncludeFilesOverride = if (preferences.contains(KEY_AUTO_BACKUP_INCLUDE_FILES)) {
             preferences.getBoolean(KEY_AUTO_BACKUP_INCLUDE_FILES, true)
         } else {
@@ -109,6 +147,10 @@ class BackupSettings(private val context: Context, private val scheduler: Remind
     )
 
     private companion object {
+        const val KEY_LAST_FOLDER_AT = "last_folder_at"
+        const val KEY_LAST_FOLDER_URI = "last_folder_uri"
+        const val KEY_LAST_FOLDER_FILES = "last_folder_files"
+        const val KEY_LAST_FOLDER_FAILED = "last_folder_failed"
         const val KEY_REMINDER_WEEKS = "reminder_weeks"
         const val KEY_LAST_BACKUP = "last_backup_millis"
         const val KEY_LAST_NOTIFIED_BASELINE = "last_notified_baseline_millis"
