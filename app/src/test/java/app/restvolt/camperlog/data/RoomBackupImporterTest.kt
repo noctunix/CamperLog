@@ -908,6 +908,21 @@ class RoomBackupImporterTest {
     }
 
     @Test
+    fun merge_paymentMethods_reportsEntriesThatDoNotFitIntoAFullList() = runTest {
+        val local = (1..29).map { "Local $it" }
+        val repository = FakePaymentMethodRepository(local)
+
+        val result = importerWith(repository).import(
+            backup(tours = emptyList()).copy(paymentMethods = listOf("Local 1", "New A", "New B")),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(local + "New A", repository.methods.value)
+        assertEquals(30, result.importedPaymentMethods)
+        assertEquals(1, result.skippedPaymentMethods)
+    }
+
+    @Test
     fun replace_paymentMethods_replacesTheLocalList() = runTest {
         val repository = FakePaymentMethodRepository(listOf("Bar", "PayPal"))
 

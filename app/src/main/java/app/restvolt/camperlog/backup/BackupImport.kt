@@ -50,6 +50,8 @@ data class ImportResult(
     val addedTrackPoints: Int = 0,
     /** Anzahl der Zahlungsarten, die nach dem Import in der Liste stehen; 0, wenn die Sicherung keine enthielt. */
     val importedPaymentMethods: Int = 0,
+    /** Number of imported payment methods dropped because the list is full. */
+    val skippedPaymentMethods: Int = 0,
 )
 
 /** Spielt eine geprüfte Sicherung ein, vollständig oder gar nicht. */

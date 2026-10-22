@@ -428,6 +428,10 @@
         <item quantity="one">%1$d payment method in the list</item>
         <item quantity="other">%1$d payment methods in the list</item>
     </plurals>
+    <plurals name="import_skipped_payment_methods">
+        <item quantity="one">%1$d payment method not imported (list is full)</item>
+        <item quantity="other">%1$d payment methods not imported (list is full)</item>
+    </plurals>
     <string name="import_running">Restoring backup…</string>
     <string name="data_working">Working…</string>
     <string name="import_failed">Restore failed. Nothing was changed.</string>

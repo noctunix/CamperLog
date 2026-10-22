@@ -462,7 +462,7 @@ class RoomBackupImporter(
         // SQLite wirft dann hier, und die Transaktion wird vollständig zurückgerollt.
         tourDao.getCostSums()
 
-        val importedPaymentMethods = applyPaymentMethods(backup.paymentMethods, mode)
+        val (importedPaymentMethods, skippedPaymentMethods) = applyPaymentMethods(backup.paymentMethods, mode)
         ImportResult(
             addedTours = added,
             updatedTours = updated,
@@ -488,21 +488,23 @@ class RoomBackupImporter(
             addedAttachments = addedAttachments,
             addedTrackPoints = addedTrackPoints,
             importedPaymentMethods = importedPaymentMethods,
+            skippedPaymentMethods = skippedPaymentMethods,
         )
     }
 
     /**
-     * Übernimmt die Zahlungsarten der Sicherung: REPLACE ersetzt die Liste, MERGE hängt fehlende Einträge an.
-     * Liefert die Länge der Liste danach; 0, wenn die Sicherung keine Zahlungsarten enthält.
+     * Applies the backup's payment methods: REPLACE replaces the list, MERGE appends missing entries.
+     * Returns the list size afterwards and the number of imported entries that did not fit.
      */
-    private fun applyPaymentMethods(imported: List<String>?, mode: ImportMode): Int {
-        val repository = paymentMethods ?: return 0
-        if (imported == null) return 0
+    private fun applyPaymentMethods(imported: List<String>?, mode: ImportMode): Pair<Int, Int> {
+        val repository = paymentMethods ?: return 0 to 0
+        if (imported == null) return 0 to 0
         when (mode) {
             ImportMode.REPLACE -> repository.replaceAll(imported)
             ImportMode.MERGE -> repository.replaceAll(repository.methods.value + imported)
         }
-        return repository.methods.value.size
+        val stored = repository.methods.value.map { it.lowercase() }.toSet()
+        return stored.size to imported.count { it.trim().lowercase() !in stored }
     }
 }
 

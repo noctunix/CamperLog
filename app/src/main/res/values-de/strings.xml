@@ -428,6 +428,10 @@
         <item quantity="one">%1$d Zahlungsart in der Liste</item>
         <item quantity="other">%1$d Zahlungsarten in der Liste</item>
     </plurals>
+    <plurals name="import_skipped_payment_methods">
+        <item quantity="one">%1$d Zahlungsart nicht importiert (Liste ist voll)</item>
+        <item quantity="other">%1$d Zahlungsarten nicht importiert (Liste ist voll)</item>
+    </plurals>
     <string name="import_running">Sicherung wird eingespielt …</string>
     <string name="data_working">Wird verarbeitet …</string>
     <string name="import_failed">Einspielen fehlgeschlagen. Es wurde nichts geändert.</string>
