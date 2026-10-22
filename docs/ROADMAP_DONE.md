@@ -2,6 +2,7 @@
 
 Shipped features, newest first.
 
+- 1.34.0 – Introduction tour gains statistics and map steps (example tour only, map drawn without background tiles so nothing is fetched from the internet); the example tour is kept out of statistics and rates
 - 1.33.0 – Rewritten introduction tour for newcomers (nine steps: tour/stop/logbook terms, all four tabs, stop kinds, checklists, your data); the demo tour used by the create-first-tour guide now has six stops of five kinds with costs; the create-first-tour guide follows the form order and explains the destination field
 - 1.32.0 – Payment method on every kind of stop, picked from an editable list in Settings (part of backups); one-tap "Fueled" logbook tile with optional litres and derived price per litre; gas-bottle switch and refill tiles; quick-facts popup for logbook entries
 - 1.28.1 – Overnight stays can be tagged as hotel, vacation rental or hostel, not just campsite/motorhome area/wild camping; home address history is now part of backups and carried over on restore (1.28.0 never shipped: its tagged commit failed CI when lint's upstream-version checks happened to flag a newer Gradle/dependency release at analysis time, unrelated to the change itself)
