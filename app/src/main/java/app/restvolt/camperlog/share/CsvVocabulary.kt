@@ -1,9 +1,11 @@
 package app.restvolt.camperlog.share
 
+import app.restvolt.camperlog.domain.BoardType
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.ElectricityFlatRate
+import app.restvolt.camperlog.domain.LodgingAmenity
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.SiteKind
@@ -140,6 +142,46 @@ fun StationService.csvValue(vocabulary: CsvVocabulary): String = if (vocabulary 
         StationService.ADBLUE -> "adblue"
         StationService.LPG -> "lpg"
         StationService.ELECTRICITY -> "electricity"
+    }
+}
+
+/** Exportwert von [BoardType] in [vocabulary]; Deutsch bleibt [BoardType.csvValue]. */
+fun BoardType.csvValue(vocabulary: CsvVocabulary): String = if (vocabulary == CsvVocabulary.GERMAN) {
+    csvValue
+} else {
+    when (this) {
+        BoardType.NONE -> "none"
+        BoardType.BREAKFAST -> "breakfast"
+        BoardType.HALF_BOARD -> "half_board"
+        BoardType.FULL_BOARD -> "full_board"
+    }
+}
+
+/** Exportwert von [LodgingAmenity] in [vocabulary]; Deutsch bleibt [LodgingAmenity.csvValue]. */
+fun LodgingAmenity.csvValue(vocabulary: CsvVocabulary): String = if (vocabulary == CsvVocabulary.GERMAN) {
+    csvValue
+} else {
+    when (this) {
+        LodgingAmenity.POOL -> "pool"
+        LodgingAmenity.SAUNA -> "sauna"
+        LodgingAmenity.FITNESS_ROOM -> "fitness_room"
+        LodgingAmenity.WELLNESS -> "wellness"
+        LodgingAmenity.PRIVATE_BATHROOM -> "private_bathroom"
+        LodgingAmenity.AIR_CONDITIONING -> "air_conditioning"
+        LodgingAmenity.FRIDGE -> "fridge"
+        LodgingAmenity.MINIBAR -> "minibar"
+        LodgingAmenity.BALCONY -> "balcony"
+        LodgingAmenity.SAFE -> "safe"
+        LodgingAmenity.PARKING -> "parking"
+        LodgingAmenity.EV_CHARGING -> "ev_charging"
+        LodgingAmenity.BIKE_RENTAL -> "bike_rental"
+        LodgingAmenity.RECEPTION_24_7 -> "reception_24_7"
+        LodgingAmenity.RESTAURANT -> "restaurant"
+        LodgingAmenity.LAUNDRY_SERVICE -> "laundry_service"
+        LodgingAmenity.ELEVATOR -> "elevator"
+        LodgingAmenity.PETS_ALLOWED -> "pets_allowed"
+        LodgingAmenity.NON_SMOKING -> "non_smoking"
+        LodgingAmenity.SKI_ROOM -> "ski_room"
     }
 }
 
