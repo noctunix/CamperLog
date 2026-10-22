@@ -47,7 +47,7 @@ class VehicleFlowTest {
         val repository = FakeTourRepository(tours.toList()) { vehicles.currentVehicleId }
         compose.setContent {
             CamperLogTheme {
-                CamperLogNavHost(repository, vehicles, FakeLogRepository(), FakeStationRepository(), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, AccentColor.AZURE, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = FakeTrackRepository(), onAccentColorChange = { }) { }
+                CamperLogNavHost(repository, vehicles, FakeLogRepository(), FakeStationRepository(), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, AccentColor.AZURE, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = FakeTrackRepository(), onAccentColorChange = { }, formDraftStore = FakeFormDraftStore()) { }
             }
         }
         return repository
@@ -140,7 +140,7 @@ class VehicleFlowTest {
         pickDay("Enddatum", 12)
         destinationField().performTextInput("Harz")
         compose.onNodeWithContentDescription("Zurück").performClick()
-        compose.onNodeWithText("Speichern").performClick()
+        compose.onNodeWithText("Entwurf behalten").performClick()
         compose.waitForIdle()
 
         assertEquals(1L, repository.tours.single().vehicleId)

@@ -95,6 +95,7 @@ class MapFlowTest {
                     tileLoader = tileLoader,
                     tracks = FakeTrackRepository(track),
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) { }
             }
         }

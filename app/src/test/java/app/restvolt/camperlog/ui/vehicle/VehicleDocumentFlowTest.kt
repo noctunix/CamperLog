@@ -22,6 +22,7 @@ import app.restvolt.camperlog.ui.FakeChecklistTemplateRepository
 import app.restvolt.camperlog.ui.FakeCountryLookupRepository
 import app.restvolt.camperlog.ui.FakeDiaryEntryRepository
 import app.restvolt.camperlog.ui.FakeExchangeRateRepository
+import app.restvolt.camperlog.ui.FakeFormDraftStore
 import app.restvolt.camperlog.ui.FakeLogRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
 import app.restvolt.camperlog.ui.FakeTrackRepository
@@ -74,6 +75,7 @@ class VehicleDocumentFlowTest {
                     countryLookup = FakeCountryLookupRepository(),
                     tracks = FakeTrackRepository(),
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) { }
             }
         }

@@ -48,6 +48,7 @@ class DiaryFlowTest {
                     countryLookup = FakeCountryLookupRepository(),
                     tracks = FakeTrackRepository(),
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) { }
             }
         }

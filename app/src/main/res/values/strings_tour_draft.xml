@@ -1,0 +1,10 @@
+<resources>
+    <string name="tour_draft_notice">Valid changes save automatically. While an error remains, the last valid tour stays unchanged. Finish to confirm your edits.</string>
+    <string name="tour_finish_new">Create tour</string>
+    <string name="tour_finish_existing">Apply changes</string>
+    <string name="tour_leave_title">Leave tour draft?</string>
+    <string name="tour_leave_text">Keep the local draft to continue later, discard your changes, or stay here.</string>
+    <string name="tour_keep_draft">Keep draft</string>
+    <string name="tour_discard_draft">Discard</string>
+    <string name="tour_cancel_leave">Stay</string>
+</resources>

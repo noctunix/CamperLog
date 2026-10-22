@@ -58,6 +58,7 @@ class StationsFlowTest {
                     countryLookup = FakeCountryLookupRepository(),
                     tracks = FakeTrackRepository(),
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) { }
             }
         }

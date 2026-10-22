@@ -60,6 +60,7 @@ class VehicleBreakdownFlowTest {
                     tracks = FakeTrackRepository(),
                     locationProvider = locationProvider,
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) { }
             }
         }

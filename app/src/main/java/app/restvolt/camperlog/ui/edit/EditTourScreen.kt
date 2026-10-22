@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +21,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +46,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -80,7 +84,6 @@ import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LabeledValue
-import app.restvolt.camperlog.ui.LeaveDraftDialog
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.TimeField
 import app.restvolt.camperlog.ui.guide.guideAnchor
@@ -90,6 +93,7 @@ import app.restvolt.camperlog.ui.settings.trackPermissions
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.vehicleMenuLabel
 import java.time.LocalDate
+import kotlinx.coroutines.launch
 
 /**
  * Formular zum Anlegen und Bearbeiten einer Tour; jede Eingabe speichert sich implizit selbst.
@@ -119,6 +123,7 @@ fun EditTourScreen(
     var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val resources = LocalResources.current
     val context = LocalContext.current
 
@@ -161,7 +166,23 @@ fun EditTourScreen(
     }
 
     val requestBack = {
-        if (state.needsLeaveConfirmation()) showLeaveDialog = true else onDone()
+        if (!state.isFinishing) {
+            if (state.needsLeaveConfirmation()) {
+                showLeaveDialog = true
+            } else if (state.isNew) {
+                scope.launch {
+                    if (viewModel.discardDraft()) {
+                        state.tourId?.let { TrackRecordingService.stopIfTracking(context, it) }
+                        onDone()
+                    }
+                }
+            } else {
+                onDone()
+            }
+        }
+    }
+    val finish = {
+        if (!state.isFinishing) scope.launch { if (viewModel.onFinish()) onDone() }
     }
     BackHandler(onBack = requestBack)
 
@@ -172,8 +193,11 @@ fun EditTourScreen(
                 onBack = requestBack,
                 navigationIconModifier = if (state.isNew) Modifier.guideAnchor("edit.tour.back") else Modifier,
                 actions = {
-                    IconButton(onClick = onDone) {
-                        Icon(painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.action_save))
+                    IconButton(onClick = finish, enabled = !state.isFinishing) {
+                        Icon(
+                            painterResource(R.drawable.ic_check),
+                            contentDescription = stringResource(if (state.isNew) R.string.tour_finish_new else R.string.tour_finish_existing),
+                        )
                     }
                 },
             )
@@ -200,16 +224,39 @@ fun EditTourScreen(
     }
 
     if (showLeaveDialog) {
-        LeaveDraftDialog(
-            onCancel = { showLeaveDialog = false },
-            onDiscard = {
-                showLeaveDialog = false
-                viewModel.onDiscardConfirmed()
-                onDone()
+        AlertDialog(
+            onDismissRequest = { if (!state.isFinishing) showLeaveDialog = false },
+            title = { Text(stringResource(R.string.tour_leave_title)) },
+            text = { Text(stringResource(R.string.tour_leave_text)) },
+            dismissButton = {
+                TextButton(onClick = { showLeaveDialog = false }, enabled = !state.isFinishing) {
+                    Text(stringResource(R.string.tour_cancel_leave))
+                }
             },
-            onKeep = {
-                showLeaveDialog = false
-                onDone()
+            confirmButton = {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    TextButton(onClick = {
+                        scope.launch {
+                            if (viewModel.discardDraft()) {
+                                showLeaveDialog = false
+                                state.tourId?.let { TrackRecordingService.stopIfTracking(context, it) }
+                                onDone()
+                            }
+                        }
+                    }, enabled = !state.isFinishing) { Text(stringResource(R.string.tour_discard_draft)) }
+                    Button(onClick = {
+                        scope.launch {
+                            if (viewModel.keepDraft()) {
+                                showLeaveDialog = false
+                                onDone()
+                            }
+                        }
+                    }, enabled = !state.isFinishing) { Text(stringResource(R.string.tour_keep_draft)) }
+                }
             },
         )
     }
@@ -262,12 +309,23 @@ private fun TourForm(
     val costsExpanded = costsOverride || TourField.COST in state.errors
     val advancedExpanded = advancedOverride || TourField.MAP_LINK in state.errors
 
+    LaunchedEffect(state.validationAttempt) {
+        state.errors.keys.minByOrNull(TourField::ordinal)?.let { field ->
+            runCatching { focus.getValue(field).requestFocus() }
+        }
+    }
+
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        Text(
+            stringResource(R.string.tour_draft_notice),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         if (state.isNew && state.runningTourConflict) {
             RunningTourConflictBanner()
         }
@@ -326,7 +384,7 @@ private fun TourForm(
                 errors[TourField.START_DATE],
                 viewModel::onStartDateChange,
                 modifier = focusOf(TourField.START_DATE),
-                hint = required,
+                hint = if (input.startDate == null) required else null,
                 quickFillLabel = if (state.isNew && input.startDate == null) now else null,
                 onQuickFill = if (state.isNew && input.startDate == null) { { viewModel.onStartNow() } } else null,
             )

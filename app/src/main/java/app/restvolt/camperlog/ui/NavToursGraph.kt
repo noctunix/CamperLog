@@ -114,6 +114,7 @@ internal fun NavGraphBuilder.toursGraph(
                 createSavedStateHandle(),
                 tracks = tracks,
                 homeLocations = homeLocations,
+                formDraftStore = deps.formDraftStore,
                 defaultHomeStationName = { resources.getString(R.string.home_location_default_name) },
             )
         }

@@ -62,6 +62,7 @@ class AttachmentsFlowTest {
                     attachmentPickers = FakeAttachmentPickers(),
                     tracks = FakeTrackRepository(),
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) { }
             }
         }

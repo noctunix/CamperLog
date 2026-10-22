@@ -13,6 +13,7 @@ import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostInput
 import app.restvolt.camperlog.domain.HomeLocation
 import app.restvolt.camperlog.domain.HomeLocationRepository
+import app.restvolt.camperlog.domain.FormDraftStore
 import app.restvolt.camperlog.domain.QUICK_CURRENCIES
 import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.Station
@@ -38,7 +39,10 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.Currency
 import java.util.Locale
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,10 +51,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 
 /** Zustand des Formulars. Jede Eingabe speichert sich laufend selbst (siehe [EditTourViewModel]). */
 data class EditUiState(
@@ -81,6 +86,13 @@ data class EditUiState(
     val homeSwitch: Boolean = false,
     /** Die id der Tour, sobald sie bekannt ist: für eine neue Tour ab ihrer ersten Anlage, sonst ab dem Laden. */
     val tourId: Long? = null,
+    /** Das vorbelegte Startdatum ist Teil eines unberührten neuen Entwurfs. */
+    val initialStartDate: LocalDate? = null,
+    /** Vollständige Vorbelegung, damit Zurücksetzen eines neuen Entwurfs wieder unverändert ist. */
+    val initialInput: TourInput? = null,
+    val isFinishing: Boolean = false,
+    val isFinished: Boolean = false,
+    val validationAttempt: Int = 0,
 )
 
 /**
@@ -88,20 +100,15 @@ data class EditUiState(
  * Verlassen ohne Rückfrage verworfen werden darf, statt als leere Karteileiche zu bleiben.
  */
 internal fun EditUiState.isUnmodifiedNewTourDraft(): Boolean = isNew &&
-    input.startDate == null &&
-    input.endDate == null &&
-    input.destination.isBlank() &&
-    input.name.isBlank() &&
-    input.notes.isBlank() &&
-    input.mapLink.isBlank() &&
-    input.costs.all { it.amount.isBlank() } &&
+    !isFinished &&
+    input == (initialInput ?: TourInput(startDate = initialStartDate)) &&
     !trackSwitch &&
     !homeSwitch
 
 /**
  * Ob ein Verlassen zuerst den Verwerfen/Speichern-Dialog zeigen muss: Für eine neue Tour, solange
- * ihr Entwurf nicht mehr [isUnmodifiedNewTourDraft] ist (ein komplett unberührter Entwurf verlässt
- * sich ohne Rückfrage, siehe [EditTourViewModel.onCleared]); für eine bestehende Tour, solange sich
+ * ihr Entwurf nicht mehr [isUnmodifiedNewTourDraft] ist (ein komplett unberührter Entwurf wird beim
+ * Verlassen direkt verworfen); für eine bestehende Tour, solange sich
  * seit dem Öffnen des Formulars wirklich etwas geändert hat.
  */
 internal fun EditUiState.needsLeaveConfirmation(): Boolean = if (isNew) !isUnmodifiedNewTourDraft() else isDirty
@@ -109,6 +116,8 @@ internal fun EditUiState.needsLeaveConfirmation(): Boolean = if (isNew) !isUnmod
 /** Ungespeicherte Formulareingaben, die ein Beenden des Prozesses im Hintergrund überstehen. */
 @Serializable
 internal data class TourDraft(
+    val version: Int = 0,
+    val ownerUuid: String? = null,
     val input: TourInput,
     val showErrors: Boolean,
     val autoTravelDays: String?,
@@ -117,6 +126,16 @@ internal data class TourDraft(
     val persistedTourId: Long? = null,
     /** Für eine neue Tour die ids der zuletzt für den Schalter "Beginnt zu Hause" angelegten Stationen. */
     val homeStationIds: List<Long> = emptyList(),
+    @Serializable(with = app.restvolt.camperlog.domain.LocalDateSerializer::class)
+    val initialStartDate: LocalDate? = null,
+    val initialInput: TourInput? = null,
+    val openedInput: TourInput? = null,
+    val openedManualCountriesAdded: Set<String>? = null,
+    val openedManualCountriesRemoved: Set<String>? = null,
+    val trackSwitch: Boolean = false,
+    val homeSwitch: Boolean = false,
+    /** Markiert eine neue Tour, deren automatisch angelegte id bereits besteht. */
+    val isNew: Boolean = false,
 )
 
 /**
@@ -126,10 +145,8 @@ internal data class TourDraft(
  * [attemptPersist]), für eine neue wie für eine bestehende Tour. Eine neue Tour wird dafür sofort
  * als echter Datensatz angelegt; dadurch hat sie von Anfang an eine stabile id, gegen die z. B.
  * eine GPS-Aufzeichnung sofort starten kann, ohne auf einen expliziten Speichern-Erfolg zu warten.
- * Verlässt der Nutzer das Formular wieder, entscheidet [onCleared] je nach Fall: Ein komplett
- * unberührter Entwurf einer neuen Tour wird gelöscht; eine echte Änderung kann der Nutzer vorher
- * über [onDiscardConfirmed] verwerfen - für eine neue Tour heißt das Löschen, für eine bestehende
- * das Zurücksetzen auf den beim Öffnen geladenen Stand (siehe [openedTour]).
+ * Vor jedem regulären Verlassen schreibt oder verwirft die Oberfläche den Entwurf asynchron. Beim
+ * Löschen des ViewModels wird kein blockierender Datenbankzugriff ausgeführt.
  *
  * Geänderte Eingaben liegen zusätzlich in [savedStateHandle] und werden nach einem Neustart
  * des Prozesses statt der gespeicherten Tour angezeigt; für eine neue Tour sichert das auch die
@@ -150,17 +167,31 @@ class EditTourViewModel(
     private val checklists: ChecklistRepository,
     tourId: Long,
     private val savedStateHandle: SavedStateHandle,
+    private val formDraftStore: FormDraftStore,
     private val locale: () -> Locale = { app.restvolt.camperlog.domain.supportedLocale(Locale.getDefault()) },
     private val tracks: TrackRepository? = null,
     private val homeLocations: HomeLocationRepository? = null,
     private val defaultHomeStationName: () -> String = { "" },
 ) : ViewModel() {
 
-    private val draft: TourDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)?.let { decodeFromSavedState(it) }
+    private var draft: TourDraft? = savedStateHandle.get<SavedState>(DRAFT_KEY)
+        ?.let { decodeFromSavedState<TourDraft>(it) }
+        ?.takeIf { it.version == TOUR_DRAFT_VERSION }
 
+    private var initialStartDate = draft?.initialStartDate ?: LocalDate.now()
     private val _uiState = MutableStateFlow(
-        EditUiState(isNew = tourId == 0L, isLoading = tourId != 0L).let { state ->
-            if (draft == null) state else state.copy(input = draft.input, isDirty = true)
+        EditUiState(
+            isNew = tourId == 0L || draft?.isNew == true,
+            isLoading = tourId != 0L || (tourId == 0L && draft?.persistedTourId != null),
+            input = draft?.input ?: if (tourId == 0L) TourInput(startDate = initialStartDate) else TourInput(),
+            initialStartDate = if (tourId == 0L) initialStartDate else null,
+            initialInput = if (tourId == 0L || draft?.isNew == true) {
+                draft?.initialInput ?: draft?.openedInput ?: TourInput(startDate = initialStartDate)
+            } else null,
+            trackSwitch = draft?.trackSwitch ?: false,
+            homeSwitch = draft?.homeSwitch ?: false,
+        ).let { state ->
+            if (draft == null) state else state.copy(isDirty = !state.isUnmodifiedNewTourDraft())
         },
     )
     val uiState: StateFlow<EditUiState> = _uiState.asStateFlow()
@@ -170,7 +201,7 @@ class EditTourViewModel(
 
     /**
      * Für eine bestehende Tour der beim Öffnen des Formulars geladene Stand, unverändert über die
-     * ganze Bearbeitungssitzung - die Grundlage für [onDiscardConfirmed], falls der Nutzer seine
+     * ganze Bearbeitungssitzung - die Grundlage für [discardDraft], falls der Nutzer seine
      * Änderungen verwirft. Bleibt für eine neue Tour `null`, da ihr Verwerfen den Datensatz löscht
      * statt ihn zurückzusetzen.
      */
@@ -179,13 +210,18 @@ class EditTourViewModel(
     private var autoTravelDays: String? = draft?.autoTravelDays
     private var autoSlug: String? = draft?.autoSlug
     private var homeStationIds: List<Long> = draft?.homeStationIds ?: emptyList()
+    private var openedInput: TourInput? = draft?.openedInput
+    private var openedManualCountriesAdded: Set<String> = draft?.openedManualCountriesAdded.orEmpty()
+    private var openedManualCountriesRemoved: Set<String> = draft?.openedManualCountriesRemoved.orEmpty()
+    private var pendingDraftJob: Job? = null
+    private var rawDraftSaveSucceeded = true
 
     /** Verhindert, dass zwei gleichzeitige Autosave-Versuche beide eine neue Tour anlegen. */
     private val persistMutex = Mutex()
-    private var pendingSaveJob: Job? = null
 
-    /** Beim nächsten [onCleared] verwerfen statt die letzte Änderung zu übernehmen; siehe [onDiscardConfirmed]. */
+    /** Sperrt Autosaves, sobald der Nutzer den Entwurf ausdrücklich verwirft. */
     private var discardConfirmed = false
+    private var discardApplied = false
 
     init {
         if (showErrors) _uiState.update { it.withErrors() }
@@ -197,14 +233,52 @@ class EditTourViewModel(
                 val currency = repository.lastUsedCurrency() ?: return@launch
                 // Nur vorbelegen, solange der Nutzer noch nichts eingegeben hat.
                 _uiState.update {
-                    if (it.isDirty) it else it.copy(input = it.input.copy(costs = listOf(CostInput(currency = currency))))
+                    if (it.input.costs != it.initialInput?.costs) it else it.copy(
+                        input = it.input.copy(costs = listOf(CostInput(currency = currency))),
+                        initialInput = it.initialInput.copy(costs = listOf(CostInput(currency = currency))),
+                    )
                 }
             }
             viewModelScope.launch {
                 val restoredId = draft?.persistedTourId
                 if (restoredId != null) {
-                    original = repository.observeTour(restoredId).first()
-                    if (original != null) _uiState.update { it.copy(tourId = restoredId) }
+                    val restoredTour = repository.observeTour(restoredId).first()
+                    if (restoredTour != null && draft?.ownerUuid == restoredTour.uuid) {
+                        original = restoredTour
+                        openedTour = restoredTour
+                        openedInput = draft?.openedInput ?: restoredTour.toInput(locale())
+                        openedManualCountriesAdded = draft?.openedManualCountriesAdded ?: restoredTour.manualCountriesAdded
+                        openedManualCountriesRemoved = draft?.openedManualCountriesRemoved ?: restoredTour.manualCountriesRemoved
+                        _uiState.update { it.copy(tourId = restoredId, isLoading = false) }
+                    } else {
+                        persistMutex.withLock { formDraftStore.delete(TOUR_DRAFT_KIND, restoredId) }
+                        savedStateHandle.remove<SavedState>(DRAFT_KEY)
+                        draft = null
+                        initialStartDate = LocalDate.now()
+                        showErrors = false
+                        autoTravelDays = null
+                        autoSlug = null
+                        homeStationIds = emptyList()
+                        openedTour = null
+                        openedInput = null
+                        openedManualCountriesAdded = emptySet()
+                        openedManualCountriesRemoved = emptySet()
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                tourId = null,
+                                input = TourInput(startDate = initialStartDate),
+                                initialStartDate = initialStartDate,
+                                errors = emptyMap(),
+                                costErrors = emptyMap(),
+                                isDirty = false,
+                                trackSwitch = false,
+                                homeSwitch = false,
+                            )
+                        }
+                    }
+                } else {
+                    _uiState.update { it.copy(isLoading = false) }
                 }
                 // Läuft dauerhaft statt nur einmal: Legt der Nutzer währenddessen (z. B. inline aus der
                 // Pilot-Tour heraus) das erste Fahrzeug überhaupt an, greift die Vorbelegung auch dann noch,
@@ -221,26 +295,81 @@ class EditTourViewModel(
                             // keine Vorauswahl. Das Demo-Fahrzeug des Tutorials zählt nie.
                             val preselectedVehicleId = vehicleList.firstOrNull { it.id == current.id && !it.isSold && !it.isDemo }?.id
                                 ?: vehicleList.firstOrNull { !it.isSold && !it.isDemo }?.id
-                            if (preselectedVehicleId != null) state.copy(input = state.input.copy(vehicleId = preselectedVehicleId)) else state
+                            if (preselectedVehicleId != null) state.copy(
+                                input = state.input.copy(vehicleId = preselectedVehicleId),
+                                initialInput = state.initialInput?.takeIf { state.input.vehicleId == it.vehicleId }
+                                    ?.copy(vehicleId = preselectedVehicleId),
+                            ) else state
                         }
-                        if (original == null) attemptPersist()
+                        if (original == null) createNewTourPlaceholder()
                     }
             }
         } else {
             viewModelScope.launch {
-                val tour = repository.observeTour(tourId).first()
-                original = tour
-                openedTour = tour
+                val loadedTour = repository.observeTour(tourId).first()
+                if (loadedTour == null) {
+                    persistMutex.withLock { formDraftStore.delete(TOUR_DRAFT_KIND, tourId) }
+                    savedStateHandle.remove<SavedState>(DRAFT_KEY)
+                    _uiState.update { it.copy(isLoading = false, notFound = true) }
+                    return@launch
+                }
+                original = loadedTour
+                openedTour = loadedTour
+                openedInput = loadedTour.toInput(locale())
+                openedManualCountriesAdded = loadedTour.manualCountriesAdded
+                openedManualCountriesRemoved = loadedTour.manualCountriesRemoved
+                val rawPayload = formDraftStore.get(TOUR_DRAFT_KIND, tourId)
+                val stored = rawPayload?.let(::decodeTourDraft)
+                val candidates = listOfNotNull(draft, stored)
+                val restored = candidates.firstOrNull { it.ownerUuid == loadedTour.uuid }
+                if (restored == null && (rawPayload != null || candidates.isNotEmpty())) {
+                    persistMutex.withLock { formDraftStore.delete(TOUR_DRAFT_KIND, tourId) }
+                    savedStateHandle.remove<SavedState>(DRAFT_KEY)
+                }
+                draft = restored
+                if (restored == null) {
+                    initialStartDate = loadedTour.startDate
+                    showErrors = false
+                    autoTravelDays = null
+                    autoSlug = null
+                    homeStationIds = emptyList()
+                }
+                if (restored != null) {
+                    if (restored.isNew) initialStartDate = restored.initialStartDate ?: loadedTour.startDate
+                    openedInput = restored.openedInput ?: loadedTour.toInput(locale())
+                    openedManualCountriesAdded = restored.openedManualCountriesAdded ?: loadedTour.manualCountriesAdded
+                    openedManualCountriesRemoved = restored.openedManualCountriesRemoved ?: loadedTour.manualCountriesRemoved
+                    openedTour = openedInput!!.toTour(loadedTour, locale()).copy(
+                        manualCountriesAdded = openedManualCountriesAdded,
+                        manualCountriesRemoved = openedManualCountriesRemoved,
+                    )
+                    autoTravelDays = restored.autoTravelDays
+                    autoSlug = restored.autoSlug
+                    homeStationIds = restored.homeStationIds
+                    showErrors = restored.showErrors
+                }
                 _uiState.update {
-                    // Ein wiederhergestellter Entwurf hat Vorrang vor dem gespeicherten Stand.
-                    val input = if (it.isDirty) it.input else tour?.toInput(locale()) ?: it.input
+                    // Der dauerhafte Rohentwurf hat Vorrang; SavedStateHandle deckt den Prozessneustart ab.
+                    val input = restored?.input ?: loadedTour.toInput(locale())
                     it.copy(
                         isLoading = false,
-                        notFound = tour == null,
+                        notFound = false,
                         input = input,
-                        showLegacyMapLink = tour?.mapLink != null,
-                        tourId = tour?.id,
+                        showLegacyMapLink = loadedTour.mapLink != null,
+                        tourId = loadedTour.id,
+                        isDirty = restored != null,
+                        trackSwitch = restored?.trackSwitch ?: it.trackSwitch,
+                        homeSwitch = restored?.homeSwitch ?: it.homeSwitch,
+                        isNew = restored?.isNew ?: false,
+                        initialStartDate = if (restored?.isNew == true) initialStartDate else it.initialStartDate,
+                        errors = if (restored == null) emptyMap() else it.errors,
+                        costErrors = if (restored == null) emptyMap() else it.costErrors,
                     )
+                }
+                if (restored != null) {
+                    _uiState.update { it.withErrors() }
+                    saveDraft()
+                    attemptPersist()
                 }
             }
         }
@@ -252,12 +381,13 @@ class EditTourViewModel(
      * löst außerdem den debounced Autosave aus.
      */
     fun onInputChange(transform: (TourInput) -> TourInput) {
+        if (_uiState.value.isFinishing) return
         showErrors = true
         _uiState.update { state ->
             state.copy(input = transform(state.input), isDirty = true).withErrors()
         }
         saveDraft()
-        scheduleAutosave()
+        scheduleDraftAutosave()
     }
 
     fun onCostAmountChange(index: Int, amount: String) = onCostChange(index) { it.copy(amount = amount) }
@@ -337,7 +467,10 @@ class EditTourViewModel(
      * startet bzw. stoppt die Aufzeichnung selbst anhand der schon bekannten [EditUiState.tourId].
      */
     fun onTrackSwitchChange(value: Boolean) {
+        if (_uiState.value.isFinishing || _uiState.value.isFinished) return
         _uiState.update { it.copy(trackSwitch = value) }
+        saveDraft()
+        scheduleDraftAutosave()
     }
 
     /**
@@ -347,51 +480,81 @@ class EditTourViewModel(
      * dem gerade eingegebenen Zeitraum statt einem noch nicht geschriebenen, veralteten Stand entstehen.
      */
     fun onHomeSwitchChange(value: Boolean) {
+        if (_uiState.value.isFinishing || _uiState.value.isFinished) return
         _uiState.update { it.copy(homeSwitch = value) }
-        pendingSaveJob?.cancel()
+        saveDraft()
+        scheduleDraftAutosave()
+        pendingDraftJob?.cancel()
         viewModelScope.launch {
             attemptPersist()
-            if (value) createHomeStationsNow() else removeTrackedHomeStations()
+            if (!value) persistMutex.withLock {
+                if (!_uiState.value.isFinished && !discardConfirmed && !discardApplied) removeTrackedHomeStations()
+            }
         }
     }
 
-    /**
-     * Versucht die aktuelle Eingabe in die Datenbank zu schreiben: anlegen, falls [original] noch
-     * keine gibt (nur für eine neue Tour), sonst aktualisieren. Fehlt [TourInput.startDate] noch (der
-     * Nutzer hat es noch nicht gesetzt, nur für eine neue Tour möglich), wird dafür vorübergehend das
-     * Startdatum des zuletzt gespeicherten Standes bzw. das heutige Datum verwendet, ohne die Anzeige
-     * im Formular zu verändern - das Pflichtfeld bleibt dort leer, bis der Nutzer selbst ein Datum
-     * wählt. Ist die Eingabe (mit diesem Platzhalter) ungültig, bleibt der zuletzt gespeicherte Stand
-     * unverändert stehen, bis sie es wieder ist. Scheitert der Versuch an
-     * [RunningTourAlreadyExistsException], bleibt die Tour unangelegt bzw. unverändert und der
-     * Konflikt wird nur angezeigt, nicht wiederholt erzwungen.
-     */
-    private suspend fun attemptPersist() {
+    /** Speichert eine neue Tour früh als stabile ID für Tracking; Formulareingaben bleiben Entwurf. */
+    private suspend fun createNewTourPlaceholder() {
         persistMutex.withLock {
+            if (original != null) return@withLock
             val state = _uiState.value
-            val basis = original
-            val startDate = state.input.startDate ?: basis?.startDate ?: LocalDate.now()
-            // 0 bedeutet "aktuelles Fahrzeug" und wird nur beim allerersten Anlegen aufgelöst (siehe
-            // Tour.save); ein späteres Aktualisieren müsste sonst den schon aufgelösten Stand wieder
-            // auf 0 zurücksetzen, solange der Nutzer nie selbst ein Fahrzeug auswählt.
-            val vehicleId = state.input.vehicleId.takeIf { it != 0L } ?: basis?.vehicleId ?: 0L
-            val loc = locale()
-            val effectiveInput = state.input.copy(startDate = startDate, vehicleId = vehicleId).sanitizedForAutosave(loc)
-            // Nur ein unlogischer Zeitraum (Ende vor Beginn) bleibt blockierend: anders als bei einer
-            // einzelnen ungültigen Zahl oder Kostenzeile lässt sich hier nicht eindeutig sanieren, ohne
-            // zu raten, welches der beiden Felder "falsch" ist.
-            if (effectiveInput.validation(loc).errors.isNotEmpty()) return@withLock
-            val tour = effectiveInput.toTour(basis, loc)
+            val input = (state.initialInput ?: TourInput(startDate = initialStartDate))
+                .copy(startDate = initialStartDate)
+            val tour = input.toTour(null, locale())
             try {
                 val id = repository.save(tour)
-                val previousVehicleId = basis?.vehicleId
-                if (previousVehicleId != null && previousVehicleId != tour.vehicleId) {
-                    stations.moveTourToVehicle(id, tour.vehicleId)
-                    checklists.moveTourToVehicle(id, tour.vehicleId)
-                }
                 original = repository.observeTour(id).first() ?: tour.copy(id = id)
-                _uiState.update { it.copy(tourId = id, saveFailed = false, runningTourConflict = false) }
+                openedTour = original
+                openedInput = input
+                openedManualCountriesAdded = emptySet()
+                openedManualCountriesRemoved = emptySet()
+                _uiState.update { it.copy(tourId = id, saveFailed = false) }
                 saveDraft()
+            } catch (_: SQLException) {
+                _uiState.update { it.copy(saveFailed = true) }
+            } catch (_: RunningTourAlreadyExistsException) {
+                _uiState.update { it.copy(runningTourConflict = true) }
+            }
+        }
+    }
+
+    /** Speichert den Rohentwurf dauerhaft und übernimmt nur vollständig gültige Eingaben in die Tour. */
+    private suspend fun attemptPersist() {
+        if (_uiState.value.isFinished || discardConfirmed || discardApplied) return
+        var id = _uiState.value.tourId
+        if (id == null && _uiState.value.isNew) {
+            createNewTourPlaceholder()
+            id = _uiState.value.tourId
+        }
+        id ?: return
+        persistMutex.withLock {
+            if (_uiState.value.isFinished || discardConfirmed || discardApplied) return@withLock
+            try {
+                formDraftStore.put(TOUR_DRAFT_KIND, id, encodeTourDraft(currentDraft()))
+                rawDraftSaveSucceeded = true
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                rawDraftSaveSucceeded = false
+                _uiState.update { it.copy(saveFailed = true) }
+                return@withLock
+            }
+            val state = _uiState.value
+            val loc = locale()
+            if (state.input.validation(loc).errors.isNotEmpty()) return@withLock
+            val basis = original
+            val vehicleId = state.input.vehicleId.takeIf { it != 0L } ?: basis?.vehicleId ?: 0L
+            val tour = state.input.copy(vehicleId = vehicleId).toTour(basis, loc)
+            try {
+                val savedId = repository.save(tour)
+                if (basis != null && basis.vehicleId != tour.vehicleId) {
+                    stations.moveTourToVehicle(savedId, tour.vehicleId)
+                    checklists.moveTourToVehicle(savedId, tour.vehicleId)
+                }
+                original = repository.observeTour(savedId).first() ?: tour.copy(id = savedId)
+                _uiState.update { it.copy(tourId = savedId, saveFailed = false, runningTourConflict = false) }
+                if (state.homeSwitch && homeStationIds.isEmpty()) createHomeStationsNow()
+                if (!state.homeSwitch) removeTrackedHomeStations()
             } catch (_: RunningTourAlreadyExistsException) {
                 _uiState.update { it.copy(runningTourConflict = true) }
             } catch (_: SQLException) {
@@ -400,34 +563,121 @@ class EditTourViewModel(
         }
     }
 
-    /**
-     * Entschärft eine Eingabe für [attemptPersist]: Eine ungültige Kennzahl, ein ungültiger
-     * Kartenlink oder eine einzelne ungültige Kostenzeile fallen weg, statt den Schreibzugriff für
-     * die ganze Tour zu blockieren - der Rest der Eingabe (z. B. Ziel oder Datum) speichert sich
-     * weiter, während das betroffene Feld inline seinen Fehler zeigt. Das verändert nur den
-     * gespeicherten Stand, nicht die Anzeige im Formular.
-     */
-    private fun TourInput.sanitizedForAutosave(locale: Locale): TourInput {
-        val validation = validation(locale)
-        var sanitized = this
-        if (TourField.TRAVEL_DAYS in validation.errors) sanitized = sanitized.copy(travelDays = "")
-        if (TourField.OVERNIGHT_STAYS in validation.errors) sanitized = sanitized.copy(overnightStays = "")
-        if (TourField.DISTANCE_KM in validation.errors) sanitized = sanitized.copy(distanceKm = "")
-        if (TourField.MAP_LINK in validation.errors) sanitized = sanitized.copy(mapLink = "")
-        if (validation.costErrors.isNotEmpty()) {
-            val cleanedCosts = sanitized.costs.filterIndexed { index, _ -> index !in validation.costErrors.keys }
-            sanitized = sanitized.copy(costs = cleanedCosts.ifEmpty { listOf(CostInput()) })
-        }
-        return sanitized
-    }
-
-    /** Plant [attemptPersist] mit kurzer Verzögerung, damit schnell aufeinanderfolgende Tastendrücke nur einen Schreibzugriff auslösen. */
-    private fun scheduleAutosave() {
-        pendingSaveJob?.cancel()
-        pendingSaveJob = viewModelScope.launch {
+    private fun scheduleDraftAutosave() {
+        pendingDraftJob?.cancel()
+        pendingDraftJob = viewModelScope.launch {
             delay(AUTOSAVE_DEBOUNCE_MILLIS)
             attemptPersist()
         }
+    }
+
+    /** Validiert und übernimmt den vollständigen Datensatz; bei Fehlern bleibt Rohentwurf und Tour unangetastet. */
+    suspend fun onFinish(): Boolean {
+        if (_uiState.value.isFinishing || _uiState.value.isFinished) return false
+        _uiState.update { it.copy(isFinishing = true, validationAttempt = it.validationAttempt + 1) }
+        showErrors = true
+        try {
+            if (!flushDraft()) {
+                _uiState.update { it.copy(isFinishing = false) }
+                return false
+            }
+        } catch (cancelled: CancellationException) {
+            _uiState.update { it.copy(isFinishing = false) }
+            throw cancelled
+        }
+        val state = _uiState.value.withErrors()
+        _uiState.value = state
+        if (state.errors.isNotEmpty() || state.costErrors.isNotEmpty()) {
+            _uiState.update { it.copy(isFinishing = false) }
+            return false
+        }
+        val basis = original
+        val startDate = state.input.startDate ?: run {
+            _uiState.update { it.copy(isFinishing = false) }
+            return false
+        }
+        val vehicleId = state.input.vehicleId.takeIf { it != 0L } ?: basis?.vehicleId ?: 0L
+        val effectiveInput = state.input.copy(startDate = startDate, vehicleId = vehicleId)
+        val tour = effectiveInput.toTour(basis, locale())
+        return persistMutex.withLock {
+          try {
+            val id = repository.save(tour)
+            if (basis != null && basis.vehicleId != tour.vehicleId) {
+                stations.moveTourToVehicle(id, tour.vehicleId)
+                checklists.moveTourToVehicle(id, tour.vehicleId)
+            }
+            original = repository.observeTour(id).first() ?: tour.copy(id = id)
+            if (_uiState.value.homeSwitch) {
+                if (homeStationIds.isEmpty()) createHomeStationsNow()
+            } else {
+                removeTrackedHomeStations()
+            }
+            formDraftStore.delete(TOUR_DRAFT_KIND, id)
+            savedStateHandle.remove<SavedState>(DRAFT_KEY)
+            _uiState.update { it.copy(tourId = id, isFinishing = false, isFinished = true, isDirty = false, saveFailed = false, runningTourConflict = false) }
+            true
+          } catch (cancelled: CancellationException) {
+            _uiState.update { it.copy(isFinishing = false) }
+            throw cancelled
+          } catch (_: RunningTourAlreadyExistsException) {
+            _uiState.update { it.copy(isFinishing = false, runningTourConflict = true) }
+            false
+          } catch (_: Exception) {
+            _uiState.update { it.copy(isFinishing = false, saveFailed = true) }
+            false
+          }
+        }
+    }
+
+    /** Wartet den debounce ab und schreibt den vollständigen Arbeitsstand vor dem Verlassen. */
+    suspend fun flushDraft(): Boolean {
+        pendingDraftJob?.cancelAndJoin()
+        pendingDraftJob = null
+        attemptPersist()
+        return rawDraftSaveSucceeded
+    }
+
+    /** Schreibt den Rohentwurf vor dem Verlassen genau einmal und sperrt weitere Eingaben. */
+    suspend fun keepDraft(): Boolean {
+        if (_uiState.value.isFinishing || _uiState.value.isFinished) return false
+        _uiState.update { it.copy(isFinishing = true) }
+        return try {
+            if (flushDraft()) {
+                _uiState.update { it.copy(isFinishing = false, isFinished = true) }
+                true
+            } else {
+                _uiState.update { it.copy(isFinishing = false) }
+                false
+            }
+        } catch (cancelled: CancellationException) {
+            _uiState.update { it.copy(isFinishing = false) }
+            throw cancelled
+        } catch (_: Exception) {
+            _uiState.update { it.copy(isFinishing = false, saveFailed = true) }
+            false
+        }
+    }
+
+    private fun currentDraft(): TourDraft {
+        val state = _uiState.value
+        return TourDraft(
+            version = TOUR_DRAFT_VERSION,
+            ownerUuid = original?.uuid,
+            input = state.input,
+            showErrors = showErrors,
+            autoTravelDays = autoTravelDays,
+            autoSlug = autoSlug,
+            persistedTourId = state.tourId,
+            homeStationIds = homeStationIds,
+            initialStartDate = initialStartDate,
+            initialInput = state.initialInput,
+            openedInput = openedInput,
+            openedManualCountriesAdded = openedManualCountriesAdded,
+            openedManualCountriesRemoved = openedManualCountriesRemoved,
+            trackSwitch = state.trackSwitch,
+            homeSwitch = state.homeSwitch,
+            isNew = state.isNew,
+        )
     }
 
     /**
@@ -511,49 +761,48 @@ class EditTourViewModel(
     }
 
     private fun saveDraft() {
-        val input = _uiState.value.input
-        savedStateHandle[DRAFT_KEY] = encodeToSavedState(
-            TourDraft(input, showErrors, autoTravelDays, autoSlug, original?.id, homeStationIds),
-        )
+        savedStateHandle[DRAFT_KEY] = encodeToSavedState(currentDraft())
     }
 
-    /**
-     * Verwirft die aktuelle Bearbeitungssitzung beim nächsten Verlassen (siehe [onCleared]), statt die
-     * letzte Änderung zu übernehmen: Für eine neue Tour heißt das, den automatisch angelegten
-     * Datensatz zu löschen; für eine bestehende, sie auf den beim Öffnen des Formulars geladenen Stand
-     * zurückzusetzen (siehe [openedTour]). Bricht außerdem einen noch wartenden Autosave ab, damit er
-     * nicht doch noch zwischen diesem Aufruf und dem tatsächlichen Verlassen feuert.
-     */
-    fun onDiscardConfirmed() {
+    /** Wendet das Verwerfen vollständig an, bevor die Oberfläche die Route verlässt. */
+    suspend fun discardDraft(): Boolean {
+        if (_uiState.value.isFinishing || _uiState.value.isFinished) return false
+        _uiState.update { it.copy(isFinishing = true) }
         discardConfirmed = true
-        pendingSaveJob?.cancel()
+        pendingDraftJob?.cancelAndJoin()
+        return try {
+            persistMutex.withLock {
+                if (uiState.value.isNew) deleteNewTourDraft() else revertToOpenedTour()
+                discardApplied = true
+                true
+            }
+        } catch (cancelled: CancellationException) {
+            discardConfirmed = false
+            _uiState.update { it.copy(isFinishing = false) }
+            throw cancelled
+        } catch (_: Exception) {
+            discardConfirmed = false
+            _uiState.update { it.copy(isFinishing = false) }
+            _uiState.update { it.copy(saveFailed = true) }
+            false
+        }
     }
 
-    /** Ob [onDiscardConfirmed] für diese Sitzung schon aufgerufen wurde. */
+    /** Ob [discardDraft] in dieser Sitzung erfolgreich abgeschlossen wurde. */
     fun wasDiscarded(): Boolean = discardConfirmed
 
-    /**
-     * Beim Verlassen ohne sinnvolle Eingabe (eine neue, komplett unberührte Tour) oder nach
-     * [onDiscardConfirmed] wird der betroffene Datensatz aufgeräumt; sonst wird eine noch nicht
-     * geschriebene letzte Änderung blockierend nachgeholt. `viewModelScope` ist zu diesem Zeitpunkt
-     * bereits abgebrochen (siehe `ViewModel.clear()`), daher blockierend statt über ihn, wie beim
-     * analogen Aufräumen in [EditStationViewModel.onCleared].
-     */
+    /** Bricht den debounce-Job ab; Datenbankarbeit geschieht vor dem regulären Verlassen asynchron. */
     override fun onCleared() {
-        pendingSaveJob?.cancel()
-        val state = _uiState.value
-        runBlocking {
-            when {
-                state.isNew && (discardConfirmed || state.isUnmodifiedNewTourDraft()) -> deleteNewTourDraft()
-                !state.isNew && discardConfirmed -> revertToOpenedTour()
-                state.isDirty -> runCatching { attemptPersist() }
-            }
-        }
+        pendingDraftJob?.cancel()
     }
 
     /** Löscht die automatisch angelegte, noch nicht sinnvoll befüllte bzw. explizit verworfene neue Tour wieder. */
     private suspend fun deleteNewTourDraft() {
-        original?.id?.let { id -> runCatching { repository.delete(id) } }
+        original?.id?.let { id ->
+            removeTrackedHomeStations()
+            repository.delete(id)
+            formDraftStore.delete(TOUR_DRAFT_KIND, id)
+        }
         savedStateHandle.remove<SavedState>(DRAFT_KEY)
     }
 
@@ -564,12 +813,14 @@ class EditTourViewModel(
      * passendes Fahrzeug ein No-op.
      */
     private suspend fun revertToOpenedTour() {
-        val baseline = openedTour ?: return
-        persistMutex.withLock {
-            runCatching { repository.save(baseline) }
-            runCatching { stations.moveTourToVehicle(baseline.id, baseline.vehicleId) }
-            runCatching { checklists.moveTourToVehicle(baseline.id, baseline.vehicleId) }
+        val baseline = openedTour
+        val id = original?.id
+        if (baseline != null) {
+            repository.save(baseline)
+            stations.moveTourToVehicle(baseline.id, baseline.vehicleId)
+            checklists.moveTourToVehicle(baseline.id, baseline.vehicleId)
         }
+        if (id != null) formDraftStore.delete(TOUR_DRAFT_KIND, id)
         savedStateHandle.remove<SavedState>(DRAFT_KEY)
     }
 
@@ -626,6 +877,17 @@ class EditTourViewModel(
 }
 
 private const val DRAFT_KEY = "draft"
+private const val TOUR_DRAFT_KIND = "TOUR"
+private const val TOUR_DRAFT_VERSION = 1
+
+private val tourDraftJson = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+
+private fun encodeTourDraft(draft: TourDraft): String = tourDraftJson.encodeToString(TourDraft.serializer(), draft)
+
+private fun decodeTourDraft(payload: String): TourDraft? =
+    runCatching { tourDraftJson.decodeFromString(TourDraft.serializer(), payload) }
+        .getOrNull()
+        ?.takeIf { it.version == TOUR_DRAFT_VERSION }
 
 /** Verzögerung zwischen einer Formularänderung einer neuen Tour und ihrem automatischen Schreibzugriff. */
 private const val AUTOSAVE_DEBOUNCE_MILLIS = 500L

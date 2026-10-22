@@ -106,6 +106,7 @@ class StationFlowTest {
                     placeSearchProvider = placeSearchProvider,
                     tracks = FakeTrackRepository(),
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) { }
             }
         }

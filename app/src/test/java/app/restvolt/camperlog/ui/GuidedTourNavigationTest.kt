@@ -90,6 +90,7 @@ class GuidedTourNavigationTest {
                     tracks = FakeTrackRepository(),
                     onAccentColorChange = { },
                     onThemeModeChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 )
             }
         }
@@ -329,12 +330,12 @@ class GuidedTourNavigationTest {
             clickWeiter()
 
             // Schritt "finish": die Tour speichert sich schon laufend selbst; ein echter Klick auf
-            // "Zurück" zeigt wegen der echten Eingaben erst die Verwerfen/Speichern-Abfrage, "Speichern"
+            // "Zurück" zeigt wegen der echten Eingaben erst die Entwurfs-Abfrage; "Entwurf behalten"
             // verlässt das Formular dann und schaltet darüber weiter - die Pilot-Tour führt danach
             // direkt zur Tourdetailseite.
             clickThrough(hasContentDescription("Zurück"))
             compose.waitForIdle()
-            compose.onNodeWithText("Speichern").performClick()
+            compose.onNodeWithText("Entwurf behalten").performClick()
             compose.waitForIdle()
 
             assertEquals(2, tours.tours.size)
@@ -433,7 +434,7 @@ class GuidedTourNavigationTest {
             clickWeiter()
 
             // Die weiterlaufende Vorbelegung hat das neue Fahrzeug übernommen, sichtbar am Ergebnis
-            // nach dem echten Speichern.
+            // nach dem Verlassen des Tourentwurfs.
             pickStartDate(10)
             clickWeiter() // period
             clickWeiter() // track-switch
@@ -442,7 +443,7 @@ class GuidedTourNavigationTest {
             clickWeiter() // advanced
             clickThrough(hasContentDescription("Zurück"))
             compose.waitForIdle()
-            compose.onNodeWithText("Speichern").performClick()
+            compose.onNodeWithText("Entwurf behalten").performClick()
             compose.waitForIdle()
 
             val savedTour = tours.tours.single { !it.isDemo }

@@ -83,6 +83,7 @@ class ReadmeScreenshots {
                     canShowStartDialogs = false,
                     tracks = FakeTrackRepository(),
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) { }
             }
         }

@@ -48,6 +48,7 @@ class SearchFlowTest {
                     countryLookup = FakeCountryLookupRepository(),
                     tracks = FakeTrackRepository(),
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) { }
             }
         }

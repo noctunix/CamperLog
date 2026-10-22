@@ -49,6 +49,7 @@ class ChecklistTemplateFlowTest {
                     countryLookup = FakeCountryLookupRepository(),
                     tracks = FakeTrackRepository(),
                     onAccentColorChange = { },
+                    formDraftStore = FakeFormDraftStore(),
                 ) { }
             }
         }

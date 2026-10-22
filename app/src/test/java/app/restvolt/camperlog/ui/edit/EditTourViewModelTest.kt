@@ -12,6 +12,7 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourInput
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.FakeChecklistRepository
+import app.restvolt.camperlog.ui.FakeFormDraftStore
 import app.restvolt.camperlog.ui.FakeHomeLocationRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
 import app.restvolt.camperlog.ui.FakeTourRepository
@@ -38,6 +39,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.Locale
 
 /** Prüft, dass das Ändern des Fahrzeugs einer Tour ihre Stationen und Checklisten mitnimmt. */
@@ -65,7 +67,8 @@ class EditTourViewModelTest {
         val tours = FakeTourRepository(listOf(tour(vehicleId = 1)))
         val stations = FakeStationRepository(listOf(station(vehicleId = 1, tourId = 1)))
         val checklists = FakeChecklistRepository(listOf(checklist(vehicleId = 1, tourId = 1)))
-        val viewModel = EditTourViewModel(tours, vehicles, stations, checklists, 1, SavedStateHandle(), locale)
+        val viewModel = EditTourViewModel(tours, vehicles, stations, checklists, 1, SavedStateHandle(),
+            FakeFormDraftStore(), locale)
 
         viewModel.onVehicleChange(2)
         advanceUntilIdle()
@@ -80,7 +83,8 @@ class EditTourViewModelTest {
         val tours = FakeTourRepository(listOf(tour(vehicleId = 1)))
         val stations = FakeStationRepository(listOf(station(vehicleId = 1, tourId = 1)))
         val checklists = FakeChecklistRepository(listOf(checklist(vehicleId = 1, tourId = 1)))
-        val viewModel = EditTourViewModel(tours, vehicles, stations, checklists, 1, SavedStateHandle(), locale)
+        val viewModel = EditTourViewModel(tours, vehicles, stations, checklists, 1, SavedStateHandle(),
+            FakeFormDraftStore(), locale)
 
         viewModel.onInputChange { it }
         advanceUntilIdle()
@@ -94,7 +98,8 @@ class EditTourViewModelTest {
         val sold = defaultVehicle(id = 1, name = "A", sold = true)
         val unsold = defaultVehicle(id = 2, name = "B")
         val vehicles = FakeVehicleRepository(listOf(sold, unsold), currentVehicleId = 1)
-        val viewModel = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(), locale)
+        val viewModel = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(),
+            FakeFormDraftStore(), locale)
 
         assertEquals(2L, viewModel.uiState.value.input.vehicleId)
     }
@@ -102,7 +107,8 @@ class EditTourViewModelTest {
     @Test
     fun newTour_preselectsNothingWhenAllVehiclesAreSold() = runTest {
         val vehicles = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A", sold = true)), currentVehicleId = 1)
-        val viewModel = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(), locale)
+        val viewModel = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(),
+            FakeFormDraftStore(), locale)
 
         assertEquals(0L, viewModel.uiState.value.input.vehicleId)
     }
@@ -111,7 +117,8 @@ class EditTourViewModelTest {
     fun newTour_ignoresTheDemoVehicleWhenPreselecting() = runTest {
         val demo = defaultVehicle(id = 1, name = "Sample camper").copy(isDemo = true)
         val vehicles = FakeVehicleRepository(listOf(demo), currentVehicleId = 1)
-        val viewModel = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(), locale)
+        val viewModel = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(),
+            FakeFormDraftStore(), locale)
 
         assertEquals(0L, viewModel.uiState.value.input.vehicleId)
     }
@@ -127,7 +134,8 @@ class EditTourViewModelTest {
     fun newTour_preselectsAVehicleCreatedWhileTheFormIsAlreadyOpen() = runTest {
         val demo = defaultVehicle(id = 1, name = "Sample camper").copy(isDemo = true)
         val vehicles = FakeVehicleRepository(listOf(demo), currentVehicleId = 1)
-        val viewModel = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(), locale)
+        val viewModel = EditTourViewModel(FakeTourRepository(), vehicles, FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(),
+            FakeFormDraftStore(), locale)
         assertEquals(0L, viewModel.uiState.value.input.vehicleId)
 
         val newVehicleId = vehicles.save(defaultVehicle(id = 0, name = "Hymer"))
@@ -152,6 +160,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             1,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
             tracks,
         )
@@ -236,6 +245,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
         )
 
@@ -254,6 +264,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
         )
         val id = checkNotNull(viewModel.uiState.value.tourId)
@@ -278,10 +289,12 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
         )
         assertEquals(1, tours.tours.size)
 
+        assertTrue(viewModel.discardDraft())
         clear(viewModel)
 
         assertEquals(0, tours.tours.size)
@@ -298,12 +311,37 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
         )
 
         viewModel.onDestinationChange("Gardasee")
+        assertTrue(viewModel.flushDraft())
         clear(viewModel)
 
+        assertEquals("Gardasee", tours.tours.single().destination)
+    }
+
+    @Test
+    fun keepDraftCanCompleteOnlyOnce() = runTest {
+        val tours = FakeTourRepository()
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(),
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            FakeFormDraftStore(),
+            locale,
+        )
+        viewModel.onDestinationChange("Gardasee")
+
+        assertTrue(viewModel.keepDraft())
+        val saveCountAfterKeep = tours.saveCount
+        assertFalse(viewModel.keepDraft())
+
+        assertEquals(saveCountAfterKeep, tours.saveCount)
         assertEquals("Gardasee", tours.tours.single().destination)
     }
 
@@ -323,6 +361,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
         )
 
@@ -352,6 +391,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
             homeLocations = homeLocationRepository(name = "Elternhaus"),
         )
@@ -359,6 +399,8 @@ class EditTourViewModelTest {
         viewModel.onDestinationChange("Gardasee")
 
         viewModel.onHomeSwitchChange(true)
+
+        assertTrue(viewModel.onFinish())
 
         val saved = stations.stations.single()
         assertEquals(StationType.OVERNIGHT, saved.type)
@@ -379,6 +421,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
             homeLocations = homeLocationRepository(),
             defaultHomeStationName = { "Zuhause" },
@@ -388,6 +431,8 @@ class EditTourViewModelTest {
         viewModel.onDestinationChange("Gardasee")
 
         viewModel.onHomeSwitchChange(true)
+
+        assertTrue(viewModel.onFinish())
 
         assertEquals(2, stations.stations.size)
         assertEquals(setOf(LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 3)), stations.stations.map { it.date }.toSet())
@@ -417,6 +462,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
             homeLocations = homeLocations,
         )
@@ -424,6 +470,8 @@ class EditTourViewModelTest {
         viewModel.onDestinationChange("Gardasee")
 
         viewModel.onHomeSwitchChange(true)
+
+        assertTrue(viewModel.onFinish())
 
         val saved = stations.stations.single()
         assertEquals("Neues Zuhause", saved.name)
@@ -441,6 +489,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
             homeLocations = homeLocationRepository(),
         )
@@ -461,6 +510,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
             homeLocations = homeLocationRepository(name = "Elternhaus"),
         )
@@ -482,6 +532,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
             homeLocations = FakeHomeLocationRepository(),
         )
@@ -504,6 +555,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
             homeLocations = homeLocationRepository(name = "Elternhaus"),
         )
@@ -527,6 +579,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
             homeLocations = homeLocationRepository(name = "Elternhaus"),
         )
@@ -551,6 +604,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             1,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
         )
 
@@ -561,6 +615,163 @@ class EditTourViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Ostsee", tours.tours.single().destination)
+    }
+
+    @Test
+    fun invalidAutosaveKeepsCommittedTourAndRawDraftCanBeResumedAndDiscarded() = runTest {
+        val baseline = tour(vehicleId = 1).copy(
+            startTime = LocalTime.of(8, 15),
+            endTime = LocalTime.of(18, 30),
+            manualCountriesAdded = setOf("NO"),
+            manualCountriesRemoved = setOf("SE"),
+        )
+        val tours = FakeTourRepository(listOf(baseline))
+        val store = FakeFormDraftStore()
+        val vehicles = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1)
+        val first = EditTourViewModel(
+            tours, vehicles, FakeStationRepository(), FakeChecklistRepository(), 1,
+            SavedStateHandle(), store, locale,
+        )
+
+        first.onDestinationChange("Ostsee")
+        advanceUntilIdle()
+        first.onInputChange { it.copy(distanceKm = "keine Zahl") }
+        advanceUntilIdle()
+
+        assertEquals("Ostsee", tours.tours.single().destination)
+        assertEquals(420, tours.tours.single().distanceKm)
+        assertTrue(checkNotNull(store.get("TOUR", baseline.id)).contains("keine Zahl"))
+        assertFalse(first.onFinish())
+
+        val resumed = EditTourViewModel(
+            tours, vehicles, FakeStationRepository(), FakeChecklistRepository(), 1,
+            SavedStateHandle(), store, locale,
+        )
+        assertEquals("keine Zahl", resumed.uiState.value.input.distanceKm)
+        assertTrue(resumed.discardDraft())
+        clear(resumed)
+
+        assertEquals("Gardasee", tours.tours.single().destination)
+        assertEquals(420, tours.tours.single().distanceKm)
+        assertEquals(LocalTime.of(8, 15), tours.tours.single().startTime)
+        assertEquals(LocalTime.of(18, 30), tours.tours.single().endTime)
+        assertEquals(setOf("NO"), tours.tours.single().manualCountriesAdded)
+        assertEquals(setOf("SE"), tours.tours.single().manualCountriesRemoved)
+        assertNull(store.get("TOUR", baseline.id))
+    }
+
+    @Test
+    fun emptyManualCountryBaselineSurvivesRestoreAndDiscard() = runTest {
+        val baseline = tour(vehicleId = 1).copy(manualCountriesAdded = emptySet(), manualCountriesRemoved = emptySet())
+        val tours = FakeTourRepository(listOf(baseline))
+        val store = FakeFormDraftStore()
+        val vehicles = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1)
+        val first = EditTourViewModel(tours, vehicles, FakeStationRepository(), FakeChecklistRepository(), 1,
+            SavedStateHandle(), store, locale)
+        first.onDestinationChange("Ostsee")
+        advanceUntilIdle()
+
+        // Simuliert zwischenzeitlich gespeicherte, aktuelle Länderwerte; der Entwurf muss die beim
+        // Öffnen leeren Mengen als Baseline unterscheiden können.
+        tours.save(tours.tours.single().copy(manualCountriesAdded = setOf("NO"), manualCountriesRemoved = setOf("SE")))
+        val resumed = EditTourViewModel(tours, vehicles, FakeStationRepository(), FakeChecklistRepository(), 1,
+            SavedStateHandle(), store, locale)
+        advanceUntilIdle()
+
+        assertTrue(resumed.discardDraft())
+        assertTrue(tours.tours.single().manualCountriesAdded.isEmpty())
+        assertTrue(tours.tours.single().manualCountriesRemoved.isEmpty())
+    }
+
+    @Test
+    fun keptNewTourRestoredByIdRemainsDiscardableAsNew() = runTest {
+        val tours = FakeTourRepository()
+        val store = FakeFormDraftStore()
+        val vehicles = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1)
+        val first = EditTourViewModel(tours, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0,
+            SavedStateHandle(), store, locale)
+        advanceUntilIdle()
+        first.onDestinationChange("Ostsee")
+        advanceUntilIdle()
+        val id = checkNotNull(first.uiState.value.tourId)
+        assertTrue(first.flushDraft())
+
+        val resumed = EditTourViewModel(tours, vehicles, FakeStationRepository(), FakeChecklistRepository(), id,
+            SavedStateHandle(), store, locale)
+        advanceUntilIdle()
+
+        assertTrue(resumed.uiState.value.isNew)
+        assertEquals("Ostsee", resumed.uiState.value.input.destination)
+        assertTrue(resumed.discardDraft())
+        assertTrue(tours.tours.isEmpty())
+        assertNull(store.get("TOUR", id))
+    }
+
+    @Test
+    fun rawDraftForReplacedTourUuidIsIgnoredAndCannotBeDiscardedOntoIt() = runTest {
+        val baselineA = tour(vehicleId = 1).copy(uuid = "tour-a", destination = "Alt A")
+        val store = FakeFormDraftStore()
+        val handle = SavedStateHandle()
+        val repositoryA = FakeTourRepository(listOf(baselineA))
+        val vehicles = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1)
+        val editorA = EditTourViewModel(repositoryA, vehicles, FakeStationRepository(), FakeChecklistRepository(), 1,
+            handle, store, locale)
+        advanceUntilIdle()
+        editorA.onDestinationChange("Entwurf A")
+        advanceUntilIdle()
+        assertTrue(checkNotNull(store.get("TOUR", 1L)).contains("tour-a"))
+
+        val baselineB = tour(vehicleId = 1).copy(uuid = "tour-b", destination = "Alt B")
+        val repositoryB = FakeTourRepository(listOf(baselineB))
+        val editorB = EditTourViewModel(repositoryB, vehicles, FakeStationRepository(), FakeChecklistRepository(), 1,
+            handle, store, locale)
+        advanceUntilIdle()
+
+        assertFalse(editorB.uiState.value.isNew)
+        assertEquals("Alt B", editorB.uiState.value.input.destination)
+        assertNull(store.get("TOUR", 1L))
+        assertTrue(editorB.discardDraft())
+        assertEquals("Alt B", repositoryB.tours.single().destination)
+    }
+
+    @Test
+    fun savedNewTourIdIsVerifiedBeforeRestoringItsDraft() = runTest {
+        val tours = FakeTourRepository()
+        val store = FakeFormDraftStore()
+        val handle = SavedStateHandle()
+        val vehicles = FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1)
+        val first = EditTourViewModel(tours, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0,
+            handle, store, locale)
+        advanceUntilIdle()
+        val id = checkNotNull(first.uiState.value.tourId)
+        first.onDestinationChange("Privater Entwurf")
+        advanceUntilIdle()
+        assertTrue(checkNotNull(store.get("TOUR", id)).contains("Privater Entwurf"))
+
+        tours.save(tours.tours.single().copy(uuid = "replacement", destination = "Ersetzte Tour"))
+        val resumed = EditTourViewModel(tours, vehicles, FakeStationRepository(), FakeChecklistRepository(), 0,
+            handle, store, locale)
+        advanceUntilIdle()
+
+        assertTrue(resumed.uiState.value.isNew)
+        assertEquals("", resumed.uiState.value.input.destination)
+        assertEquals("Ersetzte Tour", tours.tours.single { it.uuid == "replacement" }.destination)
+        assertNull(store.get("TOUR", id))
+    }
+
+    @Test
+    fun newTourShowsTodayAsDefaultAndFinishIsExplicitSuccessfulCompletion() = runTest {
+        val tours = FakeTourRepository()
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(), FakeChecklistRepository(), 0, SavedStateHandle(), FakeFormDraftStore(), locale,
+        )
+        assertEquals(LocalDate.now(), viewModel.uiState.value.input.startDate)
+        assertTrue(viewModel.onFinish())
+        assertTrue(viewModel.uiState.value.isFinished)
+        clear(viewModel)
+        assertEquals(1, tours.tours.size)
     }
 
     /** Ein noch nicht geschriebener letzter Tastendruck geht auch für eine bestehende Tour beim Verlassen nicht verloren. */
@@ -574,10 +785,12 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             1,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
         )
 
         viewModel.onDestinationChange("Ostsee")
+        assertTrue(viewModel.flushDraft())
         clear(viewModel)
 
         assertEquals("Ostsee", tours.tours.single().destination)
@@ -594,6 +807,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             1,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
         )
         advanceUntilIdle()
@@ -612,6 +826,43 @@ class EditTourViewModelTest {
     fun needsLeaveConfirmation_newModifiedDraft_needsConfirmation() {
         val state = EditUiState(isNew = true, input = TourInput(destination = "Gardasee"), isDirty = true)
         assertTrue(state.needsLeaveConfirmation())
+    }
+
+    @Test
+    fun newTourDefaultComparisonIncludesTypeAndTimesAndAllowsReset() {
+        val baseline = TourInput(startDate = LocalDate.of(2026, 7, 1))
+        val state = EditUiState(isNew = true, input = baseline, initialStartDate = baseline.startDate, initialInput = baseline)
+
+        assertTrue(state.copy(input = baseline.copy(tourType = TourType.DAY_TRIP)).needsLeaveConfirmation())
+        assertTrue(state.copy(input = baseline.copy(startTime = LocalTime.of(8, 30))).needsLeaveConfirmation())
+        assertFalse(state.copy(input = baseline.copy(tourType = TourType.DAY_TRIP)).copy(input = baseline).needsLeaveConfirmation())
+        assertFalse(state.copy(input = baseline.copy(startTime = LocalTime.of(8, 30))).copy(input = baseline).needsLeaveConfirmation())
+    }
+
+    @Test
+    fun invalidRawInputDoesNotBecomeTheNewTourPlaceholder() = runTest {
+        val tours = FakeTourRepository().apply { failWrites = true }
+        val viewModel = EditTourViewModel(
+            tours,
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            FakeStationRepository(),
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            FakeFormDraftStore(),
+            locale,
+        )
+        advanceUntilIdle()
+        assertNull(viewModel.uiState.value.tourId)
+
+        viewModel.onInputChange { it.copy(destination = "Rohentwurf", distanceKm = "keine Zahl") }
+        tours.failWrites = false
+
+        assertTrue(viewModel.flushDraft())
+        assertEquals("Rohentwurf", viewModel.uiState.value.input.destination)
+        assertEquals("keine Zahl", viewModel.uiState.value.input.distanceKm)
+        assertEquals("", tours.tours.single().destination)
+        assertEquals(0, tours.tours.single().distanceKm)
     }
 
     @Test
@@ -635,12 +886,13 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             0,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
         )
 
         viewModel.onDestinationChange("Gardasee")
         assertTrue(viewModel.uiState.value.needsLeaveConfirmation())
-        viewModel.onDiscardConfirmed()
+        assertTrue(viewModel.discardDraft())
         clear(viewModel)
 
         assertTrue(tours.tours.isEmpty())
@@ -658,6 +910,7 @@ class EditTourViewModelTest {
             FakeChecklistRepository(),
             1,
             SavedStateHandle(),
+            FakeFormDraftStore(),
             locale,
         )
 
@@ -665,7 +918,7 @@ class EditTourViewModelTest {
         advanceUntilIdle()
         assertEquals("Ostsee", tours.tours.single().destination)
 
-        viewModel.onDiscardConfirmed()
+        assertTrue(viewModel.discardDraft())
         clear(viewModel)
 
         assertEquals("Gardasee", tours.tours.single().destination)
@@ -682,7 +935,8 @@ class EditTourViewModelTest {
         val tours = FakeTourRepository(listOf(tour(vehicleId = 1)))
         val stations = FakeStationRepository(listOf(station(vehicleId = 1, tourId = 1)))
         val checklists = FakeChecklistRepository(listOf(checklist(vehicleId = 1, tourId = 1)))
-        val viewModel = EditTourViewModel(tours, vehicles, stations, checklists, 1, SavedStateHandle(), locale)
+        val viewModel = EditTourViewModel(tours, vehicles, stations, checklists, 1, SavedStateHandle(),
+            FakeFormDraftStore(), locale)
 
         viewModel.onVehicleChange(2)
         advanceUntilIdle()
@@ -690,7 +944,7 @@ class EditTourViewModelTest {
         assertEquals(2L, stations.stations.single().vehicleId)
         assertEquals(2L, checklists.checklists.single().vehicleId)
 
-        viewModel.onDiscardConfirmed()
+        assertTrue(viewModel.discardDraft())
         clear(viewModel)
 
         assertEquals(1L, tours.tours.single().vehicleId)
@@ -710,6 +964,7 @@ class EditTourViewModelTest {
         FakeChecklistRepository(),
         0,
         SavedStateHandle(),
+        FakeFormDraftStore(),
         locale,
     )
 
