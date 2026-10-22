@@ -3,7 +3,7 @@ package app.restvolt.camperlog.ui
 import android.database.sqlite.SQLiteException
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogSyncAction
-import app.restvolt.camperlog.domain.SYNCED_SERVICE_LOG_TYPES
+import app.restvolt.camperlog.domain.SYNCED_LOG_TYPES
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.StationType
@@ -76,7 +76,7 @@ class FakeStationRepository(initial: List<Station> = emptyList(), private val lo
     override suspend fun defaultTourId(vehicleId: Long, date: LocalDate): Long? = null
 
     override suspend fun linkedLogEntries(stationId: Long): List<LogEntry> =
-        SYNCED_SERVICE_LOG_TYPES.values.mapNotNull { type -> logs.linkedEntry(stationId, type) }
+        SYNCED_LOG_TYPES.mapNotNull { type -> logs.linkedEntry(stationId, type) }
 
     override suspend fun relinkLogEntries(entryIds: List<Long>, stationId: Long) {
         entryIds.forEach { entryId -> logs.link(entryId, stationId) }

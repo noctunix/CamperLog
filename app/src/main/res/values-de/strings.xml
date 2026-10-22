@@ -623,6 +623,7 @@
     <string name="log_type_diesel_heater_run">Dieselheizung betrieben</string>
     <string name="log_type_gas_heater_run">Gasheizung betrieben</string>
     <string name="log_type_gas_bottle_swapped">Gasflasche gewechselt</string>
+    <string name="log_type_fueled">Getankt</string>
     <string name="logbook_today">Heute</string>
     <string name="logbook_yesterday">Gestern</string>
     <plurals name="logbook_days_ago">

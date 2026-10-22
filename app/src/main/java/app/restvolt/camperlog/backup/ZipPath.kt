@@ -36,6 +36,7 @@ private val ZIP_LOG_TYPE_LABEL = mapOf(
     LogType.DIESEL_HEATER_RUN to "Diesel heater run",
     LogType.GAS_HEATER_RUN to "Gas heater run",
     LogType.GAS_BOTTLE_SWAPPED to "Gas bottle swapped",
+    LogType.FUELED to "Fueled",
 )
 
 /**

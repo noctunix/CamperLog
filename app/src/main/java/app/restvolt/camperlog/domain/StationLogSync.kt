@@ -7,6 +7,20 @@ val SYNCED_SERVICE_LOG_TYPES: Map<StationService, LogType> = mapOf(
     StationService.GAS to LogType.GAS_BOTTLE_SWAPPED,
 )
 
+/** [StationType] → [LogType]: welche Stationstypen allein durch ihr Dasein einen Bordbuch-Eintrag nach sich ziehen. */
+val SYNCED_STATION_TYPE_LOG_TYPES: Map<StationType, LogType> = mapOf(
+    StationType.FUEL to LogType.FUELED,
+)
+
+/** Alle mit Stationen synchronisierten [LogType]s: über Dienste und über den Stationstyp. */
+val SYNCED_LOG_TYPES: Set<LogType> = SYNCED_SERVICE_LOG_TYPES.values.toSet() + SYNCED_STATION_TYPE_LOG_TYPES.values
+
+/** Die [LogType]s, die [station] in ihrem jetzigen Zustand im Bordbuch verlangt. */
+fun requiredLogTypes(station: Station): Set<LogType> = buildSet {
+    SYNCED_SERVICE_LOG_TYPES.forEach { (service, type) -> if (service in station.services) add(type) }
+    SYNCED_STATION_TYPE_LOG_TYPES[station.type]?.let(::add)
+}
+
 /** Eine Angleichung des Bordbuchs an eine gespeicherte Station. */
 sealed interface LogSyncAction {
     /** Verknüpft den vorhandenen Eintrag [entryId] mit [stationId], um eine Dublette zu vermeiden. */
@@ -22,8 +36,8 @@ sealed interface LogSyncAction {
 /**
  * Berechnet die Bordbuch-Angleichung für eine gespeicherte Station.
  * [old] ist der Stand vor dem Speichern oder `null` bei einer neuen Station; [new] ist bereits
- * gespeichert, ihre id ist also bekannt. [linkedEntry] liefert den aktuell mit `(old.id, type)`
- * verknüpften Eintrag, [unlinkedEntry] einen noch unverknüpften Eintrag von `(new.vehicleId, type,
+ * gespeichert, ihre id ist also bekannt. Welche Typen verlangt sind, steht in [requiredLogTypes].
+ * [linkedEntry] liefert den aktuell mit `(old.id, type)` verknüpften Eintrag, [unlinkedEntry] einen noch unverknüpften Eintrag von `(new.vehicleId, type,
  * new.date)` zur Dublettenprüfung. Reine Entscheidung ohne eigene Datenbankzugriffe; die beiden
  * Parameter sind die einzigen Lesevorgänge.
  */
@@ -33,9 +47,11 @@ suspend fun syncStationLogEntries(
     linkedEntry: suspend (type: LogType) -> LogEntry?,
     unlinkedEntry: suspend (type: LogType) -> LogEntry?,
 ): List<LogSyncAction> = buildList {
-    for ((service, type) in SYNCED_SERVICE_LOG_TYPES) {
-        val oldActive = old != null && service in old.services
-        val newActive = service in new.services
+    val oldRequired = old?.let(::requiredLogTypes).orEmpty()
+    val newRequired = requiredLogTypes(new)
+    for (type in SYNCED_LOG_TYPES) {
+        val oldActive = type in oldRequired
+        val newActive = type in newRequired
         val moved = old != null && (old.date != new.date || old.vehicleId != new.vehicleId)
         val existingLink = if (oldActive) linkedEntry(type) else null
 

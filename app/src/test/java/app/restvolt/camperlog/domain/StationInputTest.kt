@@ -242,6 +242,15 @@ class StationInputTest {
     }
 
     @Test
+    fun futureDateOnAFuelStationIsInvalidBecauseItIsLoggedAsFueled() {
+        val today = LocalDate.of(2026, 7, 4)
+        val fuel = valid.copy(type = StationType.FUEL)
+
+        assertEquals(StationError.FUTURE_DATE, fuel.copy(date = today.plusDays(1)).validate(today)[StationField.SERVICES])
+        assertNull(fuel.copy(date = today).validate(today)[StationField.SERVICES])
+    }
+
+    @Test
     fun futureDateWithASyncedServiceIsInvalid() {
         val today = LocalDate.of(2026, 7, 4)
         val tomorrow = today.plusDays(1)
