@@ -34,7 +34,7 @@ val STATION_CSV_HEADER = listOf(
     "tour",
     "fahrzeug",
 ) + CostCategory.entries.map { "kosten_${it.csvValue}" } +
-    listOf("strom_kwh", "bewertung", "kilometerstand_km", "temperatur_c", "link", "wlan", "wlan_kosten", "verpflegung", "ausstattung")
+    listOf("strom_kwh", "bewertung", "kilometerstand_km", "temperatur_c", "link", "wlan", "wlan_kosten", "verpflegung", "ausstattung", "liter")
 
 /** Englische Kopfzeile des Stationen-CSV-Exports, Spalte für Spalte wie [STATION_CSV_HEADER]. */
 private val ENGLISH_STATION_CSV_HEADER = listOf(
@@ -64,7 +64,7 @@ private val ENGLISH_STATION_CSV_HEADER = listOf(
     "tour",
     "vehicle",
 ) + CostCategory.entries.map { "costs_${it.csvValue(CsvVocabulary.ENGLISH)}" } +
-    listOf("electricity_kwh", "rating", "odometer_km", "temperature_c", "link", "wifi", "wifi_cost", "board_type", "amenities")
+    listOf("electricity_kwh", "rating", "odometer_km", "temperature_c", "link", "wifi", "wifi_cost", "board_type", "amenities", "fuel_liters")
 
 /** Kopfzeile des Stationen-CSV-Exports in [vocabulary]. */
 fun stationCsvHeader(vocabulary: CsvVocabulary): List<String> = when (vocabulary) {
@@ -80,7 +80,8 @@ fun stationCsvHeader(vocabulary: CsvVocabulary): List<String> = when (vocabulary
  * Die Kostenspalten `kosten_*` enthalten die [Station.effectiveCosts] der jeweiligen Kategorie
  * (inklusive abgeleiteter Stromkosten) als Beträge mit ISO-Code wie im Touren-Export, `strom_kwh`
  * die abgeleitete kWh-Menge. `temperatur_c` rundet [Station.manualTemperatureDeciC] auf ganze Grad.
- * `ausstattung` listet [Station.lodgingAmenities] wie `versorgung` mit `; ` getrennt.
+ * `ausstattung` listet [Station.lodgingAmenities] wie `versorgung` mit `; ` getrennt, `liter` die
+ * getankte Menge [Station.fuelLiters] einer Tanken-Station.
  * Freitextfelder werden per [neutralizeFormula] gegen Formel-Injection entschärft, wie beim
  * Touren-Export.
  */
@@ -141,6 +142,7 @@ private fun Station.csvFields(
     wifiCost?.let { "${amountToDecimal(it.minor, it.currency)} ${it.currency.currencyCode}" }.orEmpty(),
     boardType?.csvValue(vocabulary).orEmpty(),
     lodgingAmenities.sortedBy { it.ordinal }.joinToString("; ") { it.csvValue(vocabulary) },
+    fuelLiters?.toPlainString().orEmpty(),
 )
 
 private fun Station.costColumn(category: CostCategory): String =
