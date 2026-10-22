@@ -394,11 +394,15 @@ private fun Resources.importedText(result: ImportResult): String {
     val rates = getQuantityString(R.plurals.import_done_rates, result.importedRates, result.importedRates)
     val attachments = getQuantityString(R.plurals.import_done_attachments, result.addedAttachments, result.addedAttachments)
     val trackPoints = getQuantityString(R.plurals.import_done_track_points, result.addedTrackPoints, result.addedTrackPoints)
-    val paymentMethods = if (result.importedPaymentMethods > 0) {
+    val paymentMethods = (if (result.importedPaymentMethods > 0) {
         "\n" + getQuantityString(R.plurals.import_done_payment_methods, result.importedPaymentMethods, result.importedPaymentMethods)
     } else {
         ""
-    }
+    }) + (if (result.skippedPaymentMethods > 0) {
+        "\n" + getQuantityString(R.plurals.import_skipped_payment_methods, result.skippedPaymentMethods, result.skippedPaymentMethods)
+    } else {
+        ""
+    })
     return getString(
         R.string.import_done,
         result.addedTours,
