@@ -96,7 +96,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 23
+const val BACKUP_SCHEMA_VERSION = 24
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -496,9 +496,13 @@ private fun BackupDto.toBackup(): BackupReadResult {
     val stationTourUuid = HashMap<String, String>(legacyStationTourUuid)
     val decodedStations = stations.mapIndexed { index, element ->
         val stationNumber = index + 1
+        val hasWifiExpenseFlag = (element as? JsonObject)?.containsKey("wifiCostIsExpense") == true
+        if ((schemaVersion < 24 && hasWifiExpenseFlag) || (schemaVersion >= 24 && !hasWifiExpenseFlag)) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
+        }
         val dto = decodeJson(StationDto.serializer(), element)
             ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
-        val station = dto.toStation() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
+        val station = dto.toStation(schemaVersion) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
         if (!seenStationUuids.add(station.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
         val vehicleUuid = parseUuid(dto.vehicleUuid) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
         if (backupVehicles.none { it.vehicle.uuid == vehicleUuid }) {
@@ -1057,7 +1061,7 @@ private fun parseTime(text: String): LocalTime? = runCatching { LocalTime.parse(
 private fun parseLocalDateTime(text: String): LocalDateTime? =
     runCatching { LocalDateTime.parse(text) }.getOrNull()?.takeIf { it.toLocalDate() in MIN_DATE..MAX_DATE }
 
-private fun StationDto.toStation(): Station? {
+private fun StationDto.toStation(schemaVersion: Int): Station? {
     val uuid = parseUuid(uuid) ?: return null
     val stationType = enumOrNull<StationType>(type) ?: return null
     val stationDate = parseDate(date) ?: return null
@@ -1175,7 +1179,7 @@ private fun StationDto.toStation(): Station? {
     if (ferryBookingReference.length > MAX_FERRY_BOOKING_REFERENCE_LENGTH) return null
 
     if (costs.size > MAX_COSTS_PER_STATION) return null
-    val stationCosts = costs.map { it.toStationCost() ?: return null }
+    val stationCosts = costs.map { it.toStationCost(schemaVersion) ?: return null }
     if (stationCosts.map { it.category to it.amount.currency }.distinct().size != stationCosts.size) return null
 
     val allowed = stationType.allowedServices
@@ -1214,6 +1218,7 @@ private fun StationDto.toStation(): Station? {
         levelingBlocksUsed = blocks,
         wifiQuality = wifi,
         wifiCost = wifiCostMoney,
+        wifiCostIsExpense = wifiCostIsExpense,
         boardType = board,
         lodgingAmenities = amenities,
         electricityBilling = billing,
@@ -1259,8 +1264,9 @@ private fun String.toMoneyWith(currency: Currency): Money? {
     return Money(reading.minor, currency)
 }
 
-private fun StationCostDto.toStationCost(): StationCost? {
+private fun StationCostDto.toStationCost(schemaVersion: Int): StationCost? {
     val categoryValue = enumOrNull<CostCategory>(category) ?: return null
+    if (categoryValue == CostCategory.WIFI && schemaVersion < 24) return null
     val currencyValue = parseCurrency(currency) ?: return null
     val money = amount.toMoneyWith(currencyValue) ?: return null
     if (note.length > MAX_NOTES_LENGTH) return null
@@ -1532,6 +1538,7 @@ private fun Station.toDto(vehicleUuid: String, tourUuid: String?) = StationDto(
     wifiQuality = wifiQuality?.name,
     wifiCostCurrency = wifiCost?.currency?.currencyCode,
     wifiCostAmount = wifiCost?.toCostDto()?.amount,
+    wifiCostIsExpense = wifiCostIsExpense,
     boardType = boardType?.name,
     lodgingAmenities = lodgingAmenities.map { it.name },
     electricityFlatRate = null,

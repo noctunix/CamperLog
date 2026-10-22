@@ -765,10 +765,26 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
-        compose.onNode(hasSetTextAction() and hasText("WLAN-Kosten (€)")).performScrollTo().performTextInput("3,50")
+        compose.onNode(hasSetTextAction() and hasText("WLAN-Preis (€)")).performScrollTo().performTextInput("3,50")
         clickSave()
 
-        assertEquals(Money(350, EUR), stationRepository.stations.single().wifiCost)
+        val saved = stationRepository.stations.single()
+        assertEquals(Money(350, EUR), saved.wifiCost)
+        assertEquals(false, saved.wifiCostIsExpense)
+    }
+
+    @Test
+    fun wifiCost_canBeMarkedAsExpense() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Als Ausgabe berücksichtigen").performScrollTo().performClick()
+        compose.onNode(hasSetTextAction() and hasText("WLAN-Preis (€)")).performScrollTo().performTextInput("3,50")
+        clickSave()
+
+        assertEquals(true, stationRepository.stations.single().wifiCostIsExpense)
     }
 
     @Test

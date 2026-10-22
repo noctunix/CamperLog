@@ -72,6 +72,7 @@ data class StationInput(
     val wifiQuality: LteQuality? = null,
     @Serializable(with = CurrencySerializer::class) val wifiCurrency: Currency = EUR,
     val wifiCostAmount: String = "",
+    val wifiCostIsExpense: Boolean = false,
     val boardType: BoardType? = null,
     val lodgingAmenities: Set<LodgingAmenity> = emptySet(),
     val electricityBilling: ElectricityBilling? = null,
@@ -108,7 +109,7 @@ data class StationInput(
 
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
 enum class StationField {
-    DATE, COORDINATES, NIGHTS, NAME, PLACE, NOTES, MAP_LINK, SERVICES, ELECTRICITY,
+    DATE, COORDINATES, NIGHTS, NAME, PLACE, NOTES, MAP_LINK, SERVICES, ELECTRICITY, WIFI_COST,
     TOLL_COUNTRY, TOLL_VALID_UNTIL, TOLL_PAYMENT_METHOD, FERRY_BOOKING_REFERENCE, COST,
     ODOMETER_KM, MANUAL_TEMPERATURE, LINK,
 }
@@ -180,6 +181,9 @@ internal fun StationInput.validation(today: LocalDate = LocalDate.now(), locale:
         }
 
         electricityError(locale)?.let { put(StationField.ELECTRICITY, it) }
+        if (type == StationType.OVERNIGHT) {
+            moneyFieldError(wifiCostAmount, wifiCurrency, locale)?.let { put(StationField.WIFI_COST, it) }
+        }
 
         if (type == StationType.TOLL) {
             if (tollCountry.isNotBlank() && tollCountry.trim().uppercase(Locale.ROOT) !in ALL_COUNTRY_CODES) {
@@ -316,6 +320,7 @@ fun StationInput.toStation(original: Station?, locale: Locale = Locale.getDefaul
         levelingBlocksUsed = levelingBlocksUsed.takeIf { isOvernight },
         wifiQuality = wifiQuality.takeIf { isOvernight },
         wifiCost = if (isOvernight) parseMoneyField(wifiCostAmount, wifiCurrency, locale) else null,
+        wifiCostIsExpense = isOvernight && wifiCostIsExpense,
         boardType = boardType.takeIf { isOvernight },
         lodgingAmenities = if (isOvernight) lodgingAmenities else emptySet(),
         electricityBilling = billing,
@@ -402,6 +407,7 @@ fun Station.toInput(locale: Locale = Locale.getDefault()): StationInput = Statio
     wifiQuality = wifiQuality,
     wifiCurrency = wifiCost?.currency ?: EUR,
     wifiCostAmount = wifiCost?.let { amountToInput(it.minor, it.currency, locale) }.orEmpty(),
+    wifiCostIsExpense = wifiCostIsExpense,
     boardType = boardType,
     lodgingAmenities = lodgingAmenities,
     electricityBilling = electricityBilling,

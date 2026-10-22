@@ -466,6 +466,7 @@ class EditStationViewModel(
         if (StationField.MAP_LINK in errors) sanitized = sanitized.copy(mapLink = null)
         if (StationField.SERVICES in errors) sanitized = sanitized.copy(services = sanitized.services.filterNotTo(mutableSetOf()) { it in SYNCED_SERVICE_LOG_TYPES })
         if (StationField.ELECTRICITY in errors) sanitized = sanitized.copy(electricityBilling = null)
+        if (StationField.WIFI_COST in errors) sanitized = sanitized.copy(wifiCostAmount = "")
         if (StationField.TOLL_COUNTRY in errors) sanitized = sanitized.copy(tollCountry = "")
         if (StationField.TOLL_VALID_UNTIL in errors) sanitized = sanitized.copy(tollValidUntil = null)
         if (StationField.TOLL_PAYMENT_METHOD in errors) sanitized = sanitized.copy(tollPaymentMethod = "")

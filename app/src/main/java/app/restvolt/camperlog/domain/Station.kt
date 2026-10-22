@@ -158,7 +158,7 @@ data class WeatherSnapshot(
  * Die typspezifischen Felder ([nights] bis [levelingBlocksUsed]) sind nur bei [StationType.OVERNIGHT]
  * gesetzt, `null` bedeutet dort "nicht angegeben". [favorite] markiert "gerne wieder".
  *
- * WLAN-Qualität ([wifiQuality]) und -Kosten ([wifiCost]) gelten wie [lteQuality] für jede Übernachtung,
+ * WLAN-Qualität ([wifiQuality]) und -Preisinfo ([wifiCost]) gelten wie [lteQuality] für jede Übernachtung,
  * unabhängig von [siteKind]. [boardType] und [lodgingAmenities] betreffen nur [SiteKind.HOTEL],
  * [SiteKind.VACATION_RENTAL] und [SiteKind.HOSTEL]; welche Stationen sie anzeigen, entscheidet die Oberfläche.
  *
@@ -196,6 +196,8 @@ data class Station(
     val levelingBlocksUsed: Boolean? = null,
     val wifiQuality: LteQuality? = null,
     val wifiCost: Money? = null,
+    /** WLAN-Preisinfo wird nur bei `true` als Stationsaufwand berücksichtigt. */
+    val wifiCostIsExpense: Boolean = false,
     val boardType: BoardType? = null,
     val lodgingAmenities: Set<LodgingAmenity> = emptySet(),
     val electricityBilling: ElectricityBilling? = null,

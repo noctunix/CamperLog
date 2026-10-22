@@ -38,6 +38,38 @@ class StationCostTest {
     }
 
     @Test
+    fun wifiPriceIsOnlyIncludedWhenMarkedAsExpenseAndKeepsItsOrigin() {
+        val price = Money(500, EUR)
+        val priceInfo = station(StationType.OVERNIGHT).copy(wifiCost = price)
+        val expense = priceInfo.copy(wifiCostIsExpense = true)
+
+        assertEquals(emptyList<StationCost>(), priceInfo.effectiveCosts())
+        assertEquals(listOf(StationCost(CostCategory.WIFI, price)), expense.effectiveCosts())
+        assertEquals(listOf(price), listOf(expense).stationCostTotals())
+    }
+
+    @Test
+    fun wifiExpenseIsCountedOnceAlongsideManualAndElectricityCosts() {
+        val station = station(StationType.OVERNIGHT, listOf(StationCost(CostCategory.PITCH, Money(3000, EUR)))).copy(
+            wifiCost = Money(500, EUR),
+            wifiCostIsExpense = true,
+            electricityBilling = ElectricityBilling.FLAT_PER_STAY,
+            electricityCurrency = EUR,
+            electricityFlatAmount = Money(200, EUR),
+        )
+
+        assertEquals(
+            listOf(
+                StationCost(CostCategory.PITCH, Money(3000, EUR)),
+                StationCost(CostCategory.ELECTRICITY, Money(200, EUR)),
+                StationCost(CostCategory.WIFI, Money(500, EUR)),
+            ),
+            station.effectiveCosts(),
+        )
+        assertEquals(listOf(Money(3700, EUR)), listOf(station).stationCostTotals())
+    }
+
+    @Test
     fun effectiveCostsAddTheDerivedElectricityCostAsItsOwnCategory() {
         val station = station(StationType.OVERNIGHT, listOf(StationCost(CostCategory.PITCH, Money(1000, EUR)))).copy(
             nights = 2,

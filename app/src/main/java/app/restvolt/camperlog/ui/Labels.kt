@@ -557,6 +557,7 @@ val StationField.labelRes: Int
         StationField.MAP_LINK -> R.string.field_coordinates
         StationField.SERVICES -> R.string.station_section_used_here
         StationField.ELECTRICITY -> R.string.field_electricity
+        StationField.WIFI_COST -> R.string.field_wifi_cost
         StationField.TOLL_COUNTRY -> R.string.field_toll_country
         StationField.TOLL_VALID_UNTIL -> R.string.field_toll_valid_until
         StationField.TOLL_PAYMENT_METHOD -> R.string.field_toll_payment_method
@@ -590,6 +591,7 @@ val CostCategory.labelRes: Int
     get() = when (this) {
         CostCategory.PITCH -> R.string.cost_category_pitch
         CostCategory.ELECTRICITY -> R.string.cost_category_electricity
+        CostCategory.WIFI -> R.string.cost_category_wifi
         CostCategory.SUPPLY -> R.string.cost_category_supply
         CostCategory.FUEL -> R.string.cost_category_fuel
         CostCategory.TOLL -> R.string.cost_category_toll
@@ -604,6 +606,7 @@ val CostCategory.iconRes: Int
     get() = when (this) {
         CostCategory.PITCH -> R.drawable.ic_bed
         CostCategory.ELECTRICITY -> R.drawable.ic_bolt
+        CostCategory.WIFI -> R.drawable.ic_wifi
         CostCategory.SUPPLY -> R.drawable.ic_rv_hookup
         CostCategory.FUEL -> R.drawable.ic_local_gas_station
         CostCategory.TOLL -> R.drawable.ic_toll

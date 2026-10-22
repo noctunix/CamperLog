@@ -39,6 +39,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -690,6 +691,27 @@ class RoomBackupImporterTest {
             setOf("Import neu", "Lokal neu", "Import zusätzlich"),
             storedStations().map { it.name }.toSet(),
         )
+    }
+
+    @Test
+    fun mergeAndReplace_preserveWifiExpenseChoice() = runTest {
+        val importedStation = station(1).copy(wifiCost = Money(500, EUR), wifiCostIsExpense = true)
+        val importedVehicle = BackupVehicle(vehicle(1), emptyList(), emptyList())
+        val stationBackup = backup(
+            tours = emptyList(),
+            vehicles = listOf(importedVehicle),
+            stations = listOf(importedStation),
+            stationVehicleUuid = mapOf(stationUuid(1) to vehicleUuid(1)),
+        )
+
+        importer.import(stationBackup, ImportMode.MERGE)
+        assertEquals(true, storedStations().single().wifiCostIsExpense)
+
+        val priceInfoBackup = stationBackup.copy(stations = listOf(importedStation.copy(wifiCostIsExpense = false)))
+        importer.import(priceInfoBackup, ImportMode.REPLACE)
+        val replaced = storedStations().single()
+        assertEquals(Money(500, EUR), replaced.wifiCost)
+        assertFalse(replaced.wifiCostIsExpense)
     }
 
     @Test
