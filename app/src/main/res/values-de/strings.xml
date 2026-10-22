@@ -1426,4 +1426,7 @@
     <string name="tours_empty_start">Halte Touren und einzelne Stationen fest. Eine Tour fasst die Stationen einer Reise zusammen. Deine Daten bleiben auf diesem Gerät, bis du sie selbst exportierst.</string>
     <string name="tours_start">Tour starten</string>
     <string name="station_without_tour">Station ohne Tour erfassen</string>
+    <string name="checklist_quick_start_hint">Starte mit einer Abfahrtscheckliste. Ihre Vorlage kannst du später bearbeiten und wiederverwenden.</string>
+    <string name="checklist_quick_start_departure">Abfahrtscheckliste starten</string>
+    <string name="checklist_start_failed">Checkliste konnte nicht gestartet werden. Bitte versuche es erneut.</string>
 </resources>

@@ -6,6 +6,7 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import app.restvolt.camperlog.ui.FakeAttachmentRepository
+import app.restvolt.camperlog.ui.FakeChecklistTemplateRepository
 import app.restvolt.camperlog.ui.FakeChecklistRepository
 import app.restvolt.camperlog.ui.FakeCountryLookupRepository
 import app.restvolt.camperlog.ui.FakeDiaryEntryRepository
@@ -92,6 +93,7 @@ class TourDetailViewModelTest {
         FakeStationRepository(),
         FakeDiaryEntryRepository(),
         FakeChecklistRepository(),
+        FakeChecklistTemplateRepository(),
         logs,
         FakeExchangeRateRepository(),
         FakeCountryLookupRepository(),

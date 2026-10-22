@@ -257,6 +257,9 @@ private fun VehicleSheet(
     ) {
         if (vehicle.hasBreakdownInfo) BreakdownAssistanceCard(vehicle, onCall, locationEnabled, onWhereAmI)
         reminders.forEach { reminder -> ReminderCard(reminder, today, onClick = { onOpenReminder(reminder) }) }
+        DocumentsSection(documents, today, onAddDocument, onOpenDocument)
+        ChecklistsSummaryCard(checklistsWithoutTour, onOpenChecklists)
+        RepairsSection(repairs, onAddRepair, onOpenRepair)
         if (!hasAnyValue) {
             EmptyHint(stringResource(R.string.vehicle_sheet_empty_hint))
             Button(
@@ -299,9 +302,6 @@ private fun VehicleSheet(
                 }
             }
         }
-        RepairsSection(repairs, onAddRepair, onOpenRepair)
-        DocumentsSection(documents, today, onAddDocument, onOpenDocument)
-        ChecklistsSummaryCard(checklistsWithoutTour, onOpenChecklists)
         LogbookSummaryCard(logbookLatest, today)
     }
 }

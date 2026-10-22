@@ -10,6 +10,7 @@ import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.Checklist
+import app.restvolt.camperlog.domain.ChecklistTemplateRepository
 import app.restvolt.camperlog.domain.ChecklistRepository
 import app.restvolt.camperlog.domain.ChecklistTemplate
 import app.restvolt.camperlog.domain.Conversion
@@ -135,6 +136,7 @@ class TourDetailViewModel(
     private val stations: StationRepository,
     private val diaryEntries: DiaryEntryRepository,
     private val checklists: ChecklistRepository,
+    private val checklistTemplates: ChecklistTemplateRepository,
     private val logs: LogRepository,
     exchangeRates: ExchangeRateRepository,
     private val countryLookup: CountryLookupRepository,
@@ -327,8 +329,13 @@ class TourDetailViewModel(
     fun startChecklist(template: ChecklistTemplate) {
         val tour = (uiState.value as? DetailUiState.Loaded)?.tour ?: return
         viewModelScope.launch {
-            val checklist = app.restvolt.camperlog.domain.startChecklist(template, tour.vehicleId, tour.id)
-            _startedChecklistId.value = checklists.save(checklist)
+            try {
+                val selected = if (template.id == 0L) template.copy(id = checklistTemplates.save(template)) else template
+                val checklist = app.restvolt.camperlog.domain.startChecklist(selected, tour.vehicleId, tour.id)
+                _startedChecklistId.value = checklists.save(checklist)
+            } catch (_: SQLException) {
+                _checklistMessage.value = ChecklistMessage.Failed(R.string.checklist_start_failed)
+            }
         }
     }
 

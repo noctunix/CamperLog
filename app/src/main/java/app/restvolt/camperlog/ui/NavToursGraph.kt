@@ -65,6 +65,7 @@ internal fun NavGraphBuilder.toursGraph(
                     tracks,
                     VehicleScopeSettings(context),
                     checklists,
+                    checklistTemplates,
                     onTourFinished = { tourId -> app.restvolt.camperlog.tracking.TrackRecordingService.stopIfTracking(context, tourId) },
                     onTourDeleted = { tourId -> app.restvolt.camperlog.tracking.TrackRecordingService.stopIfTracking(context, tourId) },
                 )
@@ -183,6 +184,7 @@ internal fun NavGraphBuilder.toursGraph(
                     stations,
                     diaryEntries,
                     checklists,
+                    checklistTemplates,
                     logbook,
                     exchangeRates,
                     countryLookup,
@@ -239,7 +241,7 @@ internal fun NavGraphBuilder.toursGraph(
     composable<DiaryEditRoute> { entry ->
         val route = entry.toRoute<DiaryEditRoute>()
         val tourDetailViewModel =
-            navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, logbook, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)
+            navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, checklistTemplates, logbook, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)
         DiaryEditScreen(
             viewModel = viewModel {
                 DiaryEditViewModel(diaryEntries, repository, route.tourId, route.entryId, createSavedStateHandle())
@@ -256,7 +258,7 @@ internal fun NavGraphBuilder.toursGraph(
     composable<TourMapRoute> { entry ->
         val route = entry.toRoute<TourMapRoute>()
         val tourDetailViewModel =
-            navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, logbook, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)
+            navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, checklistTemplates, logbook, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)
         val detailState by tourDetailViewModel.uiState.collectAsStateWithLifecycle()
         val loaded = detailState as? DetailUiState.Loaded
         val track by remember(route.tourId) { tracks.observeForTour(route.tourId) }

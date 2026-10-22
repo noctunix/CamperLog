@@ -61,8 +61,13 @@ class VehicleChecklistsViewModel(
     /** Startet [template] als neue Checkliste dieses Fahrzeugs ohne Tourbezug. */
     fun startChecklist(template: ChecklistTemplate) {
         viewModelScope.launch {
-            val checklist = app.restvolt.camperlog.domain.startChecklist(template, vehicleId)
-            _startedChecklistId.value = checklists.save(checklist)
+            try {
+                val selected = if (template.id == 0L) template.copy(id = templates.save(template)) else template
+                val checklist = app.restvolt.camperlog.domain.startChecklist(selected, vehicleId)
+                _startedChecklistId.value = checklists.save(checklist)
+            } catch (_: SQLException) {
+                _message.value = VehicleChecklistMessage.Failed(R.string.checklist_start_failed)
+            }
         }
     }
 
