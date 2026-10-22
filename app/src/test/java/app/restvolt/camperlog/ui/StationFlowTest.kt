@@ -722,8 +722,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
-        compose.onNodeWithText("Stellplatz-Details").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("gut").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("LTE-Qualität: gut").performScrollTo().performClick()
         clickSave()
 
         assertEquals(LteQuality.GOOD, stationRepository.stations.single().lteQuality)
@@ -736,13 +735,68 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
-        compose.onNodeWithText("Stellplatz-Details").performScrollTo().performClick()
-        val good = compose.onNodeWithContentDescription("gut")
+        val good = compose.onNodeWithContentDescription("LTE-Qualität: gut")
         good.performScrollTo().performClick()
         good.performClick()
         clickSave()
 
         assertEquals(null, stationRepository.stations.single().lteQuality)
+    }
+
+    @Test
+    fun wifiQuality_tapOnSmiley_savesItSeparatelyFromLte() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithContentDescription("WLAN-Qualität: geht so").performScrollTo().performClick()
+        clickSave()
+
+        val saved = stationRepository.stations.single()
+        assertEquals(LteQuality.OK, saved.wifiQuality)
+        assertEquals(null, saved.lteQuality)
+    }
+
+    @Test
+    fun wifiCost_isSavedWithItsCurrency() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNode(hasSetTextAction() and hasText("WLAN-Kosten (€)")).performScrollTo().performTextInput("3,50")
+        clickSave()
+
+        assertEquals(Money(350, EUR), stationRepository.stations.single().wifiCost)
+    }
+
+    @Test
+    fun siteKind_hotel_showsBoardAndAmenitiesInsteadOfPitchDetails() {
+        start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Hotel").performScrollTo().performClick()
+
+        compose.onNodeWithText("Stellplatz-Details").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Verpflegung: Keine").assertExists()
+        compose.onNodeWithText("Ausstattung").assertExists()
+    }
+
+    @Test
+    fun siteKind_campsite_showsPitchDetailsInsteadOfBoardAndAmenities() {
+        start(listOf(lofoten()))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Schlafplatz").performClick()
+        compose.onNodeWithText("Campingplatz").performScrollTo().performClick()
+
+        compose.onNodeWithText("Stellplatz-Details").assertExists()
+        compose.onNodeWithContentDescription("Verpflegung: Keine").assertDoesNotExist()
+        compose.onNodeWithText("Ausstattung").assertDoesNotExist()
     }
 
     @Test

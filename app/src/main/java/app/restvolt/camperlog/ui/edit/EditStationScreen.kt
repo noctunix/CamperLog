@@ -28,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -51,6 +52,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -70,11 +72,13 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.AttachmentRepository
+import app.restvolt.camperlog.domain.BoardType
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.displayTitle
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.fuelServicesFor
 import app.restvolt.camperlog.domain.LocationFix
+import app.restvolt.camperlog.domain.LodgingAmenity
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.SUPPLY_SERVICES
@@ -97,6 +101,7 @@ import app.restvolt.camperlog.domain.period
 import app.restvolt.camperlog.share.openAppDetailsSettings
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.CollapsibleSection
+import app.restvolt.camperlog.ui.CurrencyPicker
 import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LeaveDraftDialog
@@ -122,6 +127,7 @@ import app.restvolt.camperlog.ui.theme.HeartRed
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.yesNoRes
 import java.time.LocalDate
+import java.util.Currency
 
 /**
  * Formular zum Anlegen und Bearbeiten einer Station; jede Eingabe speichert sich implizit selbst.
@@ -433,6 +439,33 @@ private fun StationForm(
     }
 }
 
+/** Platzarten mit klassischen Stellplatz-Details (Zuweisung, Neigung, Keile). */
+private val PITCH_SITE_KINDS: Set<SiteKind> = setOf(SiteKind.CAMPSITE, SiteKind.MOTORHOME_AREA, SiteKind.WILD)
+
+/** Platzarten mit Verpflegung und Ausstattungsmerkmalen statt Stellplatz-Details. */
+private val LODGING_SITE_KINDS: Set<SiteKind> = setOf(SiteKind.HOTEL, SiteKind.VACATION_RENTAL, SiteKind.HOSTEL)
+
+/** Ausstattungsmerkmale, gruppiert wie in der "Ausstattung"-Sektion angezeigt. */
+private val AMENITY_GROUPS: List<Pair<Int, Set<LodgingAmenity>>> = listOf(
+    R.string.amenities_group_leisure to setOf(LodgingAmenity.POOL, LodgingAmenity.SAUNA, LodgingAmenity.FITNESS_ROOM, LodgingAmenity.WELLNESS),
+    R.string.amenities_group_room to setOf(
+        LodgingAmenity.PRIVATE_BATHROOM,
+        LodgingAmenity.AIR_CONDITIONING,
+        LodgingAmenity.FRIDGE,
+        LodgingAmenity.MINIBAR,
+        LodgingAmenity.BALCONY,
+        LodgingAmenity.SAFE,
+    ),
+    R.string.amenities_group_mobility to setOf(LodgingAmenity.PARKING, LodgingAmenity.EV_CHARGING, LodgingAmenity.BIKE_RENTAL),
+    R.string.amenities_group_service to setOf(
+        LodgingAmenity.RECEPTION_24_7,
+        LodgingAmenity.RESTAURANT,
+        LodgingAmenity.LAUNDRY_SERVICE,
+        LodgingAmenity.ELEVATOR,
+    ),
+    R.string.amenities_group_rules to setOf(LodgingAmenity.PETS_ALLOWED, LodgingAmenity.NON_SMOKING, LodgingAmenity.SKI_ROOM),
+)
+
 @Composable
 private fun OvernightSection(
     input: StationInput,
@@ -467,34 +500,50 @@ private fun OvernightSection(
             modifier = linkModifier,
         )
 
-        var pitchExpanded by rememberSaveable(input.type) {
-            mutableStateOf(
-                input.pitchAssigned != null || input.lteQuality != null || input.pitchSlope != null || input.levelingBlocksUsed != null,
-            )
-        }
-        val pitchSummary = listOfNotNull(
-            input.pitchAssigned?.let { summaryPair(stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(it))) },
-            input.lteQuality?.let { summaryPair(stringResource(R.string.field_lte), stringResource(it.labelRes)) },
-            input.pitchSlope?.let { summaryPair(stringResource(R.string.field_pitch_slope), stringResource(it.labelRes)) },
-            input.levelingBlocksUsed?.let { summaryPair(stringResource(R.string.field_leveling_blocks), stringResource(yesNoRes(it))) },
-        ).let { parts -> if (parts.isEmpty()) stringResource(R.string.station_summary_none) else parts.joinToString(" · ") }
+        // Empfang gilt für jede Übernachtungsart, daher immer sichtbar statt in den Stellplatz-Details.
+        SectionHeading(stringResource(R.string.station_section_connectivity))
+        LteQualityRow(input.lteQuality, stringResource(R.string.field_lte)) { value -> change { it.copy(lteQuality = value) } }
+        LteQualityRow(input.wifiQuality, stringResource(R.string.field_wifi)) { value -> change { it.copy(wifiQuality = value) } }
+        WifiCostField(
+            amount = input.wifiCostAmount,
+            currency = input.wifiCurrency,
+            onAmountChange = { value -> change { it.copy(wifiCostAmount = value) } },
+            onCurrencyChange = { currency -> change { it.copy(wifiCurrency = currency) } },
+        )
 
-        CollapsibleSection(
-            title = stringResource(R.string.station_section_pitch_details),
-            expanded = pitchExpanded,
-            onToggle = { pitchExpanded = !pitchExpanded },
-            summary = pitchSummary,
-        ) {
-            NullableChoiceField(stringResource(R.string.field_pitch_assigned), listOf(true, false), input.pitchAssigned, ::yesNoRes) { value ->
-                change { it.copy(pitchAssigned = value) }
+        if (input.siteKind == null || input.siteKind in PITCH_SITE_KINDS) {
+            var pitchExpanded by rememberSaveable(input.type) {
+                mutableStateOf(input.pitchAssigned != null || input.pitchSlope != null || input.levelingBlocksUsed != null)
             }
-            LteQualityRow(input.lteQuality) { value -> change { it.copy(lteQuality = value) } }
-            NullableChoiceField(stringResource(R.string.field_pitch_slope), PitchSlope.entries, input.pitchSlope, PitchSlope::labelRes) { value ->
-                change { it.copy(pitchSlope = value) }
+            val pitchSummary = listOfNotNull(
+                input.pitchAssigned?.let { summaryPair(stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(it))) },
+                input.pitchSlope?.let { summaryPair(stringResource(R.string.field_pitch_slope), stringResource(it.labelRes)) },
+                input.levelingBlocksUsed?.let { summaryPair(stringResource(R.string.field_leveling_blocks), stringResource(yesNoRes(it))) },
+            ).let { parts -> if (parts.isEmpty()) stringResource(R.string.station_summary_none) else parts.joinToString(" · ") }
+
+            CollapsibleSection(
+                title = stringResource(R.string.station_section_pitch_details),
+                expanded = pitchExpanded,
+                onToggle = { pitchExpanded = !pitchExpanded },
+                summary = pitchSummary,
+            ) {
+                NullableChoiceField(stringResource(R.string.field_pitch_assigned), listOf(true, false), input.pitchAssigned, ::yesNoRes) { value ->
+                    change { it.copy(pitchAssigned = value) }
+                }
+                NullableChoiceField(stringResource(R.string.field_pitch_slope), PitchSlope.entries, input.pitchSlope, PitchSlope::labelRes) { value ->
+                    change { it.copy(pitchSlope = value) }
+                }
+                NullableChoiceField(stringResource(R.string.field_leveling_blocks), listOf(true, false), input.levelingBlocksUsed, ::yesNoRes) { value ->
+                    change { it.copy(levelingBlocksUsed = value) }
+                }
             }
-            NullableChoiceField(stringResource(R.string.field_leveling_blocks), listOf(true, false), input.levelingBlocksUsed, ::yesNoRes) { value ->
-                change { it.copy(levelingBlocksUsed = value) }
+        }
+
+        if (input.siteKind in LODGING_SITE_KINDS) {
+            NullableChoiceField(stringResource(R.string.field_board_type), BoardType.entries, input.boardType, BoardType::labelRes) { value ->
+                change { it.copy(boardType = value) }
             }
+            AmenitiesSection(input.lodgingAmenities, input.type) { amenities -> change { it.copy(lodgingAmenities = amenities) } }
         }
 
         var electricityExpanded by rememberSaveable(input.type) { mutableStateOf(input.electricityBilling != null) }
@@ -612,24 +661,97 @@ private fun RatingRow(rating: Int?, onRatingChange: (Int?) -> Unit) {
 
 /**
  * Drei antippbare Smileys statt Text-Chips, ein erneuter Tipp auf den aktuellen Wert setzt auf
- * "keine Angabe" zurück.
+ * "keine Angabe" zurück. Dient sowohl der LTE- als auch der WLAN-Qualität, unterschieden über
+ * [label]; die Sprechform je Smiley nennt [label] mit, da beide Reihen nebeneinander stehen.
  */
 @Composable
-private fun LteQualityRow(selected: LteQuality?, onSelect: (LteQuality?) -> Unit) {
+private fun LteQualityRow(selected: LteQuality?, label: String, onSelect: (LteQuality?) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
-            stringResource(R.string.field_lte),
+            label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row {
             LteQuality.entries.forEach { quality ->
                 val isSelected = quality == selected
+                val description = stringResource(R.string.station_summary_field, label, stringResource(quality.labelRes))
                 IconButton(onClick = { onSelect(if (isSelected) null else quality) }) {
                     Icon(
                         painterResource(quality.iconRes),
-                        contentDescription = stringResource(quality.labelRes),
+                        contentDescription = description,
                         tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Betragsfeld mit Währungsauswahl für die WLAN-Kosten, ohne eigene Validierung. */
+@Composable
+private fun WifiCostField(amount: String, currency: Currency, onAmountChange: (String) -> Unit, onCurrencyChange: (Currency) -> Unit) {
+    val locale = currentLocale()
+    var showPicker by rememberSaveable { mutableStateOf(false) }
+    val currencyDescription = stringResource(R.string.edit_cost_currency, currency.getDisplayName(locale))
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = amount,
+            onValueChange = onAmountChange,
+            modifier = Modifier.weight(1f),
+            label = { Text(stringResource(R.string.field_amount_with_currency, stringResource(R.string.field_wifi_cost), currency.getSymbol(locale))) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+            shape = MaterialTheme.shapes.medium,
+        )
+        OutlinedButton(
+            onClick = { showPicker = true },
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .heightIn(min = 48.dp)
+                .semantics { contentDescription = currencyDescription },
+        ) { Text(currency.currencyCode) }
+    }
+    if (showPicker) {
+        CurrencyPicker(
+            selected = currency,
+            excluded = emptySet(),
+            locale = locale,
+            onSelect = {
+                onCurrencyChange(it)
+                showPicker = false
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
+}
+
+/**
+ * Aufklappbarer Abschnitt mit den Ausstattungsmerkmalen einer Hotel-/Ferienwohnungs-/
+ * Hostel-Übernachtung, gruppiert nach [AMENITY_GROUPS].
+ */
+@Composable
+private fun AmenitiesSection(selected: Set<LodgingAmenity>, type: StationType, onChange: (Set<LodgingAmenity>) -> Unit) {
+    var expanded by rememberSaveable(type) { mutableStateOf(selected.isNotEmpty()) }
+    val summary = if (selected.isEmpty()) {
+        stringResource(R.string.station_summary_none)
+    } else {
+        pluralStringResource(R.plurals.station_amenities_count, selected.size, selected.size)
+    }
+    CollapsibleSection(
+        title = stringResource(R.string.station_section_amenities),
+        expanded = expanded,
+        onToggle = { expanded = !expanded },
+        summary = summary,
+    ) {
+        AMENITY_GROUPS.forEach { (titleRes, group) ->
+            Text(stringResource(titleRes), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                group.forEach { amenity ->
+                    FilterChip(
+                        selected = amenity in selected,
+                        onClick = { onChange(selected.toggled(amenity)) },
+                        label = { Text(stringResource(amenity.labelRes)) },
                     )
                 }
             }
@@ -656,8 +778,7 @@ private fun WeatherSection(input: StationInput, viewModel: EditStationViewModel)
     }
 }
 
-private fun Set<StationService>.toggled(service: StationService): Set<StationService> =
-    if (service in this) this - service else this + service
+private fun <T> Set<T>.toggled(item: T): Set<T> = if (item in this) this - item else this + item
 
 @Composable
 private fun summaryPair(label: String, value: String): String = stringResource(R.string.station_summary_field, label, value)
