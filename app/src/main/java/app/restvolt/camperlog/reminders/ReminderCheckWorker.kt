@@ -71,6 +71,9 @@ class ReminderCheckWorker(appContext: Context, params: WorkerParameters) : Corou
                 folderUri = prefs.folderUri,
             ),
         )
+        if (outcome.folderBackupAttempted) {
+            prefs.folderUri?.let { backupSettings.recordFolderBackupResult(it, prefs.autoBackupIncludeFilesOverride ?: true, outcome.backupWrittenAt) }
+        }
         outcome.backupWrittenAt?.let { backupSettings.lastBackupAt = it }
         outcome.backupNotifiedBaseline?.let { backupSettings.lastNotifiedBackupBaseline = it }
         return Result.success()

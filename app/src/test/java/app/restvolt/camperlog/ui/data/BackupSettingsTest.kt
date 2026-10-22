@@ -110,6 +110,23 @@ class BackupSettingsTest {
     }
 
     @Test
+    fun failedFolderAttemptPreservesConfirmedTargetTimeAndScope() {
+        clear()
+        val settings = BackupSettings(context, Scheduler())
+        val at = Instant.parse("2026-10-22T10:00:00Z")
+        settings.recordFolderBackupResult("content://first", true, at)
+        settings.recordFolderBackupResult("content://second", false, null)
+        val reloaded = BackupSettings(context, Scheduler()).values.value
+        assertEquals(FolderBackupRecord(at, "content://first", true), reloaded.lastFolderBackup)
+        assertEquals(at, reloaded.lastBackupAt)
+        assertEquals("content://second", reloaded.lastFolderBackupFailedFor)
+        settings.recordFolderBackupResult("content://second", false, at.plusSeconds(1))
+        assertEquals(false, settings.values.value.lastFolderBackup?.includeFiles)
+        assertNull(settings.values.value.lastFolderBackupFailedFor)
+        clear()
+    }
+
+    @Test
     fun recordBackupMade_setsLastBackupAt() {
         clear()
         try {

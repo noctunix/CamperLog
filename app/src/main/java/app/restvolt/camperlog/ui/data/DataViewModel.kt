@@ -116,6 +116,7 @@ class DataViewModel(
     private val importer: BackupImporter,
     private val files: DataFiles,
     private val folderWriter: BackupFolderWriter,
+    private val onFolderBackupResult: (String, Boolean, Instant?) -> Unit,
     /** Nach jeder erfolgreich geschriebenen Sicherung aufgerufen, um die Sicherungs-Erinnerung neu zu "scharfen". */
     private val onBackupSaved: (Instant) -> Unit = {},
     private val clock: () -> Instant = Instant::now,
@@ -154,6 +155,8 @@ class DataViewModel(
             } catch (_: IOException) {
                 DataMessage.Text(failure)
             } catch (_: SQLException) {
+                DataMessage.Text(failure)
+            } catch (_: SecurityException) {
                 DataMessage.Text(failure)
             } finally {
                 _busy.value = false
@@ -233,24 +236,30 @@ class DataViewModel(
      * [R.string.data_backup_folder_failed], ohne [onBackupSaved] aufzurufen.
      */
     fun backUpToFolder(folderUri: String, includeFilesOverride: Boolean? = null) = launchTask(R.string.backup_failed) {
-        val folderName = folderWriter.folderDisplayName(folderUri)
-        if (folderName == null || !folderWriter.isAccessible(folderUri)) {
-            DataMessage.Text(R.string.data_backup_folder_failed)
-        } else {
-            val backup = currentBackup()
-            val json = withContext(background) { encodeBackup(backup) }
-            val includeFiles = includeFilesOverride ?: true
-            val written = if (includeFiles) {
-                folderWriter.writeTimestampedBackupZip(folderUri, zipWriter(json, backup))
-            } else {
-                folderWriter.writeTimestampedBackup(folderUri, json)
-            }
-            if (written != null) {
-                onBackupSaved(clock())
-                DataMessage.BackedUpToFolder(folderName)
-            } else {
+        val includeFiles = includeFilesOverride ?: true
+        var savedAt: Instant? = null
+        try {
+            val folderName = folderWriter.folderDisplayName(folderUri)
+            if (folderName == null || !folderWriter.isAccessible(folderUri)) {
                 DataMessage.Text(R.string.data_backup_folder_failed)
+            } else {
+                val backup = currentBackup()
+                val json = withContext(background) { encodeBackup(backup) }
+                val written = if (includeFiles) {
+                    folderWriter.writeTimestampedBackupZip(folderUri, zipWriter(json, backup))
+                } else {
+                    folderWriter.writeTimestampedBackup(folderUri, json)
+                }
+                if (written != null) {
+                    savedAt = clock()
+                    onBackupSaved(checkNotNull(savedAt))
+                    DataMessage.BackedUpToFolder(folderName)
+                } else {
+                    DataMessage.Text(R.string.data_backup_folder_failed)
+                }
             }
+        } finally {
+            onFolderBackupResult(folderUri, includeFiles, savedAt)
         }
     }
 
