@@ -557,6 +557,7 @@ val StationField.labelRes: Int
         StationField.MAP_LINK -> R.string.field_coordinates
         StationField.SERVICES -> R.string.station_section_used_here
         StationField.ELECTRICITY -> R.string.field_electricity
+        StationField.FUEL_LITERS -> R.string.field_fuel_liters
         StationField.TOLL_COUNTRY -> R.string.field_toll_country
         StationField.TOLL_VALID_UNTIL -> R.string.field_toll_valid_until
         StationField.TOLL_PAYMENT_METHOD -> R.string.field_toll_payment_method

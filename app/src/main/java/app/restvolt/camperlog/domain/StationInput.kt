@@ -28,6 +28,10 @@ const val MAX_ELECTRICITY_COINS = 10_000
 private const val ELECTRICITY_KWH_FRACTION_DIGITS = 3
 private const val PRICE_PER_KWH_FRACTION_DIGITS = 4
 
+/** Höchstmenge und Nachkommastellen der getankten Liter einer Tanken-Station, auch von der Sicherung genutzt. */
+const val MAX_FUEL_LITERS = 10_000.0
+private const val FUEL_LITERS_FRACTION_DIGITS = 2
+
 /** WGS84-Wertebereiche gültiger Koordinaten. */
 val LATITUDE_RANGE = -90.0..90.0
 val LONGITUDE_RANGE = -180.0..180.0
@@ -85,6 +89,7 @@ data class StationInput(
     val electricityMeterStart: String = "",
     val electricityMeterEnd: String = "",
     val electricityKwhUsed: String = "",
+    val fuelLiters: String = "",
     val tollKind: TollKind? = null,
     val tollPaymentMethod: String = "",
     val tollCountry: String = "",
@@ -109,7 +114,7 @@ data class StationInput(
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
 enum class StationField {
     DATE, COORDINATES, NIGHTS, NAME, PLACE, NOTES, MAP_LINK, SERVICES, ELECTRICITY,
-    TOLL_COUNTRY, TOLL_VALID_UNTIL, TOLL_PAYMENT_METHOD, FERRY_BOOKING_REFERENCE, COST,
+    FUEL_LITERS, TOLL_COUNTRY, TOLL_VALID_UNTIL, TOLL_PAYMENT_METHOD, FERRY_BOOKING_REFERENCE, COST,
     ODOMETER_KM, MANUAL_TEMPERATURE, LINK,
 }
 
@@ -180,6 +185,11 @@ internal fun StationInput.validation(today: LocalDate = LocalDate.now(), locale:
         }
 
         electricityError(locale)?.let { put(StationField.ELECTRICITY, it) }
+
+        if (type == StationType.FUEL) {
+            decimalBoundError(fuelLiters, locale, FUEL_LITERS_FRACTION_DIGITS, MAX_FUEL_LITERS)
+                ?.let { put(StationField.FUEL_LITERS, it) }
+        }
 
         if (type == StationType.TOLL) {
             if (tollCountry.isNotBlank() && tollCountry.trim().uppercase(Locale.ROOT) !in ALL_COUNTRY_CODES) {
@@ -349,6 +359,7 @@ fun StationInput.toStation(original: Station?, locale: Locale = Locale.getDefaul
         } else {
             null
         },
+        fuelLiters = if (type == StationType.FUEL) parseDecimalField(fuelLiters, locale, FUEL_LITERS_FRACTION_DIGITS) else null,
         tollKind = tollKind.takeIf { isToll },
         tollPaymentMethod = if (isToll) tollPaymentMethod.trim() else "",
         tollCountry = if (isToll) tollCountry.trim().uppercase(Locale.ROOT).ifEmpty { null } else null,
@@ -415,6 +426,7 @@ fun Station.toInput(locale: Locale = Locale.getDefault()): StationInput = Statio
     electricityMeterStart = decimalToInput(electricityMeterStart, locale),
     electricityMeterEnd = decimalToInput(electricityMeterEnd, locale),
     electricityKwhUsed = decimalToInput(electricityKwhUsed, locale),
+    fuelLiters = decimalToInput(fuelLiters, locale),
     tollKind = tollKind,
     tollPaymentMethod = tollPaymentMethod,
     tollCountry = tollCountry.orEmpty(),

@@ -901,6 +901,7 @@
     <string name="field_electricity_meter_start">Meter start (kWh)</string>
     <string name="field_electricity_meter_end">Meter end (kWh)</string>
     <string name="field_electricity_kwh_used">kWh used</string>
+    <string name="field_fuel_liters">Liters</string>
     <string name="electricity_input_mode_meter">Meter readings</string>
     <string name="electricity_input_mode_direct">kWh directly</string>
     <string name="electricity_result_value">≈ %1$s</string>

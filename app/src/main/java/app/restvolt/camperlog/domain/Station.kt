@@ -209,6 +209,7 @@ data class Station(
     val electricityMeterStart: BigDecimal? = null,
     val electricityMeterEnd: BigDecimal? = null,
     val electricityKwhUsed: BigDecimal? = null,
+    val fuelLiters: BigDecimal? = null,
     val tollKind: TollKind? = null,
     val tollPaymentMethod: String = "",
     val tollCountry: String? = null,
