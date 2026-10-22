@@ -148,10 +148,11 @@ class SearchViewModel(
         val tourById = tours.associateBy { it.id }
 
         val tourResults = tours.mapNotNull { tour ->
-            val fields = listOf(tour.destination, tour.notes)
+            val fields = listOf(tour.name, tour.destination, tour.notes)
             if (!matchesSearch(query, fields)) return@mapNotNull null
             SearchResult.TourResult(
                 tourId = tour.id,
+                name = tour.name,
                 destination = tour.destination,
                 date = tour.startDate,
                 snippet = firstSnippet(query, fields),

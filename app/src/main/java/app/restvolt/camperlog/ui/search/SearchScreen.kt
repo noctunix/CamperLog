@@ -185,7 +185,7 @@ private fun SearchResultRow(result: SearchResult, resources: android.content.res
 
 /** Titel einer Ergebniszeile; braucht [resources] für die lokalisierten Rückfall-Titel ohne eigenen Freitext. */
 private fun resultTitle(result: SearchResult, resources: android.content.res.Resources, locale: Locale): String = when (result) {
-    is SearchResult.TourResult -> result.destination
+    is SearchResult.TourResult -> result.displayTitle(resources.getString(R.string.detail_fallback_title))
     is SearchResult.StopResult -> result.name.ifBlank { resources.getString(result.stationType.labelRes) }
     is SearchResult.DiaryResult -> "${formatDate(result.date, locale)} – ${result.tourDestination}"
     is SearchResult.LogbookResult -> result.label

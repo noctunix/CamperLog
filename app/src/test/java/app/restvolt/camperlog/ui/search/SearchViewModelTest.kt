@@ -76,11 +76,12 @@ class SearchViewModelTest {
         advanceTimeBy(250)
     }
 
-    private fun tour(id: Long, vehicleId: Long = 1, destination: String, notes: String = "", startDate: LocalDate = LocalDate.of(2026, 6, 1)) = Tour(
+    private fun tour(id: Long, vehicleId: Long = 1, name: String = "", destination: String, notes: String = "", startDate: LocalDate = LocalDate.of(2026, 6, 1)) = Tour(
         id = id,
         vehicleId = vehicleId,
         startDate = startDate,
         endDate = startDate,
+        name = name,
         destination = destination,
         tourType = TourType.WEEKEND,
         travelDays = 1,
@@ -136,6 +137,34 @@ class SearchViewModelTest {
         assertEquals(SearchResultType.TOUR, group.type)
         val result = group.results.single() as SearchResult.TourResult
         assertEquals(1L, result.tourId)
+    }
+
+    @Test
+    fun tourResults_matchNameDestinationAndNotes_andKeepVisibleTitleFields() = runTest(dispatcher) {
+        val namedTour = tour(1, name = "Herbstfahrt", destination = "", notes = "Goldener Oktober")
+        val viewModel = viewModel(tours = FakeTourRepository(listOf(namedTour)))
+        collect(viewModel.uiState)
+
+        search(viewModel, "herbstfahrt")
+
+        val result = viewModel.uiState.value.groups.single().results.single() as SearchResult.TourResult
+        assertEquals("Herbstfahrt", result.name)
+        assertEquals("", result.destination)
+        assertEquals("Herbstfahrt", result.displayTitle("Tour"))
+
+        search(viewModel, "goldener")
+
+        val notesResult = viewModel.uiState.value.groups.single().results.single() as SearchResult.TourResult
+        assertEquals("Herbstfahrt", notesResult.name)
+    }
+
+    @Test
+    fun tourResultTitle_fallsBackFromNameToDestinationThenFallback() {
+        val destinationResult = SearchResult.TourResult(1, "", "Gardasee", LocalDate.of(2026, 6, 1), null, null)
+        val emptyResult = destinationResult.copy(destination = "")
+
+        assertEquals("Gardasee", destinationResult.displayTitle("Tour"))
+        assertEquals("Tour", emptyResult.displayTitle("Tour"))
     }
 
     @Test
