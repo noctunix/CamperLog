@@ -1,11 +1,13 @@
 package app.restvolt.camperlog.backup
 
 import app.restvolt.camperlog.domain.Axle
+import app.restvolt.camperlog.domain.BoardType
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.LodgingAmenity
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
@@ -93,6 +95,10 @@ class BackupTest {
         lteQuality = LteQuality.GOOD,
         pitchSlope = PitchSlope.LEVEL,
         levelingBlocksUsed = false,
+        wifiQuality = LteQuality.OK,
+        wifiCost = Money(350, eur),
+        boardType = BoardType.BREAKFAST,
+        lodgingAmenities = setOf(LodgingAmenity.POOL, LodgingAmenity.PARKING),
         electricityBilling = ElectricityBilling.BASE_PLUS_METERED,
         electricityCurrency = eur,
         electricityBaseFee = Money(500, eur),
@@ -272,7 +278,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 22" in text)
+        assert("\"schemaVersion\": 23" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -282,7 +288,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 22" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 23" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -530,7 +536,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 22" in text)
+        assert("\"schemaVersion\": 23" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -565,13 +571,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 22", "\"schemaVersion\": 23"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 23", "\"schemaVersion\": 24"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 22", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 23", it))?.error)
         }
     }
 
@@ -898,6 +904,27 @@ class BackupTest {
         assertEquals(listOf(station()), decoded.stations)
         assertEquals(mapOf(stationUuid to vehicleUuid), decoded.stationVehicleUuid)
         assertEquals(mapOf(stationUuid to tour().uuid), decoded.stationTourUuid)
+    }
+
+    @Test
+    fun decode_importsStationWithoutWifiBoardAndAmenityFieldsFromAnOlderBackupAsEmpty() {
+        val olderBackup = stationBackup.copy(stations = listOf(station().copy(lodgingAmenities = emptySet())))
+        val text = stationsEncodedWith(
+            olderBackup,
+            listOf(
+                "\"wifiQuality\": \"OK\"," to "",
+                "\"wifiCostCurrency\": \"EUR\"," to "",
+                "\"wifiCostAmount\": \"3.50\"," to "",
+                "\"boardType\": \"BREAKFAST\"," to "",
+                "\"lodgingAmenities\": []," to "",
+            ),
+        )
+
+        val decoded = success(text).stations.single()
+        assertEquals(null, decoded.wifiQuality)
+        assertEquals(null, decoded.wifiCost)
+        assertEquals(null, decoded.boardType)
+        assertEquals(emptySet<LodgingAmenity>(), decoded.lodgingAmenities)
     }
 
     @Test

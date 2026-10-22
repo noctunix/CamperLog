@@ -225,6 +225,16 @@ internal data class StationDto(
     val lteQuality: String? = null,
     val pitchSlope: String? = null,
     val levelingBlocksUsed: Boolean? = null,
+    /** Fehlt in Sicherungen vor Formatversion 23. */
+    val wifiQuality: String? = null,
+    /** Fehlt in Sicherungen vor Formatversion 23; teilt sich keine Währung mit der Stromabrechnung. */
+    val wifiCostCurrency: String? = null,
+    /** Fehlt in Sicherungen vor Formatversion 23. */
+    val wifiCostAmount: String? = null,
+    /** Fehlt in Sicherungen vor Formatversion 23. */
+    val boardType: String? = null,
+    /** [app.restvolt.camperlog.domain.LodgingAmenity]-Namen; fehlt in Sicherungen vor Formatversion 23. */
+    val lodgingAmenities: List<String> = emptyList(),
     /**
      * Nur in Sicherungen vor Formatversion 5: die alte Strompauschale der Station, beim Import nach
      * [app.restvolt.camperlog.domain.migrateLegacyElectricityFlatRate] auf [electricityBilling]
