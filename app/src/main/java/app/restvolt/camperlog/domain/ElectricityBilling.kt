@@ -129,6 +129,17 @@ fun formatKwh(value: BigDecimal, locale: Locale): String {
     return "${format.format(value)} kWh"
 }
 
+/** Formatiert eine Litermenge mit so vielen Nachkommastellen wie nötig (höchstens 2), z. B. `42,35 l`. */
+fun formatLiters(value: BigDecimal, locale: Locale): String {
+    val fractionDigits = value.stripTrailingZeros().scale().coerceIn(0, 2)
+    val format = NumberFormat.getNumberInstance(locale).apply {
+        minimumFractionDigits = fractionDigits
+        maximumFractionDigits = fractionDigits
+        roundingMode = RoundingMode.HALF_UP
+    }
+    return "${format.format(value)} l"
+}
+
 /** Rundet [amount] (in Hauptwährungseinheiten) kaufmännisch auf die kleinste Einheit von [currency]; `null` bei Überlauf. */
 private fun roundToMinor(amount: BigDecimal, currency: Currency): Money? {
     val minor = amount.setScale(currency.fractionDigits, RoundingMode.HALF_UP).movePointRight(currency.fractionDigits)

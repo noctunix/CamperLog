@@ -58,6 +58,7 @@ import app.restvolt.camperlog.domain.formatAmount
 import app.restvolt.camperlog.domain.formatCoordinates
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.formatKwh
+import app.restvolt.camperlog.domain.formatLiters
 import app.restvolt.camperlog.share.openInMaps
 import app.restvolt.camperlog.share.tryStart
 import app.restvolt.camperlog.ui.BackTopBar
@@ -212,6 +213,12 @@ private fun StationDetails(
             connectivityText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
             boardAndAmenitiesText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
             servicesText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
+            station.fuelLiters?.let {
+                Text(
+                    stringResource(R.string.station_summary_field, stringResource(R.string.field_fuel_liters), formatLiters(it, locale)),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
             station.weather?.let { WeatherSummary(it) }
             station.rating?.let { RatingDisplay(it) }
             station.odometerKm?.let { Text(stringResource(R.string.distance_km, it), style = MaterialTheme.typography.bodyLarge) }
