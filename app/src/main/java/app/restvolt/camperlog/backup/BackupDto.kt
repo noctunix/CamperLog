@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.backup
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
@@ -39,6 +40,8 @@ internal data class BackupDto(
     val tracks: List<JsonElement> = emptyList(),
     /** Einzeln als [HomeLocationDto] gelesen; fehlt in Sicherungen vor Formatversion 22. */
     val homeLocations: List<JsonElement> = emptyList(),
+    /** Konfigurierbare Zahlungsarten; fehlt in Sicherungen vor Formatversion 25. */
+    val paymentMethods: List<String>? = null,
 )
 
 @Serializable
@@ -254,8 +257,10 @@ internal data class StationDto(
     val electricityMeterStart: String? = null,
     val electricityMeterEnd: String? = null,
     val electricityKwhUsed: String? = null,
+    /** Getankte Liter einer Tanken-Station; fehlt in Sicherungen vor Formatversion 24. */
+    val fuelLiters: String? = null,
     val tollKind: String? = null,
-    val tollPaymentMethod: String = "",
+    @SerialName("tollPaymentMethod") val paymentMethod: String = "",
     val tollCountry: String? = null,
     val tollValidFrom: String? = null,
     val tollValidUntil: String? = null,

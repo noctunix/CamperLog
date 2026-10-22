@@ -2,6 +2,11 @@
 
 Shipped features, newest first.
 
+- 1.35.1 – The system back button steps back through the introduction tour (and ends it at the first step) instead of navigating the app underneath
+- 1.35.0 – Introduction tour ends with a "Let's go" step pointing to the new-tour button; re-saving a fuel stop adds the missing logbook entry; merge import reports payment methods that no longer fit into the list of 30; example-tour track points never lie in the future
+- 1.34.0 – Introduction tour gains statistics and map steps (example tour only, map drawn without background tiles so nothing is fetched from the internet); the example tour is kept out of statistics and rates
+- 1.33.0 – Rewritten introduction tour for newcomers (nine steps: tour/stop/logbook terms, all four tabs, stop kinds, checklists, your data); the demo tour used by the create-first-tour guide now has six stops of five kinds with costs; the create-first-tour guide follows the form order and explains the destination field
+- 1.32.0 – Payment method on every kind of stop, picked from an editable list in Settings (part of backups); one-tap "Fueled" logbook tile with optional litres and derived price per litre; gas-bottle switch and refill tiles; quick-facts popup for logbook entries
 - 1.28.1 – Overnight stays can be tagged as hotel, vacation rental or hostel, not just campsite/motorhome area/wild camping; home address history is now part of backups and carried over on restore (1.28.0 never shipped: its tagged commit failed CI when lint's upstream-version checks happened to flag a newer Gradle/dependency release at analysis time, unrelated to the change itself)
 - 1.27.0 – Launcher shortcuts (long-press the app icon): new tour, new stop, breakdown/accident help; a dynamic shortcut for the running tour appears automatically while one is active
 - 1.26.0 – New local diagnostics log (Settings → Diagnostics log): records detailed entries for GPS track recording when enabled, crashes always; view and share from Settings. Entries are redacted (coordinates, amounts, plates, real file paths) before they could ever leave the device

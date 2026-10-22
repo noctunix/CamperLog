@@ -1,5 +1,9 @@
 package app.restvolt.camperlog.domain
 
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.util.Locale
+
 /** Kostenkategorie einer Station, mit stabilem Exportwert [csvValue]. */
 enum class CostCategory(val csvValue: String) {
     PITCH("stellplatz"),
@@ -59,3 +63,22 @@ fun Iterable<Station>.costsByCategory(): Map<CostCategory, List<Money>> =
 
 /** Kosten dieser Tour: ihre manuellen [Tour.costs] plus die Kosten aller [stations] der Tour, je Währung. */
 fun Tour.totalCosts(stations: List<Station>): List<Money> = (costs + stations.stationCostTotals()).sumByCurrency()
+
+/**
+ * Abgeleiteter Literpreis einer Tanken-Station: Kosten der Kategorie [CostCategory.FUEL] geteilt durch
+ * [Station.fuelLiters], formatiert mit drei Nachkommastellen (z. B. `1,789 €/l`). `null`, wenn keine
+ * Litermenge größer 0, kein Tankkosten-Posten oder mehrere Währungen vorliegen.
+ */
+fun fuelPricePerLiter(station: Station, locale: Locale): String? {
+    val liters = station.fuelLiters?.takeIf { it.signum() > 0 } ?: return null
+    val fuel = station.costs.filter { it.category == CostCategory.FUEL }.map(StationCost::amount).sumByCurrency()
+    val total = fuel.singleOrNull() ?: return null
+    val price = BigDecimal.valueOf(total.minor, total.currency.fractionDigits).divide(liters, 3, RoundingMode.HALF_UP)
+    val format = java.text.NumberFormat.getCurrencyInstance(locale).apply {
+        currency = total.currency
+        minimumFractionDigits = 3
+        maximumFractionDigits = 3
+        roundingMode = RoundingMode.HALF_UP
+    }
+    return "${format.format(price)}/l"
+}

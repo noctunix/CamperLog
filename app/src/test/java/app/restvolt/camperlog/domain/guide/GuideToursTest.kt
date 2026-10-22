@@ -8,11 +8,32 @@ import org.junit.Test
 class GuideToursTest {
 
     @Test
-    fun introductionTour_pointsAtTheFourMainAnchorsInOrder() {
+    fun introductionTour_walksThroughTermsTabsAndDataInOrder() {
         val tour = introductionTour()
 
         assertEquals(INTRODUCTION_TOUR_ID, tour.id)
-        assertEquals(listOf("nav.tab.tours", "nav.tab.logbook", "nav.tab.vehicle", "nav.data"), tour.steps.map { it.anchorId })
+        assertEquals(
+            listOf(
+                "welcome", "tours", "stations", "station-types-trip", "station-types-extras",
+                "logbook", "vehicle", "checklists", "statistics", "map", "data", "start",
+            ),
+            tour.steps.map { it.id },
+        )
+        assertEquals(
+            listOf(
+                null, "nav.tab.tours", "nav.tab.stations", "nav.tab.stations", "nav.tab.stations",
+                "nav.tab.logbook", "nav.tab.vehicle", "nav.tab.vehicle", "overview.totals", "map.view", "nav.data", "tours.fab.add",
+            ),
+            tour.steps.map { it.anchorId },
+        )
+        assertEquals(
+            mapOf(
+                "statistics" to GuideScreen.DEMO_STATISTICS,
+                "map" to GuideScreen.DEMO_MAP,
+                "data" to GuideScreen.TOURS_ROOT,
+            ),
+            tour.steps.filter { it.screen != GuideScreen.UNCHANGED }.associate { it.id to it.screen },
+        )
         assertTrue(tour.steps.all { it.completion is StepCompletion.Information })
     }
 
@@ -30,9 +51,10 @@ class GuideToursTest {
         assertEquals(
             listOf(
                 "tours.fab.add",
-                "edit.tour.name",
-                "edit.tour.tourtype",
                 "edit.tour.vehicle",
+                "edit.tour.name",
+                "edit.tour.destination",
+                "edit.tour.tourtype",
                 "edit.tour.period",
                 "edit.tour.track.checkbox",
                 "edit.tour.home.checkbox",

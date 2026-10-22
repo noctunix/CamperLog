@@ -5,9 +5,11 @@ import androidx.activity.ComponentActivity
 import androidx.test.core.app.ApplicationProvider
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
@@ -107,6 +109,7 @@ class StationFlowTest {
                     weatherProvider = weatherProvider,
                     placeSearchProvider = placeSearchProvider,
                     tracks = FakeTrackRepository(),
+                    paymentMethods = FakePaymentMethodRepository(),
                     onAccentColorChange = { },
                     formDraftStore = FakeFormDraftStore(),
                 ) { }
@@ -419,7 +422,7 @@ class StationFlowTest {
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Bordbuch").performClick()
-        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(4)
+        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(7)
     }
 
     @Test
@@ -959,6 +962,26 @@ class StationFlowTest {
         assertEquals("https://example.org/platz", started.dataString)
     }
 
+    @Test
+    fun paymentMethodChip_fillsTheFieldAndSecondTapClearsIt() {
+        val (_, stationRepository) = start(listOf(lofoten()))
+        fun chip(name: String) = compose.onNode(hasText(name) and !hasSetTextAction())
+
+        compose.onNodeWithText("Lofoten").performClick()
+        openTypePicker()
+        typePickerItem("Tanken & Laden").performClick()
+
+        chip("PayPal").performScrollTo().performClick()
+        chip("PayPal").assertIsSelected()
+        chip("PayPal").performClick()
+        chip("PayPal").assertIsNotSelected()
+        chip("Bar").performScrollTo().performClick()
+
+        clickSave()
+
+        assertEquals("Bar", stationRepository.stations.single().paymentMethod)
+    }
+
     /**
      * Die Länderauswahl selbst (Dialog mit Suche über alle ISO-Codes) wird gesondert in
      * [CountryPickerTest] abgedeckt; hier reicht die Vignetten-Art mit Gültigkeitsdaten und
@@ -985,7 +1008,7 @@ class StationFlowTest {
         assertEquals(TollKind.VIGNETTE, saved.tollKind)
         assertEquals(1, saved.tollValidFrom?.dayOfMonth)
         assertEquals(15, saved.tollValidUntil?.dayOfMonth)
-        assertEquals("App", saved.tollPaymentMethod)
+        assertEquals("App", saved.paymentMethod)
 
         // Die neue Station landet direkt auf ihrer Detailseite.
         compose.onNodeWithText("Zahlungsart: App").assertExists()

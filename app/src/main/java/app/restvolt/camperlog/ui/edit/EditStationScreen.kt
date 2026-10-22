@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -89,6 +90,7 @@ import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.SUPPLY_SERVICES
 import app.restvolt.camperlog.domain.SiteKind
+import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.StationField
 import app.restvolt.camperlog.domain.StationInput
 import app.restvolt.camperlog.domain.StationService
@@ -147,9 +149,11 @@ fun EditStationScreen(
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
+    paymentMethods: PaymentMethodRepository? = null,
     onDone: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val paymentMethodSuggestions = paymentMethods?.methods?.collectAsStateWithLifecycle()?.value.orEmpty()
     val locationEnabled by locationSettings.values.collectAsStateWithLifecycle()
     val weatherEnabled by weatherSettings.values.collectAsStateWithLifecycle()
     var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
@@ -195,6 +199,7 @@ fun EditStationScreen(
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
                 attachmentPickers = attachmentPickers,
+                paymentMethodSuggestions = paymentMethodSuggestions,
                 snackbarHostState = snackbar,
                 modifier = Modifier
                     .padding(padding)
@@ -231,6 +236,7 @@ private fun StationForm(
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers,
+    paymentMethodSuggestions: List<String>,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier,
 ) {
@@ -253,7 +259,7 @@ private fun StationForm(
             StationField.NOTES to FocusRequester(),
             StationField.TOLL_COUNTRY to FocusRequester(),
             StationField.TOLL_VALID_UNTIL to FocusRequester(),
-            StationField.TOLL_PAYMENT_METHOD to FocusRequester(),
+            StationField.PAYMENT_METHOD to FocusRequester(),
             StationField.FERRY_BOOKING_REFERENCE to FocusRequester(),
             StationField.COST to FocusRequester(),
             StationField.WIFI_COST to FocusRequester(),
@@ -389,7 +395,7 @@ private fun StationForm(
                 SectionHeading(stringResource(R.string.station_section_used_here))
                 ServicesChips(SUPPLY_SERVICES, input.services, servicesError) { service -> change { it.copy(services = it.services.toggled(service)) } }
             }
-            StationType.FUEL -> FuelSection(input, state.vehicles, change, servicesError)
+            StationType.FUEL -> FuelSection(input, state.vehicles, change, servicesError, errors[StationField.FUEL_LITERS])
             StationType.TOLL -> TollSection(input, errors, change)
             StationType.FERRY -> FerrySection(input, errors[StationField.FERRY_BOOKING_REFERENCE], change)
             StationType.SIGHT, StationType.FOOD, StationType.OTHER -> Unit
@@ -424,6 +430,19 @@ private fun StationForm(
                 onNoteChange = viewModel::onCostNoteChange,
                 onAdd = viewModel::onAddCost,
                 onRemove = viewModel::onRemoveCost,
+            )
+            FormTextField(
+                label = stringResource(R.string.field_payment_method),
+                value = input.paymentMethod,
+                error = errors[StationField.PAYMENT_METHOD],
+                onValueChange = { value -> viewModel.onInputChange { it.copy(paymentMethod = value) } },
+                modifier = focusOf(StationField.PAYMENT_METHOD),
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
+            )
+            PaymentMethodChips(
+                suggestions = paymentMethodSuggestions,
+                selected = input.paymentMethod,
+                onSelect = { value -> viewModel.onInputChange { it.copy(paymentMethod = value) } },
             )
         }
         PhotoAttachmentsSection(
@@ -485,6 +504,23 @@ private val AMENITY_GROUPS: List<Pair<Int, Set<LodgingAmenity>>> = listOf(
     ),
     R.string.amenities_group_rules to setOf(LodgingAmenity.PETS_ALLOWED, LodgingAmenity.NON_SMOKING, LodgingAmenity.SKI_ROOM),
 )
+
+/** Vorschläge aus der Zahlungsarten-Liste der Einstellungen; ein erneuter Tipp auf die gewählte Zahlungsart leert das Feld. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PaymentMethodChips(suggestions: List<String>, selected: String, onSelect: (String) -> Unit) {
+    if (suggestions.isEmpty()) return
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        suggestions.forEach { name ->
+            val isSelected = selected.trim() == name
+            FilterChip(
+                selected = isSelected,
+                onClick = { onSelect(if (isSelected) "" else name) },
+                label = { Text(name) },
+            )
+        }
+    }
+}
 
 @Composable
 private fun OvernightSection(
@@ -628,10 +664,23 @@ private fun OvernightSection(
 }
 
 @Composable
-private fun FuelSection(input: StationInput, vehicles: List<Vehicle>, change: ((StationInput) -> StationInput) -> Unit, servicesError: String?) {
+private fun FuelSection(
+    input: StationInput,
+    vehicles: List<Vehicle>,
+    change: ((StationInput) -> StationInput) -> Unit,
+    servicesError: String?,
+    litersError: String?,
+) {
     SectionCard {
         SectionHeading(stringResource(R.string.station_section_fuelled))
         ServicesChips(fuelServicesFor(vehicles), input.services, error = null) { service -> change { it.copy(services = it.services.toggled(service)) } }
+        FormTextField(
+            label = stringResource(R.string.field_fuel_liters),
+            value = input.fuelLiters,
+            error = litersError,
+            onValueChange = { value -> change { it.copy(fuelLiters = value) } },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+        )
 
         var usedHereExpanded by rememberSaveable(input.type) { mutableStateOf(input.services.any { it in SUPPLY_SERVICES }) }
         CollapsibleSection(

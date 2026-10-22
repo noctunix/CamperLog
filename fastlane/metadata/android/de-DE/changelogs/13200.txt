@@ -1,0 +1,4 @@
+• Neu: Zahlungsart bei jeder Art von Station, auswählbar aus einer in den Einstellungen editierbaren Liste (Kreditkarte, Bar, EC-Karte, PayPal oder eigene); die Liste ist Teil der Sicherung
+• Neu: Kachel „Getankt“ im Bordbuch mit einem Tipp, optional mit Litern und abgeleitetem Preis pro Liter
+• Neu: Bordbuch-Kacheln für den Wechsel auf die andere Gasflasche und für das Befüllen einer Flasche
+• Neu: Tipp auf einen Bordbuch-Eintrag zeigt ein Popup mit Kurzfakten

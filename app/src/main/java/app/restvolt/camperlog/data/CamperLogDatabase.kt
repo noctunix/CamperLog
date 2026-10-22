@@ -42,7 +42,7 @@ import java.util.UUID
         HomeLocationEntity::class,
         FormDraftEntity::class,
     ],
-    version = 32,
+    version = 33,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -88,7 +88,8 @@ abstract class CamperLogDatabase : RoomDatabase() {
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
                     MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
                     MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
-                    MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32,
+                    MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
+                    MIGRATION_31_32, MIGRATION_32_33,
                 )
                 .build()
     }
@@ -944,15 +945,22 @@ internal val MIGRATION_29_30 = object : Migration(29, 30) {
     }
 }
 
-/** Version 31: WLAN-Preisinfos können ausdrücklich als Stationsaufwand in Summen einfließen. */
+/** Version 31: getankte Liter für Tank-Stationen. */
 internal val MIGRATION_30_31 = object : Migration(30, 31) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `stations` ADD COLUMN `fuel_liters` TEXT")
+    }
+}
+
+/** Version 32: WLAN-Preisinfos können ausdrücklich als Stationsaufwand in Summen einfließen. */
+internal val MIGRATION_31_32 = object : Migration(31, 32) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `stations` ADD COLUMN `wifi_cost_is_expense` INTEGER NOT NULL DEFAULT 0")
     }
 }
 
-/** Version 32: dauerhafte lokale Formularentwürfe, getrennt von bestätigten Fachdaten. */
-internal val MIGRATION_31_32 = object : Migration(31, 32) {
+/** Version 33: dauerhafte lokale Formularentwürfe, getrennt von bestätigten Fachdaten. */
+internal val MIGRATION_32_33 = object : Migration(32, 33) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS `form_drafts` (`kind` TEXT NOT NULL, `record_id` INTEGER NOT NULL, " +

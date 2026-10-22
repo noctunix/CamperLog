@@ -33,6 +33,53 @@ fun quickSupplyStation(existing: Station?, vehicleId: Long, service: StationServ
     )
 
 /**
+ * Neue Tanken-Station für einen Ein-Klick-Bordbuch-Eintrag an [date]. Jeder Tap legt eine eigene
+ * Station an (mehrere Tankstopps pro Tag sind möglich); der Bordbuch-Abgleich erzeugt den
+ * verknüpften [LogType.FUELED]-Eintrag.
+ *
+ * @param vehicleId das Fahrzeug der Station
+ * @param date der Tag der Erfassung
+ * @param tourId die Tour der Station, falls eine am Tag läuft
+ * @return die zu speichernde Station
+ */
+fun quickFuelStation(vehicleId: Long, date: LocalDate, tourId: Long?): Station = Station(
+    vehicleId = vehicleId,
+    tourId = tourId,
+    type = StationType.FUEL,
+    date = date,
+    createdAt = Instant.EPOCH,
+    updatedAt = Instant.EPOCH,
+)
+
+/** Ob [station] außer ihrem Typ keinen eigenen Inhalt hat (Dienste, Name, Ort, Notizen, Kosten, Koordinaten, Liter). */
+private val Station.isBare: Boolean
+    get() = services.isEmpty() && name.isBlank() && place.isBlank() && notes.isBlank() && costs.isEmpty() &&
+        latitude == null && longitude == null && fuelLiters == null
+
+/**
+ * Macht den mit [station] verknüpften Bordbuch-Eintrag [entry] rückgängig. Bei einem
+ * Versorgungsdienst wird der Dienst entfernt und der Abgleich löscht den Eintrag selbst; bei
+ * [LogType.FUELED] wird der Eintrag direkt gelöscht. Bleibt die Station danach ganz ohne Inhalt,
+ * wird die leere Hülle gelöscht (ein reines Löschen der Station würde den Eintrag nur entknüpfen).
+ *
+ * @param stations Zugriff auf die Stationen
+ * @param logs Zugriff auf das Bordbuch
+ * @param station die Station vor dem Rückgängigmachen
+ * @param entry der zu entfernende, mit [station] verknüpfte Eintrag
+ */
+suspend fun removeLinkedLogEntry(stations: StationRepository, logs: LogRepository, station: Station, entry: LogEntry) {
+    val service = quickSupplyService(entry.type)
+    if (service == null) {
+        logs.delete(entry.id)
+        if (station.isBare) stations.delete(station.id)
+        return
+    }
+    val updated = stationAfterRemovingQuickSupply(station, service)
+    stations.save(updated ?: station.copy(services = station.services - service))
+    if (updated == null) stations.delete(station.id)
+}
+
+/**
  * Station nach dem Entfernen von [service] (Rückgängig einer Bordbuch-Kachel): [station] ohne den
  * Dienst, oder `null`, wenn dadurch weder Dienste noch sonstige Inhalte (Name, Ort, Notizen, Kosten,
  * Koordinaten) übrig bleiben – dann wird die Station komplett gelöscht statt als leere Hülle bestehen zu bleiben.

@@ -1,5 +1,6 @@
 package app.restvolt.camperlog.ui.logbook
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,13 +43,19 @@ import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.effectiveCosts
+import app.restvolt.camperlog.domain.formatAmounts
 import app.restvolt.camperlog.domain.formatDate
+import app.restvolt.camperlog.domain.formatLiters
+import app.restvolt.camperlog.domain.fuelPricePerLiter
+import app.restvolt.camperlog.domain.sumByCurrency
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
 import app.restvolt.camperlog.ui.attachments.AttachmentPickers
 import app.restvolt.camperlog.ui.attachments.PhotoAttachmentsSection
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.detail.RatingDisplay
 import app.restvolt.camperlog.ui.labelRes
 import app.restvolt.camperlog.ui.logDateText
 import java.time.LocalDate
@@ -70,6 +77,7 @@ fun LogHistoryScreen(
     val resources = LocalResources.current
     val message by viewModel.message.collectAsStateWithLifecycle()
     var photosEntry by rememberSaveable { mutableStateOf<Long?>(null) }
+    var factsEntry by rememberSaveable { mutableStateOf<Long?>(null) }
 
     Scaffold(
         topBar = { BackTopBar(title = stringResource(viewModel.type.labelRes), onBack = onBack) },
@@ -96,6 +104,7 @@ fun LogHistoryScreen(
                         onDelete = { viewModel.delete(entry) },
                         onPhotos = { photosEntry = entry.id },
                         onOpenStation = { station?.let { onOpenStation(it.id) } },
+                        onFacts = { factsEntry = entry.id },
                     )
                 }
             }
@@ -121,6 +130,13 @@ fun LogHistoryScreen(
         viewModel.onMessageShown(current)
     }
 
+    factsEntry?.let { entryId ->
+        state.entries.firstOrNull { it.id == entryId }?.let { entry ->
+            val station = entry.stationId?.let { id -> state.stations.firstOrNull { it.id == id } }
+            LogEntryFactsSheet(entry, station, today, onDismiss = { factsEntry = null })
+        }
+    }
+
     photosEntry?.let { entryId ->
         LogEntryPhotosSheet(
             entryId = entryId,
@@ -133,14 +149,25 @@ fun LogHistoryScreen(
 }
 
 @Composable
-private fun HistoryRow(entry: LogEntry, station: Station?, today: LocalDate, onDelete: () -> Unit, onPhotos: () -> Unit, onOpenStation: () -> Unit) {
+private fun HistoryRow(
+    entry: LogEntry,
+    station: Station?,
+    today: LocalDate,
+    onDelete: () -> Unit,
+    onPhotos: () -> Unit,
+    onFacts: () -> Unit,
+    onOpenStation: () -> Unit,
+) {
     val locale = currentLocale()
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f).clickable(onClickLabel = stringResource(R.string.logbook_entry_facts_action), onClick = onFacts)
+                .padding(vertical = 12.dp),
+        ) {
             val dateText = logDateText(entry.date, today, locale)
             val text = station?.let { s ->
                 val name = s.name.ifBlank { stringResource(s.type.labelRes) }
@@ -152,6 +179,11 @@ private fun HistoryRow(entry: LogEntry, station: Station?, today: LocalDate, onD
                 }
             } else {
                 Text(text, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+        if (station != null) {
+            IconButton(onClick = onFacts) {
+                Icon(painterResource(R.drawable.ic_description), contentDescription = stringResource(R.string.logbook_entry_facts_action))
             }
         }
         IconButton(onClick = onPhotos) {
@@ -189,5 +221,50 @@ private fun LogEntryPhotosSheet(
             )
         }
         SnackbarHost(snackbar)
+    }
+}
+
+/**
+ * Kurzfakten eines Bordbuch-Eintrags als reines Lese-Popup: Datum und, bei einem mit einer Station
+ * verknüpften Eintrag, deren Name, Kosten, Bewertung sowie bei Tanken Liter und Literpreis.
+ * Es gibt bewusst keine Eingabe, damit das Ein-Tap-Erfassen schlank bleibt.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LogEntryFactsSheet(entry: LogEntry, station: Station?, today: LocalDate, onDismiss: () -> Unit) {
+    val locale = currentLocale()
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(stringResource(entry.type.labelRes), style = MaterialTheme.typography.titleMedium)
+            Text(logDateText(entry.date, today, locale), style = MaterialTheme.typography.bodyLarge)
+            if (station == null) {
+                Text(stringResource(R.string.logbook_facts_none), style = MaterialTheme.typography.bodyLarge)
+                return@Column
+            }
+            Text(station.name.ifBlank { stringResource(station.type.labelRes) }, style = MaterialTheme.typography.bodyLarge)
+            station.fuelLiters?.let {
+                Text(
+                    stringResource(R.string.station_summary_field, stringResource(R.string.field_fuel_liters), formatLiters(it, locale)),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            fuelPricePerLiter(station, locale)?.let {
+                Text(
+                    stringResource(R.string.station_summary_field, stringResource(R.string.station_fuel_price_per_liter), it),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            val costs = station.effectiveCosts().map { it.amount }.sumByCurrency()
+            if (costs.isNotEmpty()) {
+                Text(
+                    stringResource(R.string.station_summary_field, stringResource(R.string.logbook_facts_costs), formatAmounts(costs, locale)),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            station.rating?.let { RatingDisplay(it) }
+        }
     }
 }

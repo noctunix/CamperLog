@@ -100,29 +100,30 @@ interface TourDao {
     )
     suspend fun lastUsedCurrency(): String?
 
-    @Query("SELECT $SUMS FROM tours WHERE :vehicleId IS NULL OR vehicle_id = :vehicleId")
-    fun observeTotals(vehicleId: Long?): Flow<TotalsRow>
+    /** `demo` selects real (`false`) or demo tours (`true`). */
+    @Query("SELECT $SUMS FROM tours WHERE (:vehicleId IS NULL OR vehicle_id = :vehicleId) AND is_demo = :demo")
+    fun observeTotals(vehicleId: Long?, demo: Boolean): Flow<TotalsRow>
 
     @Query(
         "SELECT c.currency, SUM(c.amount_minor) AS amount_minor FROM tour_costs c " +
-            "JOIN tours t ON t.id = c.tour_id WHERE :vehicleId IS NULL OR t.vehicle_id = :vehicleId " +
+            "JOIN tours t ON t.id = c.tour_id WHERE (:vehicleId IS NULL OR t.vehicle_id = :vehicleId) AND t.is_demo = :demo " +
             "GROUP BY c.currency ORDER BY c.currency",
     )
-    fun observeCostSums(vehicleId: Long?): Flow<List<CostSumRow>>
+    fun observeCostSums(vehicleId: Long?, demo: Boolean): Flow<List<CostSumRow>>
 
     /** Wie [observeCostSums], aber einmalig über alle Fahrzeuge; SQLite wirft bei einem 64-Bit-Überlauf der Summe. */
     @Query("SELECT currency, SUM(amount_minor) AS amount_minor FROM tour_costs GROUP BY currency ORDER BY currency")
     suspend fun getCostSums(): List<CostSumRow>
 
-    @Query("SELECT $YEAR AS year, $SUMS FROM tours WHERE :vehicleId IS NULL OR vehicle_id = :vehicleId GROUP BY year ORDER BY year DESC")
-    fun observeYearTotals(vehicleId: Long?): Flow<List<YearTotalsRow>>
+    @Query("SELECT $YEAR AS year, $SUMS FROM tours WHERE (:vehicleId IS NULL OR vehicle_id = :vehicleId) AND is_demo = :demo GROUP BY year ORDER BY year DESC")
+    fun observeYearTotals(vehicleId: Long?, demo: Boolean): Flow<List<YearTotalsRow>>
 
     @Query(
         "SELECT $YEAR AS year, c.currency, SUM(c.amount_minor) AS amount_minor " +
             "FROM tour_costs c JOIN tours t ON t.id = c.tour_id " +
-            "WHERE :vehicleId IS NULL OR t.vehicle_id = :vehicleId GROUP BY year, c.currency ORDER BY year DESC, c.currency",
+            "WHERE (:vehicleId IS NULL OR t.vehicle_id = :vehicleId) AND t.is_demo = :demo GROUP BY year, c.currency ORDER BY year DESC, c.currency",
     )
-    fun observeYearCostSums(vehicleId: Long?): Flow<List<YearCostSumRow>>
+    fun observeYearCostSums(vehicleId: Long?, demo: Boolean): Flow<List<YearCostSumRow>>
 }
 
 /** Stand einer gespeicherten Tour für den Import-Abgleich. */

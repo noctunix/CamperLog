@@ -90,6 +90,14 @@ fun ImportDialog(pending: PendingImport, onImport: (ImportMode) -> Unit, onCance
                         backup.mainCurrency.currencyCode,
                     ),
                 )
+                backup.paymentMethods?.takeIf { it.isNotEmpty() }?.let { methods ->
+                    Text(
+                        stringResource(
+                            R.string.import_preview_payment_methods,
+                            pluralStringResource(R.plurals.import_payment_methods, methods.size, methods.size),
+                        ),
+                    )
+                }
                 Column(Modifier.selectableGroup()) {
                     ModeOption(ImportMode.MERGE, mode, R.string.import_mode_merge, R.string.import_mode_merge_hint) { mode = it }
                     ModeOption(ImportMode.REPLACE, mode, R.string.import_mode_replace, R.string.import_mode_replace_hint, !busy) { mode = it }

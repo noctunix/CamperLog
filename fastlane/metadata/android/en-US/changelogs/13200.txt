@@ -1,0 +1,4 @@
+• New: payment method for every kind of stop, chosen from a list you can edit in Settings (credit card, cash, debit card, PayPal, or your own); the list is part of backups
+• New: one-tap "Fueled" tile in the logbook, with optional litres and a derived price per litre
+• New: logbook tiles for switching to the other gas bottle and for refilling a bottle
+• New: tap a logbook entry for a quick-facts popup

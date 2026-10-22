@@ -1,0 +1,1 @@
+• Behoben: Die Zurück-Taste geht im Rundgang einen Schritt zurück, statt die App darunter zu bedienen

@@ -1,0 +1,2 @@
+• Neu: Der Rundgang zeigt jetzt auch Statistik und Karte – mit der Beispieltour, ohne Internet und ohne Kartenabruf
+• Verbessert: Die Beispieltour zählt nicht mehr in Statistik und Wechselkursen mit

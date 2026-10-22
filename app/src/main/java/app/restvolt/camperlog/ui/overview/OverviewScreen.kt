@@ -29,6 +29,7 @@ import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LabeledValue
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.guide.guideAnchor
 import app.restvolt.camperlog.ui.labelRes
 
 /** Kennzahlen über alle Touren und je Jahr, neuestes Jahr zuerst. */
@@ -60,7 +61,7 @@ fun OverviewScreen(viewModel: OverviewViewModel, onBack: () -> Unit, onOpenRates
                 state.isLoading -> Unit
                 total == null || total.totals.tours == 0 -> item { EmptyHint(stringResource(R.string.overview_empty)) }
                 else -> {
-                    item { TotalsCard(stringResource(R.string.overview_total), total) }
+                    item { TotalsCard(stringResource(R.string.overview_total), total, Modifier.guideAnchor("overview.totals")) }
                     items(state.years, key = { it.first }) { (year, row) -> TotalsCard(year.toString(), row) }
                 }
             }
@@ -69,10 +70,10 @@ fun OverviewScreen(viewModel: OverviewViewModel, onBack: () -> Unit, onOpenRates
 }
 
 @Composable
-private fun TotalsCard(title: String, row: TotalsRow) {
+private fun TotalsCard(title: String, row: TotalsRow, modifier: Modifier = Modifier) {
     val totals = row.totals
     val locale = currentLocale()
-    SectionCard {
+    SectionCard(modifier) {
         Text(
             title,
             modifier = Modifier.semantics { heading() },

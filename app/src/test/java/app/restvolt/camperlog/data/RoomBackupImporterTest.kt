@@ -13,6 +13,7 @@ import app.restvolt.camperlog.backup.BackupVehicle
 import app.restvolt.camperlog.backup.ImportMode
 import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.backup.decodeBackup
+import app.restvolt.camperlog.ui.FakePaymentMethodRepository
 import app.restvolt.camperlog.domain.Checklist
 import app.restvolt.camperlog.domain.ChecklistItem
 import app.restvolt.camperlog.domain.ChecklistTemplate
@@ -920,6 +921,56 @@ class RoomBackupImporterTest {
 
         assertEquals(1, result.addedChecklistTemplates)
         assertEquals(listOf("Import"), RoomChecklistTemplateRepository(db).observeAll().first().map { it.name })
+    }
+
+    private fun importerWith(paymentMethods: FakePaymentMethodRepository) =
+        RoomBackupImporter(db, Clock.fixed(Instant.parse("2026-10-04T12:00:00Z"), ZoneOffset.UTC), paymentMethods = paymentMethods)
+
+    @Test
+    fun merge_paymentMethods_appendsMissingEntriesAndKeepsLocalOnes() = runTest {
+        val repository = FakePaymentMethodRepository(listOf("Bar", "PayPal"))
+
+        val result = importerWith(repository).import(
+            backup(tours = emptyList()).copy(paymentMethods = listOf("paypal", "Apple Pay")),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(listOf("Bar", "PayPal", "Apple Pay"), repository.methods.value)
+        assertEquals(3, result.importedPaymentMethods)
+    }
+
+    @Test
+    fun merge_paymentMethods_reportsEntriesThatDoNotFitIntoAFullList() = runTest {
+        val local = (1..29).map { "Local $it" }
+        val repository = FakePaymentMethodRepository(local)
+
+        val result = importerWith(repository).import(
+            backup(tours = emptyList()).copy(paymentMethods = listOf("Local 1", "New A", "New B")),
+            ImportMode.MERGE,
+        )
+
+        assertEquals(local + "New A", repository.methods.value)
+        assertEquals(30, result.importedPaymentMethods)
+        assertEquals(1, result.skippedPaymentMethods)
+    }
+
+    @Test
+    fun replace_paymentMethods_replacesTheLocalList() = runTest {
+        val repository = FakePaymentMethodRepository(listOf("Bar", "PayPal"))
+
+        importerWith(repository).import(backup(tours = emptyList()).copy(paymentMethods = listOf("Apple Pay")), ImportMode.REPLACE)
+
+        assertEquals(listOf("Apple Pay"), repository.methods.value)
+    }
+
+    @Test
+    fun import_withoutPaymentMethodsInTheBackup_leavesTheLocalListUntouched() = runTest {
+        val repository = FakePaymentMethodRepository(listOf("Bar"))
+
+        val result = importerWith(repository).import(backup(tours = emptyList()), ImportMode.REPLACE)
+
+        assertEquals(listOf("Bar"), repository.methods.value)
+        assertEquals(0, result.importedPaymentMethods)
     }
 
     @Test

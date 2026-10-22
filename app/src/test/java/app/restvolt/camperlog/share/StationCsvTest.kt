@@ -33,7 +33,7 @@ class StationCsvTest {
     @Test
     fun costAndKwhColumnsAreAppendedAfterTheVehicleColumn() {
         assertEquals(24, STATION_CSV_HEADER.indexOf("fahrzeug"))
-        assertEquals("ausstattung", STATION_CSV_HEADER.last())
+        assertEquals("liter", STATION_CSV_HEADER.last())
         assertEquals("strom_kwh", STATION_CSV_HEADER[STATION_CSV_HEADER.indexOf("link") - 4])
     }
 
@@ -41,12 +41,31 @@ class StationCsvTest {
     fun wifiBoardAndAmenityColumnsAreAppendedAfterTheLinkColumn() {
         assertEquals(
             listOf("wlan", "wlan_kosten", "verpflegung", "ausstattung"),
-            STATION_CSV_HEADER.takeLast(4),
+            STATION_CSV_HEADER.takeLast(5).take(4),
         )
         assertEquals(
             listOf("wifi", "wifi_cost", "board_type", "amenities"),
-            stationCsvHeader(CsvVocabulary.ENGLISH).takeLast(4),
+            stationCsvHeader(CsvVocabulary.ENGLISH).takeLast(5).take(4),
         )
+    }
+
+    @Test
+    fun fuelLitersColumnHoldsThePlainAmountOfAFuelStation() {
+        val station = Station(
+            id = 8,
+            vehicleId = 1,
+            type = StationType.FUEL,
+            date = LocalDate.of(2026, 7, 4),
+            name = "Aral",
+            place = "Hamburg",
+            fuelLiters = BigDecimal("42.35"),
+            createdAt = Instant.parse("2026-07-04T08:00:00Z"),
+            updatedAt = Instant.parse("2026-07-04T08:00:00Z"),
+        )
+
+        val row = stationsToCsv(listOf(station), emptyMap(), emptyMap(), DEFAULT_NAME).split("\r\n")[1]
+
+        assertEquals("42.35", row.substringAfterLast(','))
     }
 
     @Test
@@ -56,7 +75,7 @@ class StationCsvTest {
                 "platzart,stellplatz_zugewiesen,strompauschale,lte,neigung,keile_genutzt,versorgung,gerne_wieder,notizen," +
                 "angelegt,geaendert,tour,fahrzeug,kosten_stellplatz,kosten_strom,kosten_ver_entsorgung,kosten_tanken_laden," +
                 "kosten_maut,kosten_faehre,kosten_essen,kosten_sonstiges,kosten_wlan,strom_kwh,bewertung,kilometerstand_km,temperatur_c,link," +
-                "wlan,wlan_kosten,verpflegung,ausstattung",
+                "wlan,wlan_kosten,verpflegung,ausstattung,liter",
             STATION_CSV_HEADER.joinToString(","),
         )
         assertEquals(STATION_CSV_HEADER, stationCsvHeader(CsvVocabulary.GERMAN))
@@ -69,7 +88,7 @@ class StationCsvTest {
                 "pitch_assigned,electricity_billing,lte_quality,pitch_slope,leveling_blocks_used,services,favorite,notes," +
                 "created_at,updated_at,tour,vehicle,costs_pitch,costs_electricity,costs_supply_disposal,costs_fuel_charging," +
                 "costs_toll,costs_ferry,costs_food,costs_other,costs_wifi,electricity_kwh,rating,odometer_km,temperature_c,link," +
-                "wifi,wifi_cost,board_type,amenities",
+                "wifi,wifi_cost,board_type,amenities,fuel_liters",
             stationCsvHeader(CsvVocabulary.ENGLISH).joinToString(","),
         )
 
@@ -119,7 +138,7 @@ class StationCsvTest {
                 "metered,good,level,no," +
                 "\"fresh_water; cassette_toilet\",yes,Nice view," +
                 "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,3.50 EUR,10,,,,," +
-                "ok,3.50 EUR,breakfast,\"pool; parking\"",
+                "ok,3.50 EUR,breakfast,\"pool; parking\",",
             row,
         )
     }
@@ -168,7 +187,7 @@ class StationCsvTest {
                 "68.0912,13.1023,${CoordinateSource.ENTERED.csvValue},,,2,${SiteKind.CAMPSITE.csvValue},ja," +
                 "${ElectricityBilling.METERED.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
                 "\"${StationService.FRESH_WATER.csvValue}; ${StationService.CASSETTE.csvValue}\",ja,Schöner Blick," +
-                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,,10,,,,,,,,",
+                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,,10,,,,,,,,,",
             lines[1],
         )
         assertEquals("", lines[2])
