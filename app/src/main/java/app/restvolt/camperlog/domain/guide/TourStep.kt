@@ -2,26 +2,25 @@ package app.restvolt.camperlog.domain.guide
 
 import androidx.annotation.StringRes
 
-/** Bildschirm, den die Navigation beim Betreten eines Schritts ansteuern soll. */
+/** Screen the navigation should open when a step is entered. */
 enum class GuideScreen {
 
-    /** Der Schritt bleibt auf dem aktuellen Bildschirm. */
+    /** The step stays on the current screen. */
     UNCHANGED,
 
-    /** Tourenliste mit Reiterleiste (Reiter und Daten-Button sichtbar). */
+    /** Tour list with tab bar. */
     TOURS_ROOT,
 
-    /** Statistik, die nur die Demo-Tour zeigt. */
+    /** Statistics of the demo tour. */
     DEMO_STATISTICS,
 
-    /** Karte der Demo-Tour ohne Kachelabruf. */
+    /** Offline map of the demo tour. */
     DEMO_MAP,
 }
 
 /**
- * Ein Schritt einer geführten Tour. [anchorId] referenziert einen über `Modifier.guideAnchor`
- * registrierten Ankerpunkt; `null` zeigt die Erklärkarte zentriert ohne Barriere mit Loch. [screen]
- * lässt die Navigation vor dem Schritt den passenden Bildschirm öffnen.
+ * One step of a guided tour. [anchorId] refers to an anchor registered via `Modifier.guideAnchor`;
+ * `null` centres the card. [screen] is opened before the step.
  */
 data class TourStep(
     val id: String,

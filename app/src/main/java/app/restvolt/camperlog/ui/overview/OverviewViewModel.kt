@@ -35,7 +35,6 @@ data class OverviewUiState(
 /**
  * Stellt die per SQL aggregierten Kennzahlen samt Umrechnung in die Hauptwährung bereit.
  * [vehicleId] beschränkt sie auf ein Fahrzeug; `null` zeigt die Kennzahlen aller Fahrzeuge.
- * Die Demo-Tour des Tutorials zählt nicht mit; [demo] `true` zeigt ausschließlich sie (Statistik-Schritt des Rundgangs).
  */
 class OverviewViewModel(
     repository: TourRepository,

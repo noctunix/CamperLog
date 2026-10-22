@@ -125,14 +125,10 @@ private val TrackDotColor = MapTrackColor
 private val TrackLabelColor = Color(0xFF3E2318)
 
 /**
- * Eigene Compose-Slippy-Map einer Tour oder des Stationen-Reiters: Kachelraster mit
- * Ziehen/Kneifzoom/Doppeltipp, Zoomtasten, Einpassen, Markern und gestrichelten Verbindungen in
- * chronologischer Reihenfolge, sowie die Stationsliste im Bottom Sheet als vollwertige
- * barrierefreie Alternative. Ein aufgezeichneter [track] erscheint je Segment als durchgezogene
- * Linie mit einzelnen Fix-Punkten und, soweit Platz ist, Zeit-Labels. Solange der Nutzer die
- * Karte nicht bewegt hat, passt sie sich neu ein, wenn Stationen oder Trackpunkte (auch
- * verspätet geladen) hinzukommen. Mit [offline] zeigt die Karte Route und Marker ohne jeden
- * Kachelabruf (Rundgang, damit kein Netzzugriff ohne Zutun des Nutzers entsteht).
+ * Compose slippy map of a tour or the stations tab: tile grid with pan/pinch/double-tap, zoom
+ * buttons, fit-to-content, markers and dashed chronological connections, plus an accessible
+ * station list in a bottom sheet. A recorded [track] is drawn per segment as a solid line.
+ * Re-fits on new stations or track points until the user moves the map. With [offline] no tiles are requested.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -200,7 +196,6 @@ fun MapScreen(
             val currentCamera = camera
             if (currentCamera != null && viewportWidthPx > 0 && viewportHeightPx > 0) {
                 LaunchedEffect(currentCamera, viewportWidthPx, viewportHeightPx) {
-                    // Offline (Rundgang) ruft die Karte nie Kacheln aus dem Netz ab.
                     if (!offline) viewModel.setVisibleTiles(visibleTiles(currentCamera, viewportWidthPx, viewportHeightPx).toSet())
                 }
 

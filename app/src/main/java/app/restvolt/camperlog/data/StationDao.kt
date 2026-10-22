@@ -24,7 +24,7 @@ interface StationDao {
     )
     fun observeForVehicle(vehicleId: Long?): Flow<List<StationWithCosts>>
 
-    /** Wie [observeForVehicle], aber nur Stationen echter (`demo = false`) oder nur der Demo-Fahrzeuge (`demo = true`), für die Statistik. */
+    /** Like [observeForVehicle], limited to real (`demo = false`) or demo vehicles (`demo = true`). */
     @Transaction
     @Query(
         "SELECT * FROM stations WHERE (:vehicleId IS NULL OR vehicle_id = :vehicleId) " +
