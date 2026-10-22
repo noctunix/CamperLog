@@ -83,6 +83,7 @@ fun DataScreen(
     notificationSettings: NotificationSettings,
     folderWriter: BackupFolderWriter,
     onBack: () -> Unit,
+    importOnOpen: Boolean = false,
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -104,6 +105,13 @@ fun DataScreen(
     }
     val chooseBackup = rememberLauncherForActivityResult(OpenDocument()) { source ->
         if (source != null) viewModel.loadBackup(source.toString())
+    }
+    var importRequested by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(importOnOpen) {
+        if (importOnOpen && !importRequested) {
+            importRequested = true
+            chooseBackup.launch(BACKUP_OPEN_MIMES)
+        }
     }
     val chooseBackupFolder = rememberLauncherForActivityResult(OpenDocumentTree()) { folder ->
         if (folder != null) {

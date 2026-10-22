@@ -3,6 +3,8 @@ package app.restvolt.camperlog.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
@@ -52,6 +54,7 @@ internal fun NavGraphBuilder.toursGraph(
     bottomBar: @Composable () -> Unit,
 ) = with(deps) {
     composable<ToursRoute> {
+        var showStationPicker by rememberSaveable { mutableStateOf(false) }
         val context = LocalContext.current
         ToursScreen(
             viewModel = viewModel {
@@ -61,7 +64,6 @@ internal fun NavGraphBuilder.toursGraph(
                     stations,
                     tracks,
                     VehicleScopeSettings(context),
-                    checklistTemplates,
                     checklists,
                     onTourFinished = { tourId -> app.restvolt.camperlog.tracking.TrackRecordingService.stopIfTracking(context, tourId) },
                     onTourDeleted = { tourId -> app.restvolt.camperlog.tracking.TrackRecordingService.stopIfTracking(context, tourId) },
@@ -76,14 +78,25 @@ internal fun NavGraphBuilder.toursGraph(
                 }
                 navController.navigate(EditRoute())
             },
+            onAddStation = { showStationPicker = true },
+            onImportBackup = { navController.navigate(DataRoute(importOnOpen = true)) },
             onOpenOverview = { vehicleId -> navController.navigate(OverviewRoute(vehicleId)) },
             onOpenSearch = { navController.navigate(SearchRoute) },
-            onOpenData = { navController.navigate(DataRoute) },
+            onOpenData = { navController.navigate(DataRoute()) },
             onOpenSettings = { navController.navigate(SettingsRoute) },
             onOpenTour = { navController.navigate(DetailRoute(it)) },
             onOpenVehicles = { navController.navigate(VehiclesRoute) },
             bottomBar = bottomBar,
         )
+        if (showStationPicker) {
+            StationTypePickerSheet(
+                onSelect = { type ->
+                    showStationPicker = false
+                    navController.navigate(StationEditRoute(initialType = type.name))
+                },
+                onDismiss = { showStationPicker = false },
+            )
+        }
     }
     composable<EditRoute> { entry ->
         val tourId = entry.toRoute<EditRoute>().tourId

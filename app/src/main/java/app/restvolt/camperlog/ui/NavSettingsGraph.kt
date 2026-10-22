@@ -136,8 +136,10 @@ internal fun NavGraphBuilder.settingsGraph(
         )
     }
     composable<DataRoute> { entry ->
+        val route = entry.toRoute<DataRoute>()
         val context = LocalContext.current
         DataScreen(
+            importOnOpen = route.importOnOpen,
             viewModel = viewModel {
                 DataViewModel(
                     repository,

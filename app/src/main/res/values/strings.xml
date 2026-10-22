@@ -1434,4 +1434,7 @@
     <string name="backup_scope_data_only">Data only; attachment files are not included</string>
     <string name="backup_folder_no_confirmed_run">No confirmed backup in this folder yet.</string>
     <string name="backup_folder_last_failed">The last backup attempt failed. The confirmed backup above remains unchanged.</string>
+    <string name="tours_empty_start">Record trips and individual stops. A tour groups the stops of a journey. Your data stays on this device until you choose to export it.</string>
+    <string name="tours_start">Start a tour</string>
+    <string name="station_without_tour">Record a stop without a tour</string>
 </resources>

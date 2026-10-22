@@ -1423,4 +1423,7 @@
     <string name="backup_scope_data_only">Nur Daten; Anhangsdateien sind nicht enthalten</string>
     <string name="backup_folder_no_confirmed_run">In diesem Ordner noch keine bestätigte Sicherung.</string>
     <string name="backup_folder_last_failed">Der letzte Sicherungsversuch ist fehlgeschlagen. Der oben bestätigte Sicherungsstand bleibt unverändert.</string>
+    <string name="tours_empty_start">Halte Touren und einzelne Stationen fest. Eine Tour fasst die Stationen einer Reise zusammen. Deine Daten bleiben auf diesem Gerät, bis du sie selbst exportierst.</string>
+    <string name="tours_start">Tour starten</string>
+    <string name="station_without_tour">Station ohne Tour erfassen</string>
 </resources>
