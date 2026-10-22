@@ -7,6 +7,7 @@ import app.restvolt.camperlog.tracking.TrackRecordingService
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -23,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -633,6 +635,8 @@ private fun CamperLogBottomBar(navController: NavController, current: NavDestina
 private fun NavLabel(text: String) {
     Text(
         text,
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = TextAlign.Center,
         maxLines = 2,
         softWrap = true,
         style = MaterialTheme.typography.labelMedium,
