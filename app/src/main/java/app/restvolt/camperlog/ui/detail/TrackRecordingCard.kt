@@ -39,6 +39,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.ui.InactiveFeatureButton
+import app.restvolt.camperlog.ui.OptionalFeature
 import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.TrackSummary
 import app.restvolt.camperlog.domain.formatTimeOfDay
@@ -251,26 +253,31 @@ internal fun TrackRecordingSection(tourId: Long, tracks: TrackRepository, settin
                 color = MaterialTheme.colorScheme.error,
             )
         }
-        SwitchSettingRow(
-            title = stringResource(R.string.tour_track_switch_title),
-            supportingText = stringResource(R.string.tour_track_switch_support),
-            checked = isTrackedHere,
-            onCheckedChange = { wantsOn ->
-                showStartFailedHint = false
-                showResumedAfterBootHint = false
-                showResumedAfterTimedPauseHint = false
-                if (wantsOn) {
-                    if (TrackRecordingService.hasLocationPermission(context)) {
-                        permissionDenied = false
-                        startRecording()
+        if (!preferences.enabled && !isTrackedHere) {
+            InactiveFeatureButton(stringResource(R.string.tour_track_switch_title), OptionalFeature.TRACK, { settings.enabled = true })
+        }
+        if (!isPaused && (preferences.enabled || isTrackedHere)) {
+            SwitchSettingRow(
+                title = stringResource(R.string.tour_track_switch_title),
+                supportingText = stringResource(R.string.tour_track_switch_support),
+                checked = isTrackedHere,
+                onCheckedChange = { wantsOn ->
+                    showStartFailedHint = false
+                    showResumedAfterBootHint = false
+                    showResumedAfterTimedPauseHint = false
+                    if (wantsOn) {
+                        if (TrackRecordingService.hasLocationPermission(context)) {
+                            permissionDenied = false
+                            startRecording()
+                        } else {
+                            permissionLauncher.launch(trackPermissions())
+                        }
                     } else {
-                        permissionLauncher.launch(trackPermissions())
+                        TrackRecordingService.stop(context)
                     }
-                } else {
-                    TrackRecordingService.stop(context)
-                }
-            },
-        )
+                },
+            )
+        }
         if (isPaused) {
             Button(onClick = {
                 showStartFailedHint = false
@@ -282,6 +289,9 @@ internal fun TrackRecordingSection(tourId: Long, tracks: TrackRepository, settin
                     permissionLauncher.launch(trackPermissions())
                 }
             }) { Text(stringResource(R.string.tour_track_resume)) }
+            OutlinedButton(onClick = { TrackRecordingService.stop(context) }) {
+                Text(stringResource(R.string.tour_track_stop))
+            }
         }
     }
     if (summary.points > 0) {

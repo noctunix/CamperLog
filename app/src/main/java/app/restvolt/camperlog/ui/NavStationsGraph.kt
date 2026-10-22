@@ -50,12 +50,13 @@ internal fun NavGraphBuilder.stationsGraph(
                 StationsViewModel(stations, repository, vehicles, VehicleScopeSettings(context), StationsWhatsNewSettings(context))
             },
             weatherMapEnabled = weatherMapEnabled,
+            onEnableWeather = { weatherSettings.enabled = true },
             onAddStop = { stationsTypePicker = true },
             onOpenTour = { tourId -> navController.navigate(DetailRoute(tourId)) },
             onOpenStation = { stationId -> navController.navigate(StationDetailRoute(stationId, fromStationsTab = true)) },
             onOpenMap = { navController.navigate(StationsMapRoute) },
             onOpenSearch = { navController.navigate(SearchRoute) },
-            onOpenData = { navController.navigate(DataRoute) },
+            onOpenData = { navController.navigate(DataRoute()) },
             onOpenSettings = { navController.navigate(SettingsRoute) },
             onOpenVehicles = { navController.navigate(VehiclesRoute) },
             bottomBar = bottomBar,
@@ -161,7 +162,7 @@ internal fun NavGraphBuilder.stationsGraph(
             route.fromStationsTab && navController.hasRoute<StationsRoute>() ->
                 navController.stationsViewModel(entry, stations, repository, vehicles)::deleteStation
             navController.hasRoute<DetailRoute>() ->
-                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, logbook, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)::deleteStation
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, checklistTemplates, logbook, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)::deleteStation
             else -> { station -> fallbackDeleteScope.launch { stations.delete(station.id) } }
         }
         StationDetailScreen(

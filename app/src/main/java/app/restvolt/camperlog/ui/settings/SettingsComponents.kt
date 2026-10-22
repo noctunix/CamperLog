@@ -53,6 +53,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.ui.InactiveFeatureButton
+import app.restvolt.camperlog.ui.OptionalFeature
 import app.restvolt.camperlog.data.TileHttpCache
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.HomeLocation
@@ -335,11 +337,10 @@ internal fun MapStorageRow(snackbar: SnackbarHostState, scope: CoroutineScope) {
 /**
  * Historie der Zuhause-Adressen für die automatische Start-/Ende-Station neuer Touren: Name,
  * Koordinate und Gültigkeitszeitraum je Eintrag, plus ein "Hinzufügen"-Button. Die GPS-Erfassung
- * erscheint nur, solange [locationEnabled] an ist; sonst bleibt die Texteingabe die einzige
- * Möglichkeit, eine Koordinate zu hinterlegen.
+ * verwendet [locationEnabled]; bei ausgeschalteter Funktion bietet die Zeile ihre Aktivierung an.
  */
 @Composable
-internal fun HomeLocationSection(viewModel: HomeLocationViewModel, locationEnabled: Boolean) {
+internal fun HomeLocationSection(viewModel: HomeLocationViewModel, locationEnabled: Boolean, onEnableLocation: () -> Unit) {
     val locations by viewModel.locations.collectAsStateWithLifecycle()
     val capturingForId by viewModel.capturingForId.collectAsStateWithLifecycle()
 
@@ -349,6 +350,7 @@ internal fun HomeLocationSection(viewModel: HomeLocationViewModel, locationEnabl
                 HomeLocationRow(
                     location = location,
                     locationEnabled = locationEnabled,
+                    onEnableLocation = onEnableLocation,
                     capturingForId = capturingForId,
                     captureController = viewModel.locationCapture,
                     onCaptureStart = { viewModel.startCapture(location.id) },
@@ -369,6 +371,7 @@ internal fun HomeLocationSection(viewModel: HomeLocationViewModel, locationEnabl
 private fun HomeLocationRow(
     location: HomeLocation,
     locationEnabled: Boolean,
+    onEnableLocation: () -> Unit,
     capturingForId: Long?,
     captureController: LocationCaptureController,
     onCaptureStart: () -> Unit,
@@ -410,6 +413,9 @@ private fun HomeLocationRow(
         } else {
             // Nur die gerade erfassende Zeile (oder, im Ruhezustand, jede) zeigt den geteilten Controller
             // an - sonst würde z. B. eine Berechtigungsrückfrage für alle Zeilen gleichzeitig aufblitzen.
+            if (!locationEnabled) {
+                InactiveFeatureButton(stringResource(R.string.location_use_current_button), OptionalFeature.LOCATION, onEnableLocation)
+            }
             if (locationEnabled && (capturingForId == null || capturingForId == location.id)) {
                 val defaultHandlers = rememberLocationCaptureHandlers(captureController)
                 val handlers = remember(defaultHandlers) {

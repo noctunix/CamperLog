@@ -61,6 +61,7 @@ fun LogHistoryScreen(
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
     onBack: () -> Unit,
+    onOpenStation: (Long) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val today = LocalDate.now()
@@ -94,6 +95,7 @@ fun LogHistoryScreen(
                         today = today,
                         onDelete = { viewModel.delete(entry) },
                         onPhotos = { photosEntry = entry.id },
+                        onOpenStation = { station?.let { onOpenStation(it.id) } },
                     )
                 }
             }
@@ -131,7 +133,7 @@ fun LogHistoryScreen(
 }
 
 @Composable
-private fun HistoryRow(entry: LogEntry, station: Station?, today: LocalDate, onDelete: () -> Unit, onPhotos: () -> Unit) {
+private fun HistoryRow(entry: LogEntry, station: Station?, today: LocalDate, onDelete: () -> Unit, onPhotos: () -> Unit, onOpenStation: () -> Unit) {
     val locale = currentLocale()
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -144,7 +146,13 @@ private fun HistoryRow(entry: LogEntry, station: Station?, today: LocalDate, onD
                 val name = s.name.ifBlank { stringResource(s.type.labelRes) }
                 stringResource(R.string.logbook_entry_station, dateText, name)
             } ?: dateText
-            Text(text, style = MaterialTheme.typography.bodyLarge)
+            if (station != null) {
+                androidx.compose.material3.TextButton(onClick = onOpenStation) {
+                    Text(text, style = MaterialTheme.typography.bodyLarge)
+                }
+            } else {
+                Text(text, style = MaterialTheme.typography.bodyLarge)
+            }
         }
         IconButton(onClick = onPhotos) {
             Icon(painterResource(R.drawable.ic_add_a_photo), contentDescription = stringResource(R.string.logbook_entry_photos_action))

@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.Density
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
-import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
@@ -32,7 +32,7 @@ class NavLabelsFontScaleTest {
     val compose = createComposeRule()
 
     @Test
-    fun navLabels_atDoubleFontScale_stayOnOneLineWithoutClipping() {
+    fun navLabels_atDoubleFontScale_wrapWithoutClipping() {
         compose.setContent {
             val base = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(base.density, fontScale = 2f)) {
@@ -58,8 +58,9 @@ class NavLabelsFontScaleTest {
 
         listOf("Touren", "Stationen", "Bordbuch", "Fahrzeug").forEach { label ->
             val result = compose.onNodeWithText(label).textLayoutResult()
-            assertEquals("Label \"$label\" bricht bei 2.0x auf mehrere Zeilen um", 1, result.lineCount)
-            assertFalse("Label \"$label\" wird bei 2.0x abgeschnitten", result.hasVisualOverflow)
+            assertTrue("Label muss bei 2.0x lesbar bleiben", result.lineCount in 1..2)
+            assertTrue("Label darf nicht auf Kleinstschrift schrumpfen", result.layoutInput.style.fontSize.value >= 12f)
+            assertFalse("Label \"$label\" wird bei 2.0x abgeschnitten: size=${result.size}, lines=${result.lineCount}, height=${result.multiParagraph.height}", result.hasVisualOverflow)
         }
     }
 

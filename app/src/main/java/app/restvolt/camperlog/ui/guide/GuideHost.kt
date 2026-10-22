@@ -1,11 +1,10 @@
 package app.restvolt.camperlog.ui.guide
 
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
@@ -190,16 +189,15 @@ private fun GuideCard(
     modifier: Modifier = Modifier,
 ) {
     ElevatedCard(modifier.widthIn(max = 360.dp).semantics { liveRegion = LiveRegionMode.Polite }) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 text = stringResource(step.titleRes),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.semantics { heading() },
             )
             if (state.phase == GuidePhase.PAUSED) {
-                Row(
+                androidx.compose.foundation.layout.FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
                 ) {
                     TextButton(onClick = onEnd, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text(stringResource(R.string.guide_end))
@@ -214,9 +212,8 @@ private fun GuideCard(
                     text = stringResource(R.string.guide_step_counter, state.stepIndex + 1, state.stepCount),
                     style = MaterialTheme.typography.labelMedium,
                 )
-                Row(
+                androidx.compose.foundation.layout.FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
                 ) {
                     if (state.stepIndex > 0) {
                         TextButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) {

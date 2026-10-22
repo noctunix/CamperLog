@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DropdownMenu
@@ -62,7 +63,10 @@ fun VehicleSwitcherTitle(
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(currentName, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(Modifier.weight(1f, fill = false)) {
+            Text(title, modifier = Modifier.semantics { heading() }, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(currentName, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
         Icon(painterResource(R.drawable.ic_arrow_drop_down), contentDescription = null)
     }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {

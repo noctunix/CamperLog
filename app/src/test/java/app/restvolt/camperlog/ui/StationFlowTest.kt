@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -180,6 +182,15 @@ class StationFlowTest {
         compose.onAllNodesWithText("Station hinzufügen").onFirst().performClick()
     }
 
+    private fun expandDetails() {
+        listOf("Platz & Ausstattung", "Verbindung", "Erweitert").forEach { title ->
+            val description = "Abschnitt „$title“ anzeigen"
+            if (compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithContentDescription(description).performScrollTo().performClick()
+            }
+        }
+    }
+
     /** Eintrag der Typauswahl-Sheet; grenzt gegen eine gleichnamige Zeitleisten-Zeile darunter ab. */
     private fun typePickerItem(label: String) = compose.onNode(hasText(label) and hasClickAction() and hasAnyAncestor(isDialog()))
 
@@ -214,6 +225,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNode(hasSetTextAction() and hasText("Ort oder Adresse")).performTextInput("Fjordcamp")
 
         compose.onNodeWithContentDescription("Speichern").performClick()
@@ -230,6 +242,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         clickSave()
 
         val saved = stationRepository.stations.single()
@@ -247,6 +260,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         clickSave()
 
         val saved = stationRepository.stations.first { it.id != 1L }
@@ -260,11 +274,12 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
 
         compose.onNodeWithText("Nächte").assertExists()
         compose.onNodeWithText("Getankt").assertDoesNotExist()
 
-        compose.onNode(hasText("Art") and hasClickAction()).performClick()
+        compose.onNode(hasText("Art") and hasClickAction()).performScrollTo().performClick()
         compose.onNodeWithText("Tanken & Laden").performClick()
 
         compose.onNodeWithText("Getankt").assertExists()
@@ -279,6 +294,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Tanken & Laden").performClick()
+        expandDetails()
 
         compose.onNodeWithText("Diesel").assertExists()
         compose.onNodeWithText("Benzin").assertDoesNotExist()
@@ -294,6 +310,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Tanken & Laden").performClick()
+        expandDetails()
 
         compose.onNodeWithText("Diesel").assertExists()
         compose.onNodeWithText("Benzin").assertExists()
@@ -315,6 +332,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Tanken & Laden").performClick()
+        expandDetails()
 
         compose.onNodeWithText("Diesel").assertExists()
         compose.onNodeWithText("Benzin").assertExists()
@@ -330,7 +348,8 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
-        compose.onNodeWithText("Koordinaten eingeben").performClick()
+        expandDetails()
+        compose.onNodeWithText("Koordinaten eingeben").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Koordinaten oder Kartenlink")).performTextInput("68.0912, 13.1023")
 
         compose.onNodeWithText("Erkannt: 68,0912° N · 13,1023° E").assertExists()
@@ -388,6 +407,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Ver-/Entsorgung").performClick()
+        expandDetails()
         compose.onNodeWithText("Kassette").performClick()
         clickSave()
 
@@ -409,6 +429,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
 
         val favoriteRow = compose.onNode(hasText("Gerne wieder") and hasClickAction())
         favoriteRow.assertIsOff()
@@ -428,6 +449,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         clickSave()
 
         assertEquals(1, stationRepository.stations.size)
@@ -460,6 +482,7 @@ class StationFlowTest {
 
         compose.onNodeWithText("Was für eine Station?").assertExists()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
 
         compose.onNode(hasSetTextAction() and hasText("Ort oder Adresse")).assert(hasText("Camping Moskenes"))
         compose.onNodeWithText("Erkannt: 68,0912° N · 13,1023° E").assertExists()
@@ -480,6 +503,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
 
         compose.onNodeWithText("Aktuellen Standort verwenden").assertDoesNotExist()
         compose.onNodeWithText("Koordinaten eingeben").assertExists()
@@ -501,6 +525,7 @@ class StationFlowTest {
             compose.onNodeWithText("Lofoten").performClick()
             openTypePicker()
             typePickerItem("Schlafplatz").performClick()
+        expandDetails()
             compose.onNodeWithText("Aktuellen Standort verwenden").performScrollTo().performClick()
 
             compose.onNodeWithText("68,0912° N · 13,1023° E · GPS ±3 km (ungefähr)").assertExists()
@@ -526,6 +551,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNodeWithText("Aktuellen Standort verwenden").performScrollTo().performClick()
         compose.onNodeWithText("68,0912° N · 13,1023° E · GPS ±8 m").assertExists()
         clickSave()
@@ -538,17 +564,18 @@ class StationFlowTest {
     }
 
     @Test
-    fun weatherOff_showsNothingWeatherRelatedInTheStopForm() {
+    fun weatherOff_showsInactiveActionsWithoutFetching() {
         setWeatherEnabled(false)
         start()
 
         compose.onNodeWithText("Stationen").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
-        compose.onNodeWithText("Koordinaten eingeben").performClick()
+        expandDetails()
+        compose.onNodeWithText("Koordinaten eingeben").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Koordinaten oder Kartenlink")).performTextInput("68.0912, 13.1023")
 
-        compose.onNodeWithText("Wetter").assertDoesNotExist()
+        compose.onNodeWithText("Wetter · Nicht aktiviert").assertExists()
         compose.onNodeWithText("Wetter abrufen").assertDoesNotExist()
     }
 
@@ -560,6 +587,7 @@ class StationFlowTest {
         compose.onNodeWithText("Stationen").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
 
         compose.onNodeWithText("Mit Koordinaten kannst du auch das Wetter abrufen.").assertExists()
         compose.onNodeWithText("Wetter abrufen").assertDoesNotExist()
@@ -581,7 +609,8 @@ class StationFlowTest {
         compose.onNodeWithText("Stationen").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
-        compose.onNodeWithText("Koordinaten eingeben").performClick()
+        expandDetails()
+        compose.onNodeWithText("Koordinaten eingeben").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Koordinaten oder Kartenlink")).performTextInput("68.0912, 13.1023")
         compose.onNodeWithText("Wetter abrufen").performScrollTo().performClick()
         compose.onNodeWithText("14 °C · Leicht bewölkt").assertExists()
@@ -600,6 +629,7 @@ class StationFlowTest {
         compose.onNodeWithText("Stationen").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
 
         compose.onNodeWithText("Ort suchen").assertDoesNotExist()
     }
@@ -619,7 +649,8 @@ class StationFlowTest {
         compose.onNodeWithText("Stationen").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
-        compose.onNodeWithText("Ort suchen").performClick()
+        expandDetails()
+        compose.onNodeWithText("Ort suchen").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Ort oder Adresse") and hasAnyAncestor(isDialog())).performTextInput("Moskenes")
         compose.onNodeWithContentDescription("Ort suchen").performClick()
         compose.onNodeWithText(hit.displayName).performClick()
@@ -651,8 +682,9 @@ class StationFlowTest {
         compose.onNodeWithText("Stationen").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNode(hasSetTextAction() and hasText("Ort oder Adresse")).performTextInput("Mein eigener Platz")
-        compose.onNodeWithText("Ort suchen").performClick()
+        compose.onNodeWithText("Ort suchen").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Ort suchen").performClick()
         compose.onNodeWithText(hit.displayName).performClick()
 
@@ -668,6 +700,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
 
         compose.onNodeWithText("Strom").performScrollTo().performClick()
         compose.onNodeWithText("nach Verbrauch").performScrollTo().performClick()
@@ -709,7 +742,9 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Essen").performClick()
+        expandDetails()
         compose.onNodeWithContentDescription("4 von 5 Campern").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("4 von 5 Campern").assertIsSelected()
         clickSave()
 
         assertEquals(4, stationRepository.stations.single().rating)
@@ -723,6 +758,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNodeWithContentDescription("LTE-Qualität: gut").performScrollTo().performClick()
         clickSave()
 
@@ -736,6 +772,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         val good = compose.onNodeWithContentDescription("LTE-Qualität: gut")
         good.performScrollTo().performClick()
         good.performClick()
@@ -751,7 +788,9 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNodeWithContentDescription("WLAN-Qualität: geht so").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("WLAN-Qualität: geht so").assertIsSelected()
         clickSave()
 
         val saved = stationRepository.stations.single()
@@ -766,6 +805,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNode(hasSetTextAction() and hasText("WLAN-Preis (€)")).performScrollTo().performTextInput("3,50")
         clickSave()
 
@@ -781,6 +821,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNodeWithText("Als Ausgabe berücksichtigen").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("WLAN-Preis (€)")).performScrollTo().performTextInput("3,50")
         clickSave()
@@ -795,6 +836,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNodeWithText("Hotel").performScrollTo().performClick()
 
         compose.onNodeWithText("Stellplatz-Details").assertDoesNotExist()
@@ -809,6 +851,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNodeWithText("Campingplatz").performScrollTo().performClick()
 
         compose.onNodeWithText("Stellplatz-Details").assertExists()
@@ -823,6 +866,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNode(hasSetTextAction() and hasText("km-Stand")).performScrollTo().performTextInput("54000")
         clickSave()
 
@@ -839,9 +883,10 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNodeWithText("Temperatur automatisch abfragen").assertDoesNotExist()
 
-        compose.onNodeWithText("Koordinaten eingeben").performClick()
+        compose.onNodeWithText("Koordinaten eingeben").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Koordinaten oder Kartenlink")).performTextInput("68.0912, 13.1023")
         compose.onNodeWithText("Temperatur automatisch abfragen").assertExists()
     }
@@ -855,7 +900,8 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
-        compose.onNodeWithText("Koordinaten eingeben").performClick()
+        expandDetails()
+        compose.onNodeWithText("Koordinaten eingeben").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Koordinaten oder Kartenlink")).performTextInput("68.0912, 13.1023")
 
         compose.onNodeWithText("Temperatur automatisch abfragen").assertDoesNotExist()
@@ -871,7 +917,8 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
-        compose.onNodeWithText("Koordinaten eingeben").performClick()
+        expandDetails()
+        compose.onNodeWithText("Koordinaten eingeben").performScrollTo().performClick()
         compose.onNode(hasSetTextAction() and hasText("Koordinaten oder Kartenlink")).performTextInput("68.0912, 13.1023")
         compose.onNodeWithText("Temperatur automatisch abfragen").performScrollTo().performClick()
         clickSave()
@@ -886,9 +933,10 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNodeWithText("Link").assertExists()
 
-        compose.onNode(hasText("Art") and hasClickAction()).performClick()
+        compose.onNode(hasText("Art") and hasClickAction()).performScrollTo().performClick()
         compose.onNodeWithText("Tanken & Laden").performClick()
         compose.onNodeWithText("Link").assertDoesNotExist()
     }
@@ -900,6 +948,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Schlafplatz").performClick()
+        expandDetails()
         compose.onNode(hasSetTextAction() and hasText("Link")).performScrollTo().performTextInput("https://example.org/platz")
         clickSave()
 
@@ -923,6 +972,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Maut").performClick()
+        expandDetails()
 
         compose.onNodeWithText("Vignette").performClick()
         pickDay("Gültig ab", 1)
@@ -949,6 +999,7 @@ class StationFlowTest {
         compose.onNodeWithText("Lofoten").performClick()
         openTypePicker()
         typePickerItem("Essen").performClick()
+        expandDetails()
 
         compose.onNodeWithText("Kosten hinzufügen").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Essen-Kosten (€)").assertExists()

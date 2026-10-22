@@ -60,7 +60,7 @@ class LogbookFlowTest {
         // Erste Kachel ist "Kassette geleert".
         compose.onAllNodesWithText("Heute")[0].performClick()
 
-        compose.onNodeWithText("Kassette geleert für heute erfasst").assertExists()
+        compose.onNodeWithText("Kassette geleert für heute erfasst · Station verknüpft; im Verlauf öffnen.").assertExists()
         compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(4)
         // Fünf Buttons plus der neue Datumstext der Kachel.
         compose.onAllNodesWithText("Heute").assertCountEquals(6)

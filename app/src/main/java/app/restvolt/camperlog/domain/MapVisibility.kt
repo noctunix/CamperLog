@@ -23,7 +23,7 @@ fun stationsForMap(stations: List<Station>): List<Station> =
 /**
  * Ob eine Karte für [stations] angezeigt werden darf: nur wenn "Wetter & Karte" an ist
  * ([weatherMapEnabled]) und mindestens eine Station Koordinaten hat ODER ein GPS-Track
- * aufgezeichnet wurde ([hasTrack]). Sonst existiert der Einstiegspunkt gar nicht erst.
+ * aufgezeichnet wurde ([hasTrack]). Der sichtbare Einstieg kann fehlende Voraussetzungen erklären.
  */
 fun isMapAvailable(weatherMapEnabled: Boolean, stations: List<Station>, hasTrack: Boolean = false): Boolean =
     weatherMapEnabled && (stationsWithCoordinates(stations).isNotEmpty() || hasTrack)

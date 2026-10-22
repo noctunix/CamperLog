@@ -52,6 +52,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.ui.OptionalFeature
+import app.restvolt.camperlog.ui.OptionalFeatureIconButton
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.displayTitle
@@ -73,6 +75,7 @@ import java.util.Locale
 fun StationsScreen(
     viewModel: StationsViewModel,
     weatherMapEnabled: Boolean,
+    onEnableWeather: () -> Unit,
     onAddStop: () -> Unit,
     onOpenTour: (Long) -> Unit,
     onOpenStation: (Long) -> Unit,
@@ -107,11 +110,16 @@ fun StationsScreen(
                     )
                 },
                 extraActions = {
-                    if (isMapAvailable(weatherMapEnabled, state.stations)) {
-                        IconButton(onClick = onOpenMap) {
-                            Icon(painterResource(R.drawable.ic_map), contentDescription = stringResource(R.string.action_map))
-                        }
-                    }
+                    OptionalFeatureIconButton(
+                        enabled = weatherMapEnabled,
+                        available = isMapAvailable(true, state.stations),
+                        unavailableReason = stringResource(R.string.feature_map_needs_coordinates),
+                        feature = OptionalFeature.INTERNET,
+                        onActivate = onEnableWeather,
+                        onClick = onOpenMap,
+                        label = stringResource(R.string.action_map),
+                        icon = R.drawable.ic_map,
+                    )
                 },
                 onOpenSearch = onOpenSearch,
                 onOpenData = onOpenData,
