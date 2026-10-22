@@ -297,7 +297,6 @@ fun CamperLogNavHost(
     diaryEntries: DiaryEntryRepository,
     checklists: ChecklistRepository,
     checklistTemplates: ChecklistTemplateRepository,
-    checklistTemplates: ChecklistTemplateRepository,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     backupImporter: BackupImporter,
@@ -659,7 +658,6 @@ internal fun NavController.toursViewModel(
     tracks: TrackRepository,
     checklistTemplates: ChecklistTemplateRepository,
     checklists: ChecklistRepository,
-    checklistTemplates: ChecklistTemplateRepository,
 ): ToursViewModel {
     val toursEntry = remember(entry) { getBackStackEntry<ToursRoute>() }
     val context = LocalContext.current
@@ -688,7 +686,6 @@ internal fun NavController.vehicleViewModel(
     vehicles: VehicleRepository,
     documents: VehicleDocumentRepository,
     checklists: ChecklistRepository,
-    checklistTemplates: ChecklistTemplateRepository,
     logbook: LogRepository,
 ): VehicleViewModel {
     val vehicleEntry = remember(entry) { getBackStackEntry<VehicleRoute>() }
@@ -748,7 +745,6 @@ internal fun NavController.checklistTemplatesViewModel(
 internal fun NavController.vehicleChecklistsViewModel(
     entry: NavBackStackEntry,
     checklists: ChecklistRepository,
-    checklistTemplates: ChecklistTemplateRepository,
     templates: ChecklistTemplateRepository,
     vehicleId: Long,
 ): VehicleChecklistsViewModel {
