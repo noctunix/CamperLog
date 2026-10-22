@@ -28,6 +28,7 @@ import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -1031,7 +1032,7 @@ class MigrationTest {
     }
 
     @Test
-    fun migration29To30AddsWifiBoardAndAmenityColumnsDefaultingToUnsetAndKeepsThemEditable() = runTest {
+    fun migration29To31AddsWifiBoardAmenitiesAndExpenseFlagDefaultingToUnsetAndKeepsThemEditable() = runTest {
         createVersion29(
             "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
                 "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
@@ -1048,12 +1049,14 @@ class MigrationTest {
             val station = RoomStationRepository(db, RoomLogRepository(db)).allStations().single()
             assertEquals(null, station.wifiQuality)
             assertEquals(null, station.wifiCost)
+            assertEquals(false, station.wifiCostIsExpense)
             assertEquals(null, station.boardType)
             assertEquals(emptySet<LodgingAmenity>(), station.lodgingAmenities)
 
             val updated = station.copy(
                 wifiQuality = LteQuality.OK,
                 wifiCost = Money(350, EUR),
+                wifiCostIsExpense = true,
                 boardType = BoardType.BREAKFAST,
                 lodgingAmenities = setOf(LodgingAmenity.POOL, LodgingAmenity.PARKING),
             )
@@ -1061,12 +1064,38 @@ class MigrationTest {
             val saved = RoomStationRepository(db, RoomLogRepository(db)).allStations().single()
             assertEquals(LteQuality.OK, saved.wifiQuality)
             assertEquals(Money(350, EUR), saved.wifiCost)
+            assertEquals(true, saved.wifiCostIsExpense)
             assertEquals(BoardType.BREAKFAST, saved.boardType)
             assertEquals(setOf(LodgingAmenity.POOL, LodgingAmenity.PARKING), saved.lodgingAmenities)
         } finally {
             db.close()
         }
     }
+
+    @Test
+    fun migration30To31AddsWifiExpenseFlagWithFalseDefault() = runTest {
+        createVersion30(
+            "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
+                "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
+                "breakdown_phone, travel_protection_provider, travel_protection_contract_number, " +
+                "travel_protection_phone, insurer_claims_phone, required_energy_types, created_at, updated_at) VALUES " +
+                "(1, 'veh-1', 'Bluebird', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 1000, 2000)",
+            "INSERT INTO stations (id, uuid, vehicle_id, tour_id, type, date, name, place, notes, toll_payment_method, " +
+                "ferry_booking_reference, services, favorite, wifi_cost_currency, wifi_cost_minor, created_at, updated_at) VALUES " +
+                "(1, 'station-1', 1, NULL, 'OVERNIGHT', '2026-07-04', 'Camping Moskenes', '', '', '', '', '', 0, 'EUR', 500, 1000, 2000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val station = RoomStationRepository(db, RoomLogRepository(db)).allStations().single()
+            assertEquals(Money(500, EUR), station.wifiCost)
+            assertEquals(false, station.wifiCostIsExpense)
+        } finally {
+            db.close()
+        }
+    }
+
+
 
     /** Legt `camperlog.db` im Stand von Version 28 nach `schemas/…/28.json` an und füllt sie mit [inserts]. */
     private fun createVersion28(vararg inserts: String) = createDatabase(
@@ -1136,6 +1165,20 @@ class MigrationTest {
         version = 29,
         identityHash = "9ba17e455276fe16f4907822d535c21d",
         schema = createVersion29Schema,
+        inserts = inserts.toList(),
+    )
+
+    /** Legt `camperlog.db` im Stand von Version 30 an und füllt sie mit [inserts]. */
+    private fun createVersion30(vararg inserts: String) = createDatabase(
+        version = 30,
+        identityHash = "20698f2d3feb32e66de8512e8051cbc7",
+        schema = createVersion29Schema + listOf(
+            "ALTER TABLE `stations` ADD COLUMN `wifi_quality` TEXT",
+            "ALTER TABLE `stations` ADD COLUMN `wifi_cost_currency` TEXT",
+            "ALTER TABLE `stations` ADD COLUMN `wifi_cost_minor` INTEGER",
+            "ALTER TABLE `stations` ADD COLUMN `board_type` TEXT",
+            "ALTER TABLE `stations` ADD COLUMN `lodging_amenities` TEXT NOT NULL DEFAULT ''",
+        ),
         inserts = inserts.toList(),
     )
 

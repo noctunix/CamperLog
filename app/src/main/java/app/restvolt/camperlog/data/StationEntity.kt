@@ -60,6 +60,7 @@ data class StationEntity(
     @ColumnInfo(name = "wifi_quality") val wifiQuality: String? = null,
     @ColumnInfo(name = "wifi_cost_currency") val wifiCostCurrency: String? = null,
     @ColumnInfo(name = "wifi_cost_minor") val wifiCostMinor: Long? = null,
+    @ColumnInfo(name = "wifi_cost_is_expense", defaultValue = "0") val wifiCostIsExpense: Boolean = false,
     @ColumnInfo(name = "board_type") val boardType: String? = null,
     @ColumnInfo(name = "lodging_amenities") val lodgingAmenities: String = "",
     @ColumnInfo(name = "electricity_billing") val electricityBilling: String? = null,

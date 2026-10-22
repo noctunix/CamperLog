@@ -278,7 +278,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 23" in text)
+        assert("\"schemaVersion\": 24" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -288,7 +288,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 23" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 24" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -536,7 +536,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 23" in text)
+        assert("\"schemaVersion\": 24" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -571,13 +571,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 23", "\"schemaVersion\": 24"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 24", "\"schemaVersion\": 25"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 23", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 24", it))?.error)
         }
     }
 
@@ -907,14 +907,55 @@ class BackupTest {
     }
 
     @Test
+    fun roundTrip_preservesWifiExpenseFlagAndOlderVersionDefaultsToPriceInfo() {
+        val expenseBackup = stationBackup.copy(stations = listOf(station().copy(wifiCostIsExpense = true)))
+        assertEquals(true, success(encodeBackup(expenseBackup)).stations.single().wifiCostIsExpense)
+
+        val legacyText = applyAll(
+            encodeBackup(stationBackup),
+            listOf(
+                "\"schemaVersion\": 24" to "\"schemaVersion\": 23",
+                "\"wifiCostIsExpense\": false," to "",
+            ),
+        )
+        assertEquals(false, success(legacyText).stations.single().wifiCostIsExpense)
+    }
+
+    @Test
+    fun decode_requiresWifiExpenseFlagOnlyStartingWithVersion24() {
+        val withLegacyFlag = applyAll(
+            encodeBackup(stationBackup),
+            listOf("\"schemaVersion\": 24" to "\"schemaVersion\": 23"),
+        )
+        assertEquals(BackupError.INVALID_DATA, failure(withLegacyFlag)?.error)
+
+        val missingCurrentFlag = stationsEncodedWith(stationBackup, listOf("\"wifiCostIsExpense\": false," to ""))
+        assertEquals(BackupError.INVALID_DATA, failure(missingCurrentFlag)?.error)
+
+        val wifiCategoryBackup = stationBackup.copy(
+            stations = listOf(station().copy(costs = listOf(StationCost(CostCategory.WIFI, Money(350, eur))))),
+        )
+        val legacyWifiCategory = applyAll(
+            encodeBackup(wifiCategoryBackup),
+            listOf(
+                "\"schemaVersion\": 24" to "\"schemaVersion\": 23",
+                "\"wifiCostIsExpense\": false," to "",
+            ),
+        )
+        assertEquals(BackupError.INVALID_DATA, failure(legacyWifiCategory)?.error)
+    }
+
+    @Test
     fun decode_importsStationWithoutWifiBoardAndAmenityFieldsFromAnOlderBackupAsEmpty() {
         val olderBackup = stationBackup.copy(stations = listOf(station().copy(lodgingAmenities = emptySet())))
-        val text = stationsEncodedWith(
-            olderBackup,
+        val text = applyAll(
+            encodeBackup(olderBackup),
             listOf(
+                "\"schemaVersion\": 24" to "\"schemaVersion\": 23",
                 "\"wifiQuality\": \"OK\"," to "",
                 "\"wifiCostCurrency\": \"EUR\"," to "",
                 "\"wifiCostAmount\": \"3.50\"," to "",
+                "\"wifiCostIsExpense\": false," to "",
                 "\"boardType\": \"BREAKFAST\"," to "",
                 "\"lodgingAmenities\": []," to "",
             ),

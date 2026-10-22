@@ -359,7 +359,7 @@ private fun pitchDetailsText(station: Station): String? {
     return if (parts.isEmpty()) null else parts.joinToString(" · ")
 }
 
-/** LTE- und WLAN-Qualität samt WLAN-Kosten; gilt für jede Übernachtung, unabhängig von [Station.siteKind]. */
+/** LTE- und WLAN-Qualität samt WLAN-Preisinfo und Summenstatus; gilt für jede Übernachtung. */
 @Composable
 private fun connectivityText(station: Station): String? {
     val locale = currentLocale()
@@ -367,7 +367,9 @@ private fun connectivityText(station: Station): String? {
         station.lteQuality?.let { stringResource(R.string.station_summary_field, stringResource(R.string.field_lte), stringResource(it.labelRes)) },
         station.wifiQuality?.let { stringResource(R.string.station_summary_field, stringResource(R.string.field_wifi), stringResource(it.labelRes)) },
         station.wifiCost?.let {
-            stringResource(R.string.station_summary_field, stringResource(R.string.field_wifi_cost), formatAmount(it.minor, it.currency, locale))
+            val status = stringResource(if (station.wifiCostIsExpense) R.string.wifi_expense_status_included else R.string.wifi_expense_status_price_info)
+            val value = stringResource(R.string.wifi_cost_with_status, formatAmount(it.minor, it.currency, locale), status)
+            stringResource(R.string.station_summary_field, stringResource(R.string.field_wifi_cost), value)
         },
     )
     return if (parts.isEmpty()) null else parts.joinToString(" · ")

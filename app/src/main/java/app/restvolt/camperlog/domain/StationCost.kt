@@ -10,6 +10,7 @@ enum class CostCategory(val csvValue: String) {
     FERRY("faehre"),
     FOOD("essen"),
     OTHER("sonstiges"),
+    WIFI("wlan"),
 }
 
 /** Vorgabe-Kategorie der ersten Kostenzeile je Stationsart. */
@@ -35,13 +36,16 @@ data class StationCost(
 )
 
 /**
- * Alle Kosten dieser Station: die manuell erfassten [Station.costs] plus der aus der Stromabrechnung
- * abgeleitete Betrag ([electricityCost]) als Kategorie [CostCategory.ELECTRICITY]. Beide Quellen
- * derselben Kategorie und Währung werden addiert, damit nichts doppelt zählt.
+ * Alle Kosten dieser Station: manuelle Posten sowie Strom- und WLAN-Beträge, sofern diese als Aufwand
+ * markiert sind. Abgeleitete Posten bleiben durch ihre Kategorie als Herkunft erkennbar.
  */
 fun Station.effectiveCosts(): List<StationCost> {
-    val derived = electricityCost(this) ?: return costs
-    return (costs + StationCost(CostCategory.ELECTRICITY, derived))
+    val derived = buildList {
+        electricityCost(this@effectiveCosts)?.let { add(StationCost(CostCategory.ELECTRICITY, it)) }
+        wifiCost?.takeIf { wifiCostIsExpense }?.let { add(StationCost(CostCategory.WIFI, it)) }
+    }
+    if (derived.isEmpty()) return costs
+    return (costs + derived)
         .groupBy { it.category to it.amount.currency }
         .map { (key, group) -> StationCost(key.first, Money(group.map(StationCost::amount).sumMinor(), key.second), group.first().note) }
 }

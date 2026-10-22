@@ -231,6 +231,8 @@ internal data class StationDto(
     val wifiCostCurrency: String? = null,
     /** Fehlt in Sicherungen vor Formatversion 23. */
     val wifiCostAmount: String? = null,
+    /** Fehlt in Sicherungen vor Formatversion 24; `false` kennzeichnet WLAN als Preisinfo. */
+    val wifiCostIsExpense: Boolean = false,
     /** Fehlt in Sicherungen vor Formatversion 23. */
     val boardType: String? = null,
     /** [app.restvolt.camperlog.domain.LodgingAmenity]-Namen; fehlt in Sicherungen vor Formatversion 23. */

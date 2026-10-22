@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -248,6 +249,7 @@ private fun StationForm(
             StationField.TOLL_PAYMENT_METHOD to FocusRequester(),
             StationField.FERRY_BOOKING_REFERENCE to FocusRequester(),
             StationField.COST to FocusRequester(),
+            StationField.WIFI_COST to FocusRequester(),
             StationField.ODOMETER_KM to FocusRequester(),
             StationField.MANUAL_TEMPERATURE to FocusRequester(),
             StationField.LINK to FocusRequester(),
@@ -367,6 +369,7 @@ private fun StationForm(
                 servicesError,
                 errors[StationField.ELECTRICITY],
                 errors[StationField.LINK],
+                errors[StationField.WIFI_COST],
                 viewModel::onElectricityBillingChange,
             )
             StationType.SUPPLY -> SectionCard {
@@ -476,6 +479,7 @@ private fun OvernightSection(
     servicesError: String?,
     electricityError: String?,
     linkError: String?,
+    wifiCostError: String?,
     onElectricityBillingChange: (ElectricityBilling?) -> Unit,
 ) {
     val locale = currentLocale()
@@ -507,8 +511,11 @@ private fun OvernightSection(
         WifiCostField(
             amount = input.wifiCostAmount,
             currency = input.wifiCurrency,
+            isExpense = input.wifiCostIsExpense,
+            error = wifiCostError,
             onAmountChange = { value -> change { it.copy(wifiCostAmount = value) } },
             onCurrencyChange = { currency -> change { it.copy(wifiCurrency = currency) } },
+            onExpenseChange = { value -> change { it.copy(wifiCostIsExpense = value) } },
         )
 
         if (input.siteKind == null || input.siteKind in PITCH_SITE_KINDS) {
@@ -690,7 +697,15 @@ private fun LteQualityRow(selected: LteQuality?, label: String, onSelect: (LteQu
 
 /** Betragsfeld mit Währungsauswahl für die WLAN-Kosten, ohne eigene Validierung. */
 @Composable
-private fun WifiCostField(amount: String, currency: Currency, onAmountChange: (String) -> Unit, onCurrencyChange: (Currency) -> Unit) {
+private fun WifiCostField(
+    amount: String,
+    currency: Currency,
+    isExpense: Boolean,
+    error: String?,
+    onAmountChange: (String) -> Unit,
+    onCurrencyChange: (Currency) -> Unit,
+    onExpenseChange: (Boolean) -> Unit,
+) {
     val locale = currentLocale()
     var showPicker by rememberSaveable { mutableStateOf(false) }
     val currencyDescription = stringResource(R.string.edit_cost_currency, currency.getDisplayName(locale))
@@ -700,6 +715,8 @@ private fun WifiCostField(amount: String, currency: Currency, onAmountChange: (S
             onValueChange = onAmountChange,
             modifier = Modifier.weight(1f),
             label = { Text(stringResource(R.string.field_amount_with_currency, stringResource(R.string.field_wifi_cost), currency.getSymbol(locale))) },
+            isError = error != null,
+            supportingText = { error?.let { Text(it) } },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
             shape = MaterialTheme.shapes.medium,
@@ -712,6 +729,17 @@ private fun WifiCostField(amount: String, currency: Currency, onAmountChange: (S
                 .semantics { contentDescription = currencyDescription },
         ) { Text(currency.currencyCode) }
     }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(value = isExpense, role = Role.Checkbox, onValueChange = onExpenseChange),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = isExpense, onCheckedChange = null)
+        Text(stringResource(R.string.field_wifi_expense), style = MaterialTheme.typography.bodyMedium)
+    }
+    Text(stringResource(R.string.wifi_expense_warning), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     if (showPicker) {
         CurrencyPicker(
             selected = currency,

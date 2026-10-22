@@ -859,7 +859,7 @@
     <string name="field_electricity">Strom</string>
     <string name="field_lte">LTE-Qualität</string>
     <string name="field_wifi">WLAN-Qualität</string>
-    <string name="field_wifi_cost">WLAN-Kosten</string>
+    <string name="field_wifi_cost">WLAN-Preis</string>
     <string name="field_pitch_slope">Neigung des Platzes</string>
     <string name="field_leveling_blocks">Keile genutzt</string>
     <string name="field_board_type">Verpflegung</string>
@@ -1413,4 +1413,10 @@
     <string name="shortcut_running_tour_short">Laufende Tour</string>
     <string name="shortcut_running_tour_long">Laufende Tour öffnen</string>
     <string name="backup_share_prepared">Zum Teilen vorbereitet. Erst das Schreiben in eine Datei oder einen Sicherungsordner bestätigt eine Sicherung; beim Teilen ist die externe Kopie nicht überprüfbar.</string>
+    <string name="cost_category_wifi">WLAN</string>
+    <string name="field_wifi_expense">Als Ausgabe berücksichtigen</string>
+    <string name="wifi_expense_warning">Erfasse diesen Betrag nicht zusätzlich manuell. Bestehende manuelle Einträge werden nicht erkannt.</string>
+    <string name="wifi_expense_status_price_info">Nur Preisinfo</string>
+    <string name="wifi_expense_status_included">In Gesamtkosten enthalten</string>
+    <string name="wifi_cost_with_status">%1$s · %2$s</string>
 </resources>

@@ -192,6 +192,7 @@ fun CostCategory.csvValue(vocabulary: CsvVocabulary): String = if (vocabulary ==
     when (this) {
         CostCategory.PITCH -> "pitch"
         CostCategory.ELECTRICITY -> "electricity"
+        CostCategory.WIFI -> "wifi"
         CostCategory.SUPPLY -> "supply_disposal"
         CostCategory.FUEL -> "fuel_charging"
         CostCategory.TOLL -> "toll"

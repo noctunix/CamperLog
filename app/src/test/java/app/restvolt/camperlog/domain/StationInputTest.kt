@@ -122,6 +122,7 @@ class StationInputTest {
             wifiQuality = LteQuality.OK,
             wifiCurrency = EUR,
             wifiCostAmount = "3,50",
+            wifiCostIsExpense = true,
             boardType = BoardType.BREAKFAST,
             lodgingAmenities = setOf(LodgingAmenity.POOL, LodgingAmenity.PARKING),
         )
@@ -129,6 +130,7 @@ class StationInputTest {
 
         assertEquals(LteQuality.OK, station.wifiQuality)
         assertEquals(Money(350, EUR), station.wifiCost)
+        assertTrue(station.wifiCostIsExpense)
         assertEquals(BoardType.BREAKFAST, station.boardType)
         assertEquals(setOf(LodgingAmenity.POOL, LodgingAmenity.PARKING), station.lodgingAmenities)
     }
@@ -138,10 +140,17 @@ class StationInputTest {
         val station = valid.toStation(null).copy(
             wifiQuality = LteQuality.BAD,
             wifiCost = Money(250, EUR),
+            wifiCostIsExpense = true,
             boardType = BoardType.HALF_BOARD,
             lodgingAmenities = setOf(LodgingAmenity.SAUNA, LodgingAmenity.PETS_ALLOWED),
         )
         assertEquals(station, station.toInput(Locale.GERMANY).toStation(station, Locale.GERMANY))
+    }
+
+    @Test
+    fun invalidWifiPriceIsReportedInsteadOfSilentlyDropped() {
+        assertEquals(StationError.INVALID_NUMBER, valid.copy(wifiCostAmount = "fünf").validate(locale = Locale.GERMANY)[StationField.WIFI_COST])
+        assertTrue(valid.copy(wifiCostAmount = "5,00").validate(locale = Locale.GERMANY).isEmpty())
     }
 
     @Test

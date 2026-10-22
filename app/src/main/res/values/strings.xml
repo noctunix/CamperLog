@@ -870,7 +870,7 @@
     <string name="field_electricity">Electricity</string>
     <string name="field_lte">LTE quality</string>
     <string name="field_wifi">WiFi quality</string>
-    <string name="field_wifi_cost">WiFi cost</string>
+    <string name="field_wifi_cost">Wi-Fi price</string>
     <string name="field_pitch_slope">Pitch slope</string>
     <string name="field_leveling_blocks">Leveling blocks used</string>
     <string name="field_board_type">Board type</string>
@@ -1424,4 +1424,10 @@
     <string name="shortcut_running_tour_short">Current tour</string>
     <string name="shortcut_running_tour_long">Open the running tour</string>
     <string name="backup_share_prepared">Prepared for sharing. Only saving to a file or backup folder confirms a backup; sharing cannot confirm the external copy.</string>
+    <string name="cost_category_wifi">Wi-Fi</string>
+    <string name="field_wifi_expense">Include as an expense</string>
+    <string name="wifi_expense_warning">Do not also enter this amount manually. Existing manual entries cannot be detected.</string>
+    <string name="wifi_expense_status_price_info">Price info only</string>
+    <string name="wifi_expense_status_included">Included in total costs</string>
+    <string name="wifi_cost_with_status">%1$s · %2$s</string>
 </resources>

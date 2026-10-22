@@ -55,7 +55,7 @@ class StationCsvTest {
             "id,datum,uhrzeit,typ,name,ort,breitengrad,laengengrad,koordinatenquelle,genauigkeit_m,kartenlink,naechte," +
                 "platzart,stellplatz_zugewiesen,strompauschale,lte,neigung,keile_genutzt,versorgung,gerne_wieder,notizen," +
                 "angelegt,geaendert,tour,fahrzeug,kosten_stellplatz,kosten_strom,kosten_ver_entsorgung,kosten_tanken_laden," +
-                "kosten_maut,kosten_faehre,kosten_essen,kosten_sonstiges,strom_kwh,bewertung,kilometerstand_km,temperatur_c,link," +
+                "kosten_maut,kosten_faehre,kosten_essen,kosten_sonstiges,kosten_wlan,strom_kwh,bewertung,kilometerstand_km,temperatur_c,link," +
                 "wlan,wlan_kosten,verpflegung,ausstattung",
             STATION_CSV_HEADER.joinToString(","),
         )
@@ -68,7 +68,7 @@ class StationCsvTest {
             "id,date,time,type,name,place,latitude,longitude,coordinate_source,accuracy_m,map_link,nights,site_kind," +
                 "pitch_assigned,electricity_billing,lte_quality,pitch_slope,leveling_blocks_used,services,favorite,notes," +
                 "created_at,updated_at,tour,vehicle,costs_pitch,costs_electricity,costs_supply_disposal,costs_fuel_charging," +
-                "costs_toll,costs_ferry,costs_food,costs_other,electricity_kwh,rating,odometer_km,temperature_c,link," +
+                "costs_toll,costs_ferry,costs_food,costs_other,costs_wifi,electricity_kwh,rating,odometer_km,temperature_c,link," +
                 "wifi,wifi_cost,board_type,amenities",
             stationCsvHeader(CsvVocabulary.ENGLISH).joinToString(","),
         )
@@ -96,6 +96,7 @@ class StationCsvTest {
             levelingBlocksUsed = false,
             wifiQuality = LteQuality.OK,
             wifiCost = Money(350, EUR),
+            wifiCostIsExpense = true,
             boardType = BoardType.BREAKFAST,
             lodgingAmenities = setOf(LodgingAmenity.POOL, LodgingAmenity.PARKING),
             electricityBilling = ElectricityBilling.METERED,
@@ -117,7 +118,7 @@ class StationCsvTest {
                 "68.0912,13.1023,entered,,,2,hotel,yes," +
                 "metered,good,level,no," +
                 "\"fresh_water; cassette_toilet\",yes,Nice view," +
-                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,10,,,,," +
+                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,3.50 EUR,10,,,,," +
                 "ok,3.50 EUR,breakfast,\"pool; parking\"",
             row,
         )
@@ -167,7 +168,7 @@ class StationCsvTest {
                 "68.0912,13.1023,${CoordinateSource.ENTERED.csvValue},,,2,${SiteKind.CAMPSITE.csvValue},ja," +
                 "${ElectricityBilling.METERED.csvValue},${LteQuality.GOOD.csvValue},${PitchSlope.LEVEL.csvValue},nein," +
                 "\"${StationService.FRESH_WATER.csvValue}; ${StationService.CASSETTE.csvValue}\",ja,Schöner Blick," +
-                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,10,,,,,,,,",
+                "2026-07-04T08:00:00Z,2026-07-05T09:30:00Z,Lofoten,Bulli,,3.50 EUR,5.00 EUR,,,,,,,10,,,,,,,,",
             lines[1],
         )
         assertEquals("", lines[2])
