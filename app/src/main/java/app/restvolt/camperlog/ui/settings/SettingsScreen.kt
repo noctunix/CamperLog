@@ -133,7 +133,6 @@ fun SettingsScreen(
                     Text(stringResource(R.string.settings_open_rates))
                 }
             }
-            item { PaymentMethodsSection(paymentMethods) }
             item {
                 SectionCard {
                     Text(
@@ -225,6 +224,7 @@ fun SettingsScreen(
                     HomeLocationSection(homeLocationViewModel, locationEnabled)
                 }
             }
+            item { PaymentMethodsSection(paymentMethods) }
             item {
                 SectionCard {
                     Text(
