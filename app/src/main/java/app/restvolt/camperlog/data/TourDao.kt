@@ -100,7 +100,7 @@ interface TourDao {
     )
     suspend fun lastUsedCurrency(): String?
 
-    /** `demo` trennt die Demo-Tour des Tutorials von den echten Touren: `false` zählt nur echte, `true` nur Demo-Touren. */
+    /** `demo` selects real (`false`) or demo tours (`true`). */
     @Query("SELECT $SUMS FROM tours WHERE (:vehicleId IS NULL OR vehicle_id = :vehicleId) AND is_demo = :demo")
     fun observeTotals(vehicleId: Long?, demo: Boolean): Flow<TotalsRow>
 

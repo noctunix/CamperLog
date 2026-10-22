@@ -104,7 +104,7 @@ class FakeTourRepository(
     private fun List<Tour>.filterByVehicle(vehicleId: Long?, demo: Boolean) =
         filter { (vehicleId == null || it.vehicleId == vehicleId) && it.isDemo == demo }
 
-    /** Stationen der Touren, die zu [demo] passen; Stationen ohne Tour zählen als echt. */
+    /** Stations of the tours matching [demo]; stations without a tour count as real. */
     private fun stationsForVehicle(vehicleId: Long?, demo: Boolean): Flow<List<Station>> =
         combine(state, stations?.observeForVehicle(vehicleId) ?: flowOf(emptyList())) { tours, stationList ->
             val demoTourIds = tours.filter { it.isDemo }.map { it.id }.toSet()

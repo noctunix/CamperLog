@@ -211,7 +211,6 @@ class GuidedTourNavigationTest {
             compose.onNodeWithText("Deine Daten").assertDoesNotExist()
             assertTrue(GuideProgressStore(context).isCompleted(INTRODUCTION_TOUR_ID, INTRODUCTION_TOUR_VERSION))
 
-            // Der Rundgang endet auf der Tourenliste; "Über CamperLog" zeigt jetzt das Häkchen.
             openAbout()
             compose.onNodeWithText("Abgeschlossen").assertExists()
             compose.onAllNodesWithText("Wiederholen").assertCountEquals(1)
