@@ -94,6 +94,10 @@ class StationInputTest {
             lteQuality = LteQuality.GOOD,
             pitchSlope = PitchSlope.LEVEL,
             levelingBlocksUsed = true,
+            wifiQuality = LteQuality.OK,
+            wifiCostAmount = "3,50",
+            boardType = BoardType.BREAKFAST,
+            lodgingAmenities = setOf(LodgingAmenity.POOL),
             services = setOf(StationService.DIESEL, StationService.FRESH_WATER, StationService.LPG),
         )
         val station = input.toStation(null)
@@ -105,7 +109,39 @@ class StationInputTest {
         assertNull(station.lteQuality)
         assertNull(station.pitchSlope)
         assertNull(station.levelingBlocksUsed)
+        assertNull(station.wifiQuality)
+        assertNull(station.wifiCost)
+        assertNull(station.boardType)
+        assertEquals(emptySet<LodgingAmenity>(), station.lodgingAmenities)
         assertEquals(setOf(StationService.DIESEL, StationService.FRESH_WATER, StationService.LPG), station.services)
+    }
+
+    @Test
+    fun toStationKeepsWifiBoardAndAmenitiesForOvernightStations() {
+        val input = valid.copy(
+            wifiQuality = LteQuality.OK,
+            wifiCurrency = EUR,
+            wifiCostAmount = "3,50",
+            boardType = BoardType.BREAKFAST,
+            lodgingAmenities = setOf(LodgingAmenity.POOL, LodgingAmenity.PARKING),
+        )
+        val station = input.toStation(null, Locale.GERMANY)
+
+        assertEquals(LteQuality.OK, station.wifiQuality)
+        assertEquals(Money(350, EUR), station.wifiCost)
+        assertEquals(BoardType.BREAKFAST, station.boardType)
+        assertEquals(setOf(LodgingAmenity.POOL, LodgingAmenity.PARKING), station.lodgingAmenities)
+    }
+
+    @Test
+    fun roundTripThroughInputIsLosslessWithWifiBoardAndAmenities() {
+        val station = valid.toStation(null).copy(
+            wifiQuality = LteQuality.BAD,
+            wifiCost = Money(250, EUR),
+            boardType = BoardType.HALF_BOARD,
+            lodgingAmenities = setOf(LodgingAmenity.SAUNA, LodgingAmenity.PETS_ALLOWED),
+        )
+        assertEquals(station, station.toInput(Locale.GERMANY).toStation(station, Locale.GERMANY))
     }
 
     @Test
