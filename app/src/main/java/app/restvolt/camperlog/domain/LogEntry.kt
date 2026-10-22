@@ -5,7 +5,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 /** Art des Bordbuch-Eintrags. */
-enum class LogType { CASSETTE_EMPTIED, GREY_WATER_EMPTIED, DIESEL_HEATER_RUN, GAS_HEATER_RUN, GAS_BOTTLE_SWAPPED }
+enum class LogType { CASSETTE_EMPTIED, GREY_WATER_EMPTIED, DIESEL_HEATER_RUN, GAS_HEATER_RUN, GAS_BOTTLE_SWAPPED, FUELED }
 
 /**
  * Ein Bordbuch-Eintrag. Nach dem Anlegen unveränderlich, mit einer Ausnahme: [stationId] folgt der

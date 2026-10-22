@@ -180,7 +180,7 @@ internal fun StationInput.validation(today: LocalDate = LocalDate.now(), locale:
             }
         }
 
-        if (date != null && date > today && services.any { it in SYNCED_SERVICE_LOG_TYPES }) {
+        if (date != null && date > today && (type in SYNCED_STATION_TYPE_LOG_TYPES || services.any { it in SYNCED_SERVICE_LOG_TYPES })) {
             put(StationField.SERVICES, StationError.FUTURE_DATE)
         }
 

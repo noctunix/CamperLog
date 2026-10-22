@@ -138,6 +138,7 @@ val LogType.labelRes: Int
         LogType.DIESEL_HEATER_RUN -> R.string.log_type_diesel_heater_run
         LogType.GAS_HEATER_RUN -> R.string.log_type_gas_heater_run
         LogType.GAS_BOTTLE_SWAPPED -> R.string.log_type_gas_bottle_swapped
+        LogType.FUELED -> R.string.log_type_fueled
     }
 
 /** Symbol der Bordbuch-Art. */
@@ -149,6 +150,7 @@ val LogType.iconRes: Int
         LogType.DIESEL_HEATER_RUN -> R.drawable.ic_local_fire
         LogType.GAS_HEATER_RUN -> R.drawable.ic_gas_flame
         LogType.GAS_BOTTLE_SWAPPED -> R.drawable.ic_gas_bottle
+        LogType.FUELED -> R.drawable.ic_local_gas_station
     }
 
 /** Anzeigetext der zeitlichen Einordnung, z. B. „Heute" oder „vor 3 Tagen". */

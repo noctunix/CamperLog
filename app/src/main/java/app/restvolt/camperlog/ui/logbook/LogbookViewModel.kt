@@ -12,9 +12,10 @@ import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.domain.quickFuelStation
 import app.restvolt.camperlog.domain.quickSupplyService
 import app.restvolt.camperlog.domain.quickSupplyStation
-import app.restvolt.camperlog.domain.stationAfterRemovingQuickSupply
+import app.restvolt.camperlog.domain.removeLinkedLogEntry
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -88,7 +89,11 @@ class LogbookViewModel(
         viewModelScope.launch {
             _message.value = try {
                 val service = quickSupplyService(type)
-                val entry = if (service != null) recordSupply(vehicleId, service, type, date) else logs.add(vehicleId, type, date)
+                val entry = when {
+                    service != null -> recordSupply(vehicleId, service, type, date)
+                    type == LogType.FUELED -> recordFuel(vehicleId, date)
+                    else -> logs.add(vehicleId, type, date)
+                }
                 LogbookMessage.Recorded(entry, wasToday = date == today())
             } catch (_: SQLException) {
                 LogbookMessage.Failed(R.string.logbook_record_failed)
@@ -104,34 +109,23 @@ class LogbookViewModel(
         return checkNotNull(logs.linkedEntry(stationId, type)) { "Speichern der Station muss den verknüpften Eintrag anlegen" }
     }
 
+    /** Legt für [date] eine neue Tanken-Station an und liefert den dabei entstandenen verknüpften Eintrag. */
+    private suspend fun recordFuel(vehicleId: Long, date: LocalDate): LogEntry {
+        val tourId = stations.defaultTourId(vehicleId, date)
+        val stationId = stations.save(quickFuelStation(vehicleId, date, tourId))
+        return checkNotNull(logs.linkedEntry(stationId, LogType.FUELED)) { "Speichern der Station muss den verknüpften Eintrag anlegen" }
+    }
+
     /** Macht einen über [recordToday]/[recordDate] angelegten Eintrag wieder rückgängig. */
     fun undoRecord(entry: LogEntry) {
         viewModelScope.launch {
             try {
-                val stationId = entry.stationId
-                if (stationId == null) {
-                    logs.delete(entry.id)
-                } else {
-                    undoSupply(stationId, entry.type)
-                }
+                val station = entry.stationId?.let { stations.observeStation(it).first() }
+                if (station == null) logs.delete(entry.id) else removeLinkedLogEntry(stations, logs, station, entry)
             } catch (_: SQLException) {
                 _message.value = LogbookMessage.Failed(R.string.logbook_record_undo_failed)
             }
         }
-    }
-
-    /**
-     * Entfernt den zu [type] gehörenden Dienst von der Station [stationId]. Erst speichern lässt den
-     * Bordbuch-Abgleich beim Speichern den verknüpften Eintrag selbst löschen (ein reines Löschen der
-     * Station würde ihn über den Fremdschlüssel nur entknüpfen statt ihn zu entfernen); bleibt die
-     * Station danach ganz ohne Inhalt, wird die leere Hülle anschließend gelöscht.
-     */
-    private suspend fun undoSupply(stationId: Long, type: LogType) {
-        val station = stations.observeStation(stationId).first() ?: return
-        val service = checkNotNull(quickSupplyService(type)) { "Ein stationsverknüpfter Eintrag muss einen synchronisierten Typ haben" }
-        val updated = stationAfterRemovingQuickSupply(station, service)
-        stations.save(updated ?: station.copy(services = station.services - service))
-        if (updated == null) stations.delete(stationId)
     }
 
     /** Verwirft [shown], sofern inzwischen keine neuere Meldung vorliegt. */

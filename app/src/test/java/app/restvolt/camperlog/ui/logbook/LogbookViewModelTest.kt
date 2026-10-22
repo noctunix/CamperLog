@@ -55,7 +55,7 @@ class LogbookViewModelTest {
         assertEquals(
             listOf(
                 LogType.CASSETTE_EMPTIED, LogType.GREY_WATER_EMPTIED, LogType.DIESEL_HEATER_RUN,
-                LogType.GAS_HEATER_RUN, LogType.GAS_BOTTLE_SWAPPED,
+                LogType.GAS_HEATER_RUN, LogType.GAS_BOTTLE_SWAPPED, LogType.FUELED,
             ),
             tiles.map { it.type },
         )
@@ -197,6 +197,33 @@ class LogbookViewModelTest {
         val entry = logs.entries.single()
 
         viewModel.undoRecord(entry)
+
+        assertEquals(emptyList<Any>(), stations.stations)
+        assertEquals(emptyList<Any>(), logs.entries)
+    }
+
+    @Test
+    fun recordToday_withFueled_createsALinkedFuelStationEachTime() = runTest(dispatcher) {
+        val logs = FakeLogRepository()
+        val stations = FakeStationRepository(logs = logs)
+        val viewModel = LogbookViewModel(logs, FakeVehicleRepository(), stations) { today }
+
+        viewModel.recordToday(LogType.FUELED)
+        viewModel.recordToday(LogType.FUELED)
+
+        assertEquals(listOf(StationType.FUEL, StationType.FUEL), stations.stations.map { it.type })
+        assertEquals(stations.stations.map { it.id }.toSet(), logs.entries.map { it.stationId }.toSet())
+        assertTrue(logs.entries.all { it.type == LogType.FUELED })
+    }
+
+    @Test
+    fun undoRecord_withFueled_removesEntryAndTheBareFuelStation() = runTest(dispatcher) {
+        val logs = FakeLogRepository()
+        val stations = FakeStationRepository(logs = logs)
+        val viewModel = LogbookViewModel(logs, FakeVehicleRepository(), stations) { today }
+        viewModel.recordToday(LogType.FUELED)
+
+        viewModel.undoRecord(logs.entries.single())
 
         assertEquals(emptyList<Any>(), stations.stations)
         assertEquals(emptyList<Any>(), logs.entries)
