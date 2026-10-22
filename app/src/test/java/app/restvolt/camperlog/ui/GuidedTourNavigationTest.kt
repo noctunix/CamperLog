@@ -296,17 +296,20 @@ class GuidedTourNavigationTest {
             clickThrough(hasText("Neue Tour") and hasClickAction())
             clickWeiter()
 
+            // Schritt "vehicle": nur ein echtes Fahrzeug vorhanden, die Auswahl bleibt also
+            // unsichtbar, stattdessen zeigt die reine Infozeile das zugeordnete Fahrzeug an.
+            compose.onNodeWithText("Mein Wohnmobil").assertExists()
+            clickWeiter()
+
             // Schritt "name": echter Text im Namensfeld.
             compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Gardasee-Rundfahrt")
             clickWeiter()
 
-            // Schritt "tourtype": reine Erklärung, keine Pflichtaktion.
-            compose.onNodeWithText("Tourart").assertExists()
+            // Schritt "destination": reine Erklärung, das Ziel ist optional.
             clickWeiter()
 
-            // Schritt "vehicle": nur ein echtes Fahrzeug vorhanden, die Auswahl bleibt also
-            // unsichtbar, stattdessen zeigt die reine Infozeile das zugeordnete Fahrzeug an.
-            compose.onNodeWithText("Mein Wohnmobil").assertExists()
+            // Schritt "tourtype": reine Erklärung, keine Pflichtaktion.
+            compose.onNodeWithText("Tourart").assertExists()
             clickWeiter()
 
             // Schritt "period": das Startdatum ist unabhängig von der Tour Pflicht, sonst scheitert
@@ -401,9 +404,6 @@ class GuidedTourNavigationTest {
 
             clickThrough(hasText("Neue Tour") and hasClickAction())
             clickWeiter() // fab
-            compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Alpentour")
-            clickWeiter() // name
-            clickWeiter() // tourtype
 
             // Schritt "vehicle": kein echtes Fahrzeug vorhanden, der Schritt bietet die Anlage an.
             // "Fahrzeug hinzufügen" steht doppelt (Kartentitel und echter Button), daher der
@@ -430,7 +430,11 @@ class GuidedTourNavigationTest {
             assertEquals(vehiclesBeforeCreate + 1, vehicles.vehicles.size)
             val createdVehicle = vehicles.vehicles.single { !it.isDemo }
             assertEquals("Hymer B-Klasse", createdVehicle.name)
-            clickWeiter()
+            clickWeiter() // vehicle
+            compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Alpentour")
+            clickWeiter() // name
+            clickWeiter() // destination
+            clickWeiter() // tourtype
 
             // Die weiterlaufende Vorbelegung hat das neue Fahrzeug übernommen, sichtbar am Ergebnis
             // nach dem echten Speichern.
@@ -475,9 +479,6 @@ class GuidedTourNavigationTest {
 
             clickThrough(hasText("Neue Tour") and hasClickAction())
             clickWeiter() // fab
-            compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Alpentour")
-            clickWeiter() // name
-            clickWeiter() // tourtype
 
             val addVehicleButton = hasText("Fahrzeug hinzufügen") and hasClickAction()
             compose.onNode(addVehicleButton).assertExists()
@@ -520,10 +521,11 @@ class GuidedTourNavigationTest {
 
             clickThrough(hasText("Neue Tour") and hasClickAction())
             clickWeiter() // fab
+            clickWeiter() // vehicle
             compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Nordkap")
             clickWeiter() // name
+            clickWeiter() // destination
             clickWeiter() // tourtype
-            clickWeiter() // vehicle
             pickStartDate(10)
             clickWeiter() // period
 

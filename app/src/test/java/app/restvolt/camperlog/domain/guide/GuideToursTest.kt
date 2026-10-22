@@ -30,9 +30,10 @@ class GuideToursTest {
         assertEquals(
             listOf(
                 "tours.fab.add",
-                "edit.tour.name",
-                "edit.tour.tourtype",
                 "edit.tour.vehicle",
+                "edit.tour.name",
+                "edit.tour.destination",
+                "edit.tour.tourtype",
                 "edit.tour.period",
                 "edit.tour.track.checkbox",
                 "edit.tour.home.checkbox",
