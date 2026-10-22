@@ -1437,4 +1437,7 @@
     <string name="tours_empty_start">Record trips and individual stops. A tour groups the stops of a journey. Your data stays on this device until you choose to export it.</string>
     <string name="tours_start">Start a tour</string>
     <string name="station_without_tour">Record a stop without a tour</string>
+    <string name="checklist_quick_start_hint">Start with a departure checklist. You can edit and reuse its template later.</string>
+    <string name="checklist_quick_start_departure">Start departure checklist</string>
+    <string name="checklist_start_failed">Could not start checklist. Please try again.</string>
 </resources>

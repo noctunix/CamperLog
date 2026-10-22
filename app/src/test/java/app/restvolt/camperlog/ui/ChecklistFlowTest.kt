@@ -1,5 +1,7 @@
 package app.restvolt.camperlog.ui
 
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -85,6 +87,20 @@ class ChecklistFlowTest {
         compose.onNodeWithText("Dachluken und Fenster schließen").performClick()
 
         compose.onNodeWithText("Erledigt: 1/12").assertExists()
+    }
+
+    @Test
+    fun firstDepartureChecklistStartsWithoutAddingTemplatesFirst() {
+        start(tour())
+        compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Checklisten").performScrollTo().performClick()
+        compose.onNodeWithText("Checkliste starten").performScrollTo().performClick()
+        compose.onNodeWithText("Abfahrtscheckliste starten").performClick()
+        compose.onNodeWithText("Erledigt: 0/12").assertExists()
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Checkliste starten").performScrollTo().performClick()
+        compose.onNode(hasText("Abfahrt") and hasAnyAncestor(isDialog())).assertExists()
+        compose.onNodeWithText("Abfahrtscheckliste starten").assertDoesNotExist()
     }
 
     @Test

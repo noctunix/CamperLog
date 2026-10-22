@@ -220,7 +220,7 @@ internal fun NavGraphBuilder.vehicleGraph(
         val fallbackDeleteScope = rememberCoroutineScope()
         val deleteChecklist: (Checklist) -> Unit = when {
             route.tourId != null && navController.hasRoute<DetailRoute>() ->
-                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, logbook, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)::deleteChecklist
+                navController.tourDetailViewModel(entry, repository, vehicles, stations, diaryEntries, checklists, checklistTemplates, logbook, exchangeRates, countryLookup, attachments, attachmentFileStore, tracks)::deleteChecklist
             route.tourId == null && navController.hasRoute<VehicleChecklistsRoute>() ->
                 navController.vehicleChecklistsViewModel(entry, checklists, checklistTemplates, route.vehicleId)::deleteChecklist
             else -> { checklist -> fallbackDeleteScope.launch { checklists.delete(checklist.id) } }

@@ -21,6 +21,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -30,7 +31,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.ChecklistTemplate
-import app.restvolt.camperlog.ui.EmptyHint
 
 /**
  * Vorlagenauswahl vor dem Starten einer Checkliste. Ohne Vorlagen bietet sie zunächst nur an, die
@@ -74,7 +74,11 @@ fun ChecklistTemplatePickerSheet(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                EmptyHint(stringResource(R.string.checklist_picker_empty))
+                val departure = suggestedChecklistTemplates(LocalResources.current).first()
+                Text(stringResource(R.string.checklist_quick_start_hint), style = MaterialTheme.typography.bodyMedium)
+                androidx.compose.material3.Button(onClick = { onSelect(departure) }) {
+                    Text(stringResource(R.string.checklist_quick_start_departure))
+                }
                 TextButton(onClick = onAddSuggested) {
                     Text(stringResource(R.string.checklist_add_suggested_templates))
                 }
