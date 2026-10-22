@@ -58,7 +58,8 @@ suspend fun syncStationLogEntries(
         when {
             !newActive && !oldActive -> Unit
             !newActive && oldActive -> existingLink?.let { add(LogSyncAction.Delete(it.id)) }
-            newActive && oldActive && !moved -> Unit
+            // Stations of a synced type created before the sync existed get their missing entry on the next save.
+            newActive && oldActive && !moved && (type !in SYNCED_STATION_TYPE_LOG_TYPES.values || existingLink != null) -> Unit
             else -> {
                 val preservedUuid = existingLink?.uuid.takeIf { newActive && oldActive && moved }
                 if (newActive && oldActive && moved) existingLink?.let { add(LogSyncAction.Delete(it.id)) }
