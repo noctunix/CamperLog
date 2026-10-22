@@ -211,7 +211,7 @@ data class Station(
     val electricityKwhUsed: BigDecimal? = null,
     val fuelLiters: BigDecimal? = null,
     val tollKind: TollKind? = null,
-    val tollPaymentMethod: String = "",
+    val paymentMethod: String = "",
     val tollCountry: String? = null,
     val tollValidFrom: LocalDate? = null,
     val tollValidUntil: LocalDate? = null,

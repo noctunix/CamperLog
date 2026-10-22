@@ -918,7 +918,7 @@ class StationFlowTest {
         assertEquals(TollKind.VIGNETTE, saved.tollKind)
         assertEquals(1, saved.tollValidFrom?.dayOfMonth)
         assertEquals(15, saved.tollValidUntil?.dayOfMonth)
-        assertEquals("App", saved.tollPaymentMethod)
+        assertEquals("App", saved.paymentMethod)
 
         // Die neue Station landet direkt auf ihrer Detailseite.
         compose.onNodeWithText("Zahlungsart: App").assertExists()

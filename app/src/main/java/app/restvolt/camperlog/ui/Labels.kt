@@ -565,7 +565,7 @@ val StationField.labelRes: Int
         StationField.FUEL_LITERS -> R.string.field_fuel_liters
         StationField.TOLL_COUNTRY -> R.string.field_toll_country
         StationField.TOLL_VALID_UNTIL -> R.string.field_toll_valid_until
-        StationField.TOLL_PAYMENT_METHOD -> R.string.field_toll_payment_method
+        StationField.PAYMENT_METHOD -> R.string.field_payment_method
         StationField.FERRY_BOOKING_REFERENCE -> R.string.field_ferry_booking_reference
         StationField.COST -> R.string.field_cost
         StationField.ODOMETER_KM -> R.string.field_odometer_km

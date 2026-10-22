@@ -47,7 +47,7 @@ import app.restvolt.camperlog.domain.MAX_STATION_NOTES_LENGTH
 import app.restvolt.camperlog.domain.MAX_STATION_PLACE_LENGTH
 import app.restvolt.camperlog.domain.MAX_TANK_L
 import app.restvolt.camperlog.domain.MAX_TIRE_PRESSURE_BAR
-import app.restvolt.camperlog.domain.MAX_TOLL_PAYMENT_METHOD_LENGTH
+import app.restvolt.camperlog.domain.MAX_PAYMENT_METHOD_LENGTH
 import app.restvolt.camperlog.domain.MAX_WEIGHT_KG
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
@@ -1162,12 +1162,12 @@ private fun StationDto.toStation(): Station? {
     }
 
     if (stationType != StationType.TOLL) {
-        if (tollKind != null || tollPaymentMethod.isNotEmpty() || tollCountry != null || tollValidFrom != null || tollValidUntil != null) {
+        if (tollKind != null || tollCountry != null || tollValidFrom != null || tollValidUntil != null) {
             return null
         }
     }
     val tollKindValue = tollKind?.let { enumOrNull<TollKind>(it) ?: return null }
-    if (tollPaymentMethod.length > MAX_TOLL_PAYMENT_METHOD_LENGTH) return null
+    if (paymentMethod.length > MAX_PAYMENT_METHOD_LENGTH) return null
     val tollCountryValue = tollCountry?.let { if (it in ALL_COUNTRY_CODES) it else return null }
     val tollValidFromValue = tollValidFrom?.let { parseDate(it) ?: return null }
     val tollValidUntilValue = tollValidUntil?.let {
@@ -1234,7 +1234,7 @@ private fun StationDto.toStation(): Station? {
         electricityKwhUsed = kwhUsedValue,
         fuelLiters = fuelLitersValue,
         tollKind = tollKindValue,
-        tollPaymentMethod = tollPaymentMethod,
+        paymentMethod = paymentMethod,
         tollCountry = tollCountryValue,
         tollValidFrom = tollValidFromValue,
         tollValidUntil = tollValidUntilValue,
@@ -1554,7 +1554,7 @@ private fun Station.toDto(vehicleUuid: String, tourUuid: String?) = StationDto(
     electricityKwhUsed = electricityKwhUsed?.stripTrailingZeros()?.toPlainString(),
     fuelLiters = fuelLiters?.stripTrailingZeros()?.toPlainString(),
     tollKind = tollKind?.name,
-    tollPaymentMethod = tollPaymentMethod,
+    paymentMethod = paymentMethod,
     tollCountry = tollCountry,
     tollValidFrom = tollValidFrom?.toString(),
     tollValidUntil = tollValidUntil?.toString(),

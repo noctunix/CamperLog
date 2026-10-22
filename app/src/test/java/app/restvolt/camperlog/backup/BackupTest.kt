@@ -1003,7 +1003,7 @@ class BackupTest {
         date = LocalDate.of(2026, 7, 4),
         name = "A1 Mautstelle",
         tollKind = TollKind.MOTORWAY,
-        tollPaymentMethod = "App",
+        paymentMethod = "App",
         tollCountry = "AT",
         tollValidFrom = LocalDate.of(2026, 1, 1),
         tollValidUntil = LocalDate.of(2026, 12, 31),

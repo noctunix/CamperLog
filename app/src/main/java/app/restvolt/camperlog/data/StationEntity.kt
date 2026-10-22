@@ -75,7 +75,8 @@ data class StationEntity(
     @ColumnInfo(name = "electricity_kwh_used") val electricityKwhUsed: String? = null,
     @ColumnInfo(name = "fuel_liters") val fuelLiters: String? = null,
     @ColumnInfo(name = "toll_kind") val tollKind: String? = null,
-    @ColumnInfo(name = "toll_payment_method") val tollPaymentMethod: String = "",
+    /** Zahlungsart der Station; der Spaltenname stammt aus der Zeit, als sie nur bei Maut/Fähre existierte. */
+    @ColumnInfo(name = "toll_payment_method") val paymentMethod: String = "",
     @ColumnInfo(name = "toll_country") val tollCountry: String? = null,
     @ColumnInfo(name = "toll_valid_from") val tollValidFrom: String? = null,
     @ColumnInfo(name = "toll_valid_until") val tollValidUntil: String? = null,
