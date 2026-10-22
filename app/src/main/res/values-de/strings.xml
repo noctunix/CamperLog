@@ -731,6 +731,8 @@
     <string name="body_intro_map">Jede Tour hat eine Karte mit ihren Stationen und, wenn du einen aufzeichnest, dem gefahrenen Track. Hier siehst du sie ohne Kartenhintergrund, damit nichts aus dem Internet geladen wird. Bei deinen eigenen Touren lädt die Karte die Kacheln von OpenStreetMap, sobald du sie öffnest.</string>
     <string name="title_intro_data">Deine Daten</string>
     <string name="body_intro_data">Deine Touren, Stationen und Fahrzeugdaten bleiben auf diesem Gerät. Kein Konto, keine Werbung, keine Analyse. Standort und Internet bleiben aus, bis du sie selbst einschaltest. Sicherungen erstellst du jederzeit über Daten.</string>
+    <string name="title_intro_start">Los geht\'s</string>
+    <string name="body_intro_start">Tippe auf Neue Tour, um deine erste Reise zu erfassen. Eine kurze Anleitung führt dich durch das Formular.</string>
     <string name="title_intro_settings">Einstellungen</string>
     <string name="body_intro_settings">Wähle ein Erscheinungsbild und wie früh Erinnerungen erscheinen sollen. Beides lässt sich später jederzeit in den Einstellungen ändern.</string>
     <string name="btn_intro_skip">Überspringen</string>

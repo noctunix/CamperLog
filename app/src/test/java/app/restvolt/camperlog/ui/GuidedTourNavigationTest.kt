@@ -206,9 +206,11 @@ class GuidedTourNavigationTest {
             clickWeiter()
             compose.waitUntil(5_000) { compose.onAllNodesWithText("Deine Daten").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Deine Daten").assertExists()
+            clickWeiter()
+            compose.onNodeWithText("Los geht's").assertExists()
             compose.onNodeWithText("Fertig").performClick()
 
-            compose.onNodeWithText("Deine Daten").assertDoesNotExist()
+            compose.onNodeWithText("Los geht's").assertDoesNotExist()
             assertTrue(GuideProgressStore(context).isCompleted(INTRODUCTION_TOUR_ID, INTRODUCTION_TOUR_VERSION))
 
             openAbout()
