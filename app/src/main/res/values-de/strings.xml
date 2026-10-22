@@ -1398,7 +1398,8 @@
     <string name="guide_resume">Fortsetzen</string>
     <string name="guide_end">Beenden</string>
     <string name="guide_step_fab_body">Tippe hier, um eine neue Tour anzulegen.</string>
-    <string name="guide_step_name_body">Trag hier den Namen oder das Ziel der Tour ein.</string>
+    <string name="guide_step_name_body">Gib der Tour einen Namen, zum Beispiel „Gardasee 2026“.</string>
+    <string name="guide_step_destination_body">Wohin geht die Reise? Das ist optional und hilft dir, die Tour später wiederzuerkennen.</string>
     <string name="guide_step_tourtype_body">Wähl die Art der Tour – sie taucht damit in Listen und Filtern auf.</string>
     <string name="guide_step_vehicle_body">Diese Tour gehört zu diesem Fahrzeug; wähl hier ein anderes, falls du mehr als eins hast.</string>
     <string name="guide_step_vehicle_create_body">Du hast noch kein Fahrzeug. Tippe hier, um eins anzulegen – die Details kannst du später ergänzen.</string>

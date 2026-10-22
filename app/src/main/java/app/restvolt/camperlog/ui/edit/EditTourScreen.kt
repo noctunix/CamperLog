@@ -306,7 +306,7 @@ private fun TourForm(
                     capitalization = KeyboardCapitalization.Words,
                     imeAction = ImeAction.Next,
                 ),
-                modifier = focusOf(TourField.DESTINATION),
+                modifier = focusOf(TourField.DESTINATION).guideAnchor("edit.tour.destination"),
             )
             ChoiceField(
                 stringResource(R.string.field_tour_type),

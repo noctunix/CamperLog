@@ -75,8 +75,6 @@ fun createFirstTourTour(
             R.string.guide_step_fab_body,
             StepCompletion.Action(CREATE_FIRST_TOUR_FAB_ACTION),
         ),
-        TourStep("name", "edit.tour.name", R.string.field_name, R.string.guide_step_name_body, StepCompletion.Information),
-        TourStep("tourtype", "edit.tour.tourtype", R.string.field_tour_type, R.string.guide_step_tourtype_body, StepCompletion.Information),
         if (offerVehicleCreation) {
             TourStep(
                 "vehicle",
@@ -88,6 +86,9 @@ fun createFirstTourTour(
         } else {
             TourStep("vehicle", "edit.tour.vehicle", R.string.field_vehicle, R.string.guide_step_vehicle_body, StepCompletion.Information)
         },
+        TourStep("name", "edit.tour.name", R.string.field_name, R.string.guide_step_name_body, StepCompletion.Information),
+        TourStep("destination", "edit.tour.destination", R.string.field_destination, R.string.guide_step_destination_body, StepCompletion.Information),
+        TourStep("tourtype", "edit.tour.tourtype", R.string.field_tour_type, R.string.guide_step_tourtype_body, StepCompletion.Information),
         TourStep("period", "edit.tour.period", R.string.edit_section_period, R.string.guide_step_period_body, StepCompletion.Information),
         TourStep(
             "track-switch",

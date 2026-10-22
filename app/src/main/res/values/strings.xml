@@ -1409,7 +1409,8 @@
     <string name="guide_resume">Resume</string>
     <string name="guide_end">End</string>
     <string name="guide_step_fab_body">Tap here to start a new tour.</string>
-    <string name="guide_step_name_body">Enter the tour\'s name or destination here.</string>
+    <string name="guide_step_name_body">Give the tour a name, for example "Lake Garda 2026".</string>
+    <string name="guide_step_destination_body">Where is the trip going? This is optional and helps you recognise the tour later.</string>
     <string name="guide_step_tourtype_body">Choose what kind of trip this is – it shows up in lists and filters.</string>
     <string name="guide_step_vehicle_body">This tour is assigned to this vehicle; pick a different one here if you have more than one.</string>
     <string name="guide_step_vehicle_create_body">You don\'t have a vehicle yet. Tap here to add one – you can fill in the details later.</string>
