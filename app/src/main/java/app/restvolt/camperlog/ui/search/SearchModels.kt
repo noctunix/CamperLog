@@ -21,6 +21,7 @@ sealed interface SearchResult {
 
     data class TourResult(
         val tourId: Long,
+        val name: String,
         val destination: String,
         override val date: LocalDate,
         override val snippet: SearchSnippet?,
@@ -121,6 +122,10 @@ sealed interface SearchResult {
         override val vehicleName: String? get() = null
     }
 }
+
+/** Zeigt Touren mit derselben Reihenfolge wie Liste und Detail: Name, Ziel, Rückfalltitel. */
+fun SearchResult.TourResult.displayTitle(fallback: String): String =
+    name.ifBlank { destination }.ifBlank { fallback }
 
 /** Eine Ergebnisgruppe mit ihrer Art (für Überschrift und Reihenfolge) und ihren Treffern, neueste zuerst. */
 data class SearchResultGroup(val type: SearchResultType, val results: List<SearchResult>)
