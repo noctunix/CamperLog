@@ -398,7 +398,7 @@ class StationFlowTest {
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Bordbuch").performClick()
-        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(5)
+        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(7)
     }
 
     @Test
