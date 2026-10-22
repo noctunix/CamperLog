@@ -55,7 +55,8 @@ class LogbookViewModelTest {
         assertEquals(
             listOf(
                 LogType.CASSETTE_EMPTIED, LogType.GREY_WATER_EMPTIED, LogType.DIESEL_HEATER_RUN,
-                LogType.GAS_HEATER_RUN, LogType.GAS_BOTTLE_SWAPPED, LogType.FUELED,
+                LogType.GAS_HEATER_RUN, LogType.GAS_BOTTLE_SWAPPED,
+                LogType.GAS_BOTTLE_SWITCHED, LogType.GAS_BOTTLE_REFILLED, LogType.FUELED,
             ),
             tiles.map { it.type },
         )
