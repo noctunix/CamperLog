@@ -11,8 +11,14 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import app.restvolt.camperlog.domain.LogEntry
+import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.LogType
+import app.restvolt.camperlog.domain.Money
+import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationCost
+import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.AccentColor
@@ -37,11 +43,12 @@ class LogbookFlowTest {
     private fun start(
         vehicles: FakeVehicleRepository = FakeVehicleRepository(),
         logs: FakeLogRepository = FakeLogRepository(),
+        stations: List<Station> = emptyList(),
     ): FakeLogRepository {
         val repository = FakeTourRepository(emptyList()) { vehicles.currentVehicleId }
         compose.setContent {
             CamperLogTheme {
-                CamperLogNavHost(repository, vehicles, logs, FakeStationRepository(logs = logs), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, AccentColor.AZURE, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = FakeTrackRepository(), onAccentColorChange = { }) { }
+                CamperLogNavHost(repository, vehicles, logs, FakeStationRepository(stations, logs = logs), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, AccentColor.AZURE, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = FakeTrackRepository(), onAccentColorChange = { }) { }
             }
         }
         compose.onNodeWithText("Bordbuch").performClick()
@@ -108,6 +115,36 @@ class LogbookFlowTest {
         compose.onNodeWithText("Rückgängig").performClick()
 
         compose.onAllNodes(hasText("vor ", substring = true)).assertCountEquals(2)
+    }
+
+    @Test
+    fun history_tapOnEntryShowsReadOnlyFactsOfItsStation() {
+        val today = LocalDate.now()
+        val station = Station(
+            id = 7, vehicleId = 1, tourId = null, type = StationType.FUEL, date = today, name = "Aral Hamburg",
+            costs = listOf(StationCost(CostCategory.FUEL, Money(5000, java.util.Currency.getInstance("EUR")))),
+            rating = 4, createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
+        )
+        val linked = LogEntry(1, "log-1", vehicleId = 1, type = LogType.FUELED, date = today, createdAt = Instant.EPOCH, stationId = 7)
+        start(logs = FakeLogRepository(listOf(linked)), stations = listOf(station))
+
+        compose.onNodeWithText("Getankt").performScrollTo().performClick()
+        compose.onNode(hasText("Aral Hamburg", substring = true)).performClick()
+
+        compose.onNode(hasText("Kosten: 50,00", substring = true)).assertExists()
+        compose.onNodeWithContentDescription("4 von 5 Campern").assertExists()
+    }
+
+    @Test
+    fun history_tapOnUnlinkedEntryShowsThatThereAreNoFurtherDetails() {
+        val today = LocalDate.now()
+        val entry = LogEntry(1, "log-1", vehicleId = 1, type = LogType.DIESEL_HEATER_RUN, date = today, createdAt = Instant.EPOCH)
+        start(logs = FakeLogRepository(listOf(entry)))
+
+        compose.onNodeWithText("Dieselheizung betrieben").performClick()
+        compose.onNode(hasText("Heute")).performClick()
+
+        compose.onNodeWithText("Keine weiteren Angaben zu diesem Eintrag.").assertExists()
     }
 
     @Test
