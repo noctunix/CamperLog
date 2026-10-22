@@ -643,6 +643,9 @@
     <string name="logbook_entry_deleted">Entry deleted</string>
     <string name="logbook_delete_failed">Could not delete entry.</string>
     <string name="logbook_restore_failed">Could not restore entry.</string>
+    <string name="logbook_entry_facts_action">Show details of this entry</string>
+    <string name="logbook_facts_none">No further details for this entry.</string>
+    <string name="logbook_facts_costs">Costs</string>
     <string name="logbook_history_empty">No entries yet.</string>
     <string name="logbook_entry_station">%1$s · %2$s</string>
 

@@ -329,7 +329,7 @@ private fun StationDetails(
 
 /** Fünf Camper-Symbole, gefüllt bis [rating]; nur lesend, eine Sprechform für alle fünf zusammen. */
 @Composable
-private fun RatingDisplay(rating: Int) {
+internal fun RatingDisplay(rating: Int) {
     val description = stringResource(R.string.station_rating_content_description, rating)
     Row(modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = description }) {
         (1..5).forEach { value ->

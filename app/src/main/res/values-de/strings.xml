@@ -643,6 +643,9 @@
     <string name="logbook_entry_deleted">Eintrag gelöscht</string>
     <string name="logbook_delete_failed">Eintrag konnte nicht gelöscht werden.</string>
     <string name="logbook_restore_failed">Eintrag konnte nicht wiederhergestellt werden.</string>
+    <string name="logbook_entry_facts_action">Details zu diesem Eintrag anzeigen</string>
+    <string name="logbook_facts_none">Keine weiteren Angaben zu diesem Eintrag.</string>
+    <string name="logbook_facts_costs">Kosten</string>
     <string name="logbook_history_empty">Noch keine Einträge.</string>
     <string name="logbook_entry_station">%1$s · %2$s</string>
 
