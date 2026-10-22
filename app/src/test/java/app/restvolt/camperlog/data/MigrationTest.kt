@@ -1095,7 +1095,22 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migration31To32CreatesDurableFormDraftStore() = runTest {
+        createVersion30()
 
+        val db = CamperLogDatabase.open(context)
+        try {
+            val store = RoomFormDraftStore(db.formDraftDao()) { 1234L }
+            assertNull(store.get("TOUR", 7L))
+            store.put("TOUR", 7L, "{\"destination\":\"Ostsee\"}")
+            assertEquals("{\"destination\":\"Ostsee\"}", store.get("TOUR", 7L))
+            store.delete("TOUR", 7L)
+            assertNull(store.get("TOUR", 7L))
+        } finally {
+            db.close()
+        }
+    }
 
     /** Legt `camperlog.db` im Stand von Version 28 nach `schemas/…/28.json` an und füllt sie mit [inserts]. */
     private fun createVersion28(vararg inserts: String) = createDatabase(

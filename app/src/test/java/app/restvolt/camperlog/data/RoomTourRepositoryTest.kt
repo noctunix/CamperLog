@@ -102,6 +102,14 @@ class RoomTourRepositoryTest {
     }
 
     @Test
+    fun deletingTourAlsoRemovesItsLocalWorkingCopy() = runTest {
+        val id = repository.save(tour(start = "2026-05-01"))
+        db.formDraftDao().put(FormDraftEntity("TOUR", id, "raw draft", 1))
+        repository.delete(id)
+        assertNull(db.formDraftDao().get("TOUR", id))
+    }
+
+    @Test
     fun newTourWithoutVehicleIdUsesCurrentVehicle() = runTest {
         val id = repository.save(tour(start = "2026-05-01").copy(vehicleId = 0))
         assertEquals(vehicleId, repository.observeTour(id).first()?.vehicleId)

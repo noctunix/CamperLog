@@ -64,6 +64,7 @@ class RoomStationRepository(
 
     /** Löscht die Anhänge der Station in derselben Transaktion mit, siehe KDoc von [RoomVehicleRepository]. */
     override suspend fun delete(id: Long) = database.withTransaction {
+        database.formDraftDao().delete("STATION", id)
         attachmentDao.deleteForOwner(AttachmentOwnerType.STATION.name, id)
         dao.deleteById(id)
     }
