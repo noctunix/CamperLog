@@ -74,6 +74,19 @@ class DemoTourSessionTest {
     }
 
     @Test
+    fun begin_neverPlacesTrackPointsInTheFutureEvenEarlyInTheMorning() = runTest {
+        val now = Instant.parse("2026-10-22T03:00:00Z")
+        val early = DemoTourSession(tours, stations, tracks, vehicles, clock = { now }) { }
+
+        val demoTourId = early.begin()
+
+        val points = tracks.points.filter { it.tourId == demoTourId }
+        assertTrue(points.isNotEmpty())
+        assertTrue(points.all { !it.recordedAt.isAfter(now) })
+        assertEquals(points.sortedBy { it.recordedAt }.map { it.segment }, points.sortedBy { it.segment }.map { it.segment })
+    }
+
+    @Test
     fun ensure_keepsTheRunningDemoTourAndBeginsOneOtherwise() = runTest {
         val first = session.ensure()
         val second = session.ensure()

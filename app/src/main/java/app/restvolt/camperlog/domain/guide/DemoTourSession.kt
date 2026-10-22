@@ -22,6 +22,7 @@ import app.restvolt.camperlog.domain.defaultCostCategory
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.math.BigDecimal
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -73,7 +74,7 @@ class DemoTourSession(
     var active: Boolean = false
         private set
 
-    /** Id der laufenden Demo-Tour, solange [active]; sonst `null`. */
+    /** Id of the running demo tour while [active]; `null` otherwise. */
     @Volatile
     var tourId: Long? = null
         private set
@@ -87,7 +88,7 @@ class DemoTourSession(
      */
     suspend fun begin(): Long = mutex.withLock { beginLocked() }
 
-    /** Wie [begin], behält aber eine bereits laufende Demo-Tour (z. B. nach einer Bildschirmdrehung). */
+    /** Like [begin], but keeps an already running demo tour. */
     suspend fun ensure(): Long = mutex.withLock { tourId ?: beginLocked() }
 
     private suspend fun beginLocked(): Long {
@@ -97,7 +98,7 @@ class DemoTourSession(
         val start = now.atZone(ZoneOffset.UTC).toLocalDate().minusDays(DEMO_TOUR_LENGTH_DAYS)
         val tourId = tours.save(demoTour(vehicleId, start, now))
         demoStations(tourId, vehicleId, start, now).forEach { stations.save(it) }
-        tracks.addAll(demoTrackPoints(tourId, start))
+        tracks.addAll(demoTrackPoints(tourId, start, now))
         active = true
         this.tourId = tourId
         return tourId
@@ -171,19 +172,20 @@ class DemoTourSession(
     }
 
     /**
-     * Ein Segment je Paar aufeinanderfolgender Stationen, je mit ein paar interpolierten Punkten. Die
-     * Segmente eines Tages laufen nacheinander ab 08:00 Uhr, damit die Zeiten nicht über das Tourende
-     * hinausragen und sich nicht überlappen.
+     * One segment per pair of consecutive stations, each day's segments in sequence from 08:00 UTC.
+     * The whole track is shifted back so that no point lies after [now].
      */
-    private fun demoTrackPoints(tourId: Long, start: LocalDate): List<TrackPoint> {
+    private fun demoTrackPoints(tourId: Long, start: LocalDate, now: Instant): List<TrackPoint> {
         val segmentsPerDay = mutableMapOf<Long, Int>()
-        return DEMO_ROUTE.zipWithNext().flatMapIndexed { segmentIndex, (from, to) ->
+        val points = DEMO_ROUTE.zipWithNext().flatMapIndexed { segmentIndex, (from, to) ->
             val day = DEMO_STOPS[segmentIndex].dayOffset
             val slot = segmentsPerDay.merge(day, 1, Int::plus)!! - 1
             val segmentStart = start.plusDays(day).atStartOfDay(ZoneOffset.UTC).toInstant()
                 .plus(DEMO_FIRST_SEGMENT_HOUR + slot * DEMO_SEGMENT_SLOT_HOURS, ChronoUnit.HOURS)
             interpolatedPoints(tourId, segment = segmentIndex + 1, from = from, to = to, startTime = segmentStart)
         }
+        val overshoot = Duration.between(now, points.maxOf { it.recordedAt })
+        return if (overshoot.isNegative || overshoot.isZero) points else points.map { it.copy(recordedAt = it.recordedAt.minus(overshoot)) }
     }
 
     private fun interpolatedPoints(tourId: Long, segment: Int, from: LatLon, to: LatLon, startTime: Instant): List<TrackPoint> =
