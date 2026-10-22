@@ -252,6 +252,8 @@ internal data class StationDto(
     val electricityMeterStart: String? = null,
     val electricityMeterEnd: String? = null,
     val electricityKwhUsed: String? = null,
+    /** Getankte Liter einer Tanken-Station; fehlt in Sicherungen vor Formatversion 24. */
+    val fuelLiters: String? = null,
     val tollKind: String? = null,
     val tollPaymentMethod: String = "",
     val tollCountry: String? = null,
