@@ -74,6 +74,19 @@ class DemoTourSessionTest {
     }
 
     @Test
+    fun ensure_keepsTheRunningDemoTourAndBeginsOneOtherwise() = runTest {
+        val first = session.ensure()
+        val second = session.ensure()
+
+        assertEquals(first, second)
+        assertEquals(first, session.tourId)
+        assertEquals(listOf(first), tours.demoTourIds())
+
+        session.end()
+        assertEquals(null, session.tourId)
+    }
+
+    @Test
     fun end_stopsTrackingBeforeDeletingAndRemovesTheTourAndVehicleButKeepsTheRealOne() = runTest {
         val demoTourId = session.begin()
         val demoVehicleId = tours.tours.single { it.id == demoTourId }.vehicleId

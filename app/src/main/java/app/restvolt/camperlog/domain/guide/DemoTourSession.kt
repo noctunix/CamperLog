@@ -85,7 +85,12 @@ class DemoTourSession(
      *
      * @return die id der angelegten Demo-Tour
      */
-    suspend fun begin(): Long = mutex.withLock {
+    suspend fun begin(): Long = mutex.withLock { beginLocked() }
+
+    /** Wie [begin], behält aber eine bereits laufende Demo-Tour (z. B. nach einer Bildschirmdrehung). */
+    suspend fun ensure(): Long = mutex.withLock { tourId ?: beginLocked() }
+
+    private suspend fun beginLocked(): Long {
         sweepOrphansLocked()
         val now = clock()
         val vehicleId = vehicles.save(demoVehicle(now))
@@ -95,7 +100,7 @@ class DemoTourSession(
         tracks.addAll(demoTrackPoints(tourId, start))
         active = true
         this.tourId = tourId
-        tourId
+        return tourId
     }
 
     /** Beendet die laufende Demo-Sitzung und entfernt alle Demo-Daten sofort. */
