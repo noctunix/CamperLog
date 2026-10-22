@@ -1,0 +1,3 @@
+• Neu: überarbeiteter Rundgang für Einsteiger – erklärt Tour, Station und Bordbuch, alle Reiter, die Stationsarten und Checklisten
+• Verbessert: Die Beispieltour im Tour-Assistenten hat jetzt sechs Stationen verschiedener Arten mit Kosten
+• Verbessert: Der Assistent für die erste Tour folgt der Reihenfolge des Formulars und erklärt das Zielfeld
