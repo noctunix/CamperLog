@@ -44,6 +44,7 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.AttachmentRepository
+import app.restvolt.camperlog.domain.SiteKind
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TollKind
@@ -208,6 +209,8 @@ private fun StationDetails(
             }
 
             pitchDetailsText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
+            connectivityText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
+            boardAndAmenitiesText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
             servicesText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
             station.weather?.let { WeatherSummary(it) }
             station.rating?.let { RatingDisplay(it) }
@@ -334,17 +337,51 @@ private fun DetailHeading(title: String) {
 private fun hasMapTarget(station: Station): Boolean =
     (station.latitude != null && station.longitude != null) || station.mapLink != null || station.name.isNotBlank() || station.place.isNotBlank()
 
+/** Platzarten mit klassischen Stellplatz-Details (Zuweisung, Neigung, Keile). */
+private val PITCH_SITE_KINDS: Set<SiteKind> = setOf(SiteKind.CAMPSITE, SiteKind.MOTORHOME_AREA, SiteKind.WILD)
+
+/** Platzarten mit Verpflegung und Ausstattungsmerkmalen statt Stellplatz-Details. */
+private val LODGING_SITE_KINDS: Set<SiteKind> = setOf(SiteKind.HOTEL, SiteKind.VACATION_RENTAL, SiteKind.HOSTEL)
+
 @Composable
 private fun pitchDetailsText(station: Station): String? {
+    val showPitchFields = station.siteKind == null || station.siteKind in PITCH_SITE_KINDS
     val parts = listOfNotNull(
         station.siteKind?.let { stringResource(it.labelRes) },
-        station.pitchAssigned?.let {
+        station.pitchAssigned?.takeIf { showPitchFields }?.let {
             stringResource(R.string.station_summary_field, stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(it)))
         },
-        station.lteQuality?.let { stringResource(R.string.station_summary_field, stringResource(R.string.field_lte), stringResource(it.labelRes)) },
-        station.pitchSlope?.let { stringResource(it.labelRes) },
-        station.levelingBlocksUsed?.let {
+        station.pitchSlope?.takeIf { showPitchFields }?.let { stringResource(it.labelRes) },
+        station.levelingBlocksUsed?.takeIf { showPitchFields }?.let {
             stringResource(R.string.station_summary_field, stringResource(R.string.field_leveling_blocks), stringResource(yesNoRes(it)))
+        },
+    )
+    return if (parts.isEmpty()) null else parts.joinToString(" · ")
+}
+
+/** LTE- und WLAN-Qualität samt WLAN-Kosten; gilt für jede Übernachtung, unabhängig von [Station.siteKind]. */
+@Composable
+private fun connectivityText(station: Station): String? {
+    val locale = currentLocale()
+    val parts = listOfNotNull(
+        station.lteQuality?.let { stringResource(R.string.station_summary_field, stringResource(R.string.field_lte), stringResource(it.labelRes)) },
+        station.wifiQuality?.let { stringResource(R.string.station_summary_field, stringResource(R.string.field_wifi), stringResource(it.labelRes)) },
+        station.wifiCost?.let {
+            stringResource(R.string.station_summary_field, stringResource(R.string.field_wifi_cost), formatAmount(it.minor, it.currency, locale))
+        },
+    )
+    return if (parts.isEmpty()) null else parts.joinToString(" · ")
+}
+
+/** Verpflegung und Ausstattungsmerkmale; nur bei [LODGING_SITE_KINDS]. */
+@Composable
+private fun boardAndAmenitiesText(station: Station): String? {
+    if (station.siteKind !in LODGING_SITE_KINDS) return null
+    val parts = listOfNotNull(
+        station.boardType?.let { stringResource(R.string.station_summary_field, stringResource(R.string.field_board_type), stringResource(it.labelRes)) },
+        station.lodgingAmenities.takeIf { it.isNotEmpty() }?.let { amenities ->
+            val values = amenities.sortedBy { it.ordinal }.map { stringResource(it.labelRes) }.joinToString(", ")
+            stringResource(R.string.station_summary_field, stringResource(R.string.station_section_amenities), values)
         },
     )
     return if (parts.isEmpty()) null else parts.joinToString(" · ")
