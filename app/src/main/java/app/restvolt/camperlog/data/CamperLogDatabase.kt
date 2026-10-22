@@ -41,7 +41,7 @@ import java.util.UUID
         TrackPointEntity::class,
         HomeLocationEntity::class,
     ],
-    version = 30,
+    version = 31,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -85,7 +85,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
                     MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
                     MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
-                    MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30,
+                    MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
                 )
                 .build()
     }
@@ -938,5 +938,16 @@ internal val MIGRATION_29_30 = object : Migration(29, 30) {
         db.execSQL("ALTER TABLE `stations` ADD COLUMN `wifi_cost_minor` INTEGER")
         db.execSQL("ALTER TABLE `stations` ADD COLUMN `board_type` TEXT")
         db.execSQL("ALTER TABLE `stations` ADD COLUMN `lodging_amenities` TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+/**
+ * Version 31: Tanken-Stationen ([app.restvolt.camperlog.domain.StationType.FUEL]) bekommen die
+ * getankten Liter ([app.restvolt.camperlog.domain.Station.fuelLiters], Dezimaltext wie die kWh).
+ * Eine nullable Spalte ohne Fremdschlüssel, daher reicht `ALTER TABLE ADD COLUMN`.
+ */
+internal val MIGRATION_30_31 = object : Migration(30, 31) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `stations` ADD COLUMN `fuel_liters` TEXT")
     }
 }

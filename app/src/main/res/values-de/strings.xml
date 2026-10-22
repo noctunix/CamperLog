@@ -890,6 +890,7 @@
     <string name="field_electricity_meter_start">Zählerstand Anfang (kWh)</string>
     <string name="field_electricity_meter_end">Zählerstand Ende (kWh)</string>
     <string name="field_electricity_kwh_used">Verbrauchte kWh</string>
+    <string name="field_fuel_liters">Liter</string>
     <string name="electricity_input_mode_meter">Zählerstände</string>
     <string name="electricity_input_mode_direct">kWh direkt</string>
     <string name="electricity_result_value">≈ %1$s</string>

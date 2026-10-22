@@ -1068,6 +1068,32 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migration30To31AddsFuelLitersColumnDefaultingToUnsetAndKeepsItEditable() = runTest {
+        createVersion30(
+            "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
+                "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
+                "breakdown_phone, travel_protection_provider, travel_protection_contract_number, " +
+                "travel_protection_phone, insurer_claims_phone, required_energy_types, created_at, updated_at) VALUES " +
+                "(1, 'veh-1', 'Bluebird', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 1000, 2000)",
+            "INSERT INTO stations (id, uuid, vehicle_id, tour_id, type, date, name, place, notes, toll_payment_method, " +
+                "ferry_booking_reference, services, favorite, created_at, updated_at) VALUES (1, 'station-1', 1, NULL, " +
+                "'FUEL', '2026-07-04', 'Shell', '', '', '', '', '', 0, 1000, 2000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val repo = RoomStationRepository(db, RoomLogRepository(db))
+            val station = repo.allStations().single()
+            assertEquals(null, station.fuelLiters)
+
+            repo.save(station.copy(fuelLiters = java.math.BigDecimal("42.35")))
+            assertEquals(java.math.BigDecimal("42.35"), repo.allStations().single().fuelLiters)
+        } finally {
+            db.close()
+        }
+    }
+
     /** Legt `camperlog.db` im Stand von Version 28 nach `schemas/…/28.json` an und füllt sie mit [inserts]. */
     private fun createVersion28(vararg inserts: String) = createDatabase(
         version = 28,
@@ -1129,6 +1155,20 @@ class MigrationTest {
     private val createVersion29Schema: List<String> = createVersion27Schema + listOf(
         "CREATE TABLE IF NOT EXISTS `home_locations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, `coordinate_source` TEXT, `valid_from` TEXT, `valid_to` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
         "CREATE UNIQUE INDEX IF NOT EXISTS `index_home_locations_uuid` ON `home_locations` (`uuid`)",
+    )
+
+    /** Legt `camperlog.db` im Stand von Version 30 nach `schemas/…/30.json` an (Version 29 plus die fünf neuen Stations-Spalten) und füllt sie mit [inserts]. */
+    private fun createVersion30(vararg inserts: String) = createDatabase(
+        version = 30,
+        identityHash = "20698f2d3feb32e66de8512e8051cbc7",
+        schema = createVersion29Schema + listOf(
+            "ALTER TABLE `stations` ADD COLUMN `wifi_quality` TEXT",
+            "ALTER TABLE `stations` ADD COLUMN `wifi_cost_currency` TEXT",
+            "ALTER TABLE `stations` ADD COLUMN `wifi_cost_minor` INTEGER",
+            "ALTER TABLE `stations` ADD COLUMN `board_type` TEXT",
+            "ALTER TABLE `stations` ADD COLUMN `lodging_amenities` TEXT NOT NULL DEFAULT ''",
+        ),
+        inserts = inserts.toList(),
     )
 
     /** Legt `camperlog.db` im Stand von Version 29 nach `schemas/…/29.json` an und füllt sie mit [inserts]. */

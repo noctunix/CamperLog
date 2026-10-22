@@ -73,6 +73,7 @@ data class StationEntity(
     @ColumnInfo(name = "electricity_meter_start") val electricityMeterStart: String? = null,
     @ColumnInfo(name = "electricity_meter_end") val electricityMeterEnd: String? = null,
     @ColumnInfo(name = "electricity_kwh_used") val electricityKwhUsed: String? = null,
+    @ColumnInfo(name = "fuel_liters") val fuelLiters: String? = null,
     @ColumnInfo(name = "toll_kind") val tollKind: String? = null,
     @ColumnInfo(name = "toll_payment_method") val tollPaymentMethod: String = "",
     @ColumnInfo(name = "toll_country") val tollCountry: String? = null,
