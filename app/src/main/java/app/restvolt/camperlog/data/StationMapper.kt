@@ -1,8 +1,10 @@
 package app.restvolt.camperlog.data
 
+import app.restvolt.camperlog.domain.BoardType
 import app.restvolt.camperlog.domain.CoordinateSource
 import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.ElectricityBilling
+import app.restvolt.camperlog.domain.LodgingAmenity
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
@@ -27,6 +29,7 @@ internal fun StationWithCosts.toDomain(): Station = station.toDomain(
 
 private fun StationEntity.toDomain(costs: List<StationCost>): Station {
     val currency = electricityCurrency?.let(Currency::getInstance)
+    val wifiCurrency = wifiCostCurrency?.let(Currency::getInstance)
     return Station(
         id = id,
         uuid = uuid,
@@ -49,6 +52,10 @@ private fun StationEntity.toDomain(costs: List<StationCost>): Station {
         lteQuality = lteQuality?.let(LteQuality::valueOf),
         pitchSlope = pitchSlope?.let(PitchSlope::valueOf),
         levelingBlocksUsed = levelingBlocksUsed,
+        wifiQuality = wifiQuality?.let(LteQuality::valueOf),
+        wifiCost = wifiCostMinor?.let { Money(it, checkNotNull(wifiCurrency)) },
+        boardType = boardType?.let(BoardType::valueOf),
+        lodgingAmenities = decodeLodgingAmenities(lodgingAmenities),
         electricityBilling = electricityBilling?.let(ElectricityBilling::valueOf),
         electricityCurrency = currency,
         electricityFlatAmount = electricityFlatAmountMinor?.let { Money(it, checkNotNull(currency)) },
@@ -110,6 +117,11 @@ internal fun Station.toEntity(): StationEntity = StationEntity(
     lteQuality = lteQuality?.name,
     pitchSlope = pitchSlope?.name,
     levelingBlocksUsed = levelingBlocksUsed,
+    wifiQuality = wifiQuality?.name,
+    wifiCostCurrency = wifiCost?.currency?.currencyCode,
+    wifiCostMinor = wifiCost?.minor,
+    boardType = boardType?.name,
+    lodgingAmenities = encodeLodgingAmenities(lodgingAmenities),
     electricityBilling = electricityBilling?.name,
     electricityCurrency = electricityCurrency?.currencyCode,
     electricityFlatAmountMinor = electricityFlatAmount?.minor,
@@ -150,3 +162,8 @@ private fun encodeServices(services: Set<StationService>): String = services.joi
 
 private fun decodeServices(text: String): Set<StationService> =
     text.split(",").mapNotNullTo(LinkedHashSet()) { name -> name.takeIf(String::isNotBlank)?.let(StationService::valueOf) }
+
+private fun encodeLodgingAmenities(amenities: Set<LodgingAmenity>): String = amenities.joinToString(",") { it.name }
+
+private fun decodeLodgingAmenities(text: String): Set<LodgingAmenity> =
+    text.split(",").mapNotNullTo(LinkedHashSet()) { name -> name.takeIf(String::isNotBlank)?.let(LodgingAmenity::valueOf) }

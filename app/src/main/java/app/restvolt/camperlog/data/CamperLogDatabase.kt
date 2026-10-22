@@ -41,7 +41,7 @@ import java.util.UUID
         TrackPointEntity::class,
         HomeLocationEntity::class,
     ],
-    version = 29,
+    version = 30,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -85,7 +85,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
                     MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
                     MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
-                    MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29,
+                    MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30,
                 )
                 .build()
     }
@@ -921,5 +921,22 @@ internal val MIGRATION_28_29 = object : Migration(28, 29) {
                 "substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))",
         )
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_home_locations_uuid` ON `home_locations` (`uuid`)")
+    }
+}
+
+/**
+ * Version 30: Übernachtungs-Stationen bekommen WLAN-Qualität und -Kosten (analog zu
+ * [app.restvolt.camperlog.domain.Station.lteQuality]/[app.restvolt.camperlog.domain.Station.electricityFlatAmount]),
+ * eine Verpflegungsstufe ([app.restvolt.camperlog.domain.BoardType]) und Ausstattungsmerkmale
+ * ([app.restvolt.camperlog.domain.LodgingAmenity], kommagetrennt wie `services`). Fünf nullable
+ * bzw. leer vorbelegte Spalten ohne Fremdschlüssel, daher reicht `ALTER TABLE ADD COLUMN`.
+ */
+internal val MIGRATION_29_30 = object : Migration(29, 30) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `stations` ADD COLUMN `wifi_quality` TEXT")
+        db.execSQL("ALTER TABLE `stations` ADD COLUMN `wifi_cost_currency` TEXT")
+        db.execSQL("ALTER TABLE `stations` ADD COLUMN `wifi_cost_minor` INTEGER")
+        db.execSQL("ALTER TABLE `stations` ADD COLUMN `board_type` TEXT")
+        db.execSQL("ALTER TABLE `stations` ADD COLUMN `lodging_amenities` TEXT NOT NULL DEFAULT ''")
     }
 }

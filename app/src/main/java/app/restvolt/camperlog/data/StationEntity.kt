@@ -14,6 +14,8 @@ import androidx.room.Relation
  * die genutzten [app.restvolt.camperlog.domain.StationService]-Werte kommagetrennt als Namen.
  * Die Stromabrechnung teilt sich [electricityCurrency]; Beträge liegen als kleinste Einheit vor,
  * kWh/Zählerstände und der Preis je kWh als Dezimaltext (mehr Nachkommastellen als die Währung).
+ * [lodgingAmenities] speichert die genutzten [app.restvolt.camperlog.domain.LodgingAmenity]-Werte
+ * kommagetrennt als Namen, analog zu [services].
  */
 @Entity(
     tableName = "stations",
@@ -55,6 +57,11 @@ data class StationEntity(
     @ColumnInfo(name = "lte_quality") val lteQuality: String?,
     @ColumnInfo(name = "pitch_slope") val pitchSlope: String?,
     @ColumnInfo(name = "leveling_blocks_used") val levelingBlocksUsed: Boolean?,
+    @ColumnInfo(name = "wifi_quality") val wifiQuality: String? = null,
+    @ColumnInfo(name = "wifi_cost_currency") val wifiCostCurrency: String? = null,
+    @ColumnInfo(name = "wifi_cost_minor") val wifiCostMinor: Long? = null,
+    @ColumnInfo(name = "board_type") val boardType: String? = null,
+    @ColumnInfo(name = "lodging_amenities") val lodgingAmenities: String = "",
     @ColumnInfo(name = "electricity_billing") val electricityBilling: String? = null,
     @ColumnInfo(name = "electricity_currency") val electricityCurrency: String? = null,
     @ColumnInfo(name = "electricity_flat_amount_minor") val electricityFlatAmountMinor: Long? = null,

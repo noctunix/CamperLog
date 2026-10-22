@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.Axle
+import app.restvolt.camperlog.domain.BoardType
 import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.CoordinateSource
@@ -13,6 +14,7 @@ import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.HomeLocation
+import app.restvolt.camperlog.domain.LodgingAmenity
 import app.restvolt.camperlog.domain.LteQuality
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
@@ -1028,6 +1030,44 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migration29To30AddsWifiBoardAndAmenityColumnsDefaultingToUnsetAndKeepsThemEditable() = runTest {
+        createVersion29(
+            "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
+                "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
+                "breakdown_phone, travel_protection_provider, travel_protection_contract_number, " +
+                "travel_protection_phone, insurer_claims_phone, required_energy_types, created_at, updated_at) VALUES " +
+                "(1, 'veh-1', 'Bluebird', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 1000, 2000)",
+            "INSERT INTO stations (id, uuid, vehicle_id, tour_id, type, date, name, place, notes, toll_payment_method, " +
+                "ferry_booking_reference, services, favorite, created_at, updated_at) VALUES (1, 'station-1', 1, NULL, " +
+                "'OVERNIGHT', '2026-07-04', 'Camping Moskenes', '', '', '', '', '', 0, 1000, 2000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val station = RoomStationRepository(db, RoomLogRepository(db)).allStations().single()
+            assertEquals(null, station.wifiQuality)
+            assertEquals(null, station.wifiCost)
+            assertEquals(null, station.boardType)
+            assertEquals(emptySet<LodgingAmenity>(), station.lodgingAmenities)
+
+            val updated = station.copy(
+                wifiQuality = LteQuality.OK,
+                wifiCost = Money(350, EUR),
+                boardType = BoardType.BREAKFAST,
+                lodgingAmenities = setOf(LodgingAmenity.POOL, LodgingAmenity.PARKING),
+            )
+            RoomStationRepository(db, RoomLogRepository(db)).save(updated)
+            val saved = RoomStationRepository(db, RoomLogRepository(db)).allStations().single()
+            assertEquals(LteQuality.OK, saved.wifiQuality)
+            assertEquals(Money(350, EUR), saved.wifiCost)
+            assertEquals(BoardType.BREAKFAST, saved.boardType)
+            assertEquals(setOf(LodgingAmenity.POOL, LodgingAmenity.PARKING), saved.lodgingAmenities)
+        } finally {
+            db.close()
+        }
+    }
+
     /** Legt `camperlog.db` im Stand von Version 28 nach `schemas/…/28.json` an und füllt sie mit [inserts]. */
     private fun createVersion28(vararg inserts: String) = createDatabase(
         version = 28,
@@ -1083,6 +1123,20 @@ class MigrationTest {
             "CREATE TABLE IF NOT EXISTS `checklist_items` (`checklist_id` INTEGER NOT NULL, `position` INTEGER NOT NULL, `text` TEXT NOT NULL, `checked` INTEGER NOT NULL, PRIMARY KEY(`checklist_id`, `position`), FOREIGN KEY(`checklist_id`) REFERENCES `checklists`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
             "CREATE TABLE IF NOT EXISTS `track_points` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tour_id` INTEGER NOT NULL, `segment` INTEGER NOT NULL, `recorded_at` INTEGER NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `accuracy_m` INTEGER, `altitude_m` INTEGER, FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
             "CREATE UNIQUE INDEX IF NOT EXISTS `index_track_points_tour_id_recorded_at` ON `track_points` (`tour_id`, `recorded_at`)",
+    )
+
+    /** Tabellen von Version 28 (unverändert seit [createVersion28] nach [createVersion29]), für beide Schema-Stände gemeinsam. */
+    private val createVersion29Schema: List<String> = createVersion27Schema + listOf(
+        "CREATE TABLE IF NOT EXISTS `home_locations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, `coordinate_source` TEXT, `valid_from` TEXT, `valid_to` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS `index_home_locations_uuid` ON `home_locations` (`uuid`)",
+    )
+
+    /** Legt `camperlog.db` im Stand von Version 29 nach `schemas/…/29.json` an und füllt sie mit [inserts]. */
+    private fun createVersion29(vararg inserts: String) = createDatabase(
+        version = 29,
+        identityHash = "9ba17e455276fe16f4907822d535c21d",
+        schema = createVersion29Schema,
+        inserts = inserts.toList(),
     )
 
     /** Legt `camperlog.db` im Stand von Version 27 nach `schemas/…/27.json` an und füllt sie mit [inserts]. */
