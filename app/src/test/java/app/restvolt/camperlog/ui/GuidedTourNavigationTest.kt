@@ -1,6 +1,7 @@
 package app.restvolt.camperlog.ui
 
 import android.content.Context
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -17,7 +18,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isRoot
-import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -54,7 +55,7 @@ import org.robolectric.annotation.Config
 class GuidedTourNavigationTest {
 
     @get:Rule
-    val compose = createComposeRule()
+    val compose = createAndroidComposeRule<ComponentActivity>()
 
     private val context get() = ApplicationProvider.getApplicationContext<Context>()
 
@@ -216,6 +217,70 @@ class GuidedTourNavigationTest {
             openAbout()
             compose.onNodeWithText("Abgeschlossen").assertExists()
             compose.onAllNodesWithText("Wiederholen").assertCountEquals(1)
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    /** Clicks "Weiter" [clicks] times and waits for the step titled [title]. */
+    private fun advanceTo(title: String, clicks: Int) {
+        repeat(clicks) { clickWeiter() }
+        compose.waitUntil(5_000) { compose.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    @Test
+    fun introductionTour_mapStepIsDrawnWithoutTilesAndAttribution() {
+        clearPreferences()
+        try {
+            start()
+            openAbout()
+            compose.onAllNodesWithText("Starten")[0].performClick()
+            advanceTo("Karte", 9)
+
+            compose.onNodeWithText("Karte").assertExists()
+            compose.onNodeWithText("© OpenStreetMap", substring = true).assertDoesNotExist()
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
+    fun introductionTour_endingOnTheStatisticsStepRemovesTheDemoTour() {
+        clearPreferences()
+        try {
+            val tours = start()
+            openAbout()
+            compose.onAllNodesWithText("Starten")[0].performClick()
+            advanceTo("Statistik", 8)
+            assertTrue(tours.tours.any { it.isDemo })
+
+            compose.onNodeWithText("Beenden").performClick()
+            compose.waitForIdle()
+
+            assertTrue(tours.tours.none { it.isDemo })
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
+    fun introductionTour_systemBackGoesOneStepBackAndEndsAtTheFirstStep() {
+        clearPreferences()
+        try {
+            start()
+            openAbout()
+            compose.onAllNodesWithText("Starten")[0].performClick()
+            clickWeiter()
+            compose.onNodeWithText("Willkommen bei CamperLog").assertDoesNotExist()
+
+            compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+            compose.waitForIdle()
+            compose.onNodeWithText("Willkommen bei CamperLog").assertExists()
+
+            compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+            compose.waitForIdle()
+            compose.onNodeWithText("Willkommen bei CamperLog").assertDoesNotExist()
+            compose.onNodeWithText("Weiter").assertDoesNotExist()
         } finally {
             clearPreferences()
         }
