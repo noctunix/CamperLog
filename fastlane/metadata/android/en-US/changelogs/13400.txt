@@ -1,0 +1,2 @@
+• New: the introduction tour now also shows statistics and the map – using the example tour, without internet and without loading map tiles
+• Improved: the example tour no longer counts in the statistics and exchange rates
