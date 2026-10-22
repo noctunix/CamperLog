@@ -34,7 +34,6 @@ import app.restvolt.camperlog.domain.TourRepository
 import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
-import app.restvolt.camperlog.domain.shouldIncludeFilesInAutoBackup
 import app.restvolt.camperlog.share.CsvVocabulary
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -224,15 +223,13 @@ class DataViewModel(
         } else {
             ShareRequest.Backup(files.writeBackupExport(json))
         }
-        onBackupSaved(clock())
-        null
+        DataMessage.Text(R.string.backup_share_prepared)
     }
 
     /**
      * Schreibt eine neue, zeitgestempelte Sicherung in den gewählten Sicherungsordner [folderUri]; als
-     * ZIP, sofern [includeFilesOverride] das vorgibt, sonst nach der Standardregel - solange die
-     * Gesamtgröße unter [app.restvolt.camperlog.domain.AUTO_BACKUP_FILES_SIZE_LIMIT_BYTES] bleibt, sonst
-     * als reines JSON. Ist der Ordner nicht mehr zugreifbar, meldet [DataMessage.Text] mit
+     * ZIP einschließlich Anhängen, außer [includeFilesOverride] schließt sie ausdrücklich aus.
+     * Ist der Ordner nicht mehr zugreifbar, meldet [DataMessage.Text] mit
      * [R.string.data_backup_folder_failed], ohne [onBackupSaved] aufzurufen.
      */
     fun backUpToFolder(folderUri: String, includeFilesOverride: Boolean? = null) = launchTask(R.string.backup_failed) {
@@ -242,7 +239,7 @@ class DataViewModel(
         } else {
             val backup = currentBackup()
             val json = withContext(background) { encodeBackup(backup) }
-            val includeFiles = includeFilesOverride ?: shouldIncludeFilesInAutoBackup(backupZipSizeEstimate(json, backup.attachments))
+            val includeFiles = includeFilesOverride ?: true
             val written = if (includeFiles) {
                 folderWriter.writeTimestampedBackupZip(folderUri, zipWriter(json, backup))
             } else {

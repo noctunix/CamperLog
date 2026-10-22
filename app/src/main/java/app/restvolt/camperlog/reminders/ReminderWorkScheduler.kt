@@ -41,3 +41,12 @@ class AndroidReminderWorkScheduler(private val context: Context) : ReminderWorkS
         WorkManager.getInstance(context).cancelUniqueWork(REMINDER_WORK_NAME)
     }
 }
+
+/** Hält den gemeinsamen Job aktiv, solange Benachrichtigungen oder automatische Sicherungen ihn brauchen. */
+internal fun updateReminderWork(context: Context, scheduler: ReminderWorkScheduler) {
+    val notifications = context.getSharedPreferences("notifications", Context.MODE_PRIVATE)
+    val backup = context.getSharedPreferences("backup", Context.MODE_PRIVATE)
+    val automaticBackup = backup.getBoolean("auto_backup_to_folder", false) &&
+        backup.getString("folder_uri", null) != null && backup.getInt("reminder_weeks", 4) > 0
+    if (notifications.getBoolean("enabled", false) || automaticBackup) scheduler.enqueue() else scheduler.cancel()
+}

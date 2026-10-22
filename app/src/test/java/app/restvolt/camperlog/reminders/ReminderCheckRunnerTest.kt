@@ -177,6 +177,39 @@ class ReminderCheckRunnerTest {
         assertEquals(0, notifier.backupOverdueCalls)
     }
 
+    @Test
+    fun automaticBackupRunsWithoutNotifications_andRetriesAfterAnAlreadyNotifiedFailure() = runBlocking {
+        val vehicles = FakeVehicleRepository(initial = listOf(defaultVehicle(id = 1).copy(nextInspectionDate = DUE_SOON)))
+        val folderWriter = FakeBackupFolderWriter(accessible = true)
+        val (runner, notifier) = runner(vehicles, folderWriter = folderWriter)
+        val backup = BackupReminderInput(null, 4, Instant.EPOCH, true, "content://folder")
+
+        val outcome = runner.run(TODAY, NOW, LEAD_DAYS, OIL_INTERVAL_MONTHS, backup, notificationsEnabled = false)
+
+        assertEquals(NOW, outcome.backupWrittenAt)
+        assertEquals(1, folderWriter.written.size)
+        assertTrue(notifier.reminderCalls.isEmpty())
+        assertEquals(0, notifier.backupOverdueCalls)
+    }
+
+    @Test
+    fun failedZipNeverFallsBackToADataOnlyBackup() = runBlocking {
+        val folderWriter = object : BackupFolderWriter {
+            override fun isAccessible(folderUri: String) = true
+            override fun folderDisplayName(folderUri: String) = "Ordner"
+            override suspend fun writeTimestampedBackup(folderUri: String, json: String): String? = error("Keine Teilsicherung")
+            override suspend fun writeTimestampedBackupZip(folderUri: String, writeZip: (java.io.OutputStream) -> Unit): String? = null
+        }
+        val notifier = FakeReminderNotifier()
+        val runner = ReminderCheckRunner(
+            FakeVehicleRepository(), FakeVehicleDocumentRepository(), FakeReminderNotificationStore(), FakeDocumentReminderNotificationStore(),
+            notifier, folderWriter, buildBackupPayload = { BackupPayload("{}", {}) },
+        )
+        val outcome = runner.run(TODAY, NOW, LEAD_DAYS, OIL_INTERVAL_MONTHS, BackupReminderInput(null, 4, null, true, "content://folder"))
+        assertNull(outcome.backupWrittenAt)
+        assertEquals(1, notifier.backupOverdueCalls)
+    }
+
     private fun document(
         id: Long,
         vehicleId: Long,

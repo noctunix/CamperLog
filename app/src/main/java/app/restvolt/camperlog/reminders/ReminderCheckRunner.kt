@@ -11,6 +11,7 @@ import app.restvolt.camperlog.domain.dueReminders
 import app.restvolt.camperlog.domain.pendingDocumentReminderNotifications
 import app.restvolt.camperlog.domain.pendingReminderNotifications
 import app.restvolt.camperlog.domain.shouldNotifyBackupOverdue
+import app.restvolt.camperlog.domain.isBackupOverdue
 import java.time.Instant
 import java.time.LocalDate
 
@@ -48,7 +49,8 @@ class ReminderCheckRunner(
     private val folderWriter: BackupFolderWriter,
     private val buildBackupPayload: suspend () -> BackupPayload,
 ) {
-    suspend fun run(today: LocalDate, now: Instant, leadDays: Int, oilIntervalMonths: Int, backup: BackupReminderInput): ReminderCheckOutcome {
+    suspend fun run(today: LocalDate, now: Instant, leadDays: Int, oilIntervalMonths: Int, backup: BackupReminderInput, notificationsEnabled: Boolean = true): ReminderCheckOutcome {
+        if (!notificationsEnabled) return checkBackup(now, backup, notificationsEnabled = false)
         val allVehicles = vehicles.allVehicles()
         val documentsByVehicle = documents.allDocuments().groupBy { it.vehicleId }
         val pending = mutableListOf<ReminderNotification>()
@@ -73,8 +75,8 @@ class ReminderCheckRunner(
         return checkBackup(now, backup)
     }
 
-    private suspend fun checkBackup(now: Instant, backup: BackupReminderInput): ReminderCheckOutcome {
-        if (!shouldNotifyBackupOverdue(backup.lastBackupAt, backup.reminderWeeks, now, backup.lastNotifiedBackupBaseline)) {
+    private suspend fun checkBackup(now: Instant, backup: BackupReminderInput, notificationsEnabled: Boolean = true): ReminderCheckOutcome {
+        if (!isBackupOverdue(backup.lastBackupAt, backup.reminderWeeks, now)) {
             return ReminderCheckOutcome()
         }
         val baseline = backupNotificationBaseline(backup.lastBackupAt)
@@ -83,15 +85,21 @@ class ReminderCheckRunner(
             folderWriter.isAccessible(folderUri) &&
             run {
                 val payload = buildBackupPayload()
-                val writtenName = payload.writeZip?.let { folderWriter.writeTimestampedBackupZip(folderUri, it) }
-                    ?: folderWriter.writeTimestampedBackup(folderUri, payload.json)
+                val writeZip = payload.writeZip
+                val writtenName = if (writeZip != null) {
+                    folderWriter.writeTimestampedBackupZip(folderUri, writeZip)
+                } else {
+                    folderWriter.writeTimestampedBackup(folderUri, payload.json)
+                }
                 writtenName != null
             }
         return if (wroteAutomatically) {
             ReminderCheckOutcome(backupWrittenAt = now, backupNotifiedBaseline = baseline)
-        } else {
+        } else if (notificationsEnabled && shouldNotifyBackupOverdue(backup.lastBackupAt, backup.reminderWeeks, now, backup.lastNotifiedBackupBaseline)) {
             notifier.notifyBackupOverdue()
             ReminderCheckOutcome(backupNotifiedBaseline = baseline)
+        } else {
+            ReminderCheckOutcome()
         }
     }
 }

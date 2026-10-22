@@ -1155,7 +1155,7 @@
 
     <!-- Daten-Screen: Dateien in die automatische Sicherung einschließen -->
     <string name="data_backup_auto_include_files_title">Fotos und Dokumente einschließen</string>
-    <string name="data_backup_auto_include_files_support">Sichert auch Foto- und Dokumentdateien, nicht nur die Daten. Ab einer großen Sicherung standardmäßig aus.</string>
+    <string name="data_backup_auto_include_files_support">Sichert auch Foto- und Dokumentdateien. Die Auswahl gilt auch für „Jetzt sichern“ und bleibt bei wachsender Sicherung erhalten.</string>
 
     <!-- Bordbuch-Verlauf: Fotos je Eintrag -->
     <string name="logbook_entry_photos_action">Fotos</string>
@@ -1412,4 +1412,5 @@
     <string name="shortcut_breakdown_long">Panne &amp; Unfall: Hilfe</string>
     <string name="shortcut_running_tour_short">Laufende Tour</string>
     <string name="shortcut_running_tour_long">Laufende Tour öffnen</string>
+    <string name="backup_share_prepared">Zum Teilen vorbereitet. Erst das Schreiben in eine Datei oder einen Sicherungsordner bestätigt eine Sicherung; beim Teilen ist die externe Kopie nicht überprüfbar.</string>
 </resources>

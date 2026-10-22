@@ -5,12 +5,10 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import app.restvolt.camperlog.CamperLogApp
 import app.restvolt.camperlog.backup.BackupPayload
-import app.restvolt.camperlog.backup.backupZipSizeEstimate
 import app.restvolt.camperlog.backup.buildBackup
 import app.restvolt.camperlog.backup.encodeBackup
 import app.restvolt.camperlog.backup.writeBackupZip
 import app.restvolt.camperlog.data.AndroidBackupFolderWriter
-import app.restvolt.camperlog.domain.shouldIncludeFilesInAutoBackup
 import app.restvolt.camperlog.ui.data.BackupSettings
 import app.restvolt.camperlog.ui.settings.NotificationSettings
 import app.restvolt.camperlog.ui.theme.ReminderSettings
@@ -26,7 +24,6 @@ class ReminderCheckWorker(appContext: Context, params: WorkerParameters) : Corou
 
     override suspend fun doWork(): Result {
         val notificationSettings = NotificationSettings(applicationContext)
-        if (!notificationSettings.enabled) return Result.success()
 
         val app = applicationContext as CamperLogApp
         val reminderSettings = ReminderSettings(applicationContext)
@@ -47,8 +44,7 @@ class ReminderCheckWorker(appContext: Context, params: WorkerParameters) : Corou
                     app.homeLocations, Instant.now(),
                 )
                 val json = encodeBackup(backup)
-                val includeFiles = backupSettings.autoBackupIncludeFilesOverride
-                    ?: shouldIncludeFilesInAutoBackup(backupZipSizeEstimate(json, backup.attachments))
+                val includeFiles = backupSettings.autoBackupIncludeFilesOverride ?: true
                 val writeZip: ((OutputStream) -> Unit)? = if (includeFiles) {
                     { output ->
                         writeBackupZip(output, json, backup.attachments, includeFiles = true) { fileName ->
@@ -66,6 +62,7 @@ class ReminderCheckWorker(appContext: Context, params: WorkerParameters) : Corou
             now = Instant.now(),
             leadDays = reminderSettings.reminderLeadDays,
             oilIntervalMonths = reminderSettings.oilChangeIntervalMonths,
+            notificationsEnabled = notificationSettings.enabled,
             backup = BackupReminderInput(
                 lastBackupAt = prefs.lastBackupAt,
                 reminderWeeks = prefs.reminderWeeks,

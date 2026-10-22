@@ -37,8 +37,8 @@ fun backupZipSizeEstimate(json: String, attachments: List<BackupAttachment>): Lo
  * Schreibt [json] und, sofern [includeFiles], die Dateien der eindeutigen [attachments] als ZIP nach
  * [output], jede unter ihrem menschenlesbaren [BackupAttachment.zipPath]. [fileContent] liefert den
  * Dateiinhalt über den internen [app.restvolt.camperlog.domain.Attachment.fileName] (nicht den
- * ZIP-Pfad) oder `null`, wenn die Datei fehlt - das lässt den Export nicht scheitern, ihr Eintrag
- * fehlt dann einfach in der ZIP-Datei.
+ * ZIP-Pfad) oder `null`, wenn die Datei fehlt. Fehlende Dateien brechen eine angeforderte
+ * vollständige Sicherung ab, damit eine Teilsicherung keinen Erfolg meldet.
  */
 fun writeBackupZip(
     output: OutputStream,
@@ -55,7 +55,9 @@ fun writeBackupZip(
             val written = HashSet<String>()
             for (backupAttachment in attachments) {
                 if (!written.add(backupAttachment.zipPath)) continue
-                fileContent(backupAttachment.attachment.fileName)?.use { input ->
+                val content = fileContent(backupAttachment.attachment.fileName)
+                    ?: throw java.io.IOException("Anhangsdatei fehlt")
+                content.use { input ->
                     zip.putNextEntry(ZipEntry(backupAttachment.zipPath))
                     input.copyTo(zip)
                     zip.closeEntry()

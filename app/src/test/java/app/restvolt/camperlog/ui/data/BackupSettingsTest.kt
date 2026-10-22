@@ -1,6 +1,8 @@
 package app.restvolt.camperlog.ui.data
 
 import android.content.Context
+import app.restvolt.camperlog.reminders.ReminderWorkScheduler
+import app.restvolt.camperlog.ui.settings.NotificationSettings
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -14,6 +16,13 @@ import java.time.Instant
 @Config(sdk = [35])
 class BackupSettingsTest {
 
+    private class Scheduler : ReminderWorkScheduler {
+        var enqueueCalls = 0
+        var cancelCalls = 0
+        override fun enqueue() { enqueueCalls++ }
+        override fun cancel() { cancelCalls++ }
+    }
+
     private val context get() = ApplicationProvider.getApplicationContext<Context>()
 
     private fun clear() {
@@ -21,10 +30,30 @@ class BackupSettingsTest {
     }
 
     @Test
+    fun automaticBackupKeepsWorkingWithoutNotifications() {
+        clear()
+        context.getSharedPreferences("notifications", Context.MODE_PRIVATE).edit().clear().commit()
+        val scheduler = Scheduler()
+        val settings = BackupSettings(context, scheduler)
+        settings.folderUri = "content://folder"
+        settings.autoBackupToFolder = true
+        val before = scheduler.enqueueCalls
+        val notifications = NotificationSettings(context, scheduler)
+        notifications.enabled = false
+        assertEquals(before + 1, scheduler.enqueueCalls)
+        val reloadedScheduler = Scheduler()
+        BackupSettings(context, reloadedScheduler)
+        assertEquals(1, reloadedScheduler.enqueueCalls)
+        settings.autoBackupToFolder = false
+        assertEquals(2, scheduler.cancelCalls)
+        clear()
+    }
+
+    @Test
     fun defaults() {
         clear()
         try {
-            val settings = BackupSettings(context)
+            val settings = BackupSettings(context, Scheduler())
 
             assertEquals(DEFAULT_BACKUP_REMINDER_WEEKS, settings.reminderWeeks)
             assertNull(settings.lastBackupAt)
@@ -41,16 +70,16 @@ class BackupSettingsTest {
     fun autoBackupIncludeFilesOverride_persistsTrueAndFalseAndClearsToNull() {
         clear()
         try {
-            val settings = BackupSettings(context)
+            val settings = BackupSettings(context, Scheduler())
 
             settings.autoBackupIncludeFilesOverride = false
-            assertEquals(false, BackupSettings(context).autoBackupIncludeFilesOverride)
+            assertEquals(false, BackupSettings(context, Scheduler()).autoBackupIncludeFilesOverride)
 
             settings.autoBackupIncludeFilesOverride = true
-            assertEquals(true, BackupSettings(context).autoBackupIncludeFilesOverride)
+            assertEquals(true, BackupSettings(context, Scheduler()).autoBackupIncludeFilesOverride)
 
             settings.autoBackupIncludeFilesOverride = null
-            assertNull(BackupSettings(context).autoBackupIncludeFilesOverride)
+            assertNull(BackupSettings(context, Scheduler()).autoBackupIncludeFilesOverride)
         } finally {
             clear()
         }
@@ -61,7 +90,7 @@ class BackupSettingsTest {
         clear()
         try {
             val at = Instant.parse("2026-10-06T08:15:30.123Z")
-            val settings = BackupSettings(context)
+            val settings = BackupSettings(context, Scheduler())
 
             settings.reminderWeeks = 8
             settings.folderUri = "content://folder"
@@ -69,7 +98,7 @@ class BackupSettingsTest {
             settings.lastBackupAt = at
             settings.lastNotifiedBackupBaseline = at
 
-            val reloaded = BackupSettings(context)
+            val reloaded = BackupSettings(context, Scheduler())
             assertEquals(8, reloaded.reminderWeeks)
             assertEquals("content://folder", reloaded.folderUri)
             assertEquals(true, reloaded.values.value.autoBackupToFolder)
@@ -84,7 +113,7 @@ class BackupSettingsTest {
     fun recordBackupMade_setsLastBackupAt() {
         clear()
         try {
-            val settings = BackupSettings(context)
+            val settings = BackupSettings(context, Scheduler())
             val at = Instant.parse("2026-10-06T08:15:30Z")
 
             settings.recordBackupMade(at)
@@ -99,12 +128,12 @@ class BackupSettingsTest {
     fun settingFolderUriToNull_clearsIt() {
         clear()
         try {
-            val settings = BackupSettings(context)
+            val settings = BackupSettings(context, Scheduler())
             settings.folderUri = "content://folder"
 
             settings.folderUri = null
 
-            assertNull(BackupSettings(context).folderUri)
+            assertNull(BackupSettings(context, Scheduler()).folderUri)
         } finally {
             clear()
         }

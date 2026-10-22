@@ -49,7 +49,6 @@ import app.restvolt.camperlog.backup.BackupError
 import app.restvolt.camperlog.backup.BackupReadResult
 import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.data.BackupFolderWriter
-import app.restvolt.camperlog.domain.shouldIncludeFilesInAutoBackup
 import app.restvolt.camperlog.domain.shouldShowBackupReminderCard
 import app.restvolt.camperlog.domain.formatByteSize
 import app.restvolt.camperlog.share.BACKUP_MIME
@@ -108,6 +107,9 @@ fun DataScreen(
                     folder,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
                 )
+                if (backupSettings.autoBackupIncludeFilesOverride == null) {
+                    backupSettings.autoBackupIncludeFilesOverride = true
+                }
                 backupSettings.folderUri = folder.toString()
             } catch (_: SecurityException) {
                 // Berechtigung nicht dauerhaft erhältlich; der Ordner bleibt unverändert.
@@ -171,31 +173,6 @@ fun DataScreen(
         ) {
             if (shouldShowBackupReminderCard(notificationsEnabled, backupPrefs.lastBackupAt, backupPrefs.reminderWeeks, Instant.now())) {
                 item { BackupOverdueCard() }
-            }
-            item {
-                SectionCard {
-                    SectionTitle(stringResource(R.string.data_csv_title))
-                    Text(
-                        stringResource(R.string.data_csv_description),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    val defaultVehicleName = stringResource(R.string.vehicle_default_name)
-                    OutlinedButton(
-                        onClick = { viewModel.exportCsv(defaultVehicleName) },
-                        enabled = !busy,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.tours_export_csv))
-                    }
-                    OutlinedButton(
-                        onClick = { viewModel.exportStationsCsv(defaultVehicleName) },
-                        enabled = !busy,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.stations_export_csv))
-                    }
-                }
             }
             item {
                 SectionCard {
@@ -292,15 +269,37 @@ fun DataScreen(
                             checked = backupPrefs.autoBackupToFolder,
                             onCheckedChange = { backupSettings.autoBackupToFolder = it },
                         )
-                        if (backupPrefs.autoBackupToFolder) {
-                            val defaultIncludeFiles = backupSize?.let(::shouldIncludeFilesInAutoBackup) ?: true
-                            SwitchSettingRow(
-                                title = stringResource(R.string.data_backup_auto_include_files_title),
-                                supportingText = stringResource(R.string.data_backup_auto_include_files_support),
-                                checked = backupPrefs.autoBackupIncludeFilesOverride ?: defaultIncludeFiles,
-                                onCheckedChange = { backupSettings.autoBackupIncludeFilesOverride = it },
-                            )
-                        }
+                        SwitchSettingRow(
+                            title = stringResource(R.string.data_backup_auto_include_files_title),
+                            supportingText = stringResource(R.string.data_backup_auto_include_files_support),
+                            checked = backupPrefs.autoBackupIncludeFilesOverride ?: true,
+                            onCheckedChange = { backupSettings.autoBackupIncludeFilesOverride = it },
+                        )
+                    }
+                }
+            }
+            item {
+                SectionCard {
+                    SectionTitle(stringResource(R.string.data_csv_title))
+                    Text(
+                        stringResource(R.string.data_csv_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    val defaultVehicleName = stringResource(R.string.vehicle_default_name)
+                    OutlinedButton(
+                        onClick = { viewModel.exportCsv(defaultVehicleName) },
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.tours_export_csv))
+                    }
+                    OutlinedButton(
+                        onClick = { viewModel.exportStationsCsv(defaultVehicleName) },
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.stations_export_csv))
                     }
                 }
             }
