@@ -4,23 +4,50 @@ import app.restvolt.camperlog.R
 
 /** Id und Version des Rundgangs durch die Hauptbereiche; startet einmalig nach der Ersteinrichtung. */
 const val INTRODUCTION_TOUR_ID = "tour.introduction"
-const val INTRODUCTION_TOUR_VERSION = 2
+const val INTRODUCTION_TOUR_VERSION = 3
 
-/** Rundgang über die vier Hauptreiter (Touren, Bordbuch, Fahrzeug) und den Daten-Button. */
+/**
+ * Rundgang für Einsteiger: Begriffe (Tour, Station, Bordbuch), die vier Reiter samt Stationsarten,
+ * Checklisten und der Daten-Button. Er wechselt die Reiter nicht selbst, sondern hebt jeweils den
+ * Reiter hervor, über den die Karte spricht.
+ */
 fun introductionTour() = TourDefinition(
     id = INTRODUCTION_TOUR_ID,
     version = INTRODUCTION_TOUR_VERSION,
     steps = listOf(
-        TourStep("welcome", "nav.tab.tours", R.string.title_intro_welcome, R.string.body_intro_welcome, StepCompletion.Information),
+        TourStep("welcome", null, R.string.title_intro_welcome, R.string.body_intro_welcome, StepCompletion.Information),
+        TourStep("tours", "nav.tab.tours", R.string.title_intro_tours, R.string.body_intro_tours, StepCompletion.Information),
+        TourStep("stations", "nav.tab.stations", R.string.title_intro_stations, R.string.body_intro_stations, StepCompletion.Information),
+        TourStep(
+            "station-types-trip", "nav.tab.stations",
+            R.string.title_intro_station_types_trip, R.string.body_intro_station_types_trip, StepCompletion.Information,
+        ),
+        TourStep(
+            "station-types-extras", "nav.tab.stations",
+            R.string.title_intro_station_types_extras, R.string.body_intro_station_types_extras, StepCompletion.Information,
+        ),
         TourStep("logbook", "nav.tab.logbook", R.string.title_intro_logbook, R.string.body_intro_logbook, StepCompletion.Information),
         TourStep("vehicle", "nav.tab.vehicle", R.string.title_intro_vehicle, R.string.body_intro_vehicle, StepCompletion.Information),
-        TourStep("data", "nav.data", R.string.title_intro_data, R.string.body_intro_data, StepCompletion.Information),
+        TourStep("checklists", "nav.tab.vehicle", R.string.title_intro_checklists, R.string.body_intro_checklists, StepCompletion.Information),
+        TourStep(
+            "statistics", "overview.totals", R.string.title_intro_statistics, R.string.body_intro_statistics,
+            StepCompletion.Information, GuideScreen.DEMO_STATISTICS,
+        ),
+        TourStep(
+            "map", "map.view", R.string.title_intro_map, R.string.body_intro_map,
+            StepCompletion.Information, GuideScreen.DEMO_MAP,
+        ),
+        TourStep(
+            "data", "nav.data", R.string.title_intro_data, R.string.body_intro_data,
+            StepCompletion.Information, GuideScreen.TOURS_ROOT,
+        ),
+        TourStep("start", "tours.fab.add", R.string.title_intro_start, R.string.body_intro_start, StepCompletion.Information),
     ),
 )
 
 /** Id und Version der Pilot-Tour "Erste Tour anlegen". */
 const val CREATE_FIRST_TOUR_ID = "tour.create-first"
-const val CREATE_FIRST_TOUR_VERSION = 2
+const val CREATE_FIRST_TOUR_VERSION = 3
 
 /** Aktion, die den FAB-Schritt von [CREATE_FIRST_TOUR_ID] beim echten Klick auf den FAB freischaltet. */
 const val CREATE_FIRST_TOUR_FAB_ACTION = "tour.fab.clicked"
@@ -75,8 +102,6 @@ fun createFirstTourTour(
             R.string.guide_step_fab_body,
             StepCompletion.Action(CREATE_FIRST_TOUR_FAB_ACTION),
         ),
-        TourStep("name", "edit.tour.name", R.string.field_name, R.string.guide_step_name_body, StepCompletion.Information),
-        TourStep("tourtype", "edit.tour.tourtype", R.string.field_tour_type, R.string.guide_step_tourtype_body, StepCompletion.Information),
         if (offerVehicleCreation) {
             TourStep(
                 "vehicle",
@@ -88,6 +113,9 @@ fun createFirstTourTour(
         } else {
             TourStep("vehicle", "edit.tour.vehicle", R.string.field_vehicle, R.string.guide_step_vehicle_body, StepCompletion.Information)
         },
+        TourStep("name", "edit.tour.name", R.string.field_name, R.string.guide_step_name_body, StepCompletion.Information),
+        TourStep("destination", "edit.tour.destination", R.string.field_destination, R.string.guide_step_destination_body, StepCompletion.Information),
+        TourStep("tourtype", "edit.tour.tourtype", R.string.field_tour_type, R.string.guide_step_tourtype_body, StepCompletion.Information),
         TourStep("period", "edit.tour.period", R.string.edit_section_period, R.string.guide_step_period_body, StepCompletion.Information),
         TourStep(
             "track-switch",

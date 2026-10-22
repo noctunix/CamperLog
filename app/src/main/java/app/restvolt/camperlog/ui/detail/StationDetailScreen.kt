@@ -58,6 +58,8 @@ import app.restvolt.camperlog.domain.formatAmount
 import app.restvolt.camperlog.domain.formatCoordinates
 import app.restvolt.camperlog.domain.formatDate
 import app.restvolt.camperlog.domain.formatKwh
+import app.restvolt.camperlog.domain.formatLiters
+import app.restvolt.camperlog.domain.fuelPricePerLiter
 import app.restvolt.camperlog.share.openInMaps
 import app.restvolt.camperlog.share.tryStart
 import app.restvolt.camperlog.ui.BackTopBar
@@ -212,6 +214,18 @@ private fun StationDetails(
             connectivityText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
             boardAndAmenitiesText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
             servicesText(station)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
+            station.fuelLiters?.let {
+                Text(
+                    stringResource(R.string.station_summary_field, stringResource(R.string.field_fuel_liters), formatLiters(it, locale)),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            fuelPricePerLiter(station, locale)?.let {
+                Text(
+                    stringResource(R.string.station_summary_field, stringResource(R.string.station_fuel_price_per_liter), it),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
             station.weather?.let { WeatherSummary(it) }
             station.rating?.let { RatingDisplay(it) }
             station.odometerKm?.let { Text(stringResource(R.string.distance_km, it), style = MaterialTheme.typography.bodyLarge) }
@@ -264,12 +278,6 @@ private fun StationDetails(
                         )
                     }
                 }
-                if (station.tollPaymentMethod.isNotBlank()) {
-                    Text(
-                        stringResource(R.string.station_summary_field, stringResource(R.string.field_toll_payment_method), station.tollPaymentMethod),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                }
             }
         }
         if (station.type == StationType.FERRY && station.ferryBookingReference.isNotBlank()) {
@@ -282,7 +290,7 @@ private fun StationDetails(
             }
         }
         val costs = station.effectiveCosts()
-        if (costs.isNotEmpty()) {
+        if (costs.isNotEmpty() || station.paymentMethod.isNotBlank()) {
             SectionCard {
                 DetailHeading(stringResource(R.string.station_section_costs))
                 costs.sortedBy { it.category.ordinal }.forEach { cost ->
@@ -290,6 +298,12 @@ private fun StationDetails(
                     val valueText = if (cost.note.isBlank()) amountText else "$amountText · ${cost.note}"
                     Text(
                         stringResource(R.string.station_summary_field, stringResource(cost.category.labelRes), valueText),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+                if (station.paymentMethod.isNotBlank()) {
+                    Text(
+                        stringResource(R.string.station_summary_field, stringResource(R.string.field_payment_method), station.paymentMethod),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
@@ -315,7 +329,7 @@ private fun StationDetails(
 
 /** Fünf Camper-Symbole, gefüllt bis [rating]; nur lesend, eine Sprechform für alle fünf zusammen. */
 @Composable
-private fun RatingDisplay(rating: Int) {
+internal fun RatingDisplay(rating: Int) {
     val description = stringResource(R.string.station_rating_content_description, rating)
     Row(modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = description }) {
         (1..5).forEach { value ->

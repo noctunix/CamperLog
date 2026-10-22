@@ -11,7 +11,7 @@ import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.quickSupplyService
-import app.restvolt.camperlog.domain.stationAfterRemovingQuickSupply
+import app.restvolt.camperlog.domain.removeLinkedLogEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -71,10 +71,7 @@ class LogHistoryViewModel(
     private suspend fun deleteLinkedStationService(entry: LogEntry): Station? {
         val stationId = entry.stationId ?: run { logs.delete(entry.id); return null }
         val station = stations.observeStation(stationId).first() ?: run { logs.delete(entry.id); return null }
-        val service = checkNotNull(quickSupplyService(entry.type)) { "Ein stationsverknüpfter Eintrag muss einen synchronisierten Typ haben" }
-        val updated = stationAfterRemovingQuickSupply(station, service)
-        stations.save(updated ?: station.copy(services = station.services - service))
-        if (updated == null) stations.delete(stationId)
+        removeLinkedLogEntry(stations, logs, station, entry)
         return station
     }
 
@@ -101,6 +98,9 @@ class LogHistoryViewModel(
     private suspend fun restoreLinkedStationService(station: Station, entry: LogEntry) {
         if (stations.observeStation(station.id).first() == null) {
             stations.restore(station)
+            logs.restore(entry)
+        } else if (quickSupplyService(entry.type) == null) {
+            // Typ-synchronisierter Eintrag (Tanken): die Station blieb unverändert bestehen
             logs.restore(entry)
         } else {
             logs.restore(entry.copy(stationId = null))

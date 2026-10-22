@@ -1073,7 +1073,7 @@ class MigrationTest {
     }
 
     @Test
-    fun migration30To31AddsWifiExpenseFlagWithFalseDefault() = runTest {
+    fun migration30To33AddsFuelLitersAndWifiExpenseFlag() = runTest {
         createVersion30(
             "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
                 "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
@@ -1090,13 +1090,16 @@ class MigrationTest {
             val station = RoomStationRepository(db, RoomLogRepository(db)).allStations().single()
             assertEquals(Money(500, EUR), station.wifiCost)
             assertEquals(false, station.wifiCostIsExpense)
+            assertNull(station.fuelLiters)
+            RoomStationRepository(db, RoomLogRepository(db)).save(station.copy(fuelLiters = java.math.BigDecimal("42.35")))
+            assertEquals(java.math.BigDecimal("42.35"), RoomStationRepository(db, RoomLogRepository(db)).allStations().single().fuelLiters)
         } finally {
             db.close()
         }
     }
 
     @Test
-    fun migration31To32CreatesDurableFormDraftStore() = runTest {
+    fun migration30To33CreatesDurableFormDraftStore() = runTest {
         createVersion30()
 
         val db = CamperLogDatabase.open(context)
@@ -1175,15 +1178,7 @@ class MigrationTest {
         "CREATE UNIQUE INDEX IF NOT EXISTS `index_home_locations_uuid` ON `home_locations` (`uuid`)",
     )
 
-    /** Legt `camperlog.db` im Stand von Version 29 nach `schemas/…/29.json` an und füllt sie mit [inserts]. */
-    private fun createVersion29(vararg inserts: String) = createDatabase(
-        version = 29,
-        identityHash = "9ba17e455276fe16f4907822d535c21d",
-        schema = createVersion29Schema,
-        inserts = inserts.toList(),
-    )
-
-    /** Legt `camperlog.db` im Stand von Version 30 an und füllt sie mit [inserts]. */
+    /** Legt `camperlog.db` im Stand von Version 30 nach `schemas/…/30.json` an (Version 29 plus die fünf neuen Stations-Spalten) und füllt sie mit [inserts]. */
     private fun createVersion30(vararg inserts: String) = createDatabase(
         version = 30,
         identityHash = "20698f2d3feb32e66de8512e8051cbc7",
@@ -1194,6 +1189,14 @@ class MigrationTest {
             "ALTER TABLE `stations` ADD COLUMN `board_type` TEXT",
             "ALTER TABLE `stations` ADD COLUMN `lodging_amenities` TEXT NOT NULL DEFAULT ''",
         ),
+        inserts = inserts.toList(),
+    )
+
+    /** Legt `camperlog.db` im Stand von Version 29 nach `schemas/…/29.json` an und füllt sie mit [inserts]. */
+    private fun createVersion29(vararg inserts: String) = createDatabase(
+        version = 29,
+        identityHash = "9ba17e455276fe16f4907822d535c21d",
+        schema = createVersion29Schema,
         inserts = inserts.toList(),
     )
 

@@ -300,7 +300,7 @@ class ReadmeScreenshots {
                 tollCountry = "AT",
                 tollValidFrom = LocalDate.of(2026, 7, 1),
                 tollValidUntil = LocalDate.of(2027, 1, 31),
-                tollPaymentMethod = "Online",
+                paymentMethod = "Online",
                 costs = listOf(StationCost(CostCategory.TOLL, Money(96_80, EUR))),
                 createdAt = Instant.parse("2026-07-06T09:00:00Z"),
                 updatedAt = Instant.parse("2026-07-06T09:00:00Z"),

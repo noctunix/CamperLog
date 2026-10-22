@@ -113,7 +113,6 @@
         <item quantity="one">%1$d stop</item>
         <item quantity="other">%1$d stops</item>
     </plurals>
-    <string name="tours_empty">No tours yet. Tap “New tour” to add your first trip.</string>
     <string name="tours_no_match">No tours match your search and filters.</string>
     <string name="tours_deleted">“%1$s” deleted</string>
     <string name="tours_undo">Undo</string>
@@ -419,6 +418,19 @@
         <item quantity="one">%1$d track point imported</item>
         <item quantity="other">%1$d track points imported</item>
     </plurals>
+    <string name="import_preview_payment_methods">Also contains %1$s for the station form.</string>
+    <plurals name="import_payment_methods">
+        <item quantity="one">%1$d payment method</item>
+        <item quantity="other">%1$d payment methods</item>
+    </plurals>
+    <plurals name="import_done_payment_methods">
+        <item quantity="one">%1$d payment method in the list</item>
+        <item quantity="other">%1$d payment methods in the list</item>
+    </plurals>
+    <plurals name="import_skipped_payment_methods">
+        <item quantity="one">%1$d payment method not imported (list is full)</item>
+        <item quantity="other">%1$d payment methods not imported (list is full)</item>
+    </plurals>
     <string name="import_running">Restoring backup…</string>
     <string name="data_working">Working…</string>
     <string name="import_failed">Restore failed. Nothing was changed.</string>
@@ -623,6 +635,9 @@
     <string name="log_type_diesel_heater_run">Diesel heater run</string>
     <string name="log_type_gas_heater_run">Gas heater run</string>
     <string name="log_type_gas_bottle_swapped">Gas bottle swapped</string>
+    <string name="log_type_fueled">Fueled</string>
+    <string name="log_type_gas_bottle_switched">Gas bottle switched over</string>
+    <string name="log_type_gas_bottle_refilled">Gas bottle refilled</string>
     <string name="logbook_today">Today</string>
     <string name="logbook_yesterday">Yesterday</string>
     <plurals name="logbook_days_ago">
@@ -640,6 +655,9 @@
     <string name="logbook_entry_deleted">Entry deleted</string>
     <string name="logbook_delete_failed">Could not delete entry.</string>
     <string name="logbook_restore_failed">Could not restore entry.</string>
+    <string name="logbook_entry_facts_action">Show details of this entry</string>
+    <string name="logbook_facts_none">No further details for this entry.</string>
+    <string name="logbook_facts_costs">Costs</string>
     <string name="logbook_history_empty">No entries yet.</string>
     <string name="logbook_entry_station">%1$s · %2$s</string>
 
@@ -702,13 +720,29 @@
 
     <!-- Introduction tour -->
     <string name="title_intro_welcome">Welcome to CamperLog</string>
-    <string name="body_intro_welcome">A tour is your whole journey, from starting it until you end it. Stops are the individual visits and overnight stays within that tour. CamperLog uses them to calculate travel days, nights, distance, and your costs.\n\nWhile a tour is ongoing, you can optionally start its GPS track. It records your route only after you start it, stays on this device, and can be stopped or deleted anytime.\n\nPin a checklist template to see it here as a quick start.</string>
+    <string name="body_intro_welcome">CamperLog is your travel diary for your motorhome. It revolves around three things:\n\n• Tour: your whole trip, for example \"Lake Garda 2026\".\n• Stop: every stop along the way, such as an overnight stay, a filling station or a toll.\n• Logbook: jobs on the vehicle, such as emptying the cassette or running the heater.\n\nFrom these CamperLog calculates travel days, nights, distance and costs.</string>
+    <string name="title_intro_tours">Tours</string>
+    <string name="body_intro_tours">All your tours live here, ongoing and finished. Tap \"+\" to create a new one. While a tour is ongoing, you can optionally start its GPS track. It records your route only after you start it, stays on this device, and can be stopped or deleted anytime.</string>
+    <string name="title_intro_stations">Stops</string>
+    <string name="body_intro_stations">The Stops tab shows every stop from all your tours at a glance. You add new stops inside the tour they belong to. Each stop can have a date, a place, costs and notes.</string>
+    <string name="title_intro_station_types_trip">Stop kinds: on the road</string>
+    <string name="body_intro_station_types_trip">• Overnight: campsite, pitch or wild camping.\n• Water &amp; waste: fill up fresh water, empty grey water, empty the cassette.\n• Fuel &amp; charging: diesel, gas or electricity, with amount and costs.</string>
+    <string name="title_intro_station_types_extras">Stop kinds: extras</string>
+    <string name="body_intro_station_types_extras">• Toll: motorway, tunnel or vignette, with country and validity.\n• Ferry\n• Food\n• Sightseeing\n• Other: for anything that fits nowhere else.</string>
     <string name="title_intro_logbook">Logbook</string>
-    <string name="body_intro_logbook">One tap on \"Today\" records the cassette, grey water or heater – right when you empty or run it.</string>
+    <string name="body_intro_logbook">The Logbook tab is where you record what happens on the vehicle. One tap on \"Today\" records the cassette, grey water, gas bottle or heater – right when you empty, swap or run it. Supply and fuel stops from a stop land here automatically.</string>
     <string name="title_intro_vehicle">Vehicle</string>
-    <string name="body_intro_vehicle">Keep a data sheet and maintenance dates, with in-app reminders when something is due. CamperLog also handles several vehicles. It also has checklist templates (e.g. departure or winterizing) you can edit and pin to the tours tab for a quick start.</string>
+    <string name="body_intro_vehicle">Keep a data sheet and maintenance dates, with in-app reminders when something is due. CamperLog also handles several vehicles.</string>
+    <string name="title_intro_checklists">Checklists</string>
+    <string name="body_intro_checklists">On the Vehicle tab you find checklist templates, for example for departure or winterizing. You can edit them and tick items off. Pin a template to the Tours tab to have it there as a quick start.</string>
+    <string name="title_intro_statistics">Statistics</string>
+    <string name="body_intro_statistics">The statistics add up distances, nights and costs of all your tours, by year and by country. Here you see the example tour only; your real tours appear once you have recorded them.</string>
+    <string name="title_intro_map">Map</string>
+    <string name="body_intro_map">Every tour has a map with its stops and, if you record one, the driven track. Here it is shown without the map background, so nothing is loaded from the internet. On your own tours the map tiles are fetched from OpenStreetMap when you open the map.</string>
     <string name="title_intro_data">Your data</string>
     <string name="body_intro_data">Your tours, stops and vehicle data stay on this device. No account, no ads, no analytics. Location and internet stay off until you turn them on. Make backups anytime via Data.</string>
+    <string name="title_intro_start">Let\'s go</string>
+    <string name="body_intro_start">Tap New tour to log your first trip. A short guide walks you through the form.</string>
     <string name="title_intro_settings">Settings</string>
     <string name="body_intro_settings">Pick an appearance and how early reminders should show up. You can change both later anytime in Settings.</string>
     <string name="btn_intro_skip">Skip</string>
@@ -888,7 +922,17 @@
     <string name="field_toll_country">Country</string>
     <string name="field_toll_valid_from">Valid from</string>
     <string name="field_toll_valid_until">Valid until</string>
-    <string name="field_toll_payment_method">Payment method</string>
+    <string name="field_payment_method">Payment method</string>
+    <string name="payment_method_credit_card">Credit card</string>
+    <string name="payment_method_cash">Cash</string>
+    <string name="payment_method_debit_card">Debit card</string>
+    <string name="payment_method_paypal">PayPal</string>
+    <string name="settings_payment_methods">Payment methods</string>
+    <string name="settings_payment_methods_hint">Suggestions for the payment method of a stop. Any text is still allowed there.</string>
+    <string name="settings_payment_methods_add">New payment method</string>
+    <string name="settings_payment_methods_add_action">Add</string>
+    <string name="settings_payment_methods_remove">Remove %1$s</string>
+    <string name="settings_payment_methods_reset">Restore defaults</string>
     <string name="field_ferry_booking_reference">Booking reference</string>
     <string name="field_rating">Rating</string>
     <string name="field_manual_temperature">Temperature (°C)</string>
@@ -907,6 +951,7 @@
     <string name="field_electricity_meter_start">Meter start (kWh)</string>
     <string name="field_electricity_meter_end">Meter end (kWh)</string>
     <string name="field_electricity_kwh_used">kWh used</string>
+    <string name="field_fuel_liters">Liters</string>
     <string name="electricity_input_mode_meter">Meter readings</string>
     <string name="electricity_input_mode_direct">kWh directly</string>
     <string name="electricity_result_value">≈ %1$s</string>
@@ -963,6 +1008,7 @@
         <item quantity="other">%1$d features selected</item>
     </plurals>
     <string name="station_date_outside_tour">Outside the tour dates (%1$s)</string>
+    <string name="station_fuel_price_per_liter">Price per liter</string>
     <string name="station_summary_field">%1$s: %2$s</string>
     <string name="station_summary_none">–</string>
     <string name="cd_expand_section">Show \"%1$s\" section</string>
@@ -1217,7 +1263,6 @@
     </plurals>
     <string name="checklist_picker_title">Choose a template</string>
     <string name="checklist_manage_templates_action">Manage templates</string>
-    <string name="checklist_picker_empty">No templates yet.</string>
     <string name="checklist_vehicle_empty">No checklists yet.</string>
     <string name="checklist_templates_action">Templates</string>
     <string name="vehicle_checklists_open">Open checklists</string>
@@ -1388,7 +1433,8 @@
     <string name="guide_resume">Resume</string>
     <string name="guide_end">End</string>
     <string name="guide_step_fab_body">Tap here to start a new tour.</string>
-    <string name="guide_step_name_body">Enter the tour\'s name or destination here.</string>
+    <string name="guide_step_name_body">Give the tour a name, for example "Lake Garda 2026".</string>
+    <string name="guide_step_destination_body">Where is the trip going? This is optional and helps you recognise the tour later.</string>
     <string name="guide_step_tourtype_body">Choose what kind of trip this is – it shows up in lists and filters.</string>
     <string name="guide_step_vehicle_body">This tour is assigned to this vehicle; pick a different one here if you have more than one.</string>
     <string name="guide_step_vehicle_create_body">You don\'t have a vehicle yet. Tap here to add one – you can fill in the details later.</string>
@@ -1417,8 +1463,11 @@
     <string name="demo_vehicle_name">Sample camper</string>
     <string name="demo_tour_destination">Alpine loop</string>
     <string name="demo_station_1_name">Lakeside pitch</string>
-    <string name="demo_station_2_name">Mountain pass stop</string>
-    <string name="demo_station_3_name">Forest campsite</string>
+    <string name="demo_station_2_name">Fresh water at the harbour</string>
+    <string name="demo_station_3_name">Filling station</string>
+    <string name="demo_station_4_name">Mountain tunnel</string>
+    <string name="demo_station_5_name">Mountain pass viewpoint</string>
+    <string name="demo_station_6_name">Forest campsite</string>
 
     <!-- Launcher shortcuts -->
     <string name="shortcut_new_tour_short">New tour</string>

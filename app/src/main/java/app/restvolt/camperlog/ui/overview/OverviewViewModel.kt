@@ -42,17 +42,18 @@ class OverviewViewModel(
     stations: StationRepository,
     countryLookup: CountryLookupRepository,
     vehicleId: Long? = null,
+    demo: Boolean = false,
 ) : ViewModel() {
 
     /** Länder je Jahr der Startdaten aller Touren von [vehicleId] (alle Fahrzeuge, wenn `null`); siehe [tourCountriesByYear]. */
     private val countriesByYear = combine(repository.observeTours(), stations.observeForVehicle(vehicleId)) { tours, allStations ->
         val stationsByTourId = allStations.mapNotNull { station -> station.tourId?.let { it to station } }.groupBy({ it.first }, { it.second })
-        tours.filter { vehicleId == null || it.vehicleId == vehicleId } to stationsByTourId
+        tours.filter { (vehicleId == null || it.vehicleId == vehicleId) && it.isDemo == demo } to stationsByTourId
     }.map { (tours, stationsByTourId) -> tourCountriesByYear(tours, stationsByTourId, countryLookup) }
 
     val uiState: StateFlow<OverviewUiState> = combine(
-        repository.observeTotals(vehicleId),
-        repository.observeYearTotals(vehicleId),
+        repository.observeTotals(vehicleId, demo),
+        repository.observeYearTotals(vehicleId, demo),
         exchangeRates.observeMainCurrency(),
         exchangeRates.observeRates(),
         countriesByYear,

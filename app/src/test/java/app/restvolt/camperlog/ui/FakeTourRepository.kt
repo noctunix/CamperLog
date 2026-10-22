@@ -101,19 +101,24 @@ class FakeTourRepository(
 
     private fun Tour.withVehicle() = if (vehicleId == 0L) copy(vehicleId = currentVehicleId()) else this
 
-    private fun List<Tour>.filterByVehicle(vehicleId: Long?) = filter { vehicleId == null || it.vehicleId == vehicleId }
+    private fun List<Tour>.filterByVehicle(vehicleId: Long?, demo: Boolean) =
+        filter { (vehicleId == null || it.vehicleId == vehicleId) && it.isDemo == demo }
 
-    private fun stationsForVehicle(vehicleId: Long?): Flow<List<Station>> =
-        stations?.observeForVehicle(vehicleId) ?: flowOf(emptyList())
-
-    override fun observeTotals(vehicleId: Long?): Flow<TourTotals> =
-        combine(state, stationsForVehicle(vehicleId)) { list, stationList ->
-            totalsOf(list.filterByVehicle(vehicleId), stationList)
+    /** Stations of the tours matching [demo]; stations without a tour count as real. */
+    private fun stationsForVehicle(vehicleId: Long?, demo: Boolean): Flow<List<Station>> =
+        combine(state, stations?.observeForVehicle(vehicleId) ?: flowOf(emptyList())) { tours, stationList ->
+            val demoTourIds = tours.filter { it.isDemo }.map { it.id }.toSet()
+            stationList.filter { (it.tourId in demoTourIds) == demo }
         }
 
-    override fun observeYearTotals(vehicleId: Long?): Flow<List<YearTotals>> =
-        combine(state, stationsForVehicle(vehicleId)) { list, stationList ->
-            val toursByYear = list.filterByVehicle(vehicleId).groupBy { it.year }
+    override fun observeTotals(vehicleId: Long?, demo: Boolean): Flow<TourTotals> =
+        combine(state, stationsForVehicle(vehicleId, demo)) { list, stationList ->
+            totalsOf(list.filterByVehicle(vehicleId, demo), stationList)
+        }
+
+    override fun observeYearTotals(vehicleId: Long?, demo: Boolean): Flow<List<YearTotals>> =
+        combine(state, stationsForVehicle(vehicleId, demo)) { list, stationList ->
+            val toursByYear = list.filterByVehicle(vehicleId, demo).groupBy { it.year }
             val stationsByYear = stationList.groupBy { it.date.year }
             (toursByYear.keys + stationsByYear.keys).sortedDescending()
                 .map { year -> YearTotals(year, totalsOf(toursByYear[year].orEmpty(), stationsByYear[year].orEmpty())) }

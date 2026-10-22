@@ -60,10 +60,11 @@ class RoomStationRepositoryTest {
         date: LocalDate = LocalDate.of(2026, 7, 4),
         services: Set<StationService> = emptySet(),
         vehicleId: Long = this.vehicleId,
+        type: StationType = StationType.SUPPLY,
     ) = Station(
         id = id,
         vehicleId = vehicleId,
-        type = StationType.SUPPLY,
+        type = type,
         date = date,
         services = services,
         createdAt = Instant.EPOCH,
@@ -94,6 +95,18 @@ class RoomStationRepositoryTest {
         stations.save(station(services = setOf(StationService.GREY_WATER)))
 
         assertEquals(LogType.GREY_WATER_EMPTIED, logs.allEntries().single().type)
+    }
+
+    @Test
+    fun resavingAFuelStationWithoutLinkedEntry_createsTheMissingEntry() = runTest {
+        val id = stations.save(station(type = StationType.FUEL))
+        logs.delete(logs.allEntries().single().id)
+
+        stations.save(station(id = id, type = StationType.FUEL))
+
+        val entry = logs.allEntries().single()
+        assertEquals(LogType.FUELED, entry.type)
+        assertEquals(id, entry.stationId)
     }
 
     @Test

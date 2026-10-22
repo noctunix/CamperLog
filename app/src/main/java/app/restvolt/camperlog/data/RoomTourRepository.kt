@@ -93,16 +93,16 @@ class RoomTourRepository(
 
     override suspend fun lastUsedCurrency(): Currency? = dao.lastUsedCurrency()?.let(Currency::getInstance)
 
-    override fun observeTotals(vehicleId: Long?): Flow<TourTotals> =
-        combine(dao.observeTotals(vehicleId), dao.observeCostSums(vehicleId), stationDao.observeForVehicle(vehicleId)) { totals, sums, stationRows ->
+    override fun observeTotals(vehicleId: Long?, demo: Boolean): Flow<TourTotals> =
+        combine(dao.observeTotals(vehicleId, demo), dao.observeCostSums(vehicleId, demo), stationDao.observeForTotals(vehicleId, demo)) { totals, sums, stationRows ->
             val stations = stationRows.map(StationWithCosts::toDomain)
             val tourCosts = sums.map(CostSumRow::toDomain)
             val costs = (tourCosts + stations.stationCostTotals()).sumByCurrency()
             totals.toDomain(costs, stations.costsByCategory())
         }
 
-    override fun observeYearTotals(vehicleId: Long?): Flow<List<YearTotals>> =
-        combine(dao.observeYearTotals(vehicleId), dao.observeYearCostSums(vehicleId), stationDao.observeForVehicle(vehicleId)) { years, sums, stationRows ->
+    override fun observeYearTotals(vehicleId: Long?, demo: Boolean): Flow<List<YearTotals>> =
+        combine(dao.observeYearTotals(vehicleId, demo), dao.observeYearCostSums(vehicleId, demo), stationDao.observeForTotals(vehicleId, demo)) { years, sums, stationRows ->
             val stationsByYear = stationRows.map(StationWithCosts::toDomain).groupBy { it.date.year }
             val tourCostsByYear = sums.groupBy(YearCostSumRow::year) { Money(it.amountMinor, Currency.getInstance(it.currency)) }
             val stationCostsByYear = stationsByYear.mapValues { (_, stations) -> stations.stationCostTotals() }

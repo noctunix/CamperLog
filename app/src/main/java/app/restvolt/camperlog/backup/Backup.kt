@@ -21,6 +21,7 @@ import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.HomeLocation
+import app.restvolt.camperlog.domain.sanitizePaymentMethods
 import app.restvolt.camperlog.domain.LATITUDE_RANGE
 import app.restvolt.camperlog.domain.LONGITUDE_RANGE
 import app.restvolt.camperlog.domain.LegacyPitchFields
@@ -33,6 +34,7 @@ import app.restvolt.camperlog.domain.MAX_DIMENSION_CM
 import app.restvolt.camperlog.domain.MAX_DISPLACEMENT_CC
 import app.restvolt.camperlog.domain.MAX_ELECTRICITY_COINS
 import app.restvolt.camperlog.domain.MAX_ELECTRICITY_KWH
+import app.restvolt.camperlog.domain.MAX_FUEL_LITERS
 import app.restvolt.camperlog.domain.MAX_FERRY_BOOKING_REFERENCE_LENGTH
 import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
 import app.restvolt.camperlog.domain.MAX_POWER_KW
@@ -46,7 +48,7 @@ import app.restvolt.camperlog.domain.MAX_STATION_NOTES_LENGTH
 import app.restvolt.camperlog.domain.MAX_STATION_PLACE_LENGTH
 import app.restvolt.camperlog.domain.MAX_TANK_L
 import app.restvolt.camperlog.domain.MAX_TIRE_PRESSURE_BAR
-import app.restvolt.camperlog.domain.MAX_TOLL_PAYMENT_METHOD_LENGTH
+import app.restvolt.camperlog.domain.MAX_PAYMENT_METHOD_LENGTH
 import app.restvolt.camperlog.domain.MAX_WEIGHT_KG
 import app.restvolt.camperlog.domain.Money
 import app.restvolt.camperlog.domain.PitchSlope
@@ -96,7 +98,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 24
+const val BACKUP_SCHEMA_VERSION = 26
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -176,7 +178,8 @@ private val MAX_INSTANT = Instant.parse("2199-12-31T00:00:00Z")
  * Metadaten, nur ohne die zugehörigen Dateien im ZIP. [diaryEntries] enthält alle Tagebucheinträge
  * (Formatversion 8); fehlt in älteren Sicherungen. [checklistTemplates] und [checklists]
  * (Formatversion 9) fehlen ebenfalls in älteren Sicherungen, genau wie [tracks] (Formatversion 10)
- * und [homeLocations] (Formatversion 22).
+ * und [homeLocations] (Formatversion 22). [paymentMethods] ist die konfigurierbare Zahlungsarten-Liste
+ * (Formatversion 25); `null` heißt, die Sicherung enthält keine (ältere Version), die lokale Liste bleibt dann unberührt.
  */
 data class Backup(
     val exportedAt: Instant,
@@ -197,6 +200,7 @@ data class Backup(
     val checklists: List<BackupChecklist> = emptyList(),
     val tracks: List<BackupTrack> = emptyList(),
     val homeLocations: List<HomeLocation> = emptyList(),
+    val paymentMethods: List<String>? = null,
 )
 
 /** Ein Fahrzeug einer Sicherung mit seinen Reparaturen und Bordbuch-Einträgen. */
@@ -308,6 +312,7 @@ fun encodeBackup(backup: Backup): String = json.encodeToString(
         checklists = backup.checklists.map { json.encodeToJsonElement(ChecklistDto.serializer(), it.toDto()) },
         tracks = backup.tracks.map { json.encodeToJsonElement(TrackDto.serializer(), it.toDto()) },
         homeLocations = backup.homeLocations.map { json.encodeToJsonElement(HomeLocationDto.serializer(), it.toDto()) },
+        paymentMethods = backup.paymentMethods,
     ),
 )
 
@@ -497,12 +502,16 @@ private fun BackupDto.toBackup(): BackupReadResult {
     val decodedStations = stations.mapIndexed { index, element ->
         val stationNumber = index + 1
         val hasWifiExpenseFlag = (element as? JsonObject)?.containsKey("wifiCostIsExpense") == true
-        if ((schemaVersion < 24 && hasWifiExpenseFlag) || (schemaVersion >= 24 && !hasWifiExpenseFlag)) {
+        val wifiExpenseSupported = schemaVersion >= 26 || (schemaVersion == 24 && hasWifiExpenseFlag)
+        if ((schemaVersion < 24 && hasWifiExpenseFlag) || (schemaVersion == 25 && hasWifiExpenseFlag) ||
+            (schemaVersion >= 26 && !hasWifiExpenseFlag)
+        ) {
             return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
         }
         val dto = decodeJson(StationDto.serializer(), element)
             ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
-        val station = dto.toStation(schemaVersion) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
+        val station = dto.toStation(schemaVersion, wifiExpenseSupported)
+            ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
         if (!seenStationUuids.add(station.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
         val vehicleUuid = parseUuid(dto.vehicleUuid) ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, stationNumber = stationNumber)
         if (backupVehicles.none { it.vehicle.uuid == vehicleUuid }) {
@@ -586,6 +595,9 @@ private fun BackupDto.toBackup(): BackupReadResult {
         }
         location
     }
+
+    // Zahlungsarten: streng wie beim Speichern (getrimmt, nicht leer, nicht zu lang, ohne Dubletten).
+    if (paymentMethods != null && sanitizePaymentMethods(paymentMethods) != paymentMethods) return invalid
 
     if (checklists.size > MAX_CHECKLISTS) return invalid
     val seenChecklistUuids = HashSet<String>()
@@ -683,6 +695,7 @@ private fun BackupDto.toBackup(): BackupReadResult {
             checklists = backupChecklists,
             tracks = backupTracks,
             homeLocations = backupHomeLocations,
+            paymentMethods = paymentMethods,
         ),
     )
 }
@@ -1061,7 +1074,7 @@ private fun parseTime(text: String): LocalTime? = runCatching { LocalTime.parse(
 private fun parseLocalDateTime(text: String): LocalDateTime? =
     runCatching { LocalDateTime.parse(text) }.getOrNull()?.takeIf { it.toLocalDate() in MIN_DATE..MAX_DATE }
 
-private fun StationDto.toStation(schemaVersion: Int): Station? {
+private fun StationDto.toStation(schemaVersion: Int, wifiExpenseSupported: Boolean): Station? {
     val uuid = parseUuid(uuid) ?: return null
     val stationType = enumOrNull<StationType>(type) ?: return null
     val stationDate = parseDate(date) ?: return null
@@ -1159,14 +1172,18 @@ private fun StationDto.toStation(schemaVersion: Int): Station? {
         if (billing == null) return null
         parseKwh(it, MAX_ELECTRICITY_KWH) ?: return null
     }
+    val fuelLitersValue = fuelLiters?.let {
+        if (stationType != StationType.FUEL) return null
+        parseKwh(it, MAX_FUEL_LITERS) ?: return null
+    }
 
     if (stationType != StationType.TOLL) {
-        if (tollKind != null || tollPaymentMethod.isNotEmpty() || tollCountry != null || tollValidFrom != null || tollValidUntil != null) {
+        if (tollKind != null || tollCountry != null || tollValidFrom != null || tollValidUntil != null) {
             return null
         }
     }
     val tollKindValue = tollKind?.let { enumOrNull<TollKind>(it) ?: return null }
-    if (tollPaymentMethod.length > MAX_TOLL_PAYMENT_METHOD_LENGTH) return null
+    if (paymentMethod.length > MAX_PAYMENT_METHOD_LENGTH) return null
     val tollCountryValue = tollCountry?.let { if (it in ALL_COUNTRY_CODES) it else return null }
     val tollValidFromValue = tollValidFrom?.let { parseDate(it) ?: return null }
     val tollValidUntilValue = tollValidUntil?.let {
@@ -1179,7 +1196,7 @@ private fun StationDto.toStation(schemaVersion: Int): Station? {
     if (ferryBookingReference.length > MAX_FERRY_BOOKING_REFERENCE_LENGTH) return null
 
     if (costs.size > MAX_COSTS_PER_STATION) return null
-    val stationCosts = costs.map { it.toStationCost(schemaVersion) ?: return null }
+    val stationCosts = costs.map { it.toStationCost(wifiExpenseSupported) ?: return null }
     if (stationCosts.map { it.category to it.amount.currency }.distinct().size != stationCosts.size) return null
 
     val allowed = stationType.allowedServices
@@ -1232,8 +1249,9 @@ private fun StationDto.toStation(schemaVersion: Int): Station? {
         electricityMeterStart = meterStartValue,
         electricityMeterEnd = meterEndValue,
         electricityKwhUsed = kwhUsedValue,
+        fuelLiters = fuelLitersValue,
         tollKind = tollKindValue,
-        tollPaymentMethod = tollPaymentMethod,
+        paymentMethod = paymentMethod,
         tollCountry = tollCountryValue,
         tollValidFrom = tollValidFromValue,
         tollValidUntil = tollValidUntilValue,
@@ -1264,9 +1282,9 @@ private fun String.toMoneyWith(currency: Currency): Money? {
     return Money(reading.minor, currency)
 }
 
-private fun StationCostDto.toStationCost(schemaVersion: Int): StationCost? {
+private fun StationCostDto.toStationCost(wifiExpenseSupported: Boolean): StationCost? {
     val categoryValue = enumOrNull<CostCategory>(category) ?: return null
-    if (categoryValue == CostCategory.WIFI && schemaVersion < 24) return null
+    if (categoryValue == CostCategory.WIFI && !wifiExpenseSupported) return null
     val currencyValue = parseCurrency(currency) ?: return null
     val money = amount.toMoneyWith(currencyValue) ?: return null
     if (note.length > MAX_NOTES_LENGTH) return null
@@ -1553,8 +1571,9 @@ private fun Station.toDto(vehicleUuid: String, tourUuid: String?) = StationDto(
     electricityMeterStart = electricityMeterStart?.stripTrailingZeros()?.toPlainString(),
     electricityMeterEnd = electricityMeterEnd?.stripTrailingZeros()?.toPlainString(),
     electricityKwhUsed = electricityKwhUsed?.stripTrailingZeros()?.toPlainString(),
+    fuelLiters = fuelLiters?.stripTrailingZeros()?.toPlainString(),
     tollKind = tollKind?.name,
-    tollPaymentMethod = tollPaymentMethod,
+    paymentMethod = paymentMethod,
     tollCountry = tollCountry,
     tollValidFrom = tollValidFrom?.toString(),
     tollValidUntil = tollValidUntil?.toString(),

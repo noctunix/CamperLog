@@ -1,6 +1,8 @@
 package app.restvolt.camperlog.ui.guide
 
 import androidx.compose.foundation.verticalScroll
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -70,6 +72,11 @@ fun GuideHost(controller: GuideController, modifier: Modifier = Modifier) {
     val anchors by LocalGuideAnchors.current.anchors.collectAsStateWithLifecycle()
     var hostOffset by remember { mutableStateOf(Offset.Zero) }
     val density = LocalDensity.current
+
+    // Information steps: system back goes one step back, or ends the tour at the first step.
+    BackHandler(enabled = state.phase == GuidePhase.ACTIVE) {
+        if (state.stepIndex > 0) controller.back() else controller.end()
+    }
 
     BoxWithConstraints(
         modifier

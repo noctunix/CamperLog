@@ -97,6 +97,7 @@ import app.restvolt.camperlog.share.tryStart
 import app.restvolt.camperlog.ui.BackTopBar
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.iconRes
+import app.restvolt.camperlog.ui.guide.guideAnchor
 import app.restvolt.camperlog.ui.labelRes
 import kotlin.math.abs
 import kotlin.math.ln
@@ -124,13 +125,10 @@ private val TrackDotColor = MapTrackColor
 private val TrackLabelColor = Color(0xFF3E2318)
 
 /**
- * Eigene Compose-Slippy-Map einer Tour oder des Stationen-Reiters: Kachelraster mit
- * Ziehen/Kneifzoom/Doppeltipp, Zoomtasten, Einpassen, Markern und gestrichelten Verbindungen in
- * chronologischer Reihenfolge, sowie die Stationsliste im Bottom Sheet als vollwertige
- * barrierefreie Alternative. Ein aufgezeichneter [track] erscheint je Segment als durchgezogene
- * Linie mit einzelnen Fix-Punkten und, soweit Platz ist, Zeit-Labels. Solange der Nutzer die
- * Karte nicht bewegt hat, passt sie sich neu ein, wenn Stationen oder Trackpunkte (auch
- * verspätet geladen) hinzukommen.
+ * Compose slippy map of a tour or the stations tab: tile grid with pan/pinch/double-tap, zoom
+ * buttons, fit-to-content, markers and dashed chronological connections, plus an accessible
+ * station list in a bottom sheet. A recorded [track] is drawn per segment as a solid line.
+ * Re-fits on new stations or track points until the user moves the map. With [offline] no tiles are requested.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -141,6 +139,7 @@ fun MapScreen(
     onBack: () -> Unit,
     onOpenStation: (Long) -> Unit,
     track: List<TrackPoint> = emptyList(),
+    offline: Boolean = false,
 ) {
     val located = remember(stations) { stationsForMap(stations) }
     val trackPointSegments = remember(track) { trackPointsForMap(track) }
@@ -179,7 +178,7 @@ fun MapScreen(
             )
         },
     ) { padding ->
-        BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(padding).guideAnchor("map.view")) {
             val viewportWidthPx = with(density) { maxWidth.roundToPx() }
             val viewportHeightPx = with(density) { maxHeight.roundToPx() }
             val paddingPx = with(density) { FIT_BOUNDS_PADDING.roundToPx() }
@@ -197,7 +196,7 @@ fun MapScreen(
             val currentCamera = camera
             if (currentCamera != null && viewportWidthPx > 0 && viewportHeightPx > 0) {
                 LaunchedEffect(currentCamera, viewportWidthPx, viewportHeightPx) {
-                    viewModel.setVisibleTiles(visibleTiles(currentCamera, viewportWidthPx, viewportHeightPx).toSet())
+                    if (!offline) viewModel.setVisibleTiles(visibleTiles(currentCamera, viewportWidthPx, viewportHeightPx).toSet())
                 }
 
                 MapCanvas(
@@ -250,7 +249,7 @@ fun MapScreen(
                     )
                 }
 
-                AttributionChip(modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp))
+                if (!offline) AttributionChip(modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp))
 
                 val selectedStation = located.firstOrNull { it.id == selectedStationId }
                 if (selectedStation != null) {

@@ -63,10 +63,13 @@ import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.HomeLocationRepository
+import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.guide.DemoTourSession
 import app.restvolt.camperlog.domain.guide.GuideController
 import app.restvolt.camperlog.domain.guide.GuidePhase
+import app.restvolt.camperlog.domain.guide.GuideScreen
+import app.restvolt.camperlog.domain.guide.INTRODUCTION_TOUR_ID
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Station
@@ -166,9 +169,9 @@ internal data class EditRoute(val tourId: Long = 0)
 @Serializable
 internal data class DetailRoute(val tourId: Long)
 
-/** Karte der Stationen einer Tour; nur erreichbar, wenn [isMapAvailable] zutrifft. */
+/** [offline] suppresses all tile requests. */
 @Serializable
-internal data class TourMapRoute(val tourId: Long)
+internal data class TourMapRoute(val tourId: Long, val offline: Boolean = false)
 
 /** Tagebuchformular; [entryId] 0 legt einen neuen Eintrag an. */
 @Serializable
@@ -224,9 +227,9 @@ internal data class StationDetailRoute(
     val justSavedLoggedServices: List<String>? = null,
 )
 
-/** [vehicleId] `null` zeigt die Kennzahlen aller Fahrzeuge, sonst nur die von [vehicleId]. */
+/** [demo] shows only the walkthrough's demo tour. */
 @Serializable
-internal data class OverviewRoute(val vehicleId: Long? = null)
+internal data class OverviewRoute(val vehicleId: Long? = null, val demo: Boolean = false)
 
 @Serializable
 internal object RatesRoute
@@ -278,6 +281,7 @@ internal class NavDependencies(
     val backupFolderWriter: AndroidBackupFolderWriter,
     val homeLocationSettings: HomeLocationSettings,
     val homeLocations: HomeLocationRepository,
+    val paymentMethods: PaymentMethodRepository,
     val guideController: GuideController,
     val guideProgressStore: GuideProgressStore,
     val demoTourSession: DemoTourSession,
@@ -348,6 +352,8 @@ fun CamperLogNavHost(
     tracks: TrackRepository = (LocalContext.current.applicationContext as CamperLogApp).tracks,
     /** Heimatadressen-Historie für den Schalter "Beginnt zu Hause"; in Tests ein Fake. */
     homeLocations: HomeLocationRepository = (LocalContext.current.applicationContext as CamperLogApp).homeLocations,
+    /** Konfigurierbare Zahlungsarten (Einstellungen, Vorschläge im Stationsformular); in Tests ein Fake. */
+    paymentMethods: PaymentMethodRepository = (LocalContext.current.applicationContext as CamperLogApp).paymentMethods,
     /** Lokales Diagnoseprotokoll; in Tests ein Fake. */
     diagnosticsLog: DiagnosticsLogRepository = (LocalContext.current.applicationContext as CamperLogApp).diagnosticsLog,
     /** Schalter für die ausführlichen Diagnose-Einträge; dieselbe Instanz wie [TrackRecordingService], damit beide synchron bleiben. */
@@ -406,10 +412,39 @@ fun CamperLogNavHost(
     val guideController = guideViewModel.controller
     val guideProgressStore = remember { GuideProgressStore(context) }
     val guideState by guideController.state.collectAsStateWithLifecycle()
+    LaunchedEffect(guideState.tour?.id, guideState.currentStep?.id, guideState.phase) {
+        val step = guideState.currentStep
+        if (guideState.tour?.id != INTRODUCTION_TOUR_ID || step == null) return@LaunchedEffect
+        if (guideState.phase == GuidePhase.IDLE || guideState.phase == GuidePhase.ENDED) return@LaunchedEffect
+        val destination = navController.currentBackStackEntry?.destination
+        val onDemoScreen = destination?.let { it.hasRoute<OverviewRoute>() || it.hasRoute<TourMapRoute>() || it.hasRoute<DetailRoute>() } == true
+        when (step.screen) {
+            GuideScreen.DEMO_STATISTICS -> if (destination?.hasRoute<OverviewRoute>() != true) {
+                resolvedDemoTourSession.ensure()
+                navController.navigate(OverviewRoute(demo = true)) {
+                    popUpTo(ToursRoute) { inclusive = false }
+                    launchSingleTop = true
+                }
+            }
+            GuideScreen.DEMO_MAP -> if (destination?.hasRoute<TourMapRoute>() != true) {
+                val demoTourId = resolvedDemoTourSession.ensure()
+                navController.navigate(DetailRoute(demoTourId)) {
+                    popUpTo(ToursRoute) { inclusive = false }
+                    launchSingleTop = true
+                }
+                navController.navigate(TourMapRoute(demoTourId, offline = true))
+            }
+            GuideScreen.TOURS_ROOT -> navController.navigateToToursTabRoot()
+            GuideScreen.UNCHANGED -> if (onDemoScreen) navController.navigateToToursTabRoot()
+        }
+    }
     LaunchedEffect(guideState.phase, guideState.tour?.id) {
         val tour = guideState.tour
         if (guideState.phase == GuidePhase.ENDED) {
             if (tour != null) guideProgressStore.markCompleted(tour.id, tour.version)
+            val onDemoScreen = navController.currentBackStackEntry?.destination
+                ?.let { it.hasRoute<OverviewRoute>() || it.hasRoute<TourMapRoute>() || it.hasRoute<DetailRoute>() } == true
+            if (tour?.id == INTRODUCTION_TOUR_ID && onDemoScreen) navController.navigateToToursTabRoot()
             // Deckt sowohl den erfolgreichen Abschluss als auch einen Abbruch der Pilot-Tour ab:
             // beide landen hier, egal ob die Demo-Tour dabei je angelegt wurde.
             resolvedDemoTourSession.end()
@@ -503,7 +538,7 @@ fun CamperLogNavHost(
         repository, vehicles, logbook, stations, exchangeRates, documents, diaryEntries, checklists, checklistTemplates,
         attachments, attachmentFileStore, backupImporter, locationProvider, weatherProvider, placeSearchProvider, tileLoader,
         countryLookup, attachmentPickers, tracks, reminderSettings, locationSettings, trackSettings, weatherSettings,
-        notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings, homeLocations, guideController, guideProgressStore,
+        notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings, homeLocations, paymentMethods, guideController, guideProgressStore,
         resolvedDemoTourSession, diagnosticsLog, diagnosticsLogSettings, formDraftStore,
     )
     NavHost(navController, startDestination = ToursRoute) {

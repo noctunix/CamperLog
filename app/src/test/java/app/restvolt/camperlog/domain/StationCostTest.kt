@@ -3,8 +3,10 @@ package app.restvolt.camperlog.domain
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant
+import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.Currency
+import java.util.Locale
 
 class StationCostTest {
 
@@ -156,5 +158,22 @@ class StationCostTest {
             updatedAt = Instant.EPOCH,
         )
         assertEquals(listOf(Money(1000, EUR)), tour.totalCosts(emptyList()))
+    }
+
+    @Test
+    fun fuelPricePerLiterDividesFuelCostByLiters() {
+        val fuel = station(StationType.FUEL, listOf(StationCost(CostCategory.FUEL, Money(7500, EUR))))
+            .copy(fuelLiters = BigDecimal("42.00"))
+        assertEquals("1,786\u00a0€/l", fuelPricePerLiter(fuel, Locale.GERMANY))
+    }
+
+    @Test
+    fun fuelPricePerLiterIsNullWithoutLitersOrFuelCostOrWithMixedCurrencies() {
+        val cost = StationCost(CostCategory.FUEL, Money(7500, EUR))
+        assertEquals(null, fuelPricePerLiter(station(StationType.FUEL, listOf(cost)), Locale.GERMANY))
+        assertEquals(null, fuelPricePerLiter(station(StationType.FUEL).copy(fuelLiters = BigDecimal("40")), Locale.GERMANY))
+        assertEquals(null, fuelPricePerLiter(station(StationType.FUEL, listOf(cost)).copy(fuelLiters = BigDecimal.ZERO), Locale.GERMANY))
+        val mixed = listOf(cost, StationCost(CostCategory.FUEL, Money(500, nok)))
+        assertEquals(null, fuelPricePerLiter(station(StationType.FUEL, mixed).copy(fuelLiters = BigDecimal("40")), Locale.GERMANY))
     }
 }

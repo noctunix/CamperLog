@@ -383,6 +383,32 @@ class RoomTourRepositoryTest {
     }
 
     @Test
+    fun totalsKeepTheDemoTourApartFromRealTours() = runTest {
+        val demoVehicleId = db.vehicleDao().insert(
+            VehicleEntity(uuid = "demo-vehicle", createdAtMillis = 0, updatedAtMillis = 0, isDemo = true),
+        )
+        repository.save(tour(start = "2026-05-01", km = 100, costs = listOf(eur(1_000))))
+        repository.save(tour(start = "2026-06-01", km = 500, costs = listOf(eur(7_000))).copy(vehicleId = demoVehicleId, isDemo = true))
+        stations.save(station(date = "2026-05-02", costs = listOf(StationCost(CostCategory.SUPPLY, eur(500)))))
+        stations.save(
+            station(date = "2026-06-02", costs = listOf(StationCost(CostCategory.SUPPLY, eur(900)))).copy(vehicleId = demoVehicleId),
+        )
+
+        val real = repository.observeTotals(null).first()
+        assertEquals(1, real.tours)
+        assertEquals(100, real.distanceKm)
+        assertEquals(listOf(eur(1_500)), real.costs)
+        assertEquals(listOf(2026), repository.observeYearTotals(null).first().map { it.year })
+        assertEquals(listOf(eur(1_500)), repository.observeYearTotals(null).first().single().totals.costs)
+
+        val demo = repository.observeTotals(null, demo = true).first()
+        assertEquals(1, demo.tours)
+        assertEquals(500, demo.distanceKm)
+        assertEquals(listOf(eur(7_900)), demo.costs)
+        assertEquals(listOf(eur(7_900)), repository.observeYearTotals(null, demo = true).first().single().totals.costs)
+    }
+
+    @Test
     fun totalsIncludeManualStationCostsOfStationsWithoutATour() = runTest {
         repository.save(tour(start = "2026-05-01", costs = listOf(eur(1_000))))
         stations.save(station(date = "2026-05-02", costs = listOf(StationCost(CostCategory.SUPPLY, eur(500)))))

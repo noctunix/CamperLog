@@ -26,6 +26,7 @@ import app.restvolt.camperlog.domain.ChecklistTemplateRepository
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.HomeLocationRepository
+import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.Station
@@ -123,6 +124,8 @@ class DataViewModel(
     private val background: CoroutineDispatcher = Dispatchers.IO,
     /** Vokabular der CSV-Exporte, nach der App-Sprache des Geräts. */
     private val vocabulary: () -> CsvVocabulary = { CsvVocabulary.fromLocale(Locale.getDefault()) },
+    /** Zahlungsarten-Liste für die Sicherung; `null` lässt sie weg. */
+    private val paymentMethods: PaymentMethodRepository? = null,
 ) : ViewModel() {
 
     private val _busy = MutableStateFlow(false)
@@ -296,7 +299,7 @@ class DataViewModel(
     private suspend fun currentBackup(): Backup =
         buildBackup(
             repository, exchangeRates, vehicles, logs, stations, documents, diaryEntries, checklistTemplates, checklists, tracks,
-            attachments, homeLocations, clock(),
+            attachments, homeLocations, clock(), paymentMethods,
         )
 
     /** Schreibt [json] und die Dateien der [backup]-Anhänge direkt in den gelieferten Ausgabestrom. */

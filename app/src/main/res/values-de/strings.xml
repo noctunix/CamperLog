@@ -113,7 +113,6 @@
         <item quantity="one">%1$d Station</item>
         <item quantity="other">%1$d Stationen</item>
     </plurals>
-    <string name="tours_empty">Noch keine Touren. Lege mit „Neue Tour“ die erste Fahrt an.</string>
     <string name="tours_no_match">Keine Tour passt zu Suche und Filter.</string>
     <string name="tours_deleted">„%1$s“ gelöscht</string>
     <string name="tours_undo">Rückgängig</string>
@@ -419,6 +418,19 @@
         <item quantity="one">%1$d Trackpunkt übernommen</item>
         <item quantity="other">%1$d Trackpunkte übernommen</item>
     </plurals>
+    <string name="import_preview_payment_methods">Enthält außerdem %1$s für das Stationsformular.</string>
+    <plurals name="import_payment_methods">
+        <item quantity="one">%1$d Zahlungsart</item>
+        <item quantity="other">%1$d Zahlungsarten</item>
+    </plurals>
+    <plurals name="import_done_payment_methods">
+        <item quantity="one">%1$d Zahlungsart in der Liste</item>
+        <item quantity="other">%1$d Zahlungsarten in der Liste</item>
+    </plurals>
+    <plurals name="import_skipped_payment_methods">
+        <item quantity="one">%1$d Zahlungsart nicht importiert (Liste ist voll)</item>
+        <item quantity="other">%1$d Zahlungsarten nicht importiert (Liste ist voll)</item>
+    </plurals>
     <string name="import_running">Sicherung wird eingespielt …</string>
     <string name="data_working">Wird verarbeitet …</string>
     <string name="import_failed">Einspielen fehlgeschlagen. Es wurde nichts geändert.</string>
@@ -623,6 +635,9 @@
     <string name="log_type_diesel_heater_run">Dieselheizung betrieben</string>
     <string name="log_type_gas_heater_run">Gasheizung betrieben</string>
     <string name="log_type_gas_bottle_swapped">Gasflasche gewechselt</string>
+    <string name="log_type_fueled">Getankt</string>
+    <string name="log_type_gas_bottle_switched">Gasflasche umgeschaltet</string>
+    <string name="log_type_gas_bottle_refilled">Gasflasche nachgefüllt</string>
     <string name="logbook_today">Heute</string>
     <string name="logbook_yesterday">Gestern</string>
     <plurals name="logbook_days_ago">
@@ -640,6 +655,9 @@
     <string name="logbook_entry_deleted">Eintrag gelöscht</string>
     <string name="logbook_delete_failed">Eintrag konnte nicht gelöscht werden.</string>
     <string name="logbook_restore_failed">Eintrag konnte nicht wiederhergestellt werden.</string>
+    <string name="logbook_entry_facts_action">Details zu diesem Eintrag anzeigen</string>
+    <string name="logbook_facts_none">Keine weiteren Angaben zu diesem Eintrag.</string>
+    <string name="logbook_facts_costs">Kosten</string>
     <string name="logbook_history_empty">Noch keine Einträge.</string>
     <string name="logbook_entry_station">%1$s · %2$s</string>
 
@@ -691,13 +709,29 @@
 
     <!-- Introduction tour -->
     <string name="title_intro_welcome">Willkommen bei CamperLog</string>
-    <string name="body_intro_welcome">Eine Tour ist deine gesamte Reise – vom Start bis zum Beenden. Stationen sind die einzelnen Stopps und Übernachtungen innerhalb dieser Tour. Daraus berechnet CamperLog Reisetage, Nächte, Strecke und deine Kosten.\n\nWährend eine Tour läuft, kannst du optional ihren GPS-Track starten. Er zeichnet deine Strecke erst nach deinem Start auf, bleibt auf diesem Gerät und lässt sich jederzeit stoppen oder löschen.\n\nPinne eine Checklisten-Vorlage an, um sie hier als Schnellstart zu sehen.</string>
+    <string name="body_intro_welcome">CamperLog ist dein Reisetagebuch fürs Wohnmobil. Es dreht sich um drei Dinge:\n\n• Tour: deine ganze Reise, zum Beispiel „Gardasee 2026“.\n• Station: jeder Stopp unterwegs, etwa Übernachtung, Tankstelle oder Maut.\n• Bordbuch: Aufgaben am Fahrzeug, etwa Kassette leeren oder Heizung laufen lassen.\n\nDaraus berechnet CamperLog Reisetage, Nächte, Strecke und Kosten.</string>
+    <string name="title_intro_tours">Touren</string>
+    <string name="body_intro_tours">Hier liegen alle deine Touren, laufende und beendete. Mit „+“ legst du eine neue an. Solange eine Tour läuft, kannst du optional ihren GPS-Track starten. Er zeichnet deine Strecke erst nach deinem Start auf, bleibt auf diesem Gerät und lässt sich jederzeit stoppen oder löschen.</string>
+    <string name="title_intro_stations">Stationen</string>
+    <string name="body_intro_stations">Im Reiter Stationen siehst du alle Stopps aus allen Touren auf einen Blick. Neue Stationen legst du in der jeweiligen Tour an. Jede Station kann Datum, Ort, Kosten und Notizen haben.</string>
+    <string name="title_intro_station_types_trip">Stationsarten: unterwegs</string>
+    <string name="body_intro_station_types_trip">• Schlafplatz: Campingplatz, Stellplatz oder frei stehen.\n• Ver-/Entsorgung: Frischwasser auffüllen, Grauwasser ablassen, Kassette leeren.\n• Tanken &amp; Laden: Diesel, Gas oder Strom, mit Menge und Kosten.</string>
+    <string name="title_intro_station_types_extras">Stationsarten: Extras</string>
+    <string name="body_intro_station_types_extras">• Maut: Autobahn, Tunnel oder Vignette, mit Land und Gültigkeit.\n• Fähre\n• Essen\n• Sehenswertes\n• Sonstiges: für alles, was nirgends sonst passt.</string>
     <string name="title_intro_logbook">Bordbuch</string>
-    <string name="body_intro_logbook">Ein Tipp auf „Heute“ trägt Kassette, Grauwasser oder Heizung ein – genau dann, wenn du sie leerst oder laufen lässt.</string>
+    <string name="body_intro_logbook">Im Reiter Bordbuch hältst du fest, was am Fahrzeug passiert. Ein Tipp auf „Heute“ trägt Kassette, Grauwasser, Gasflasche oder Heizung ein – genau dann, wenn du sie leerst, wechselst oder laufen lässt. Ver- und Entsorgung sowie Tanken aus einer Station landen hier automatisch.</string>
     <string name="title_intro_vehicle">Fahrzeug</string>
-    <string name="body_intro_vehicle">Führe ein Datenblatt und Wartungstermine mit Erinnerungen in der App. CamperLog verwaltet auch mehrere Fahrzeuge. Dort gibt es auch Checklisten-Vorlagen (z. B. Abfahrt oder Einwintern), die du bearbeiten und für den Schnellstart an den Touren-Tab anpinnen kannst.</string>
+    <string name="body_intro_vehicle">Führe ein Datenblatt und Wartungstermine mit Erinnerungen in der App. CamperLog verwaltet auch mehrere Fahrzeuge.</string>
+    <string name="title_intro_checklists">Checklisten</string>
+    <string name="body_intro_checklists">Im Reiter Fahrzeug findest du Checklisten-Vorlagen, zum Beispiel für die Abfahrt oder zum Einwintern. Du kannst sie bearbeiten und abhaken. Pinne eine Vorlage an den Touren-Reiter, dann hast du sie dort als Schnellstart.</string>
+    <string name="title_intro_statistics">Statistik</string>
+    <string name="body_intro_statistics">Die Statistik summiert Strecken, Nächte und Kosten all deiner Touren, nach Jahr und Land. Hier siehst du nur die Beispiel-Tour; deine echten Touren erscheinen, sobald du sie aufgezeichnet hast.</string>
+    <string name="title_intro_map">Karte</string>
+    <string name="body_intro_map">Jede Tour hat eine Karte mit ihren Stationen und, wenn du einen aufzeichnest, dem gefahrenen Track. Hier siehst du sie ohne Kartenhintergrund, damit nichts aus dem Internet geladen wird. Bei deinen eigenen Touren lädt die Karte die Kacheln von OpenStreetMap, sobald du sie öffnest.</string>
     <string name="title_intro_data">Deine Daten</string>
     <string name="body_intro_data">Deine Touren, Stationen und Fahrzeugdaten bleiben auf diesem Gerät. Kein Konto, keine Werbung, keine Analyse. Standort und Internet bleiben aus, bis du sie selbst einschaltest. Sicherungen erstellst du jederzeit über Daten.</string>
+    <string name="title_intro_start">Los geht\'s</string>
+    <string name="body_intro_start">Tippe auf Neue Tour, um deine erste Reise zu erfassen. Eine kurze Anleitung führt dich durch das Formular.</string>
     <string name="title_intro_settings">Einstellungen</string>
     <string name="body_intro_settings">Wähle ein Erscheinungsbild und wie früh Erinnerungen erscheinen sollen. Beides lässt sich später jederzeit in den Einstellungen ändern.</string>
     <string name="btn_intro_skip">Überspringen</string>
@@ -877,7 +911,17 @@
     <string name="field_toll_country">Land</string>
     <string name="field_toll_valid_from">Gültig ab</string>
     <string name="field_toll_valid_until">Gültig bis</string>
-    <string name="field_toll_payment_method">Zahlungsart</string>
+    <string name="field_payment_method">Zahlungsart</string>
+    <string name="payment_method_credit_card">Kreditkarte</string>
+    <string name="payment_method_cash">Bar</string>
+    <string name="payment_method_debit_card">EC-Karte</string>
+    <string name="payment_method_paypal">PayPal</string>
+    <string name="settings_payment_methods">Zahlungsarten</string>
+    <string name="settings_payment_methods_hint">Vorschläge für die Zahlungsart eines Stopps. Dort ist weiterhin jeder Text erlaubt.</string>
+    <string name="settings_payment_methods_add">Neue Zahlungsart</string>
+    <string name="settings_payment_methods_add_action">Hinzufügen</string>
+    <string name="settings_payment_methods_remove">%1$s entfernen</string>
+    <string name="settings_payment_methods_reset">Vorgaben wiederherstellen</string>
     <string name="field_ferry_booking_reference">Buchungsnummer</string>
     <string name="field_rating">Bewertung</string>
     <string name="field_manual_temperature">Temperatur (°C)</string>
@@ -896,6 +940,7 @@
     <string name="field_electricity_meter_start">Zählerstand Anfang (kWh)</string>
     <string name="field_electricity_meter_end">Zählerstand Ende (kWh)</string>
     <string name="field_electricity_kwh_used">Verbrauchte kWh</string>
+    <string name="field_fuel_liters">Liter</string>
     <string name="electricity_input_mode_meter">Zählerstände</string>
     <string name="electricity_input_mode_direct">kWh direkt</string>
     <string name="electricity_result_value">≈ %1$s</string>
@@ -952,6 +997,7 @@
         <item quantity="other">%1$d Merkmale ausgewählt</item>
     </plurals>
     <string name="station_date_outside_tour">Liegt außerhalb der Tourdaten (%1$s)</string>
+    <string name="station_fuel_price_per_liter">Preis pro Liter</string>
     <string name="station_summary_field">%1$s: %2$s</string>
     <string name="station_summary_none">–</string>
     <string name="cd_expand_section">Abschnitt „%1$s“ anzeigen</string>
@@ -1206,7 +1252,6 @@
     </plurals>
     <string name="checklist_picker_title">Vorlage wählen</string>
     <string name="checklist_manage_templates_action">Vorlagen verwalten</string>
-    <string name="checklist_picker_empty">Noch keine Vorlagen.</string>
     <string name="checklist_vehicle_empty">Noch keine Checklisten.</string>
     <string name="checklist_templates_action">Vorlagen</string>
     <string name="vehicle_checklists_open">Checklisten öffnen</string>
@@ -1377,7 +1422,8 @@
     <string name="guide_resume">Fortsetzen</string>
     <string name="guide_end">Beenden</string>
     <string name="guide_step_fab_body">Tippe hier, um eine neue Tour anzulegen.</string>
-    <string name="guide_step_name_body">Trag hier den Namen oder das Ziel der Tour ein.</string>
+    <string name="guide_step_name_body">Gib der Tour einen Namen, zum Beispiel „Gardasee 2026“.</string>
+    <string name="guide_step_destination_body">Wohin geht die Reise? Das ist optional und hilft dir, die Tour später wiederzuerkennen.</string>
     <string name="guide_step_tourtype_body">Wähl die Art der Tour – sie taucht damit in Listen und Filtern auf.</string>
     <string name="guide_step_vehicle_body">Diese Tour gehört zu diesem Fahrzeug; wähl hier ein anderes, falls du mehr als eins hast.</string>
     <string name="guide_step_vehicle_create_body">Du hast noch kein Fahrzeug. Tippe hier, um eins anzulegen – die Details kannst du später ergänzen.</string>
@@ -1406,8 +1452,11 @@
     <string name="demo_vehicle_name">Beispiel-Wohnmobil</string>
     <string name="demo_tour_destination">Alpenrunde</string>
     <string name="demo_station_1_name">Platz am See</string>
-    <string name="demo_station_2_name">Rast am Pass</string>
-    <string name="demo_station_3_name">Waldlager</string>
+    <string name="demo_station_2_name">Frischwasser am Hafen</string>
+    <string name="demo_station_3_name">Tankstelle</string>
+    <string name="demo_station_4_name">Bergtunnel</string>
+    <string name="demo_station_5_name">Aussicht am Pass</string>
+    <string name="demo_station_6_name">Waldlager</string>
 
     <!-- Launcher shortcuts -->
     <string name="shortcut_new_tour_short">Neue Tour</string>

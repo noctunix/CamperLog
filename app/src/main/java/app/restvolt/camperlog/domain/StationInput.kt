@@ -15,7 +15,7 @@ const val MAX_STATION_PLACE_LENGTH = 500
 const val MAX_STATION_NOTES_LENGTH = 20_000
 const val MAX_STATION_MAP_LINK_LENGTH = 4_000
 const val MAX_STATION_LINK_LENGTH = 4_000
-const val MAX_TOLL_PAYMENT_METHOD_LENGTH = 500
+const val MAX_PAYMENT_METHOD_LENGTH = 500
 const val MAX_FERRY_BOOKING_REFERENCE_LENGTH = 500
 const val MAX_STATION_COST_NOTE_LENGTH = 500
 
@@ -27,6 +27,10 @@ const val MAX_ELECTRICITY_COINS = 10_000
 /** Nachkommastellen der Eingabefelder für kWh/Zählerstände bzw. den Preis je kWh. */
 private const val ELECTRICITY_KWH_FRACTION_DIGITS = 3
 private const val PRICE_PER_KWH_FRACTION_DIGITS = 4
+
+/** Höchstmenge und Nachkommastellen der getankten Liter einer Tanken-Station, auch von der Sicherung genutzt. */
+const val MAX_FUEL_LITERS = 10_000.0
+private const val FUEL_LITERS_FRACTION_DIGITS = 2
 
 /** WGS84-Wertebereiche gültiger Koordinaten. */
 val LATITUDE_RANGE = -90.0..90.0
@@ -86,8 +90,9 @@ data class StationInput(
     val electricityMeterStart: String = "",
     val electricityMeterEnd: String = "",
     val electricityKwhUsed: String = "",
+    val fuelLiters: String = "",
     val tollKind: TollKind? = null,
-    val tollPaymentMethod: String = "",
+    val paymentMethod: String = "",
     val tollCountry: String = "",
     @Serializable(with = LocalDateSerializer::class) val tollValidFrom: LocalDate? = null,
     @Serializable(with = LocalDateSerializer::class) val tollValidUntil: LocalDate? = null,
@@ -110,7 +115,7 @@ data class StationInput(
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
 enum class StationField {
     DATE, COORDINATES, NIGHTS, NAME, PLACE, NOTES, MAP_LINK, SERVICES, ELECTRICITY, WIFI_COST,
-    TOLL_COUNTRY, TOLL_VALID_UNTIL, TOLL_PAYMENT_METHOD, FERRY_BOOKING_REFERENCE, COST,
+    FUEL_LITERS, TOLL_COUNTRY, TOLL_VALID_UNTIL, PAYMENT_METHOD, FERRY_BOOKING_REFERENCE, COST,
     ODOMETER_KM, MANUAL_TEMPERATURE, LINK,
 }
 
@@ -176,13 +181,18 @@ internal fun StationInput.validation(today: LocalDate = LocalDate.now(), locale:
             }
         }
 
-        if (date != null && date > today && services.any { it in SYNCED_SERVICE_LOG_TYPES }) {
+        if (date != null && date > today && (type in SYNCED_STATION_TYPE_LOG_TYPES || services.any { it in SYNCED_SERVICE_LOG_TYPES })) {
             put(StationField.SERVICES, StationError.FUTURE_DATE)
         }
 
         electricityError(locale)?.let { put(StationField.ELECTRICITY, it) }
         if (type == StationType.OVERNIGHT) {
             moneyFieldError(wifiCostAmount, wifiCurrency, locale)?.let { put(StationField.WIFI_COST, it) }
+        }
+
+        if (type == StationType.FUEL) {
+            decimalBoundError(fuelLiters, locale, FUEL_LITERS_FRACTION_DIGITS, MAX_FUEL_LITERS)
+                ?.let { put(StationField.FUEL_LITERS, it) }
         }
 
         if (type == StationType.TOLL) {
@@ -192,9 +202,10 @@ internal fun StationInput.validation(today: LocalDate = LocalDate.now(), locale:
             if (tollValidFrom != null && tollValidUntil != null && tollValidUntil < tollValidFrom) {
                 put(StationField.TOLL_VALID_UNTIL, StationError.END_BEFORE_START)
             }
-            if (tollPaymentMethod.length > MAX_TOLL_PAYMENT_METHOD_LENGTH) {
-                put(StationField.TOLL_PAYMENT_METHOD, StationError.TOO_LONG)
-            }
+        }
+
+        if (paymentMethod.length > MAX_PAYMENT_METHOD_LENGTH) {
+            put(StationField.PAYMENT_METHOD, StationError.TOO_LONG)
         }
 
         if (type == StationType.FERRY && ferryBookingReference.length > MAX_FERRY_BOOKING_REFERENCE_LENGTH) {
@@ -354,8 +365,9 @@ fun StationInput.toStation(original: Station?, locale: Locale = Locale.getDefaul
         } else {
             null
         },
+        fuelLiters = if (type == StationType.FUEL) parseDecimalField(fuelLiters, locale, FUEL_LITERS_FRACTION_DIGITS) else null,
         tollKind = tollKind.takeIf { isToll },
-        tollPaymentMethod = if (isToll) tollPaymentMethod.trim() else "",
+        paymentMethod = paymentMethod.trim(),
         tollCountry = if (isToll) tollCountry.trim().uppercase(Locale.ROOT).ifEmpty { null } else null,
         tollValidFrom = tollValidFrom.takeIf { isToll },
         tollValidUntil = tollValidUntil.takeIf { isToll },
@@ -421,8 +433,9 @@ fun Station.toInput(locale: Locale = Locale.getDefault()): StationInput = Statio
     electricityMeterStart = decimalToInput(electricityMeterStart, locale),
     electricityMeterEnd = decimalToInput(electricityMeterEnd, locale),
     electricityKwhUsed = decimalToInput(electricityKwhUsed, locale),
+    fuelLiters = decimalToInput(fuelLiters, locale),
     tollKind = tollKind,
-    tollPaymentMethod = tollPaymentMethod,
+    paymentMethod = paymentMethod,
     tollCountry = tollCountry.orEmpty(),
     tollValidFrom = tollValidFrom,
     tollValidUntil = tollValidUntil,

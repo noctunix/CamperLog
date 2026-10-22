@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 32,
-    "identityHash": "ad351ddff0349b4d56e16043eacb6bc1",
+    "identityHash": "dbe7759a79b8c2fc162e40110e9fc7f2",
     "entities": [
       {
         "tableName": "tours",
@@ -927,7 +927,7 @@
       },
       {
         "tableName": "stations",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `tour_id` INTEGER, `type` TEXT NOT NULL, `date` TEXT NOT NULL, `time` TEXT, `name` TEXT NOT NULL, `place` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, `coordinate_source` TEXT, `accuracy_m` INTEGER, `map_link` TEXT, `notes` TEXT NOT NULL, `nights` INTEGER, `site_kind` TEXT, `pitch_assigned` INTEGER, `lte_quality` TEXT, `pitch_slope` TEXT, `leveling_blocks_used` INTEGER, `wifi_quality` TEXT, `wifi_cost_currency` TEXT, `wifi_cost_minor` INTEGER, `wifi_cost_is_expense` INTEGER NOT NULL DEFAULT 0, `board_type` TEXT, `lodging_amenities` TEXT NOT NULL, `electricity_billing` TEXT, `electricity_currency` TEXT, `electricity_flat_amount_minor` INTEGER, `electricity_base_fee_minor` INTEGER, `electricity_price_per_kwh` TEXT, `electricity_coin_price_minor` INTEGER, `electricity_coins_used` INTEGER, `electricity_kwh_per_coin` TEXT, `electricity_meter_start` TEXT, `electricity_meter_end` TEXT, `electricity_kwh_used` TEXT, `toll_kind` TEXT, `toll_payment_method` TEXT NOT NULL, `toll_country` TEXT, `toll_valid_from` TEXT, `toll_valid_until` TEXT, `ferry_booking_reference` TEXT NOT NULL, `services` TEXT NOT NULL, `weather_temperature_deci_c` INTEGER, `weather_code` INTEGER, `weather_wind_kmh` INTEGER, `weather_gust_kmh` INTEGER, `weather_wind_direction_deg` INTEGER, `weather_observed_at` INTEGER, `favorite` INTEGER NOT NULL, `rating` INTEGER, `odometer_km` INTEGER, `manual_temperature_deci_c` INTEGER, `link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `tour_id` INTEGER, `type` TEXT NOT NULL, `date` TEXT NOT NULL, `time` TEXT, `name` TEXT NOT NULL, `place` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, `coordinate_source` TEXT, `accuracy_m` INTEGER, `map_link` TEXT, `notes` TEXT NOT NULL, `nights` INTEGER, `site_kind` TEXT, `pitch_assigned` INTEGER, `lte_quality` TEXT, `pitch_slope` TEXT, `leveling_blocks_used` INTEGER, `wifi_quality` TEXT, `wifi_cost_currency` TEXT, `wifi_cost_minor` INTEGER, `wifi_cost_is_expense` INTEGER NOT NULL DEFAULT 0, `board_type` TEXT, `lodging_amenities` TEXT NOT NULL, `electricity_billing` TEXT, `electricity_currency` TEXT, `electricity_flat_amount_minor` INTEGER, `electricity_base_fee_minor` INTEGER, `electricity_price_per_kwh` TEXT, `electricity_coin_price_minor` INTEGER, `electricity_coins_used` INTEGER, `electricity_kwh_per_coin` TEXT, `electricity_meter_start` TEXT, `electricity_meter_end` TEXT, `electricity_kwh_used` TEXT, `fuel_liters` TEXT, `toll_kind` TEXT, `toll_payment_method` TEXT NOT NULL, `toll_country` TEXT, `toll_valid_from` TEXT, `toll_valid_until` TEXT, `ferry_booking_reference` TEXT NOT NULL, `services` TEXT NOT NULL, `weather_temperature_deci_c` INTEGER, `weather_code` INTEGER, `weather_wind_kmh` INTEGER, `weather_gust_kmh` INTEGER, `weather_wind_direction_deg` INTEGER, `weather_observed_at` INTEGER, `favorite` INTEGER NOT NULL, `rating` INTEGER, `odometer_km` INTEGER, `manual_temperature_deci_c` INTEGER, `link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -1131,12 +1131,17 @@
             "affinity": "TEXT"
           },
           {
+            "fieldPath": "fuelLiters",
+            "columnName": "fuel_liters",
+            "affinity": "TEXT"
+          },
+          {
             "fieldPath": "tollKind",
             "columnName": "toll_kind",
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "tollPaymentMethod",
+            "fieldPath": "paymentMethod",
             "columnName": "toll_payment_method",
             "affinity": "TEXT",
             "notNull": true
@@ -2141,48 +2146,11 @@
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_home_locations_uuid` ON `${TABLE_NAME}` (`uuid`)"
           }
         ]
-      },
-      {
-        "tableName": "form_drafts",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`kind` TEXT NOT NULL, `record_id` INTEGER NOT NULL, `payload` TEXT NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`kind`, `record_id`))",
-        "fields": [
-          {
-            "fieldPath": "kind",
-            "columnName": "kind",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "recordId",
-            "columnName": "record_id",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "payload",
-            "columnName": "payload",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "updatedAt",
-            "columnName": "updated_at",
-            "affinity": "INTEGER",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "kind",
-            "record_id"
-          ]
-        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ad351ddff0349b4d56e16043eacb6bc1')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dbe7759a79b8c2fc162e40110e9fc7f2')"
     ]
   }
 }

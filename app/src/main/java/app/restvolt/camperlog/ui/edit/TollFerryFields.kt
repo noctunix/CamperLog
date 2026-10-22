@@ -33,7 +33,7 @@ import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.currentLocale
 import app.restvolt.camperlog.ui.labelRes
 
-/** Maut-Abschnitt: Art als Chips, bei einer Vignette Land und Gültigkeit, sonst nur die Zahlweise. */
+/** Maut-Abschnitt: Art als Chips, bei einer Vignette Land und Gültigkeit. */
 @Composable
 internal fun TollSection(
     input: StationInput,
@@ -60,13 +60,6 @@ internal fun TollSection(
                 minDate = input.tollValidFrom,
             )
         }
-        FormTextField(
-            label = stringResource(R.string.field_toll_payment_method),
-            value = input.tollPaymentMethod,
-            error = errors[StationField.TOLL_PAYMENT_METHOD],
-            onValueChange = { value -> change { it.copy(tollPaymentMethod = value) } },
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
-        )
     }
 }
 

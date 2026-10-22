@@ -107,6 +107,35 @@ class LogHistoryViewModelTest {
     }
 
     @Test
+    fun delete_withAFueledEntryOfANamedFuelStation_keepsTheStationAndUndoRelinksTheEntry() = runTest(dispatcher) {
+        val logs = FakeLogRepository()
+        val stations = FakeStationRepository(logs = logs)
+        val stationId = stations.save(
+            Station(
+                vehicleId = 1,
+                type = StationType.FUEL,
+                date = LocalDate.of(2026, 5, 1),
+                name = "Shell",
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            ),
+        )
+        val entry = logs.entries.single()
+        assertEquals(LogType.FUELED, entry.type)
+        val viewModel = LogHistoryViewModel(logs, stations, vehicleId = 1, type = LogType.FUELED)
+        collect(viewModel.uiState)
+
+        viewModel.delete(entry)
+
+        assertEquals(emptyList<Long>(), logs.entries.map { it.id })
+        assertEquals(listOf(stationId), stations.stations.map { it.id })
+
+        viewModel.undoDelete(viewModel.message.value as LogHistoryMessage.Deleted)
+
+        assertEquals(entry, logs.entries.single())
+    }
+
+    @Test
     fun delete_withAStationLinkedEntryAsTheOnlyService_deletesTheStationAndUndoRestoresBoth() = runTest(dispatcher) {
         val logs = FakeLogRepository()
         val stations = FakeStationRepository(logs = logs)

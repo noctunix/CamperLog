@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 31,
-    "identityHash": "54c496d1d21f2839eb68f66b701d5a13",
+    "identityHash": "6846e6f8da9958ea55a10077260ccc6b",
     "entities": [
       {
         "tableName": "tours",
@@ -927,7 +927,7 @@
       },
       {
         "tableName": "stations",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `tour_id` INTEGER, `type` TEXT NOT NULL, `date` TEXT NOT NULL, `time` TEXT, `name` TEXT NOT NULL, `place` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, `coordinate_source` TEXT, `accuracy_m` INTEGER, `map_link` TEXT, `notes` TEXT NOT NULL, `nights` INTEGER, `site_kind` TEXT, `pitch_assigned` INTEGER, `lte_quality` TEXT, `pitch_slope` TEXT, `leveling_blocks_used` INTEGER, `wifi_quality` TEXT, `wifi_cost_currency` TEXT, `wifi_cost_minor` INTEGER, `wifi_cost_is_expense` INTEGER NOT NULL DEFAULT 0, `board_type` TEXT, `lodging_amenities` TEXT NOT NULL, `electricity_billing` TEXT, `electricity_currency` TEXT, `electricity_flat_amount_minor` INTEGER, `electricity_base_fee_minor` INTEGER, `electricity_price_per_kwh` TEXT, `electricity_coin_price_minor` INTEGER, `electricity_coins_used` INTEGER, `electricity_kwh_per_coin` TEXT, `electricity_meter_start` TEXT, `electricity_meter_end` TEXT, `electricity_kwh_used` TEXT, `toll_kind` TEXT, `toll_payment_method` TEXT NOT NULL, `toll_country` TEXT, `toll_valid_from` TEXT, `toll_valid_until` TEXT, `ferry_booking_reference` TEXT NOT NULL, `services` TEXT NOT NULL, `weather_temperature_deci_c` INTEGER, `weather_code` INTEGER, `weather_wind_kmh` INTEGER, `weather_gust_kmh` INTEGER, `weather_wind_direction_deg` INTEGER, `weather_observed_at` INTEGER, `favorite` INTEGER NOT NULL, `rating` INTEGER, `odometer_km` INTEGER, `manual_temperature_deci_c` INTEGER, `link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `tour_id` INTEGER, `type` TEXT NOT NULL, `date` TEXT NOT NULL, `time` TEXT, `name` TEXT NOT NULL, `place` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, `coordinate_source` TEXT, `accuracy_m` INTEGER, `map_link` TEXT, `notes` TEXT NOT NULL, `nights` INTEGER, `site_kind` TEXT, `pitch_assigned` INTEGER, `lte_quality` TEXT, `pitch_slope` TEXT, `leveling_blocks_used` INTEGER, `wifi_quality` TEXT, `wifi_cost_currency` TEXT, `wifi_cost_minor` INTEGER, `board_type` TEXT, `lodging_amenities` TEXT NOT NULL, `electricity_billing` TEXT, `electricity_currency` TEXT, `electricity_flat_amount_minor` INTEGER, `electricity_base_fee_minor` INTEGER, `electricity_price_per_kwh` TEXT, `electricity_coin_price_minor` INTEGER, `electricity_coins_used` INTEGER, `electricity_kwh_per_coin` TEXT, `electricity_meter_start` TEXT, `electricity_meter_end` TEXT, `electricity_kwh_used` TEXT, `fuel_liters` TEXT, `toll_kind` TEXT, `toll_payment_method` TEXT NOT NULL, `toll_country` TEXT, `toll_valid_from` TEXT, `toll_valid_until` TEXT, `ferry_booking_reference` TEXT NOT NULL, `services` TEXT NOT NULL, `weather_temperature_deci_c` INTEGER, `weather_code` INTEGER, `weather_wind_kmh` INTEGER, `weather_gust_kmh` INTEGER, `weather_wind_direction_deg` INTEGER, `weather_observed_at` INTEGER, `favorite` INTEGER NOT NULL, `rating` INTEGER, `odometer_km` INTEGER, `manual_temperature_deci_c` INTEGER, `link` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`tour_id`) REFERENCES `tours`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -1058,13 +1058,6 @@
             "affinity": "INTEGER"
           },
           {
-            "fieldPath": "wifiCostIsExpense",
-            "columnName": "wifi_cost_is_expense",
-            "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "0"
-          },
-          {
             "fieldPath": "boardType",
             "columnName": "board_type",
             "affinity": "TEXT"
@@ -1128,6 +1121,11 @@
           {
             "fieldPath": "electricityKwhUsed",
             "columnName": "electricity_kwh_used",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fuelLiters",
+            "columnName": "fuel_liters",
             "affinity": "TEXT"
           },
           {
@@ -2145,7 +2143,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '54c496d1d21f2839eb68f66b701d5a13')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6846e6f8da9958ea55a10077260ccc6b')"
     ]
   }
 }

@@ -13,6 +13,7 @@ import app.restvolt.camperlog.data.RoomChecklistRepository
 import app.restvolt.camperlog.data.RoomChecklistTemplateRepository
 import app.restvolt.camperlog.data.RoomDiaryEntryRepository
 import app.restvolt.camperlog.data.RoomExchangeRateRepository
+import app.restvolt.camperlog.data.PreferencesPaymentMethodRepository
 import app.restvolt.camperlog.data.RoomHomeLocationRepository
 import app.restvolt.camperlog.data.RoomFormDraftStore
 import app.restvolt.camperlog.data.RoomLogRepository
@@ -31,6 +32,7 @@ import app.restvolt.camperlog.domain.DiagnosticsLogSource
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.HomeLocationRepository
+import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
@@ -74,6 +76,9 @@ class CamperLogApp : Application() {
     /** Dauerhafte Rohentwürfe von Formularen, getrennt von bestätigten Fachdaten. */
     val formDraftStore by lazy { RoomFormDraftStore(database.formDraftDao()) }
 
+    /** Konfigurierbare Zahlungsarten für das Stationsformular. */
+    val paymentMethods: PaymentMethodRepository by lazy { PreferencesPaymentMethodRepository(this) }
+
     /** Bordbuch-Einträge. */
     val logbook: LogRepository by lazy { RoomLogRepository(database) }
 
@@ -102,7 +107,7 @@ class CamperLogApp : Application() {
     val attachments: AttachmentRepository by lazy { RoomAttachmentRepository(database.attachmentDao(), attachmentFileStore) }
 
     /** Einspielen von JSON- oder ZIP-Sicherungen (Datenbankteil; das Verschieben von ZIP-Dateien übernimmt der Aufrufer). */
-    val backupImporter: BackupImporter by lazy { RoomBackupImporter(database) }
+    val backupImporter: BackupImporter by lazy { RoomBackupImporter(database, paymentMethods = paymentMethods) }
 
     /** Simulierte Demo-Tour des Tutorials (siehe [DemoTourSession]). */
     val demoTourSession: DemoTourSession by lazy {
@@ -118,6 +123,9 @@ class CamperLogApp : Application() {
                     getString(R.string.demo_station_1_name),
                     getString(R.string.demo_station_2_name),
                     getString(R.string.demo_station_3_name),
+                    getString(R.string.demo_station_4_name),
+                    getString(R.string.demo_station_5_name),
+                    getString(R.string.demo_station_6_name),
                 ),
             ),
         ) { tourId -> TrackRecordingService.stopIfTracking(this, tourId) }

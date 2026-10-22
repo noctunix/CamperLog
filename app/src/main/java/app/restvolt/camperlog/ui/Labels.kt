@@ -138,6 +138,9 @@ val LogType.labelRes: Int
         LogType.DIESEL_HEATER_RUN -> R.string.log_type_diesel_heater_run
         LogType.GAS_HEATER_RUN -> R.string.log_type_gas_heater_run
         LogType.GAS_BOTTLE_SWAPPED -> R.string.log_type_gas_bottle_swapped
+        LogType.FUELED -> R.string.log_type_fueled
+        LogType.GAS_BOTTLE_SWITCHED -> R.string.log_type_gas_bottle_switched
+        LogType.GAS_BOTTLE_REFILLED -> R.string.log_type_gas_bottle_refilled
     }
 
 /** Symbol der Bordbuch-Art. */
@@ -149,6 +152,8 @@ val LogType.iconRes: Int
         LogType.DIESEL_HEATER_RUN -> R.drawable.ic_local_fire
         LogType.GAS_HEATER_RUN -> R.drawable.ic_gas_flame
         LogType.GAS_BOTTLE_SWAPPED -> R.drawable.ic_gas_bottle
+        LogType.FUELED -> R.drawable.ic_local_gas_station
+        LogType.GAS_BOTTLE_SWITCHED, LogType.GAS_BOTTLE_REFILLED -> R.drawable.ic_gas_bottle
     }
 
 /** Anzeigetext der zeitlichen Einordnung, z. B. „Heute" oder „vor 3 Tagen". */
@@ -558,9 +563,10 @@ val StationField.labelRes: Int
         StationField.SERVICES -> R.string.station_section_used_here
         StationField.ELECTRICITY -> R.string.field_electricity
         StationField.WIFI_COST -> R.string.field_wifi_cost
+        StationField.FUEL_LITERS -> R.string.field_fuel_liters
         StationField.TOLL_COUNTRY -> R.string.field_toll_country
         StationField.TOLL_VALID_UNTIL -> R.string.field_toll_valid_until
-        StationField.TOLL_PAYMENT_METHOD -> R.string.field_toll_payment_method
+        StationField.PAYMENT_METHOD -> R.string.field_payment_method
         StationField.FERRY_BOOKING_REFERENCE -> R.string.field_ferry_booking_reference
         StationField.COST -> R.string.field_cost
         StationField.ODOMETER_KM -> R.string.field_odometer_km
