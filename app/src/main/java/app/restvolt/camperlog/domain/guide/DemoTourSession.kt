@@ -1,7 +1,6 @@
 package app.restvolt.camperlog.domain.guide
 
 import app.restvolt.camperlog.domain.CoordinateSource
-import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.LatLon
 import app.restvolt.camperlog.domain.Money
@@ -19,6 +18,7 @@ import app.restvolt.camperlog.domain.TrackPoint
 import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
+import app.restvolt.camperlog.domain.defaultCostCategory
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.math.BigDecimal
@@ -151,7 +151,7 @@ class DemoTourSession(
                 fuelLiters = stop.fuelLiters,
                 tollKind = stop.tollKind,
                 tollCountry = stop.tollCountry,
-                costs = stop.costMinor?.let { listOf(StationCost(stop.type.costCategory(), Money(it, EUR))) }.orEmpty(),
+                costs = stop.costMinor?.let { listOf(StationCost(stop.type.defaultCostCategory, Money(it, EUR))) }.orEmpty(),
                 createdAt = now,
                 updatedAt = now,
             )
@@ -172,14 +172,6 @@ class DemoTourSession(
                 .plus(DEMO_FIRST_SEGMENT_HOUR + slot * DEMO_SEGMENT_SLOT_HOURS, ChronoUnit.HOURS)
             interpolatedPoints(tourId, segment = segmentIndex + 1, from = from, to = to, startTime = segmentStart)
         }
-    }
-
-    private fun StationType.costCategory(): CostCategory = when (this) {
-        StationType.OVERNIGHT -> CostCategory.PITCH
-        StationType.SUPPLY -> CostCategory.SUPPLY
-        StationType.FUEL -> CostCategory.FUEL
-        StationType.TOLL -> CostCategory.TOLL
-        else -> CostCategory.OTHER
     }
 
     private fun interpolatedPoints(tourId: Long, segment: Int, from: LatLon, to: LatLon, startTime: Instant): List<TrackPoint> =
