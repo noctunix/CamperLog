@@ -419,6 +419,15 @@
         <item quantity="one">%1$d track point imported</item>
         <item quantity="other">%1$d track points imported</item>
     </plurals>
+    <string name="import_preview_payment_methods">Also contains %1$s for the station form.</string>
+    <plurals name="import_payment_methods">
+        <item quantity="one">%1$d payment method</item>
+        <item quantity="other">%1$d payment methods</item>
+    </plurals>
+    <plurals name="import_done_payment_methods">
+        <item quantity="one">%1$d payment method in the list</item>
+        <item quantity="other">%1$d payment methods in the list</item>
+    </plurals>
     <string name="import_running">Restoring backup…</string>
     <string name="data_working">Working…</string>
     <string name="import_failed">Restore failed. Nothing was changed.</string>

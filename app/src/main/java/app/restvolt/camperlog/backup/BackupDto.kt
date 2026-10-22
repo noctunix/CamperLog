@@ -40,6 +40,8 @@ internal data class BackupDto(
     val tracks: List<JsonElement> = emptyList(),
     /** Einzeln als [HomeLocationDto] gelesen; fehlt in Sicherungen vor Formatversion 22. */
     val homeLocations: List<JsonElement> = emptyList(),
+    /** Konfigurierbare Zahlungsarten; fehlt in Sicherungen vor Formatversion 25. */
+    val paymentMethods: List<String>? = null,
 )
 
 @Serializable

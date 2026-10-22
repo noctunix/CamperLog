@@ -48,6 +48,8 @@ data class ImportResult(
     val updatedHomeLocations: Int = 0,
     val addedAttachments: Int = 0,
     val addedTrackPoints: Int = 0,
+    /** Anzahl der Zahlungsarten, die nach dem Import in der Liste stehen; 0, wenn die Sicherung keine enthielt. */
+    val importedPaymentMethods: Int = 0,
 )
 
 /** Spielt eine geprüfte Sicherung ein, vollständig oder gar nicht. */
