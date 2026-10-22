@@ -959,6 +959,7 @@
         <item quantity="other">%1$d features selected</item>
     </plurals>
     <string name="station_date_outside_tour">Outside the tour dates (%1$s)</string>
+    <string name="station_fuel_price_per_liter">Price per liter</string>
     <string name="station_summary_field">%1$s: %2$s</string>
     <string name="station_summary_none">–</string>
     <string name="cd_expand_section">Show \"%1$s\" section</string>

@@ -948,6 +948,7 @@
         <item quantity="other">%1$d Merkmale ausgewählt</item>
     </plurals>
     <string name="station_date_outside_tour">Liegt außerhalb der Tourdaten (%1$s)</string>
+    <string name="station_fuel_price_per_liter">Preis pro Liter</string>
     <string name="station_summary_field">%1$s: %2$s</string>
     <string name="station_summary_none">–</string>
     <string name="cd_expand_section">Abschnitt „%1$s“ anzeigen</string>
