@@ -64,8 +64,8 @@ internal fun NavGraphBuilder.toursGraph(
                     stations,
                     tracks,
                     VehicleScopeSettings(context),
-                    checklists,
                     checklistTemplates,
+                    checklists,
                     onTourFinished = { tourId -> app.restvolt.camperlog.tracking.TrackRecordingService.stopIfTracking(context, tourId) },
                     onTourDeleted = { tourId -> app.restvolt.camperlog.tracking.TrackRecordingService.stopIfTracking(context, tourId) },
                 )
@@ -197,6 +197,7 @@ internal fun NavGraphBuilder.toursGraph(
                 )
             },
             weatherMapEnabled = weatherMapEnabled,
+            onEnableWeather = { weatherSettings.enabled = true },
             hasTrack = trackSummary.points > 0,
             firstTrackPoint = firstTrackPointLatLon,
             checklistTemplates = checklistTemplateList,

@@ -65,7 +65,9 @@ class TrackRecordingCardFlowTest {
         tracks: FakeTrackRepository = FakeTrackRepository(),
         scrollTo: String? = "Für diese Tour aufzeichnen",
         running: Boolean = false,
+        enableTracking: Boolean = true,
     ) {
+        if (enableTracking) settings.enabled = true
         val firstTour = lofoten(1).let { if (running) it.copy(endDate = null) else it }
         compose.setContent {
             CamperLogTheme {
@@ -103,9 +105,15 @@ class TrackRecordingCardFlowTest {
     }
 
     @Test
-    fun openTourOffersTheSwitchEvenWhileTheGlobalSwitchIsOff() {
+    fun inactiveTracking_requiresExplicitActivationBeforeStarting() {
         grantLocation()
-        openTour(running = true)
+        openTour(running = true, enableTracking = false, scrollTo = "Für diese Tour aufzeichnen · Nicht aktiviert")
+        compose.onNodeWithText("Für diese Tour aufzeichnen · Nicht aktiviert").performClick()
+        assertFalse(settings.enabled)
+        compose.onNodeWithText("Aktivieren").performClick()
+        assertTrue(settings.enabled)
+        assertNull(settings.trackedTourId)
+        assertNull(shadowOf(compose.activity.application).nextStartedService)
 
         compose.onNodeWithText("Für diese Tour aufzeichnen").performClick()
 
@@ -130,8 +138,8 @@ class TrackRecordingCardFlowTest {
         assertTrue(settings.batteryHintShown)
 
         compose.onNodeWithText("Jetzt nicht").performClick()
-        // Aus- und wieder einschalten: der Hinweis erscheint beim zweiten Mal nicht mehr.
-        compose.onNodeWithText("Für diese Tour aufzeichnen").performClick()
+        // Stoppen und erneut starten: der Hinweis erscheint beim zweiten Mal nicht mehr.
+        compose.onNodeWithText("Aufzeichnung beenden").performClick()
         compose.onNodeWithText("Für diese Tour aufzeichnen").performClick()
         compose.onNodeWithText("Aufzeichnung im Hintergrund").assertDoesNotExist()
     }

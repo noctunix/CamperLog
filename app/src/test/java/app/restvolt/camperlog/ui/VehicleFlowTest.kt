@@ -80,7 +80,7 @@ class VehicleFlowTest {
         start(vehicles)
 
         compose.onNodeWithContentDescription("Wohnmobil A, Fahrzeug wechseln").assertExists()
-        compose.onNodeWithText("Tourenlog").assertDoesNotExist()
+        compose.onNodeWithText("Tourenlog").assertExists()
     }
 
     @Test

@@ -46,6 +46,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.ui.InactiveFeatureButton
+import app.restvolt.camperlog.ui.OptionalFeature
 import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.AttachmentRepository
@@ -82,6 +84,7 @@ import java.util.Locale
 fun RepairEditScreen(
     viewModel: RepairEditViewModel,
     locationEnabled: Boolean,
+    onEnableLocation: () -> Unit,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
@@ -137,6 +140,7 @@ fun RepairEditScreen(
                 state = state,
                 viewModel = viewModel,
                 locationEnabled = locationEnabled,
+                onEnableLocation = onEnableLocation,
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
                 attachmentPickers = attachmentPickers,
@@ -170,6 +174,7 @@ private fun RepairForm(
     state: RepairEditUiState,
     viewModel: RepairEditViewModel,
     locationEnabled: Boolean,
+    onEnableLocation: () -> Unit,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers,
@@ -214,6 +219,9 @@ private fun RepairForm(
                 onValueChange = { value -> change { it.copy(workshopName = value) } },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
             )
+            if (!locationEnabled) {
+                InactiveFeatureButton(stringResource(R.string.location_use_current_button), OptionalFeature.LOCATION, onEnableLocation)
+            }
             if (locationEnabled) {
                 if (input.latitude != null && input.longitude != null) {
                     RepairLocationRow(latitude = input.latitude, longitude = input.longitude, onRemove = viewModel::onRemoveLocation)

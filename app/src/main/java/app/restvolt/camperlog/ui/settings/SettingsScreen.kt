@@ -219,7 +219,7 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    HomeLocationSection(homeLocationViewModel, locationEnabled)
+                    HomeLocationSection(homeLocationViewModel, locationEnabled, onEnableLocation = { locationSettings.enabled = true })
                 }
             }
             item {

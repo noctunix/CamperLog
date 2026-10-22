@@ -96,6 +96,7 @@ fun LogbookScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Text(stringResource(R.string.logbook_subtitle), style = MaterialTheme.typography.bodyMedium)
             state.tiles.forEach { tile ->
                 LogTile(
                     tile = tile,
@@ -121,7 +122,7 @@ fun LogbookScreen(
                     resources.getString(R.string.logbook_recorded_on, typeLabel, formatDate(current.entry.date, locale))
                 }
                 val result = snackbar.showSnackbar(
-                    message = text,
+                    message = if (current.entry.stationId != null) resources.getString(R.string.logbook_recorded_with_station, text) else text,
                     actionLabel = resources.getString(R.string.action_undo),
                     withDismissAction = true,
                     duration = SnackbarDuration.Long,

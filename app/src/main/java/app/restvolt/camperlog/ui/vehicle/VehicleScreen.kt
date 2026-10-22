@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.ui.InactiveFeatureButton
+import app.restvolt.camperlog.ui.OptionalFeature
 import app.restvolt.camperlog.domain.Checklist
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Reminder
@@ -97,6 +99,7 @@ fun VehicleScreen(
     viewModel: VehicleViewModel,
     whereAmIViewModel: WhereAmIViewModel,
     locationEnabled: Boolean,
+    onEnableLocation: () -> Unit,
     reminderSettings: ReminderSettings,
     onOpenSearch: () -> Unit,
     onOpenData: () -> Unit,
@@ -166,6 +169,7 @@ fun VehicleScreen(
                 checklistsWithoutTour = state.checklistsWithoutTour,
                 logbookLatest = state.logbookLatest,
                 locationEnabled = locationEnabled,
+                onEnableLocation = onEnableLocation,
                 onWhereAmI = { showWhereAmI = true },
                 onAddDetails = { onEditVehicle(vehicle.id) },
                 onOpenReminder = { reminder ->
@@ -221,6 +225,7 @@ private fun VehicleSheet(
     checklistsWithoutTour: List<Checklist>,
     logbookLatest: Map<LogType, LocalDate>,
     locationEnabled: Boolean,
+    onEnableLocation: () -> Unit,
     onWhereAmI: () -> Unit,
     onAddDetails: () -> Unit,
     onOpenReminder: (Reminder) -> Unit,
@@ -255,7 +260,7 @@ private fun VehicleSheet(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        if (vehicle.hasBreakdownInfo) BreakdownAssistanceCard(vehicle, onCall, locationEnabled, onWhereAmI)
+        if (vehicle.hasBreakdownInfo) BreakdownAssistanceCard(vehicle, onCall, locationEnabled, onEnableLocation, onWhereAmI)
         reminders.forEach { reminder -> ReminderCard(reminder, today, onClick = { onOpenReminder(reminder) }) }
         DocumentsSection(documents, today, onAddDocument, onOpenDocument)
         ChecklistsSummaryCard(checklistsWithoutTour, onOpenChecklists)
@@ -482,11 +487,10 @@ private fun RepairRow(repair: Repair, locale: Locale, onClick: () -> Unit) {
 
 /**
  * Karte „Panne & Unfall" am Kopf des Datenblatts; nur sichtbar, wenn [Vehicle.hasBreakdownInfo] gilt.
- * Zeigt neben Kontakten auch statische Notfall-Verhaltenshinweise. "Wo bin ich?" erscheint nur, wenn
- * [locationEnabled] an ist.
+ * Zeigt Kontakte, Notfallhinweise und „Wo bin ich?“. Ohne [locationEnabled] bietet die Aktion die Freigabe an.
  */
 @Composable
-private fun BreakdownAssistanceCard(vehicle: Vehicle, onCall: (String) -> Unit, locationEnabled: Boolean, onWhereAmI: () -> Unit) {
+private fun BreakdownAssistanceCard(vehicle: Vehicle, onCall: (String) -> Unit, locationEnabled: Boolean, onEnableLocation: () -> Unit, onWhereAmI: () -> Unit) {
     val showBreakdown = vehicle.breakdownProvider.isNotBlank() || vehicle.breakdownMembershipNumber.isNotBlank() ||
         vehicle.breakdownPhone.isNotBlank()
     val showTravelProtection = vehicle.travelProtectionProvider.isNotBlank() ||
@@ -535,6 +539,9 @@ private fun BreakdownAssistanceCard(vehicle: Vehicle, onCall: (String) -> Unit, 
         HorizontalDivider()
         Text(stringResource(R.string.vehicle_emergency_heading), style = MaterialTheme.typography.titleSmall)
         Text(stringResource(R.string.vehicle_emergency_body), style = MaterialTheme.typography.bodyMedium)
+        if (!locationEnabled) {
+            InactiveFeatureButton(stringResource(R.string.vehicle_where_am_i), OptionalFeature.LOCATION, onEnableLocation)
+        }
         if (locationEnabled) {
             TextButton(onClick = onWhereAmI) {
                 Icon(painterResource(R.drawable.ic_my_location), contentDescription = null)

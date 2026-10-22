@@ -5,8 +5,8 @@ import app.restvolt.camperlog.domain.TrackRepository
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
 import app.restvolt.camperlog.tracking.TrackRecordingService
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -22,13 +22,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -73,8 +74,8 @@ import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TileLoader
-import app.restvolt.camperlog.domain.FormDraftStore
 import app.restvolt.camperlog.domain.TourRepository
+import app.restvolt.camperlog.domain.FormDraftStore
 import app.restvolt.camperlog.domain.VehicleDocumentRepository
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.PlaceSearchProvider
@@ -548,7 +549,8 @@ fun CamperLogNavHost(
 /** Untere Navigationsleiste der vier Hauptreiter; erneutes Tippen kehrt zur Wurzel des Reiters zurück. */
 @Composable
 private fun CamperLogBottomBar(navController: NavController, current: NavDestination?, reminderCount: Int) {
-    NavigationBar {
+    val fontScale = LocalDensity.current.fontScale
+    NavigationBar(modifier = Modifier.height((80 + 40 * (fontScale - 1).coerceAtLeast(0f)).dp)) {
         NavigationBarItem(
             selected = current.isOnTab<ToursRoute>(),
             onClick = { navController.navigateToTab(ToursRoute) },
@@ -591,20 +593,14 @@ private fun CamperLogBottomBar(navController: NavController, current: NavDestina
     }
 }
 
-/**
- * Beschriftung eines Hauptreiters, einzeilig und bei Bedarf verkleinert: mit 4 Reitern bricht
- * "Stationen"/"Bordbuch" sonst schon bei 1.5x mittendrin ab, weil Compose nicht trennt.
- */
+/** Beschriftung eines Hauptreiters; große Schrift darf umbrechen, ohne kleiner gerechnet zu werden. */
 @Composable
 private fun NavLabel(text: String) {
-    // maxFontSize muss auf die reguläre Labelgröße gedeckelt werden: ohne das wächst autoSize
-    // auf seinen Standard von 112.sp, weil NavigationBarItem dem Label keine feste Breite vorgibt.
-    val labelSize = MaterialTheme.typography.labelMedium.fontSize
     Text(
         text,
-        maxLines = 1,
-        softWrap = false,
-        autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = labelSize),
+        maxLines = 2,
+        softWrap = true,
+        style = MaterialTheme.typography.labelMedium,
     )
 }
 

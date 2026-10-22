@@ -70,6 +70,7 @@ internal fun NavGraphBuilder.vehicleGraph(
             attachmentFileStore = attachmentFileStore,
             attachmentPickers = attachmentPickers,
             onBack = { navController.popFrom(entry) },
+            onOpenStation = { id -> navController.navigate(StationDetailRoute(id, fromStationsTab = true)) },
         )
     }
     composable<VehicleRoute> {
@@ -79,6 +80,7 @@ internal fun NavGraphBuilder.vehicleGraph(
             viewModel = viewModel { VehicleViewModel(vehicles, documents, checklists, logbook) },
             whereAmIViewModel = viewModel { WhereAmIViewModel(locationProvider, AndroidLocationPermissionGate(vehicleContext)) },
             locationEnabled = locationEnabled,
+            onEnableLocation = { locationSettings.enabled = true },
             reminderSettings = reminderSettings,
             onOpenSearch = { navController.navigate(SearchRoute) },
             onOpenData = { navController.navigate(DataRoute()) },
@@ -138,6 +140,7 @@ internal fun NavGraphBuilder.vehicleGraph(
                 )
             },
             locationEnabled = locationEnabled,
+            onEnableLocation = { locationSettings.enabled = true },
             attachments = attachments,
             attachmentFileStore = attachmentFileStore,
             attachmentPickers = attachmentPickers,

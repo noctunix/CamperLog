@@ -60,6 +60,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.ui.OptionalFeature
+import app.restvolt.camperlog.ui.OptionalFeatureIconButton
 import app.restvolt.camperlog.domain.Checklist
 import app.restvolt.camperlog.domain.ChecklistTemplate
 import app.restvolt.camperlog.domain.Conversion
@@ -115,6 +117,7 @@ import java.util.Locale
 fun TourDetailScreen(
     viewModel: TourDetailViewModel,
     weatherMapEnabled: Boolean,
+    onEnableWeather: () -> Unit,
     hasTrack: Boolean,
     firstTrackPoint: LatLon?,
     checklistTemplates: List<ChecklistTemplate>,
@@ -166,11 +169,16 @@ fun TourDetailScreen(
                 BackTopBar(title = tour?.displayTitle(fallbackTitle) ?: fallbackTitle, onBack = onBack) {
                     if (tour != null) {
                         val loaded = state as DetailUiState.Loaded
-                        if (isMapAvailable(weatherMapEnabled, loaded.stations, hasTrack) || forceVisibleForTutorial) {
-                            IconButton(onClick = onOpenMap) {
-                                Icon(painterResource(R.drawable.ic_map), contentDescription = stringResource(R.string.action_map))
-                            }
-                        }
+                        OptionalFeatureIconButton(
+                            enabled = weatherMapEnabled || forceVisibleForTutorial,
+                            available = isMapAvailable(true, loaded.stations, hasTrack) || forceVisibleForTutorial,
+                            unavailableReason = stringResource(R.string.feature_map_needs_coordinates),
+                            feature = OptionalFeature.INTERNET,
+                            onActivate = onEnableWeather,
+                            onClick = onOpenMap,
+                            label = stringResource(R.string.action_map),
+                            icon = R.drawable.ic_map,
+                        )
                         IconButton(onClick = onEdit) {
                             Icon(painterResource(R.drawable.ic_edit), contentDescription = stringResource(R.string.detail_edit))
                         }

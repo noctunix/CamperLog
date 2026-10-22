@@ -84,6 +84,8 @@ import app.restvolt.camperlog.ui.CollapsibleSection
 import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LabeledValue
+import app.restvolt.camperlog.ui.InactiveFeatureButton
+import app.restvolt.camperlog.ui.OptionalFeature
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.TimeField
 import app.restvolt.camperlog.ui.guide.guideAnchor
@@ -212,6 +214,8 @@ fun EditTourScreen(
                 state = state,
                 viewModel = viewModel,
                 showTrackSwitch = state.isNew && state.input.endDate == null && trackPreferences.enabled,
+                showTrackActivation = state.isNew && state.input.endDate == null && !trackPreferences.enabled,
+                onEnableTrack = { trackSettings.enabled = true },
                 showHomeSwitch = state.isNew && homeLocationsList.any { it.hasLocation },
                 homeName = homeLocationsList.homeNameAt(state.input.startDate ?: LocalDate.now()),
                 onAddVehicle = onAddVehicle,
@@ -283,6 +287,8 @@ private fun TourForm(
     state: EditUiState,
     viewModel: EditTourViewModel,
     showTrackSwitch: Boolean,
+    showTrackActivation: Boolean,
+    onEnableTrack: () -> Unit,
     showHomeSwitch: Boolean,
     homeName: String,
     onAddVehicle: () -> Unit,
@@ -326,6 +332,9 @@ private fun TourForm(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (showTrackActivation) {
+            InactiveFeatureButton(stringResource(R.string.edit_track_switch_title), OptionalFeature.TRACK, onEnableTrack)
+        }
         if (state.isNew && state.runningTourConflict) {
             RunningTourConflictBanner()
         }

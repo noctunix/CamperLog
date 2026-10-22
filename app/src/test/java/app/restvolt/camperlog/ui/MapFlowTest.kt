@@ -121,13 +121,14 @@ class MapFlowTest {
     }
 
     @Test
-    fun mapButton_isHiddenOnTourDetailWithoutAnyCoordinates() {
+    fun mapButton_explainsMissingCoordinatesOnTourDetail() {
         setWeatherEnabled(true)
         start(listOf(lofoten()), listOf(station(1, "Camping Moskenes", LocalDate.of(2020, 7, 4))))
 
         compose.onNodeWithText("Lofoten").performClick()
 
-        compose.onNodeWithContentDescription("Karte").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Karte").performClick()
+        compose.onNodeWithText("Ergänze zuerst den Ort einer Station oder zeichne einen GPS-Track auf. Koordinaten kannst du auch ohne Standortfreigabe manuell eintragen.").assertExists()
     }
 
     @Test
@@ -182,12 +183,13 @@ class MapFlowTest {
     }
 
     @Test
-    fun stationsTab_mapIcon_isHiddenWhenNoStationHasCoordinates() {
+    fun stationsTab_mapIcon_explainsMissingCoordinates() {
         setWeatherEnabled(true)
         start(emptyList(), listOf(station(1, "Camping Moskenes", LocalDate.of(2020, 7, 4))))
 
         compose.onNodeWithText("Stationen").performClick()
 
-        compose.onNodeWithContentDescription("Karte").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Karte").performClick()
+        compose.onNodeWithText("Ergänze zuerst den Ort einer Station oder zeichne einen GPS-Track auf. Koordinaten kannst du auch ohne Standortfreigabe manuell eintragen.").assertExists()
     }
 }

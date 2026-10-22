@@ -18,8 +18,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -62,6 +62,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -70,6 +72,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.ui.FormSection
+import app.restvolt.camperlog.ui.InactiveFeatureButton
+import app.restvolt.camperlog.ui.OptionalFeature
 import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.AttachmentRepository
@@ -186,6 +191,7 @@ fun EditStationScreen(
                 locationEnabled = locationEnabled,
                 locationSettings = locationSettings,
                 weatherEnabled = weatherEnabled,
+                onEnableWeather = { weatherSettings.enabled = true },
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
                 attachmentPickers = attachmentPickers,
@@ -221,6 +227,7 @@ private fun StationForm(
     locationEnabled: Boolean,
     locationSettings: LocationSettings,
     weatherEnabled: Boolean,
+    onEnableWeather: () -> Unit,
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers,
@@ -321,6 +328,12 @@ private fun StationForm(
                     )
                 }
             }
+            if (!locationEnabled) {
+                InactiveFeatureButton(stringResource(R.string.location_use_current_button), OptionalFeature.LOCATION, { locationSettings.enabled = true })
+            }
+            if (!weatherEnabled) {
+                InactiveFeatureButton(stringResource(R.string.station_search_place_button), OptionalFeature.INTERNET, onEnableWeather)
+            }
             if (weatherEnabled) {
                 TextButton(onClick = { showPlaceSearch = true }) {
                     Icon(painterResource(R.drawable.ic_search), contentDescription = null, modifier = Modifier.size(18.dp))
@@ -391,8 +404,12 @@ private fun StationForm(
             focusOf(StationField.ODOMETER_KM),
             focusOf(StationField.MANUAL_TEMPERATURE),
         )
-        if (weatherEnabled && input.latitude != null && input.longitude != null) {
-            WeatherSection(input, viewModel)
+        if (input.latitude != null && input.longitude != null) {
+            if (weatherEnabled) {
+                WeatherSection(input, viewModel)
+            } else {
+                InactiveFeatureButton(stringResource(R.string.station_section_weather), OptionalFeature.INTERNET, onEnableWeather)
+            }
         }
         SectionCard {
             SectionHeading(stringResource(R.string.station_section_costs))
@@ -493,64 +510,94 @@ private fun OvernightSection(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
             modifier = modifier,
         )
-        SiteKindField(input.siteKind) { kind -> change { it.copy(siteKind = kind) } }
-        FavoriteRow(input.favorite) { value -> change { it.copy(favorite = value) } }
-        FormTextField(
-            label = stringResource(R.string.field_link),
-            value = input.link,
-            error = linkError,
-            onValueChange = { value -> change { it.copy(link = value) } },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next),
-            modifier = linkModifier,
-        )
+        FormSection(
+            key = "station.overnight.connectivity",
+            title = stringResource(R.string.station_section_connectivity),
+            summary = listOfNotNull(
+                input.lteQuality?.let { stringResource(R.string.station_summary_field, stringResource(R.string.field_lte), stringResource(it.labelRes)) },
+                input.wifiQuality?.let { stringResource(R.string.station_summary_field, stringResource(R.string.field_wifi), stringResource(it.labelRes)) },
+                input.wifiCostAmount.takeIf { it.isNotBlank() }?.let {
+                    val status = stringResource(if (input.wifiCostIsExpense) R.string.wifi_expense_status_included else R.string.wifi_expense_status_price_info)
+                    "$it ${input.wifiCurrency.currencyCode} · $status"
+                },
+            ).joinToString(" · ").ifBlank { stringResource(R.string.station_summary_none) },
+            hasError = wifiCostError != null,
+        ) {
+            LteQualityRow(input.lteQuality, stringResource(R.string.field_lte)) { value -> change { it.copy(lteQuality = value) } }
+            LteQualityRow(input.wifiQuality, stringResource(R.string.field_wifi)) { value -> change { it.copy(wifiQuality = value) } }
+            WifiCostField(
+                amount = input.wifiCostAmount,
+                currency = input.wifiCurrency,
+                isExpense = input.wifiCostIsExpense,
+                error = wifiCostError,
+                onAmountChange = { value -> change { it.copy(wifiCostAmount = value) } },
+                onCurrencyChange = { currency -> change { it.copy(wifiCurrency = currency) } },
+                onExpenseChange = { value -> change { it.copy(wifiCostIsExpense = value) } },
+            )
 
-        // Empfang gilt für jede Übernachtungsart, daher immer sichtbar statt in den Stellplatz-Details.
-        SectionHeading(stringResource(R.string.station_section_connectivity))
-        LteQualityRow(input.lteQuality, stringResource(R.string.field_lte)) { value -> change { it.copy(lteQuality = value) } }
-        LteQualityRow(input.wifiQuality, stringResource(R.string.field_wifi)) { value -> change { it.copy(wifiQuality = value) } }
-        WifiCostField(
-            amount = input.wifiCostAmount,
-            currency = input.wifiCurrency,
-            isExpense = input.wifiCostIsExpense,
-            error = wifiCostError,
-            onAmountChange = { value -> change { it.copy(wifiCostAmount = value) } },
-            onCurrencyChange = { currency -> change { it.copy(wifiCurrency = currency) } },
-            onExpenseChange = { value -> change { it.copy(wifiCostIsExpense = value) } },
-        )
-
-        if (input.siteKind == null || input.siteKind in PITCH_SITE_KINDS) {
-            var pitchExpanded by rememberSaveable(input.type) {
-                mutableStateOf(input.pitchAssigned != null || input.pitchSlope != null || input.levelingBlocksUsed != null)
-            }
-            val pitchSummary = listOfNotNull(
-                input.pitchAssigned?.let { summaryPair(stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(it))) },
-                input.pitchSlope?.let { summaryPair(stringResource(R.string.field_pitch_slope), stringResource(it.labelRes)) },
-                input.levelingBlocksUsed?.let { summaryPair(stringResource(R.string.field_leveling_blocks), stringResource(yesNoRes(it))) },
-            ).let { parts -> if (parts.isEmpty()) stringResource(R.string.station_summary_none) else parts.joinToString(" · ") }
-
-            CollapsibleSection(
-                title = stringResource(R.string.station_section_pitch_details),
-                expanded = pitchExpanded,
-                onToggle = { pitchExpanded = !pitchExpanded },
-                summary = pitchSummary,
-            ) {
-                NullableChoiceField(stringResource(R.string.field_pitch_assigned), listOf(true, false), input.pitchAssigned, ::yesNoRes) { value ->
-                    change { it.copy(pitchAssigned = value) }
-                }
-                NullableChoiceField(stringResource(R.string.field_pitch_slope), PitchSlope.entries, input.pitchSlope, PitchSlope::labelRes) { value ->
-                    change { it.copy(pitchSlope = value) }
-                }
-                NullableChoiceField(stringResource(R.string.field_leveling_blocks), listOf(true, false), input.levelingBlocksUsed, ::yesNoRes) { value ->
-                    change { it.copy(levelingBlocksUsed = value) }
-                }
-            }
         }
 
-        if (input.siteKind in LODGING_SITE_KINDS) {
-            NullableChoiceField(stringResource(R.string.field_board_type), BoardType.entries, input.boardType, BoardType::labelRes) { value ->
-                change { it.copy(boardType = value) }
+        FormSection(
+            key = "station.overnight.place",
+            title = stringResource(R.string.station_section_place_equipment),
+            summary = listOfNotNull(
+                input.siteKind?.let { stringResource(it.labelRes) },
+                input.favorite.takeIf { it }?.let { stringResource(R.string.station_would_return) },
+                input.link.takeIf { it.isNotBlank() },
+                input.pitchAssigned?.let { summaryPair(stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(it))) },
+                input.pitchSlope?.let { stringResource(it.labelRes) },
+                input.levelingBlocksUsed?.let { summaryPair(stringResource(R.string.field_leveling_blocks), stringResource(yesNoRes(it))) },
+                input.boardType?.let { stringResource(it.labelRes) },
+                input.lodgingAmenities.takeIf { it.isNotEmpty() }?.let { pluralStringResource(R.plurals.station_amenities_count, it.size, it.size) },
+            ).joinToString(" · ").ifBlank { stringResource(R.string.station_summary_none) },
+            hasError = linkError != null,
+        ) {
+            SiteKindField(input.siteKind) { kind -> change { it.copy(siteKind = kind) } }
+            FavoriteRow(input.favorite) { value -> change { it.copy(favorite = value) } }
+            FormTextField(
+                label = stringResource(R.string.field_link),
+                value = input.link,
+                error = linkError,
+                onValueChange = { value -> change { it.copy(link = value) } },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next),
+                modifier = linkModifier,
+            )
+
+            if (input.siteKind == null || input.siteKind in PITCH_SITE_KINDS) {
+                var pitchExpanded by rememberSaveable(input.type) {
+                    mutableStateOf(input.pitchAssigned != null || input.pitchSlope != null || input.levelingBlocksUsed != null)
+                }
+                val pitchSummary = listOfNotNull(
+                    input.pitchAssigned?.let { summaryPair(stringResource(R.string.field_pitch_assigned), stringResource(yesNoRes(it))) },
+                    input.pitchSlope?.let { summaryPair(stringResource(R.string.field_pitch_slope), stringResource(it.labelRes)) },
+                    input.levelingBlocksUsed?.let { summaryPair(stringResource(R.string.field_leveling_blocks), stringResource(yesNoRes(it))) },
+                ).let { parts -> if (parts.isEmpty()) stringResource(R.string.station_summary_none) else parts.joinToString(" · ") }
+
+                CollapsibleSection(
+                    title = stringResource(R.string.station_section_pitch_details),
+                    expanded = pitchExpanded,
+                    onToggle = { pitchExpanded = !pitchExpanded },
+                    summary = pitchSummary,
+                ) {
+                    NullableChoiceField(stringResource(R.string.field_pitch_assigned), listOf(true, false), input.pitchAssigned, ::yesNoRes) { value ->
+                        change { it.copy(pitchAssigned = value) }
+                    }
+                    NullableChoiceField(stringResource(R.string.field_pitch_slope), PitchSlope.entries, input.pitchSlope, PitchSlope::labelRes) { value ->
+                        change { it.copy(pitchSlope = value) }
+                    }
+                    NullableChoiceField(stringResource(R.string.field_leveling_blocks), listOf(true, false), input.levelingBlocksUsed, ::yesNoRes) { value ->
+                        change { it.copy(levelingBlocksUsed = value) }
+                    }
+                }
             }
-            AmenitiesSection(input.lodgingAmenities, input.type) { amenities -> change { it.copy(lodgingAmenities = amenities) } }
+
+            if (input.siteKind in LODGING_SITE_KINDS) {
+                NullableChoiceField(stringResource(R.string.field_board_type), BoardType.entries, input.boardType, BoardType::labelRes) { value ->
+                    change { it.copy(boardType = value) }
+                }
+                AmenitiesSection(input.lodgingAmenities, input.type) { amenities -> change { it.copy(lodgingAmenities = amenities) } }
+            }
+
         }
 
         var electricityExpanded by rememberSaveable(input.type) { mutableStateOf(input.electricityBilling != null) }
@@ -615,25 +662,32 @@ private fun StationExtrasSection(
     temperatureModifier: Modifier,
 ) {
     SectionCard {
-        RatingRow(input.rating) { value -> change { it.copy(rating = value) } }
-        FormTextField(
-            label = stringResource(R.string.field_odometer_km),
-            value = input.odometerKm,
-            error = errors[StationField.ODOMETER_KM],
-            onValueChange = { value -> change { it.copy(odometerKm = value) } },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-            modifier = modifier,
-        )
-        FormTextField(
-            label = stringResource(R.string.field_manual_temperature),
-            value = input.manualTemperatureC,
-            error = errors[StationField.MANUAL_TEMPERATURE],
-            onValueChange = { value -> change { it.copy(manualTemperatureC = value) } },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-            modifier = temperatureModifier,
-        )
-        if (locationEnabled && weatherEnabled && input.latitude != null && input.longitude != null) {
-            WeatherFetchRow(viewModel.temperatureCapture, stringResource(R.string.station_temperature_fetch_button), onFetch = viewModel::onFetchTemperature)
+        FormSection(
+            key = "station.extras",
+            title = stringResource(R.string.edit_section_advanced),
+            summary = listOfNotNull(input.rating?.let { "$it/5" }, input.odometerKm.takeIf { it.isNotBlank() }?.let { "$it km" }, input.manualTemperatureC.takeIf { it.isNotBlank() }?.let { "$it °C" }).joinToString(" · ").ifBlank { stringResource(R.string.station_summary_none) },
+            hasError = errors.keys.any { it == StationField.ODOMETER_KM || it == StationField.MANUAL_TEMPERATURE },
+        ) {
+            RatingRow(input.rating) { value -> change { it.copy(rating = value) } }
+            FormTextField(
+                label = stringResource(R.string.field_odometer_km),
+                value = input.odometerKm,
+                error = errors[StationField.ODOMETER_KM],
+                onValueChange = { value -> change { it.copy(odometerKm = value) } },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                modifier = modifier,
+            )
+            FormTextField(
+                label = stringResource(R.string.field_manual_temperature),
+                value = input.manualTemperatureC,
+                error = errors[StationField.MANUAL_TEMPERATURE],
+                onValueChange = { value -> change { it.copy(manualTemperatureC = value) } },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                modifier = temperatureModifier,
+            )
+            if (locationEnabled && weatherEnabled && input.latitude != null && input.longitude != null) {
+                WeatherFetchRow(viewModel.temperatureCapture, stringResource(R.string.station_temperature_fetch_button), onFetch = viewModel::onFetchTemperature)
+            }
         }
     }
 }
@@ -654,7 +708,14 @@ private fun RatingRow(rating: Int?, onRatingChange: (Int?) -> Unit) {
             (1..5).forEach { value ->
                 val filled = rating != null && value <= rating
                 val description = stringResource(R.string.station_rating_content_description, value)
-                IconButton(onClick = { onRatingChange(if (rating == value) null else value) }) {
+                val resetHint = stringResource(R.string.selection_tap_to_clear)
+                IconButton(
+                    onClick = { onRatingChange(if (rating == value) null else value) },
+                    modifier = Modifier.semantics {
+                        selected = rating == value
+                        if (rating == value) stateDescription = resetHint
+                    },
+                ) {
                     Icon(
                         painterResource(if (filled) R.drawable.ic_rv_hookup_filled else R.drawable.ic_rv_hookup),
                         contentDescription = description,
@@ -683,7 +744,14 @@ private fun LteQualityRow(selected: LteQuality?, label: String, onSelect: (LteQu
             LteQuality.entries.forEach { quality ->
                 val isSelected = quality == selected
                 val description = stringResource(R.string.station_summary_field, label, stringResource(quality.labelRes))
-                IconButton(onClick = { onSelect(if (isSelected) null else quality) }) {
+                val resetHint = stringResource(R.string.selection_tap_to_clear)
+                IconButton(
+                    onClick = { onSelect(if (isSelected) null else quality) },
+                    modifier = Modifier.semantics {
+                        this.selected = isSelected
+                        if (isSelected) stateDescription = resetHint
+                    },
+                ) {
                     Icon(
                         painterResource(quality.iconRes),
                         contentDescription = description,
@@ -695,7 +763,7 @@ private fun LteQualityRow(selected: LteQuality?, label: String, onSelect: (LteQu
     }
 }
 
-/** Betragsfeld mit Währungsauswahl für die WLAN-Kosten, ohne eigene Validierung. */
+/** WLAN-Preisinfo mit optionaler Aufnahme in die Stationskosten. */
 @Composable
 private fun WifiCostField(
     amount: String,
