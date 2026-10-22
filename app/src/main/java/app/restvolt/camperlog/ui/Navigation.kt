@@ -97,12 +97,10 @@ import app.restvolt.camperlog.ui.data.BackupSettings
 import app.restvolt.camperlog.ui.detail.StationDetailViewModel
 import app.restvolt.camperlog.ui.detail.AndroidTourExportFiles
 import app.restvolt.camperlog.ui.detail.TourDetailViewModel
-import app.restvolt.camperlog.domain.guide.introductionTour
 import app.restvolt.camperlog.ui.guide.GuideHost
 import app.restvolt.camperlog.ui.guide.GuideProgressStore
 import app.restvolt.camperlog.ui.guide.GuideViewModel
 import app.restvolt.camperlog.ui.guide.guideAnchor
-import app.restvolt.camperlog.ui.onboarding.FirstRunSetupScreen
 import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
 import app.restvolt.camperlog.ui.stations.StationsViewModel
 import app.restvolt.camperlog.ui.stations.StationsWhatsNewSettings
@@ -242,7 +240,7 @@ internal object AboutRoute
 internal object DiagnosticsLogRoute
 
 @Serializable
-internal object DataRoute
+internal data class DataRoute(val importOnOpen: Boolean = false)
 
 /** Kursformular; ohne [currencyCode] wird ein neuer Kurs mit frei wählbarer Währung angelegt. */
 @Serializable
@@ -396,7 +394,6 @@ fun CamperLogNavHost(
     }
 
     val introductionSettings = remember { IntroductionSettings(context) }
-    var showFirstRunSetup by rememberSaveable { mutableStateOf(false) }
 
     // Geteilter Controller für alle geführten Touren (Rundgang, Pilot-Tour), Activity-gebunden über
     // GuideViewModel, damit der Fortschritt eine Bildschirmdrehung überlebt.
@@ -420,30 +417,12 @@ fun CamperLogNavHost(
         LaunchedEffect(Unit) {
             keepAndroidOpenSettings.recordFirstLaunchIfNeeded()
             if (!introductionSettings.seen) {
-                // Die Ersteinrichtung hat Vorrang: der Hinweis erscheint nie zusammen mit ihr.
-                showFirstRunSetup = true
+                introductionSettings.seen = true
             } else {
                 val hasData = repository.hasTours() || logbook.hasEntries()
                 showStartupKeepAndroidOpen = shouldShowKeepAndroidOpen(keepAndroidOpenSettings.state, hasData, Instant.now())
             }
         }
-    }
-
-    if (showFirstRunSetup) {
-        FirstRunSetupScreen(
-            themeMode = themeMode,
-            onThemeModeChange = onThemeModeChange,
-            reminderSettings = reminderSettings,
-            locationSettings = locationSettings,
-            weatherSettings = weatherSettings,
-            onFinished = {
-                introductionSettings.seen = true
-                showFirstRunSetup = false
-                // Startet einmalig nach der Ersteinrichtung; über "Über CamperLog" jederzeit wiederholbar.
-                guideController.start(introductionTour())
-            },
-        )
-        return
     }
 
     // Ein geo:-Link startet die Stationsaufnahme mit Typauswahl, ausgelöst nach der Einführungstour,
@@ -483,7 +462,7 @@ fun CamperLogNavHost(
     // Eine getippte Sicherungs-Erinnerung öffnet direkt den Daten-Screen.
     LaunchedEffect(pendingOpenData) {
         if (pendingOpenData) {
-            navController.navigate(DataRoute)
+            navController.navigate(DataRoute())
             onOpenDataHandled()
         }
     }

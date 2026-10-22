@@ -7,6 +7,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
+import app.restvolt.camperlog.ui.onboarding.FirstRunSetupScreen
 import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
 import app.restvolt.camperlog.ui.settings.LocationSettings
 import app.restvolt.camperlog.ui.settings.WeatherSettings
@@ -26,8 +27,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 /**
- * Ersteinrichtung: Anzeige beim ersten Start, Bedienung, Einstellungen-/Opt-in-Seite und der
- * einmalige automatische Übergang in den Rundgang danach.
+ * Der Erststart führt ohne Pflichtassistent in die App; die Einrichtung bleibt separat bedienbar.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "de-rDE-w411dp-h891dp-xxhdpi")
@@ -73,22 +73,16 @@ class FirstRunSetupFlowTest {
     }
 
     @Test
-    fun showsOnFirstStartAndStartsTheIntroductionTourOnceFinished() {
+    fun firstStartShowsRealActionsWithoutSetupOrAutomaticGuide() {
         clearPreferences()
         try {
             start()
-
-            compose.onNodeWithText("Einstellungen").assertExists()
-            compose.onNodeWithText("Weiter").performClick()
-            compose.waitForIdle()
-            compose.onNodeWithText("Los geht's").performClick()
-            compose.waitForIdle()
-
-            // Ersteinrichtung ist durchgelaufen, direkt danach beginnt der Rundgang automatisch.
-            compose.onNodeWithText("Einstellungen").assertDoesNotExist()
-            compose.onNodeWithText("Touren").assertExists()
+            compose.onNodeWithText("Tour starten").assertExists()
+            compose.onNodeWithText("Station ohne Tour erfassen").assertExists()
+            compose.onNodeWithText("Willkommen bei CamperLog").assertDoesNotExist()
             assertTrue(IntroductionSettings(context).seen)
-            compose.onNodeWithText("Willkommen bei CamperLog").assertExists()
+            assertFalse(LocationSettings(context).enabled)
+            assertFalse(WeatherSettings(context).enabled)
         } finally {
             clearPreferences()
         }
@@ -109,28 +103,40 @@ class FirstRunSetupFlowTest {
         }
     }
 
+    private fun startSetup(onThemeModeChange: (ThemeMode) -> Unit = {}, onFinished: () -> Unit = {}) {
+        compose.setContent {
+            CamperLogTheme {
+                FirstRunSetupScreen(
+                    themeMode = ThemeMode.SYSTEM,
+                    onThemeModeChange = onThemeModeChange,
+                    reminderSettings = ReminderSettings(context),
+                    locationSettings = LocationSettings(context),
+                    weatherSettings = WeatherSettings(context),
+                    onFinished = onFinished,
+                )
+            }
+        }
+    }
+
     @Test
-    fun skipOnTheFirstPageMarksSeenAndStartsTheIntroductionTour() {
+    fun skippingOptionalSetupOnlyFinishesIt() {
         clearPreferences()
         try {
-            start()
-
+            var finished = false
+            startSetup(onFinished = { finished = true })
             compose.onNodeWithText("Überspringen").performClick()
-
-            compose.onNodeWithText("Einstellungen").assertDoesNotExist()
-            compose.onNodeWithText("Touren").assertExists()
-            assertTrue(IntroductionSettings(context).seen)
-            compose.onNodeWithText("Willkommen bei CamperLog").assertExists()
-        } finally {
-            clearPreferences()
-        }
+            assertTrue(finished)
+            compose.onNodeWithText("Willkommen bei CamperLog").assertDoesNotExist()
+            assertFalse(LocationSettings(context).enabled)
+            assertFalse(WeatherSettings(context).enabled)
+        } finally { clearPreferences() }
     }
 
     @Test
     fun backButtonReturnsToThePreviousPage() {
         clearPreferences()
         try {
-            start()
+            startSetup()
 
             compose.onNodeWithText("Weiter").performClick()
             compose.onNodeWithText("Optional: Standort, Wetter, Karte").assertExists()
@@ -147,7 +153,7 @@ class FirstRunSetupFlowTest {
         clearPreferences()
         try {
             var appliedThemeMode: ThemeMode? = null
-            start(onThemeModeChange = { appliedThemeMode = it })
+            startSetup(onThemeModeChange = { appliedThemeMode = it })
 
             compose.onNodeWithText("Hell").performClick()
             assertEquals(ThemeMode.LIGHT, appliedThemeMode)
@@ -165,7 +171,7 @@ class FirstRunSetupFlowTest {
     fun optInPage_locationSwitchDefaultsOffAndTogglingPersists() {
         clearPreferences()
         try {
-            start()
+            startSetup()
 
             compose.onNodeWithText("Weiter").performClick()
             compose.waitForIdle()
@@ -183,7 +189,7 @@ class FirstRunSetupFlowTest {
     fun optInPage_weatherSwitchDefaultsOffAndTogglingPersists() {
         clearPreferences()
         try {
-            start()
+            startSetup()
 
             compose.onNodeWithText("Weiter").performClick()
             compose.waitForIdle()
@@ -199,14 +205,14 @@ class FirstRunSetupFlowTest {
     }
 
     @Test
-    fun keepAndroidOpenDialogDoesNotShowWhileTheSetupIsVisible() {
+    fun keepAndroidOpenDialogDoesNotInterruptTheFirstStart() {
         clearPreferences()
         try {
             val entry = LogEntry(1, "log-1", vehicleId = 1, type = LogType.CASSETTE_EMPTIED, date = LocalDate.now(), createdAt = Instant.EPOCH)
 
             start(logs = FakeLogRepository(listOf(entry)))
 
-            compose.onNodeWithText("Einstellungen").assertExists()
+            compose.onNodeWithText("Tour starten").assertExists()
             compose.onNodeWithText("Android droht die Abschottung").assertDoesNotExist()
         } finally {
             clearPreferences()

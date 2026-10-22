@@ -77,6 +77,8 @@ import java.time.LocalDate
 fun ToursScreen(
     viewModel: ToursViewModel,
     onAddTour: () -> Unit,
+    onAddStation: () -> Unit,
+    onImportBackup: () -> Unit,
     onOpenOverview: (Long?) -> Unit,
     onOpenSearch: () -> Unit,
     onOpenData: () -> Unit,
@@ -150,7 +152,14 @@ fun ToursScreen(
             }
             when {
                 state.isLoading -> Unit
-                !state.hasAnyTour -> item { EmptyHint(stringResource(R.string.tours_empty)) }
+                !state.hasAnyTour -> item {
+                    app.restvolt.camperlog.ui.SectionCard {
+                        Text(stringResource(R.string.tours_empty_start), style = MaterialTheme.typography.bodyLarge)
+                        androidx.compose.material3.Button(onClick = onAddTour) { Text(stringResource(R.string.tours_start)) }
+                        androidx.compose.material3.OutlinedButton(onClick = onAddStation) { Text(stringResource(R.string.station_without_tour)) }
+                        androidx.compose.material3.TextButton(onClick = onImportBackup) { Text(stringResource(R.string.data_import_title)) }
+                    }
+                }
                 state.tours.isEmpty() -> item { EmptyHint(stringResource(R.string.tours_no_match)) }
                 else -> items(state.tours, key = Tour::id) { tour ->
                     val vehicleName = if (state.showAllVehicles) {
