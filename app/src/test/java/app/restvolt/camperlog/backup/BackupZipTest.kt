@@ -176,6 +176,12 @@ class BackupZipTest {
         assertTrue(paths.any { it.endsWith("Fahrzeugschein 2.jpg") })
     }
 
+    @Test(expected = java.io.IOException::class)
+    fun completeBackupWithMissingFileFailsInsteadOfReportingSuccess() {
+        val source = backup(listOf(photoAttachment()))
+        writeBackupZip(ByteArrayOutputStream(), encodeBackup(source), source.attachments, includeFiles = true) { null }
+    }
+
     @Test
     fun roundTrip_withoutFiles_decodesBackupWithEmptyStagedFiles() {
         val source = backup(listOf(photoAttachment()))

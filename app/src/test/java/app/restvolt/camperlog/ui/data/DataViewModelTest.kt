@@ -396,7 +396,7 @@ class DataViewModelTest {
 
     @Test
     fun saveBackup_withFilesAndLargeAttachment_streamsFileContentInsteadOfBufferingWholeArchive() {
-        val fileStore = FakeAttachmentFileStore()
+        val fileStore = FakeAttachmentFileStore(java.nio.file.Files.createTempDirectory("backup-stream-test").toFile())
         val fileName = "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1.jpg"
         val largeContent = ByteArray(300 * 1024) { (it % 256).toByte() }
         fileStore.file(fileName).apply { parentFile?.mkdirs() }.writeBytes(largeContent)
@@ -467,6 +467,7 @@ class DataViewModelTest {
 
         assertEquals(1, folderWriter.written.size)
         assertEquals(listOf(tour), (decodeBackup(folderWriter.written.single()) as BackupReadResult.Success).backup.tours)
+        assertEquals(1, folderWriter.zipWrites)
         assertEquals(DataMessage.BackedUpToFolder("Sicherungen"), viewModel.message.value)
         assertEquals(1, backupSavedAt.size)
     }
@@ -495,8 +496,26 @@ class DataViewModelTest {
         assertTrue(viewModel.busy.value)
         gate.complete(Unit)
         assertEquals(ShareRequest.Backup("backup:1"), viewModel.share.value)
-        assertNull(viewModel.message.value)
+        assertEquals(DataMessage.Text(R.string.backup_share_prepared), viewModel.message.value)
         assertEquals(false, viewModel.busy.value)
+        assertTrue(backupSavedAt.isEmpty())
+    }
+
+    @Test
+    fun sharingBackupNeverConfirmsAnExternalBackup() {
+        val viewModel = viewModel(tours = listOf(tour))
+        viewModel.shareBackup(includeFiles = false)
+        assertEquals(ShareRequest.Backup("backup:1"), viewModel.share.value)
+        assertTrue(backupSavedAt.isEmpty())
+
+        viewModel.shareHandled(started = true)
+        assertTrue(backupSavedAt.isEmpty())
+        assertEquals(DataMessage.Text(R.string.backup_share_prepared), viewModel.message.value)
+
+        viewModel.shareBackup(includeFiles = false)
+        viewModel.shareHandled(started = false)
+        assertTrue(backupSavedAt.isEmpty())
+        assertEquals(DataMessage.Text(R.string.no_share_app), viewModel.message.value)
     }
 
     @Test
@@ -567,6 +586,7 @@ class DataViewModelTest {
  * entpackt, damit bestehende Prüfungen unverändert mit [app.restvolt.camperlog.backup.decodeBackup] weiterlesen können.
  */
 private class FakeBackupFolderWriter : BackupFolderWriter {
+    var zipWrites = 0
     var folderName: String? = "Ordner"
     var accessible: Boolean = true
     val written = mutableListOf<String>()
@@ -585,6 +605,7 @@ private class FakeBackupFolderWriter : BackupFolderWriter {
         if (!accessible) return null
         val buffer = ByteArrayOutputStream()
         writeZip(buffer)
+        zipWrites++
         written += extractBackupJson(buffer.toByteArray())
         return "backup.zip"
     }

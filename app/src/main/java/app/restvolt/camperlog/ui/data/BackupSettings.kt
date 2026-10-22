@@ -2,6 +2,9 @@ package app.restvolt.camperlog.ui.data
 
 import android.content.Context
 import androidx.core.content.edit
+import app.restvolt.camperlog.reminders.AndroidReminderWorkScheduler
+import app.restvolt.camperlog.reminders.ReminderWorkScheduler
+import app.restvolt.camperlog.reminders.updateReminderWork
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,16 +27,20 @@ data class BackupPreferences(
     val autoBackupToFolder: Boolean = false,
     /**
      * Ob die automatische Sicherung in den Sicherungsordner Fotos und Dokumente mit einschließen soll;
-     * `null`, solange niemand das bewusst gewählt hat - dann gilt [app.restvolt.camperlog.domain.shouldIncludeFilesInAutoBackup].
+     * `null`, solange niemand das bewusst gewählt hat; dann bleiben Dateien eingeschlossen.
      */
     val autoBackupIncludeFilesOverride: Boolean? = null,
 )
 
 /** Persistiert [BackupPreferences]; siehe [app.restvolt.camperlog.ui.theme.ReminderSettings] für das gleiche Muster. */
-class BackupSettings(context: Context) {
+class BackupSettings(private val context: Context, private val scheduler: ReminderWorkScheduler = AndroidReminderWorkScheduler(context)) {
     private val preferences = context.getSharedPreferences("backup", Context.MODE_PRIVATE)
 
     private val state = MutableStateFlow(load())
+
+    init {
+        if (state.value.autoBackupToFolder && state.value.folderUri != null && state.value.reminderWeeks > 0) scheduler.enqueue()
+    }
 
     /** Aktuelle Werte; Änderungen über die Setter dieser Instanz werden sofort sichtbar. */
     val values: StateFlow<BackupPreferences> = state.asStateFlow()
@@ -43,6 +50,7 @@ class BackupSettings(context: Context) {
         set(value) {
             preferences.edit { putInt(KEY_REMINDER_WEEKS, value) }
             state.update { it.copy(reminderWeeks = value) }
+            updateReminderWork(context, scheduler)
         }
 
     var folderUri: String?
@@ -50,6 +58,7 @@ class BackupSettings(context: Context) {
         set(value) {
             preferences.edit { if (value != null) putString(KEY_FOLDER_URI, value) else remove(KEY_FOLDER_URI) }
             state.update { it.copy(folderUri = value) }
+            updateReminderWork(context, scheduler)
         }
 
     var autoBackupToFolder: Boolean
@@ -57,6 +66,7 @@ class BackupSettings(context: Context) {
         set(value) {
             preferences.edit { putBoolean(KEY_AUTO_BACKUP, value) }
             state.update { it.copy(autoBackupToFolder = value) }
+            updateReminderWork(context, scheduler)
         }
 
     var autoBackupIncludeFilesOverride: Boolean?
@@ -80,7 +90,7 @@ class BackupSettings(context: Context) {
             state.update { it.copy(lastNotifiedBackupBaseline = value) }
         }
 
-    /** Nach jeder erfolgreichen Sicherung aufgerufen (jeder Exportweg), um [lastBackupAt] zu setzen. */
+    /** Nach dem bestätigten Schreiben einer Sicherung aufgerufen, um [lastBackupAt] zu setzen. */
     fun recordBackupMade(at: Instant) {
         lastBackupAt = at
     }

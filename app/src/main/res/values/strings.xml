@@ -1166,7 +1166,7 @@
 
     <!-- Data screen: include files in auto-backup -->
     <string name="data_backup_auto_include_files_title">Include photos and documents</string>
-    <string name="data_backup_auto_include_files_support">Also backs up photo and document files, not just the data. Off by default once the backup grows large.</string>
+    <string name="data_backup_auto_include_files_support">Includes photo and document files. This choice also applies to “Back up now” and stays unchanged as the backup grows.</string>
 
     <!-- Logbook history: per-entry photos -->
     <string name="logbook_entry_photos_action">Photos</string>
@@ -1423,4 +1423,5 @@
     <string name="shortcut_breakdown_long">Breakdown &amp; accident help</string>
     <string name="shortcut_running_tour_short">Current tour</string>
     <string name="shortcut_running_tour_long">Open the running tour</string>
+    <string name="backup_share_prepared">Prepared for sharing. Only saving to a file or backup folder confirms a backup; sharing cannot confirm the external copy.</string>
 </resources>
