@@ -419,6 +419,15 @@
         <item quantity="one">%1$d Trackpunkt übernommen</item>
         <item quantity="other">%1$d Trackpunkte übernommen</item>
     </plurals>
+    <string name="import_preview_payment_methods">Enthält außerdem %1$s für das Stationsformular.</string>
+    <plurals name="import_payment_methods">
+        <item quantity="one">%1$d Zahlungsart</item>
+        <item quantity="other">%1$d Zahlungsarten</item>
+    </plurals>
+    <plurals name="import_done_payment_methods">
+        <item quantity="one">%1$d Zahlungsart in der Liste</item>
+        <item quantity="other">%1$d Zahlungsarten in der Liste</item>
+    </plurals>
     <string name="import_running">Sicherung wird eingespielt …</string>
     <string name="data_working">Wird verarbeitet …</string>
     <string name="import_failed">Einspielen fehlgeschlagen. Es wurde nichts geändert.</string>

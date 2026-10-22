@@ -157,6 +157,7 @@ internal fun NavGraphBuilder.settingsGraph(
                     AndroidDataFiles(context),
                     backupFolderWriter,
                     onBackupSaved = backupSettings::recordBackupMade,
+                    paymentMethods = paymentMethods,
                 )
             },
             backupSettings = backupSettings,

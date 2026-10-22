@@ -15,6 +15,7 @@ import app.restvolt.camperlog.backup.ImportResult
 import app.restvolt.camperlog.domain.DiaryEntry
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.HomeLocation
+import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.Tour
@@ -38,6 +39,8 @@ class RoomBackupImporter(
     private val database: CamperLogDatabase,
     private val clock: Clock = Clock.systemDefaultZone(),
     private val newUuid: () -> String = { UUID.randomUUID().toString() },
+    /** Zahlungsarten-Liste (SharedPreferences, außerhalb der Datenbank); `null` ignoriert sie beim Import. */
+    private val paymentMethods: PaymentMethodRepository? = null,
 ) : BackupImporter {
 
     override suspend fun import(backup: Backup, mode: ImportMode): ImportResult = database.withTransaction {
@@ -459,6 +462,7 @@ class RoomBackupImporter(
         // SQLite wirft dann hier, und die Transaktion wird vollständig zurückgerollt.
         tourDao.getCostSums()
 
+        val importedPaymentMethods = applyPaymentMethods(backup.paymentMethods, mode)
         ImportResult(
             addedTours = added,
             updatedTours = updated,
@@ -483,7 +487,22 @@ class RoomBackupImporter(
             updatedHomeLocations = updatedHomeLocations,
             addedAttachments = addedAttachments,
             addedTrackPoints = addedTrackPoints,
+            importedPaymentMethods = importedPaymentMethods,
         )
+    }
+
+    /**
+     * Übernimmt die Zahlungsarten der Sicherung: REPLACE ersetzt die Liste, MERGE hängt fehlende Einträge an.
+     * Liefert die Länge der Liste danach; 0, wenn die Sicherung keine Zahlungsarten enthält.
+     */
+    private fun applyPaymentMethods(imported: List<String>?, mode: ImportMode): Int {
+        val repository = paymentMethods ?: return 0
+        if (imported == null) return 0
+        when (mode) {
+            ImportMode.REPLACE -> repository.replaceAll(imported)
+            ImportMode.MERGE -> repository.replaceAll(repository.methods.value + imported)
+        }
+        return repository.methods.value.size
     }
 }
 

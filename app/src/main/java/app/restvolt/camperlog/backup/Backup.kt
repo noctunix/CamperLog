@@ -21,6 +21,7 @@ import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.ExchangeRate
 import app.restvolt.camperlog.domain.HomeLocation
+import app.restvolt.camperlog.domain.sanitizePaymentMethods
 import app.restvolt.camperlog.domain.LATITUDE_RANGE
 import app.restvolt.camperlog.domain.LONGITUDE_RANGE
 import app.restvolt.camperlog.domain.LegacyPitchFields
@@ -97,7 +98,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 24
+const val BACKUP_SCHEMA_VERSION = 25
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -177,7 +178,8 @@ private val MAX_INSTANT = Instant.parse("2199-12-31T00:00:00Z")
  * Metadaten, nur ohne die zugehörigen Dateien im ZIP. [diaryEntries] enthält alle Tagebucheinträge
  * (Formatversion 8); fehlt in älteren Sicherungen. [checklistTemplates] und [checklists]
  * (Formatversion 9) fehlen ebenfalls in älteren Sicherungen, genau wie [tracks] (Formatversion 10)
- * und [homeLocations] (Formatversion 22).
+ * und [homeLocations] (Formatversion 22). [paymentMethods] ist die konfigurierbare Zahlungsarten-Liste
+ * (Formatversion 25); `null` heißt, die Sicherung enthält keine (ältere Version), die lokale Liste bleibt dann unberührt.
  */
 data class Backup(
     val exportedAt: Instant,
@@ -198,6 +200,7 @@ data class Backup(
     val checklists: List<BackupChecklist> = emptyList(),
     val tracks: List<BackupTrack> = emptyList(),
     val homeLocations: List<HomeLocation> = emptyList(),
+    val paymentMethods: List<String>? = null,
 )
 
 /** Ein Fahrzeug einer Sicherung mit seinen Reparaturen und Bordbuch-Einträgen. */
@@ -309,6 +312,7 @@ fun encodeBackup(backup: Backup): String = json.encodeToString(
         checklists = backup.checklists.map { json.encodeToJsonElement(ChecklistDto.serializer(), it.toDto()) },
         tracks = backup.tracks.map { json.encodeToJsonElement(TrackDto.serializer(), it.toDto()) },
         homeLocations = backup.homeLocations.map { json.encodeToJsonElement(HomeLocationDto.serializer(), it.toDto()) },
+        paymentMethods = backup.paymentMethods,
     ),
 )
 
@@ -584,6 +588,9 @@ private fun BackupDto.toBackup(): BackupReadResult {
         location
     }
 
+    // Zahlungsarten: streng wie beim Speichern (getrimmt, nicht leer, nicht zu lang, ohne Dubletten).
+    if (paymentMethods != null && sanitizePaymentMethods(paymentMethods) != paymentMethods) return invalid
+
     if (checklists.size > MAX_CHECKLISTS) return invalid
     val seenChecklistUuids = HashSet<String>()
     val backupChecklists = checklists.mapIndexed { index, element ->
@@ -680,6 +687,7 @@ private fun BackupDto.toBackup(): BackupReadResult {
             checklists = backupChecklists,
             tracks = backupTracks,
             homeLocations = backupHomeLocations,
+            paymentMethods = paymentMethods,
         ),
     )
 }

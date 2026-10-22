@@ -278,7 +278,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 24" in text)
+        assert("\"schemaVersion\": 25" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -288,7 +288,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 24" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 25" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -536,7 +536,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 24" in text)
+        assert("\"schemaVersion\": 25" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -571,13 +571,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 24", "\"schemaVersion\": 25"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 25", "\"schemaVersion\": 26"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 24", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 25", it))?.error)
         }
     }
 

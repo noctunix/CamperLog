@@ -7,6 +7,7 @@ import app.restvolt.camperlog.domain.ChecklistTemplateRepository
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.HomeLocationRepository
+import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
 import app.restvolt.camperlog.domain.TourRepository
@@ -36,6 +37,8 @@ suspend fun buildBackup(
     attachments: AttachmentRepository,
     homeLocations: HomeLocationRepository,
     exportedAt: Instant,
+    /** Quelle der konfigurierbaren Zahlungsarten; `null` lässt sie aus der Sicherung weg. */
+    paymentMethods: PaymentMethodRepository? = null,
 ): Backup {
     // Demo-Daten des Tutorials (siehe DemoTourSession) gehören nie in die Sicherung: ein beim
     // Absturz zurückgelassener Rest soll nicht erst im nächtlichen Backup landen, bevor die nächste
@@ -105,6 +108,7 @@ suspend fun buildBackup(
             ownerUuid?.let { BackupAttachment(attachment, it) }
         },
         homeLocations = homeLocations.observeAll().first(),
+        paymentMethods = paymentMethods?.methods?.value,
     )
     val zipPaths = buildAttachmentZipPaths(backup)
     return backup.copy(attachments = backup.attachments.map { it.copy(zipPath = zipPaths.getValue(it.attachment.uuid)) })

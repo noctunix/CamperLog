@@ -103,7 +103,7 @@ class CamperLogApp : Application() {
     val attachments: AttachmentRepository by lazy { RoomAttachmentRepository(database.attachmentDao(), attachmentFileStore) }
 
     /** Einspielen von JSON- oder ZIP-Sicherungen (Datenbankteil; das Verschieben von ZIP-Dateien übernimmt der Aufrufer). */
-    val backupImporter: BackupImporter by lazy { RoomBackupImporter(database) }
+    val backupImporter: BackupImporter by lazy { RoomBackupImporter(database, paymentMethods = paymentMethods) }
 
     /** Simulierte Demo-Tour des Tutorials (siehe [DemoTourSession]). */
     val demoTourSession: DemoTourSession by lazy {
