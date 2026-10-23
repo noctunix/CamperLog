@@ -1,0 +1,4 @@
+• Behoben: Das Stationsformular prüft beim Abschließen jetzt vollständig, statt ungültige Felder stillschweigend zu verwerfen
+• Behoben: Der Verlassen-Dialog zeigt keinen irreführenden "Speichern"-Button mehr, wenn schon automatisch gespeichert wurde
+• Neu: Hinweis, wenn eine manuelle Stromkosten-Zeile zur berechneten Abrechnung addiert wird
+• Die Ersteinrichtung (Darstellung, Erinnerungen, Standort/Wetter) erscheint jetzt vor deiner ersten Tour/Station bzw. nach einem Sicherungsimport
