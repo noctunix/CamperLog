@@ -56,7 +56,7 @@ class RepairFlowTest {
     private fun backKeepingChanges() {
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Formular verlassen?").assertExists()
-        compose.onNodeWithText("Speichern").performClick()
+        compose.onNodeWithText("So lassen").performClick()
         compose.waitForIdle()
     }
 
@@ -152,7 +152,7 @@ class RepairFlowTest {
         compose.onNodeWithText("Beschreibung erforderlich").assertExists()
     }
 
-    /** Mit einer sinnvollen Eingabe fragt das Verlassen jetzt nach; "Speichern" behält die automatisch angelegte Reparatur. */
+    /** Mit einer sinnvollen Eingabe fragt das Verlassen jetzt nach; "So lassen" behält die automatisch angelegte Reparatur. */
     @Test
     fun leavingNewRepairAfterTyping_asksAndKeepingKeepsTheRepair() {
         start()

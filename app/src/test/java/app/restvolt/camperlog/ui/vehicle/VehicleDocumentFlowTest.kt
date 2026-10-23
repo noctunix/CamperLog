@@ -113,7 +113,7 @@ class VehicleDocumentFlowTest {
     private fun backKeepingChanges() {
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Formular verlassen?").assertExists()
-        compose.onNodeWithText("Speichern").performClick()
+        compose.onNodeWithText("So lassen").performClick()
         compose.waitForIdle()
     }
 
@@ -202,7 +202,7 @@ class VehicleDocumentFlowTest {
         compose.onNodeWithText("Pflichtfeld").assertExists()
     }
 
-    /** Mit einer sinnvollen Eingabe fragt das Verlassen jetzt nach; "Speichern" behält das automatisch angelegte Dokument. */
+    /** Mit einer sinnvollen Eingabe fragt das Verlassen jetzt nach; "So lassen" behält das automatisch angelegte Dokument. */
     @Test
     fun leavingNewDocumentAfterTyping_asksAndKeepingKeepsTheDocument() {
         val documents = start()

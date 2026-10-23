@@ -225,6 +225,7 @@
     <string name="leave_draft_title">Leave this form?</string>
     <string name="leave_draft_text">Your changes are already saved automatically. You can discard them instead, or just leave as is.</string>
     <string name="leave_draft_discard">Discard</string>
+    <string name="leave_draft_keep">Leave as is</string>
     <string name="edit_check_fields">Check these fields: %1$s</string>
     <string name="edit_required">Required</string>
     <string name="edit_clear_date">Clear %1$s</string>

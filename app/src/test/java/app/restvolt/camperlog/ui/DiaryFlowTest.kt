@@ -67,7 +67,7 @@ class DiaryFlowTest {
     private fun backKeepingChanges() {
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Formular verlassen?").assertExists()
-        compose.onNodeWithText("Speichern").performClick()
+        compose.onNodeWithText("So lassen").performClick()
         compose.waitForIdle()
     }
 

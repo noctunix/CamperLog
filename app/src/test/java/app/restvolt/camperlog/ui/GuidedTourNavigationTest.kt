@@ -440,10 +440,10 @@ class GuidedTourNavigationTest {
 
             // Schritt "station-save": die Station speichert sich schon laufend selbst; ein echter
             // Klick auf "Zurück" zeigt wegen der echten Eingabe erst die Verwerfen/Speichern-Abfrage,
-            // "Speichern" verlässt das Formular dann und schaltet darüber weiter.
+            // "So lassen" verlässt das Formular dann und schaltet darüber weiter.
             clickThrough(hasContentDescription("Zurück"))
             compose.waitForIdle()
-            compose.onNodeWithText("Speichern").performClick()
+            compose.onNodeWithText("So lassen").performClick()
             compose.waitForIdle()
 
             // Schritt "track": abschließender Hinweis auf den jetzt echten GPS-Track-Abschnitt,
@@ -497,12 +497,12 @@ class GuidedTourNavigationTest {
 
             // Das Tourformular ist pausiert (keine Barriere mehr, "Fortsetzen" statt "Weiter"); das
             // jetzt echte, ungeführte Fahrzeugformular ist offen. Es speichert sich implizit selbst;
-            // "Zurück" zeigt wegen der echten Eingabe erst die Verwerfen/Speichern-Abfrage, "Speichern"
+            // "Zurück" zeigt wegen der echten Eingabe erst die Verwerfen/Speichern-Abfrage, "So lassen"
             // verlässt das Formular dann und behält das Fahrzeug.
             compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Hymer B-Klasse")
             clickThrough(hasContentDescription("Zurück"))
             compose.waitForIdle()
-            compose.onNodeWithText("Speichern").performClick()
+            compose.onNodeWithText("So lassen").performClick()
             compose.waitForIdle()
 
             // Zurück im Tourformular ist die Pilot-Tour fortgesetzt und freigeschaltet.

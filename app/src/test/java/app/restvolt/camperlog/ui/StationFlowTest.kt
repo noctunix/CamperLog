@@ -204,7 +204,7 @@ class StationFlowTest {
      */
     private fun clickSave() {
         compose.onNodeWithContentDescription("Zurück").performClick()
-        compose.onNodeWithText("Speichern").performClick()
+        compose.onNodeWithText("So lassen").performClick()
         compose.waitForIdle()
     }
 

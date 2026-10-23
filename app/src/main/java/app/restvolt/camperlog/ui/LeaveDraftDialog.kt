@@ -27,7 +27,7 @@ fun LeaveDraftDialog(onCancel: () -> Unit, onDiscard: () -> Unit, onKeep: () -> 
         confirmButton = {
             Row {
                 TextButton(onClick = onDiscard) { Text(stringResource(R.string.leave_draft_discard)) }
-                Button(onClick = onKeep) { Text(stringResource(R.string.action_save)) }
+                Button(onClick = onKeep) { Text(stringResource(R.string.leave_draft_keep)) }
             }
         },
     )

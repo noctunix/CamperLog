@@ -36,11 +36,11 @@ class EditVehicleFlowTest {
         }
     }
 
-    /** Verlässt das Fahrzeugformular über "Zurück" und bestätigt die Verwerfen/Speichern-Abfrage mit "Speichern". */
+    /** Verlässt das Fahrzeugformular über "Zurück" und bestätigt die Verwerfen/Speichern-Abfrage mit "So lassen". */
     private fun leaveFormAndKeep() {
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Speichern").performClick()
+        compose.onNodeWithText("So lassen").performClick()
         compose.waitForIdle()
     }
 
