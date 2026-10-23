@@ -1,6 +1,10 @@
 package app.restvolt.camperlog.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.lifecycle.createSavedStateHandle
@@ -22,6 +26,7 @@ import app.restvolt.camperlog.ui.about.GuidedTourEntry
 import app.restvolt.camperlog.ui.data.AndroidDataFiles
 import app.restvolt.camperlog.ui.data.DataScreen
 import app.restvolt.camperlog.ui.data.DataViewModel
+import app.restvolt.camperlog.ui.onboarding.FirstRunSetupScreen
 import app.restvolt.camperlog.ui.rates.RateEditScreen
 import app.restvolt.camperlog.ui.rates.RateEditViewModel
 import app.restvolt.camperlog.ui.rates.RatesScreen
@@ -138,8 +143,10 @@ internal fun NavGraphBuilder.settingsGraph(
     composable<DataRoute> { entry ->
         val route = entry.toRoute<DataRoute>()
         val context = LocalContext.current
+        var showFirstRunSetupAfterImport by remember { mutableStateOf(false) }
         DataScreen(
             importOnOpen = route.importOnOpen,
+            onImported = { if (!introductionSettings.seen) showFirstRunSetupAfterImport = true },
             viewModel = viewModel {
                 DataViewModel(
                     repository,
@@ -168,6 +175,19 @@ internal fun NavGraphBuilder.settingsGraph(
             folderWriter = backupFolderWriter,
             onBack = { navController.popFrom(entry) },
         )
+        if (showFirstRunSetupAfterImport) {
+            FirstRunSetupScreen(
+                themeMode = themeMode,
+                onThemeModeChange = onThemeModeChange,
+                reminderSettings = reminderSettings,
+                locationSettings = locationSettings,
+                weatherSettings = weatherSettings,
+                onFinished = {
+                    introductionSettings.seen = true
+                    showFirstRunSetupAfterImport = false
+                },
+            )
+        }
     }
     composable<SettingsRoute> { entry ->
         val context = LocalContext.current

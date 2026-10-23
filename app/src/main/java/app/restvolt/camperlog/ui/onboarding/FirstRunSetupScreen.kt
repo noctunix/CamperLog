@@ -55,12 +55,14 @@ private const val PAGE_COUNT = 2
 private const val PAGE_FINISH = 1
 
 /**
- * Kurzer Erststart-Bildschirm vor der eigentlichen App: Erscheinungsbild, Erinnerungs-Vorlauf und
- * Opt-in für Standort und Wetter & Karte. Läuft einmalig ab; der anschließende Rundgang durch die
- * Hauptbereiche ist eine geführte Tour über `GuideController`, nicht mehr Teil dieses Bildschirms.
- * [reminderSettings], [locationSettings] und [weatherSettings] sind dieselben Instanzen wie im
- * übrigen Navigationsgraphen; [onThemeModeChange] wirkt sofort wie im Einstellungen-Bildschirm.
- * [onFinished] markiert die Ersteinrichtung als abgeschlossen, egal ob zu Ende durchlaufen oder übersprungen.
+ * Kurzer Einrichtungs-Bildschirm für Erscheinungsbild, Erinnerungs-Vorlauf und Opt-in für Standort
+ * und Wetter & Karte. Erscheint einmalig, ausgelöst durch die erste echte Aktion (erste Tour oder
+ * Station anlegen, Sicherung importieren), nicht automatisch beim allerersten App-Start; der
+ * anschließende Rundgang durch die Hauptbereiche ist eine geführte Tour über `GuideController`,
+ * nicht Teil dieses Bildschirms. [reminderSettings], [locationSettings] und [weatherSettings] sind
+ * dieselben Instanzen wie im übrigen Navigationsgraphen; [onThemeModeChange] wirkt sofort wie im
+ * Einstellungen-Bildschirm. [onFinished] markiert die Ersteinrichtung als abgeschlossen, egal ob zu
+ * Ende durchlaufen oder übersprungen.
  */
 @Composable
 fun FirstRunSetupScreen(
