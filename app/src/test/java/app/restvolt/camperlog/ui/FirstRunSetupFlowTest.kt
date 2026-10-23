@@ -2,6 +2,7 @@ package app.restvolt.camperlog.ui
 
 import android.content.Context
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -81,9 +82,76 @@ class FirstRunSetupFlowTest {
             compose.onNodeWithText("Tour starten").assertExists()
             compose.onNodeWithText("Station ohne Tour erfassen").assertExists()
             compose.onNodeWithText("Willkommen bei CamperLog").assertDoesNotExist()
-            assertTrue(IntroductionSettings(context).seen)
+            assertFalse(IntroductionSettings(context).seen)
             assertFalse(LocationSettings(context).enabled)
             assertFalse(WeatherSettings(context).enabled)
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
+    fun startingTheFirstTourShowsSetupBeforeTheFormAndOnlyOnce() {
+        clearPreferences()
+        try {
+            start()
+
+            compose.onNodeWithText("Tour starten").performClick()
+            compose.onNodeWithText("Einstellungen").assertExists()
+            compose.onNodeWithContentDescription("Tour anlegen").assertDoesNotExist()
+            assertFalse(IntroductionSettings(context).seen)
+
+            compose.onNodeWithText("Überspringen").performClick()
+            compose.onNodeWithContentDescription("Tour anlegen").assertExists()
+            assertTrue(IntroductionSettings(context).seen)
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
+    fun addingTheFirstStationWithoutATourShowsSetupBeforeTheTypePicker() {
+        clearPreferences()
+        try {
+            start()
+
+            compose.onNodeWithText("Station ohne Tour erfassen").performClick()
+            compose.onNodeWithText("Einstellungen").assertExists()
+            compose.onNodeWithText("Was für eine Station?").assertDoesNotExist()
+
+            compose.onNodeWithText("Überspringen").performClick()
+            compose.onNodeWithText("Was für eine Station?").assertExists()
+            assertTrue(IntroductionSettings(context).seen)
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
+    fun choosingToImportABackupDoesNotShowSetupBeforeTheImportFinished() {
+        clearPreferences()
+        try {
+            start()
+
+            compose.onNodeWithText("Sicherung einspielen").performClick()
+            compose.onNodeWithText("Einstellungen").assertDoesNotExist()
+            assertFalse(IntroductionSettings(context).seen)
+        } finally {
+            clearPreferences()
+        }
+    }
+
+    @Test
+    fun setupDoesNotAppearAgainAfterItWasAlreadySeen() {
+        clearPreferences()
+        try {
+            IntroductionSettings(context).seen = true
+
+            start()
+            compose.onNodeWithText("Tour starten").performClick()
+
+            compose.onNodeWithContentDescription("Tour anlegen").assertExists()
+            compose.onNodeWithText("Einstellungen").assertDoesNotExist()
         } finally {
             clearPreferences()
         }

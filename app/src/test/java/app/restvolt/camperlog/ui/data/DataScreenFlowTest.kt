@@ -8,7 +8,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.test.core.app.ApplicationProvider
+import app.restvolt.camperlog.backup.Backup
 import app.restvolt.camperlog.data.BackupFolderWriter
+import app.restvolt.camperlog.backup.encodeBackup
 import app.restvolt.camperlog.reminders.ReminderWorkScheduler
 import app.restvolt.camperlog.ui.FakeAttachmentFileStore
 import app.restvolt.camperlog.ui.FakeAttachmentRepository
@@ -28,11 +30,15 @@ import app.restvolt.camperlog.ui.settings.NotificationSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.InputStream
+import java.time.Instant
+import java.util.Currency
 
 private class NoOpReminderWorkScheduler : ReminderWorkScheduler {
     override fun enqueue() = Unit
@@ -148,6 +154,57 @@ class DataScreenFlowTest {
 
         compose.onNode(hasText("Du hast länger nicht gesichert", substring = true)).assertDoesNotExist()
     }
+
+    @Test
+    fun successfulImport_callsOnImported() {
+        clearPreferences()
+        val backupJson = encodeBackup(Backup(Instant.parse("2026-10-04T12:00:00Z"), Currency.getInstance("EUR"), emptyList(), emptyList()))
+        val backupSettings = BackupSettings(context, NoOpReminderWorkScheduler())
+        val notificationSettings = NotificationSettings(context, NoOpReminderWorkScheduler())
+        var imported = false
+        compose.setContent {
+            CamperLogTheme {
+                DataScreen(
+                    viewModel = viewModel {
+                        DataViewModel(
+                            FakeTourRepository(),
+                            FakeExchangeRateRepository(),
+                            FakeVehicleRepository(),
+                            FakeLogRepository(),
+                            FakeStationRepository(),
+                            FakeVehicleDocumentRepository(),
+                            FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(), FakeTrackRepository(),
+                            FakeAttachmentRepository(),
+                            FakeHomeLocationRepository(),
+                            FakeAttachmentFileStore(),
+                            FakeBackupImporter(),
+                            FakeImportDataFiles(backupJson),
+                            FakeScreenBackupFolderWriter(),
+                            onFolderBackupResult = backupSettings::recordFolderBackupResult,
+                            background = Dispatchers.Unconfined,
+                        ).also { it.loadBackup("backup") }
+                    },
+                    backupSettings = backupSettings,
+                    notificationSettings = notificationSettings,
+                    folderWriter = FakeScreenBackupFolderWriter(),
+                    onBack = {},
+                    onImported = { imported = true },
+                )
+            }
+        }
+        compose.waitUntil(5_000) {
+            compose.waitForIdle()
+            compose.onAllNodesWithText("Einspielen").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        compose.onNodeWithText("Einspielen").performClick()
+        compose.waitUntil(5_000) {
+            compose.waitForIdle()
+            imported
+        }
+
+        assertTrue(imported)
+    }
 }
 
 /** [DataFiles]-Fake ohne Funktion: Der Daten-Screen ruft sie in diesen Tests nie auf. */
@@ -179,4 +236,35 @@ private object NoOpDataFiles : DataFiles {
     override fun open(source: String): java.io.InputStream? = error("not used in this test")
 
     override fun newImportStagingDir(): java.io.File = error("not used in this test")
+}
+
+/** [DataFiles]-Fake, der [backupJson] für [open] bereitstellt, sonst wie [NoOpDataFiles] ohne Funktion. */
+private class FakeImportDataFiles(private val backupJson: String) : DataFiles {
+    override suspend fun writeCsvExport(
+        tours: List<app.restvolt.camperlog.domain.Tour>,
+        stations: List<app.restvolt.camperlog.domain.Station>,
+        vehicleNames: Map<Long, String>,
+        defaultVehicleName: String,
+        vocabulary: app.restvolt.camperlog.share.CsvVocabulary,
+    ): String = error("not used in this test")
+
+    override suspend fun writeStationsCsvExport(
+        stations: List<app.restvolt.camperlog.domain.Station>,
+        tourNames: Map<Long, String>,
+        vehicleNames: Map<Long, String>,
+        defaultVehicleName: String,
+        vocabulary: app.restvolt.camperlog.share.CsvVocabulary,
+    ): String = error("not used in this test")
+
+    override suspend fun writeBackupExport(json: String): String = error("not used in this test")
+
+    override suspend fun writeBackup(target: String, json: String) = error("not used in this test")
+
+    override suspend fun writeBackupZipExport(writeZip: (java.io.OutputStream) -> Unit): String = error("not used in this test")
+
+    override suspend fun writeBackupZip(target: String, writeZip: (java.io.OutputStream) -> Unit) = error("not used in this test")
+
+    override fun open(source: String): InputStream = backupJson.byteInputStream()
+
+    override fun newImportStagingDir(): java.io.File = java.nio.file.Files.createTempDirectory("camperlog-test-staging").toFile()
 }
