@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationField
 import app.restvolt.camperlog.domain.StationInput
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
@@ -311,6 +312,44 @@ class EditStationViewModelTest {
         assertTrue(logs.entries.isEmpty())
         assertEquals(emptySet<StationService>(), stations.stations.single().services)
         assertEquals("Alt", stations.stations.single().name)
+    }
+
+    /** Der Haken übernimmt bei gültiger Eingabe den vollständigen, unentschärften Datensatz und meldet Erfolg. */
+    @Test
+    fun onFinish_withValidInput_savesTheUnsanitizedFullStationAndMarksFinished() = runTest {
+        val stations = FakeStationRepository()
+        val viewModel = newViewModel(stations)
+
+        viewModel.onInputChange { it.copy(name = "Camping Moskenes", odometerKm = "12000") }
+
+        assertTrue(viewModel.onFinish())
+
+        assertTrue(viewModel.uiState.value.isFinished)
+        assertEquals("Camping Moskenes", stations.stations.single().name)
+        assertEquals(12000, stations.stations.single().odometerKm)
+    }
+
+    /**
+     * Anders als der tolerante Autosave bricht der Haken bei einer ungültigen Eingabe komplett ab,
+     * statt das betroffene Feld stillschweigend wegzulassen - die Navigation bleibt aus, der
+     * zuletzt automatisch entschärfte Stand in der Datenbank bleibt unverändert.
+     */
+    @Test
+    fun onFinish_withInvalidInput_doesNotNavigateAndLeavesTheSanitizedAutosaveUntouched() = runTest {
+        val stations = FakeStationRepository()
+        val viewModel = newViewModel(stations)
+
+        viewModel.onInputChange { it.copy(name = "Camping Moskenes", odometerKm = "abc") }
+        advanceUntilIdle()
+        assertEquals(null, stations.stations.single().odometerKm)
+
+        assertFalse(viewModel.onFinish())
+
+        assertFalse(viewModel.uiState.value.isFinishing)
+        assertFalse(viewModel.uiState.value.isFinished)
+        assertEquals(null, stations.stations.single().odometerKm)
+        assertEquals("abc", viewModel.uiState.value.input.odometerKm)
+        assertTrue(viewModel.uiState.value.errors.containsKey(StationField.ODOMETER_KM))
     }
 
     /** [EditStationViewModel.onCleared] ist wie bei jedem `ViewModel` nur intern erreichbar; über den Store löst sich das Pendant zum echten Verlassen aus. */
