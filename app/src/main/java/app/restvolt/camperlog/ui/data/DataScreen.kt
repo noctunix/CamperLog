@@ -84,6 +84,7 @@ fun DataScreen(
     folderWriter: BackupFolderWriter,
     onBack: () -> Unit,
     importOnOpen: Boolean = false,
+    onImported: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -152,6 +153,7 @@ fun DataScreen(
         viewModel.message.filterNotNull().collect { message ->
             viewModel.messageShown()
             snackbar.showSnackbar(resources.dataMessageText(message), withDismissAction = true)
+            if (message is DataMessage.Imported) onImported()
         }
     }
 

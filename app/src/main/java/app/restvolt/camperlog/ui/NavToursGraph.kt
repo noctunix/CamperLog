@@ -40,21 +40,29 @@ import app.restvolt.camperlog.ui.edit.EditTourViewModel
 import app.restvolt.camperlog.ui.edit.isUnmodifiedNewTourDraft
 import app.restvolt.camperlog.ui.map.MapScreen
 import app.restvolt.camperlog.ui.map.MapViewModel
+import app.restvolt.camperlog.ui.onboarding.FirstRunSetupScreen
 import app.restvolt.camperlog.ui.overview.OverviewScreen
 import app.restvolt.camperlog.ui.overview.OverviewViewModel
 import app.restvolt.camperlog.ui.tours.ToursScreen
 import app.restvolt.camperlog.ui.tours.ToursViewModel
+import app.restvolt.camperlog.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+
+/** Vom Startbildschirm aufgeschobene Aktion, die nach der Ersteinrichtung ausgeführt wird. */
+private enum class PendingFirstRunAction { ADD_TOUR, ADD_STATION }
 
 /** Navigationsziele: Touren-Reiter mit Tourdetail, Tagebuch, Tourkarte und Übersicht. */
 internal fun NavGraphBuilder.toursGraph(
     navController: NavController,
     deps: NavDependencies,
     bottomBar: @Composable () -> Unit,
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
 ) = with(deps) {
     composable<ToursRoute> {
         var showStationPicker by rememberSaveable { mutableStateOf(false) }
+        var pendingFirstRunAction by remember { mutableStateOf<PendingFirstRunAction?>(null) }
         val context = LocalContext.current
         ToursScreen(
             viewModel = viewModel {
@@ -77,9 +85,19 @@ internal fun NavGraphBuilder.toursGraph(
                 if (guideController.state.value.tour?.id == CREATE_FIRST_TOUR_ID) {
                     guideController.completeAction(CREATE_FIRST_TOUR_FAB_ACTION)
                 }
-                navController.navigate(EditRoute())
+                if (introductionSettings.seen) {
+                    navController.navigate(EditRoute())
+                } else {
+                    pendingFirstRunAction = PendingFirstRunAction.ADD_TOUR
+                }
             },
-            onAddStation = { showStationPicker = true },
+            onAddStation = {
+                if (introductionSettings.seen) {
+                    showStationPicker = true
+                } else {
+                    pendingFirstRunAction = PendingFirstRunAction.ADD_STATION
+                }
+            },
             onImportBackup = { navController.navigate(DataRoute(importOnOpen = true)) },
             onOpenOverview = { vehicleId -> navController.navigate(OverviewRoute(vehicleId)) },
             onOpenSearch = { navController.navigate(SearchRoute) },
@@ -96,6 +114,23 @@ internal fun NavGraphBuilder.toursGraph(
                     navController.navigate(StationEditRoute(initialType = type.name))
                 },
                 onDismiss = { showStationPicker = false },
+            )
+        }
+        pendingFirstRunAction?.let { action ->
+            FirstRunSetupScreen(
+                themeMode = themeMode,
+                onThemeModeChange = onThemeModeChange,
+                reminderSettings = reminderSettings,
+                locationSettings = locationSettings,
+                weatherSettings = weatherSettings,
+                onFinished = {
+                    introductionSettings.seen = true
+                    pendingFirstRunAction = null
+                    when (action) {
+                        PendingFirstRunAction.ADD_TOUR -> navController.navigate(EditRoute())
+                        PendingFirstRunAction.ADD_STATION -> showStationPicker = true
+                    }
+                },
             )
         }
     }

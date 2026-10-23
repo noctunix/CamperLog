@@ -290,6 +290,7 @@ internal class NavDependencies(
     val diagnosticsLog: DiagnosticsLogRepository,
     val diagnosticsLogSettings: DiagnosticsLogSettings,
     val formDraftStore: FormDraftStore,
+    val introductionSettings: IntroductionSettings,
 )
 
 /** Navigationsgraph der App mit Start auf der Tourenliste. */
@@ -458,9 +459,9 @@ fun CamperLogNavHost(
     if (canShowStartDialogs) {
         LaunchedEffect(Unit) {
             keepAndroidOpenSettings.recordFirstLaunchIfNeeded()
-            if (!introductionSettings.seen) {
-                introductionSettings.seen = true
-            } else {
+            // Vor der Ersteinrichtung bleibt der Hinweis still: sie entscheidet unabhängig davon,
+            // wann sie selbst erscheint (nach der ersten Tour, Station oder Sicherung).
+            if (introductionSettings.seen) {
                 val hasData = repository.hasTours() || logbook.hasEntries()
                 showStartupKeepAndroidOpen = shouldShowKeepAndroidOpen(keepAndroidOpenSettings.state, hasData, Instant.now())
             }
@@ -541,10 +542,10 @@ fun CamperLogNavHost(
         attachments, attachmentFileStore, backupImporter, locationProvider, weatherProvider, placeSearchProvider, tileLoader,
         countryLookup, attachmentPickers, tracks, reminderSettings, locationSettings, trackSettings, weatherSettings,
         notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings, homeLocations, paymentMethods, guideController, guideProgressStore,
-        resolvedDemoTourSession, diagnosticsLog, diagnosticsLogSettings, formDraftStore,
+        resolvedDemoTourSession, diagnosticsLog, diagnosticsLogSettings, formDraftStore, introductionSettings,
     )
     NavHost(navController, startDestination = ToursRoute) {
-        toursGraph(navController, deps, bottomBar)
+        toursGraph(navController, deps, bottomBar, themeMode, onThemeModeChange)
         vehicleGraph(navController, deps, bottomBar)
         stationsGraph(navController, deps, bottomBar)
         settingsGraph(navController, deps, themeMode, onThemeModeChange, accentColor, onAccentColorChange)
