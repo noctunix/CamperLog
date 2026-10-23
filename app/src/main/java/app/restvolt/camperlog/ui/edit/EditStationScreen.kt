@@ -45,6 +45,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -136,6 +137,7 @@ import app.restvolt.camperlog.ui.vehicleDisplayName
 import app.restvolt.camperlog.ui.yesNoRes
 import java.time.LocalDate
 import java.util.Currency
+import kotlinx.coroutines.launch
 
 /**
  * Formular zum Anlegen und Bearbeiten einer Station; jede Eingabe speichert sich implizit selbst.
@@ -159,6 +161,7 @@ fun EditStationScreen(
     var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val resources = LocalResources.current
 
     LaunchedEffect(state.saveFailed) {
@@ -168,7 +171,14 @@ fun EditStationScreen(
         }
     }
 
-    val requestBack = { if (state.needsLeaveConfirmation()) showLeaveDialog = true else onDone() }
+    val requestBack = {
+        if (!state.isFinishing) {
+            if (state.needsLeaveConfirmation()) showLeaveDialog = true else onDone()
+        }
+    }
+    val finish = {
+        if (!state.isFinishing) scope.launch { if (viewModel.onFinish()) onDone() }
+    }
     BackHandler(onBack = requestBack)
 
     Scaffold(
@@ -178,7 +188,7 @@ fun EditStationScreen(
                 onBack = requestBack,
                 navigationIconModifier = if (state.isNew) Modifier.guideAnchor("edit.station.back") else Modifier,
                 actions = {
-                    IconButton(onClick = onDone) {
+                    IconButton(onClick = finish, enabled = !state.isFinishing) {
                         Icon(painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.action_save))
                     }
                 },
