@@ -51,10 +51,10 @@ class VehiclesFlowTest {
         compose.onNodeWithText("Fahrzeug hinzufügen").performClick()
         compose.onNode(hasSetTextAction() and hasText("Name")).performTextInput("Wohnmobil B")
         // Das Formular speichert implizit; "Zurück" zeigt wegen der echten Eingabe erst die
-        // Verwerfen/Speichern-Abfrage, "Speichern" verlässt es dann und behält das Fahrzeug.
+        // Verwerfen/Speichern-Abfrage, "So lassen" verlässt es dann und behält das Fahrzeug.
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Speichern").performClick()
+        compose.onNodeWithText("So lassen").performClick()
         compose.waitForIdle()
 
         compose.onNodeWithText("Wohnmobil B").assertExists()

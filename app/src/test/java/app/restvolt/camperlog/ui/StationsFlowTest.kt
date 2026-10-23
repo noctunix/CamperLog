@@ -185,7 +185,7 @@ class StationsFlowTest {
         // Verwerfen/Speichern-Abfrage und behält die Änderungen - das Pendant zum früheren
         // expliziten Speichern-Button.
         compose.onNodeWithContentDescription("Zurück").performClick()
-        compose.onNodeWithText("Speichern").performClick()
+        compose.onNodeWithText("So lassen").performClick()
         compose.waitForIdle()
 
         val saved = stationRepository.stations.single()
