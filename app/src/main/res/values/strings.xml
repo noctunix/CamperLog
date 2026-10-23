@@ -957,6 +957,7 @@
     <string name="electricity_input_mode_direct">kWh directly</string>
     <string name="electricity_result_value">≈ %1$s</string>
     <string name="electricity_result_pending">Not enough values yet</string>
+    <string name="electricity_manual_cost_hint">This billing is added to the manual electricity cost line below as a surcharge. Remove that line if it is not meant as one.</string>
     <string name="station_section_electricity">Electricity</string>
     <string name="station_section_toll">Toll</string>
     <string name="station_section_ferry">Ferry</string>

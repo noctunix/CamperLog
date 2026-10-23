@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.StationInput
 import app.restvolt.camperlog.domain.electricityPreview
@@ -124,6 +125,13 @@ internal fun ElectricityFields(
                 Text(error, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
             ElectricityResultLine(input, locale)
+            if (input.electricityPreview(locale).cost != null && input.costs.any { it.category == CostCategory.ELECTRICITY }) {
+                Text(
+                    stringResource(R.string.electricity_manual_cost_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
