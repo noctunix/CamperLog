@@ -47,7 +47,9 @@ import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toStation
 import app.restvolt.camperlog.domain.validation
 import app.restvolt.camperlog.domain.withElectricityBilling
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -82,6 +84,8 @@ data class StationEditUiState(
     val saveFailed: Boolean = false,
     /** Die id der Station, sobald sie bekannt ist: für eine neue Station ab ihrer ersten Anlage, sonst ab dem Laden. */
     val stationId: Long = 0,
+    val isFinishing: Boolean = false,
+    val isFinished: Boolean = false,
 )
 
 /**
@@ -310,6 +314,7 @@ class EditStationViewModel(
      * löst außerdem den debounced Autosave aus.
      */
     fun onInputChange(transform: (StationInput) -> StationInput) {
+        if (_uiState.value.isFinishing) return
         showErrors = true
         _uiState.update { state -> state.copy(input = transform(state.input), isDirty = true).withErrors() }
         saveDraft()
@@ -478,6 +483,51 @@ class EditStationViewModel(
             sanitized = sanitized.copy(costs = sanitized.costs.filterIndexed { index, _ -> index !in validation.costErrors.keys })
         }
         return sanitized
+    }
+
+    /**
+     * Validiert hart gegen die volle, unentschärfte Eingabe und übernimmt sie nur bei Erfolg als
+     * vollständigen Datensatz; bei Fehlern bleiben Entwurf und zuletzt automatisch gespeicherter
+     * Stand unangetastet, der Haken zum Abschließen bricht ohne Navigation ab.
+     *
+     * @return `true`, wenn die Station erfolgreich gespeichert wurde
+     */
+    suspend fun onFinish(): Boolean {
+        if (_uiState.value.isFinishing || _uiState.value.isFinished) return false
+        _uiState.update { it.copy(isFinishing = true) }
+        showErrors = true
+        try {
+            pendingSaveJob?.cancelAndJoin()
+            pendingSaveJob = null
+            attemptPersist()
+        } catch (cancelled: CancellationException) {
+            _uiState.update { it.copy(isFinishing = false) }
+            throw cancelled
+        }
+        val state = _uiState.value.withErrors()
+        _uiState.value = state
+        if (state.errors.isNotEmpty() || state.costErrors.isNotEmpty()) {
+            _uiState.update { it.copy(isFinishing = false) }
+            return false
+        }
+        val station = state.input.toStation(original, locale())
+        return persistMutex.withLock {
+            try {
+                val id = repository.save(station)
+                original = repository.observeStation(id).first() ?: station.copy(id = id)
+                savedStateHandle.remove<SavedState>(DRAFT_KEY)
+                _uiState.update {
+                    it.copy(stationId = id, isFinishing = false, isFinished = true, isDirty = false, saveFailed = false)
+                }
+                true
+            } catch (cancelled: CancellationException) {
+                _uiState.update { it.copy(isFinishing = false) }
+                throw cancelled
+            } catch (_: SQLException) {
+                _uiState.update { it.copy(isFinishing = false, saveFailed = true) }
+                false
+            }
+        }
     }
 
     /** Plant [attemptPersist] mit kurzer Verzögerung, damit schnell aufeinanderfolgende Tastendrücke nur einen Schreibzugriff auslösen. */
