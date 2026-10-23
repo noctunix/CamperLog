@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.EUR
 import app.restvolt.camperlog.domain.ElectricityFlatRate
 import app.restvolt.camperlog.domain.LteQuality
@@ -22,6 +23,7 @@ import app.restvolt.camperlog.domain.PitchSlope
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.domain.formatDate
+import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
@@ -44,6 +46,8 @@ class VehicleFlowTest {
     val compose = createComposeRule()
 
     private fun start(vehicles: FakeVehicleRepository, vararg tours: Tour): FakeTourRepository {
+        // Die Ersteinrichtung ist hier nicht Gegenstand des Tests; sie soll "Tour starten" nicht vorschalten.
+        IntroductionSettings(ApplicationProvider.getApplicationContext()).seen = true
         val repository = FakeTourRepository(tours.toList()) { vehicles.currentVehicleId }
         compose.setContent {
             CamperLogTheme {

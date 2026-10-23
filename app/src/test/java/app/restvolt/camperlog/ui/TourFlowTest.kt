@@ -54,6 +54,7 @@ import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
 import app.restvolt.camperlog.tracking.ActiveRecording
 import app.restvolt.camperlog.tracking.TrackRecordingSettings
+import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import app.restvolt.camperlog.ui.theme.AccentColor
 import app.restvolt.camperlog.ui.theme.ThemeMode
@@ -85,6 +86,8 @@ class TourFlowTest {
         start(vehicles, emptyList(), *tours)
 
     private fun start(vehicles: FakeVehicleRepository, stations: List<Station>, vararg tours: Tour): FakeTourRepository {
+        // Die Ersteinrichtung ist hier nicht Gegenstand des Tests; sie soll "Tour starten" nicht vorschalten.
+        IntroductionSettings(ApplicationProvider.getApplicationContext()).seen = true
         val repository = FakeTourRepository(tours.toList())
         compose.setContent {
             CamperLogTheme {
@@ -114,6 +117,7 @@ class TourFlowTest {
         logs: FakeLogRepository,
         vararg tours: Tour,
     ): FakeTourRepository {
+        IntroductionSettings(ApplicationProvider.getApplicationContext()).seen = true
         val repository = FakeTourRepository(tours.toList())
         compose.setContent {
             CamperLogTheme {
