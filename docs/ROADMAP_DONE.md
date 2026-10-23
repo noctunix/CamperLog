@@ -2,6 +2,7 @@
 
 Shipped features, newest first.
 
+- 1.36.0 – Stop form now fully validates before finishing instead of silently dropping invalid fields; leave dialog no longer shows a misleading "Save" button when already auto-saved; hint when a manual electricity cost line adds to a calculated billing; first-run setup (theme, reminders, location/weather) now appears before the first tour/stop, or after a backup import
 - 1.35.1 – The system back button steps back through the introduction tour (and ends it at the first step) instead of navigating the app underneath
 - 1.35.0 – Introduction tour ends with a "Let's go" step pointing to the new-tour button; re-saving a fuel stop adds the missing logbook entry; merge import reports payment methods that no longer fit into the list of 30; example-tour track points never lie in the future
 - 1.34.0 – Introduction tour gains statistics and map steps (example tour only, map drawn without background tiles so nothing is fetched from the internet); the example tour is kept out of statistics and rates

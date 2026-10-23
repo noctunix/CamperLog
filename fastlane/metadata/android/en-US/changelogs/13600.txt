@@ -1,0 +1,4 @@
+• Fixed: the stop form now fully validates before finishing, instead of silently dropping invalid fields
+• Fixed: the leave dialog no longer shows a misleading "Save" button when changes are already saved
+• Added: a hint when a manual electricity cost line adds to the calculated billing
+• First-run setup (theme, reminders, location/weather) now appears before your first tour/stop, or after importing a backup
