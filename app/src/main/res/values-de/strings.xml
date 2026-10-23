@@ -946,6 +946,7 @@
     <string name="electricity_input_mode_direct">kWh direkt</string>
     <string name="electricity_result_value">≈ %1$s</string>
     <string name="electricity_result_pending">Noch nicht genug Angaben</string>
+    <string name="electricity_manual_cost_hint">Diese Abrechnung wird zur manuellen Strom-Kostenzeile unten als Zuschlag addiert. Entferne die Zeile, falls sie keinen Zuschlag darstellen soll.</string>
     <string name="station_section_electricity">Strom</string>
     <string name="station_section_toll">Maut</string>
     <string name="station_section_ferry">Fähre</string>

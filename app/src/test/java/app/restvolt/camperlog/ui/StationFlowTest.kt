@@ -46,6 +46,7 @@ import app.restvolt.camperlog.domain.PlaceSearchHit
 import app.restvolt.camperlog.domain.PlaceSearchProvider
 import app.restvolt.camperlog.domain.PlaceSearchResult
 import app.restvolt.camperlog.domain.Station
+import app.restvolt.camperlog.domain.StationCost
 import app.restvolt.camperlog.domain.StationService
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.TollKind
@@ -736,6 +737,36 @@ class StationFlowTest {
         compose.onNodeWithText("Kosten", substring = false).performScrollTo().performClick()
         compose.onNodeWithText(formatAmount(1_000, EUR, locale)).assertExists()
         compose.onNodeWithText(formatAmount(49_650, EUR, locale)).assertExists()
+    }
+
+    @Test
+    fun overnightStop_withManualElectricityLine_warnsOnlyOnceABillingAlsoYieldsACost() {
+        val hintText = "Diese Abrechnung wird zur manuellen Strom-Kostenzeile unten als Zuschlag addiert. Entferne die Zeile, falls sie keinen Zuschlag darstellen soll."
+        val existing = station(id = 1, name = "Camping Moskenes")
+            .copy(costs = listOf(StationCost(CostCategory.ELECTRICITY, Money(500, EUR))))
+        start(listOf(lofoten()), listOf(existing))
+
+        compose.onNodeWithText("Lofoten").performClick()
+        compose.onNodeWithText("Camping Moskenes").performClick()
+        compose.onNodeWithContentDescription("Station bearbeiten").performClick()
+        expandDetails()
+
+        // Nur die manuelle Zeile, noch keine abgeleitete Abrechnung: kein Hinweis.
+        compose.onNodeWithText(hintText).assertDoesNotExist()
+
+        compose.onNodeWithContentDescription("Abschnitt „Strom“ anzeigen").performScrollTo().performClick()
+        compose.onNodeWithText("nach Verbrauch").performScrollTo().performClick()
+        compose.onNode(hasSetTextAction() and hasText("Preis je kWh (€)")).performScrollTo().performTextInput("0,50")
+        compose.onNode(hasSetTextAction() and hasText("Zählerstand Anfang (kWh)")).performScrollTo().performTextInput("100")
+        compose.onNode(hasSetTextAction() and hasText("Zählerstand Ende (kWh)")).performScrollTo().performTextInput("120")
+
+        // Jetzt ergeben beide zusammen einen Betrag: der Hinweis erscheint.
+        compose.onNodeWithText(hintText).assertExists()
+
+        compose.onNodeWithContentDescription("Strom-Kosten entfernen").performScrollTo().performClick()
+
+        // Ohne die manuelle Zeile bleibt nur die abgeleitete Abrechnung: kein Hinweis mehr.
+        compose.onNodeWithText(hintText).assertDoesNotExist()
     }
 
     @Test
