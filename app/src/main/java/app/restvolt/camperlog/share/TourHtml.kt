@@ -99,6 +99,8 @@ private fun stopHtml(stop: TourStopExport): String = buildString {
     stop.notesLine?.let { appendLine("<p>${htmlEscape(it)}</p>") }
     stop.weatherLine?.let { appendLine("<p>${htmlEscape(it)}</p>") }
     stop.pitchDetailsLine?.let { appendLine("<p>${htmlEscape(it)}</p>") }
+    stop.connectivityLine?.let { appendLine("<p>${htmlEscape(it)}</p>") }
+    stop.boardAndAmenitiesLine?.let { appendLine("<p>${htmlEscape(it)}</p>") }
     stop.photos.forEach { photo -> appendLine("""<img src="${htmlEscape(photo.relativeUrl)}" alt="">""") }
     appendLine("</li>")
 }

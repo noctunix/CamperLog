@@ -81,6 +81,8 @@ private fun stopMarkdown(stop: TourStopExport): String = buildString {
     stop.notesLine?.let { appendLine(); appendLine(md(it)) }
     stop.weatherLine?.let { appendLine(); appendLine(md(it)) }
     stop.pitchDetailsLine?.let { appendLine(); appendLine(md(it)) }
+    stop.connectivityLine?.let { appendLine(); appendLine(md(it)) }
+    stop.boardAndAmenitiesLine?.let { appendLine(); appendLine(md(it)) }
     stop.photos.forEach { photo ->
         appendLine()
         appendLine("![](${photo.relativeUrl})")

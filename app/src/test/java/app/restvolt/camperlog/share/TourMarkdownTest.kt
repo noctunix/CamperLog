@@ -4,11 +4,16 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.AttachmentOwnerType
+import app.restvolt.camperlog.domain.BoardType
 import app.restvolt.camperlog.domain.DiaryEntry
+import app.restvolt.camperlog.domain.LodgingAmenity
+import app.restvolt.camperlog.domain.LteQuality
+import app.restvolt.camperlog.domain.SiteKind
 import app.restvolt.camperlog.domain.Station
 import app.restvolt.camperlog.domain.StationType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.TourType
+import app.restvolt.camperlog.ui.labelRes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -66,6 +71,29 @@ class TourMarkdownTest {
 
         assertTrue(markdown.contains("### Camp\\_\\<Nord\\>"))
         assertTrue(markdown.contains("1\\. Tag\n\\- \\*fett\\* \\[x\\] \\#1"))
+    }
+
+    @Test
+    fun wifiBoardAndAmenitiesAppearForALodgingStop() {
+        val lodgingStation = Station(
+            vehicleId = 1,
+            type = StationType.OVERNIGHT,
+            date = LocalDate.of(2026, 7, 10),
+            name = "Seehotel",
+            siteKind = SiteKind.HOTEL,
+            wifiQuality = LteQuality.GOOD,
+            boardType = BoardType.HALF_BOARD,
+            lodgingAmenities = setOf(LodgingAmenity.POOL, LodgingAmenity.SAUNA),
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+
+        val markdown = tourMarkdown(resources, tour, listOf(lodgingStation), emptySet(), emptyMap())
+
+        assertTrue("WLAN quality missing", markdown.contains(resources.getString(LteQuality.GOOD.labelRes)))
+        assertTrue("board type missing", markdown.contains(resources.getString(BoardType.HALF_BOARD.labelRes)))
+        assertTrue("amenities missing", markdown.contains(resources.getString(LodgingAmenity.POOL.labelRes)))
+        assertTrue("amenities missing", markdown.contains(resources.getString(LodgingAmenity.SAUNA.labelRes)))
     }
 
     @Test
