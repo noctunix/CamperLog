@@ -1,0 +1,3 @@
+• Neu: Zahlungsart jetzt auch bei Reparaturkosten, wie bei Stationen
+• Verbessert: "Beginnt zu Hause" ist jetzt standardmäßig an und erklärt seinen Nutzen
+• Behoben: Der Tour-Export zeigt jetzt WLAN, Verpflegung und Ausstattung bei Hotel-artigen Übernachtungen
