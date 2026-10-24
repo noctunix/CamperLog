@@ -479,8 +479,55 @@ class EditTourViewModelTest {
         assertEquals(11.576, saved.longitude)
     }
 
+    /** Ist unklar, ob der Schalter überhaupt etwas bringt - er soll von sich aus an sein, nicht stillschweigend übersehen werden. */
     @Test
-    fun homeSwitchOff_createsNoHomeStation() = runTest {
+    fun newTour_defaultsHomeSwitchOn_whenAHomeLocationExists() = runTest {
+        val stations = FakeStationRepository()
+        val viewModel = EditTourViewModel(
+            FakeTourRepository(),
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            stations,
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            FakeFormDraftStore(),
+            locale,
+            homeLocations = homeLocationRepository(name = "Elternhaus"),
+        )
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.homeSwitch)
+        viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
+        viewModel.onDestinationChange("Gardasee")
+
+        assertTrue(viewModel.onFinish())
+
+        assertEquals("Elternhaus", stations.stations.single().name)
+    }
+
+    /** Ohne bekannte Zuhause-Adresse bleibt der Schalter aus - er ist dann ohnehin gar nicht sichtbar. */
+    @Test
+    fun newTour_leavesHomeSwitchOff_withoutAnyHomeLocation() = runTest {
+        val stations = FakeStationRepository()
+        val viewModel = EditTourViewModel(
+            FakeTourRepository(),
+            FakeVehicleRepository(listOf(defaultVehicle(id = 1, name = "A")), currentVehicleId = 1),
+            stations,
+            FakeChecklistRepository(),
+            0,
+            SavedStateHandle(),
+            FakeFormDraftStore(),
+            locale,
+            homeLocations = FakeHomeLocationRepository(),
+        )
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.homeSwitch)
+    }
+
+    /** Die automatische Vorbelegung überschreibt eine bewusste Entscheidung des Nutzers nicht. */
+    @Test
+    fun homeSwitchDefaultOn_isNotOverriddenAfterTheUserTurnsItOffAgain() = runTest {
         val stations = FakeStationRepository()
         val viewModel = EditTourViewModel(
             FakeTourRepository(),
@@ -493,8 +540,14 @@ class EditTourViewModelTest {
             locale,
             homeLocations = homeLocationRepository(),
         )
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.homeSwitch)
+
+        viewModel.onHomeSwitchChange(false)
         viewModel.onStartDateChange(LocalDate.of(2026, 7, 1))
         viewModel.onDestinationChange("Gardasee")
+
+        assertTrue(viewModel.onFinish())
 
         assertEquals(0, stations.stations.size)
     }
