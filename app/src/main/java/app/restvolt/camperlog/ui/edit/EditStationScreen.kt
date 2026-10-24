@@ -115,6 +115,7 @@ import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LeaveDraftDialog
 import app.restvolt.camperlog.ui.LocationCaptureSection
+import app.restvolt.camperlog.ui.PaymentMethodChips
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.TimeField
 import app.restvolt.camperlog.ui.WeatherFetchRow
@@ -514,23 +515,6 @@ private val AMENITY_GROUPS: List<Pair<Int, Set<LodgingAmenity>>> = listOf(
     ),
     R.string.amenities_group_rules to setOf(LodgingAmenity.PETS_ALLOWED, LodgingAmenity.NON_SMOKING, LodgingAmenity.SKI_ROOM),
 )
-
-/** Vorschläge aus der Zahlungsarten-Liste der Einstellungen; ein erneuter Tipp auf die gewählte Zahlungsart leert das Feld. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PaymentMethodChips(suggestions: List<String>, selected: String, onSelect: (String) -> Unit) {
-    if (suggestions.isEmpty()) return
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        suggestions.forEach { name ->
-            val isSelected = selected.trim() == name
-            FilterChip(
-                selected = isSelected,
-                onClick = { onSelect(if (isSelected) "" else name) },
-                label = { Text(name) },
-            )
-        }
-    }
-}
 
 @Composable
 private fun OvernightSection(

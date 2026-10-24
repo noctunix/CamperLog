@@ -190,6 +190,8 @@ internal data class RepairDto(
     val cost: CostDto? = null,
     /** Fehlt in Sicherungen vor Formatversion 16. */
     val workshopName: String = "",
+    /** Fehlt in Sicherungen vor Formatversion 27. */
+    val paymentMethod: String = "",
     /** Fehlt in Sicherungen vor Formatversion 16. */
     val latitude: Double? = null,
     /** Fehlt in Sicherungen vor Formatversion 16. */

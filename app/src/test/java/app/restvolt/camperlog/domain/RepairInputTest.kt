@@ -103,6 +103,21 @@ class RepairInputTest {
     }
 
     @Test
+    fun paymentMethodIsOptionalTrimmedAndLimitedInLength() {
+        val withoutPaymentMethod = RepairInput(date = LocalDate.of(2026, 1, 1), description = "Service").toRepair(null, vehicleId = 1, de)
+        assertEquals("", withoutPaymentMethod.paymentMethod)
+
+        val withPaymentMethod = valid.copy(paymentMethod = "  Bar  ").toRepair(null, vehicleId = 1, de)
+        assertEquals("Bar", withPaymentMethod.paymentMethod)
+
+        assertEquals(
+            RepairError.TOO_LONG,
+            valid.copy(paymentMethod = "x".repeat(MAX_PAYMENT_METHOD_LENGTH + 1)).validate(de)[RepairField.PAYMENT_METHOD],
+        )
+        assertTrue(valid.copy(paymentMethod = "x".repeat(MAX_PAYMENT_METHOD_LENGTH)).validate(de).isEmpty())
+    }
+
+    @Test
     fun coordinatesPassThroughUnchanged() {
         val repair = valid.copy(latitude = 52.5219, longitude = 13.4132).toRepair(null, vehicleId = 1, de)
         assertEquals(52.5219, repair.latitude)
