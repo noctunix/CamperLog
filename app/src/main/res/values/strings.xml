@@ -172,7 +172,7 @@
     <string name="settings_map_storage_clear">Clear</string>
     <string name="settings_map_storage_cleared_hint">Map storage cleared.</string>
     <string name="settings_home_section">Home</string>
-    <string name="settings_home_section_hint">Used to add a start (and end) stop to new tours automatically.</string>
+    <string name="settings_home_section_hint">So new tours can start (and end) right at home on the map and station list, instead of at the first real stop.</string>
     <string name="home_location_default_name">Home</string>
     <string name="home_location_valid_from">Valid from</string>
     <string name="home_location_valid_from_hint">Leave empty if unknown or always valid</string>
@@ -246,8 +246,8 @@
     <string name="edit_track_switch_support">Starts recording right away.</string>
     <string name="edit_home_switch_title_start">Starts at home</string>
     <string name="edit_home_switch_title_both">Starts and ends at home</string>
-    <string name="edit_home_switch_support_start">Adds a stop at %1$s right away.</string>
-    <string name="edit_home_switch_support_both">Adds a stop at %1$s for the start and the end right away.</string>
+    <string name="edit_home_switch_support_start">So the map and station list start right at home, at %1$s. Doesn\'t count as an overnight stay.</string>
+    <string name="edit_home_switch_support_both">So the map and station list start and end right at home, at %1$s. Doesn\'t count as an overnight stay.</string>
     <string name="tour_metrics_title">Trip metrics</string>
     <string name="edit_new_tour_running_hint">Without an end date, this tour already counts as running. Stats are added automatically once you finish it.</string>
     <string name="tour_metrics_automatic_hint">Calculated automatically from dates, stops, and the GPS track when the tour ends.</string>
@@ -1444,8 +1444,8 @@
     <string name="guide_step_track_switch_body_enabled">Check this to record a GPS track while you drive. CamperLog asks for the location permission right now, so recording can start the moment you check it.</string>
     <string name="guide_step_track_switch_body_disabled">GPS recording has its own setting. Activate it here when needed; starting a track will ask for location permission. Online weather and maps remain separate.</string>
     <string name="guide_step_home_switch_title">Home location</string>
-    <string name="guide_step_home_switch_body_set">Check this to add a stop at your home location automatically, right away.</string>
-    <string name="guide_step_home_switch_body_unset">Once you set a home location in Settings → Home, a checkbox here adds a stop there automatically.</string>
+    <string name="guide_step_home_switch_body_set">Already checked, since you have a home location set: your trip starts (and ends) right at home on the map and station list, not at the first real stop.</string>
+    <string name="guide_step_home_switch_body_unset">Once you set a home location in Settings → Home, a checkbox here lets your trips start (and end) right at home on the map and station list, not at the first real stop.</string>
     <string name="guide_step_other_costs_body">Add any extra costs for the whole tour here, like an annual breakdown cover membership fee.</string>
     <string name="guide_step_advanced_body">The slug is a short, file-name-safe label used for exports and reports; CamperLog suggests one automatically.</string>
     <string name="guide_step_save_body">Everything is already saved – tap Back when you\'re done.</string>

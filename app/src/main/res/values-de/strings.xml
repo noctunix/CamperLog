@@ -172,7 +172,7 @@
     <string name="settings_map_storage_clear">Leeren</string>
     <string name="settings_map_storage_cleared_hint">Kartenspeicher gelöscht.</string>
     <string name="settings_home_section">Zuhause</string>
-    <string name="settings_home_section_hint">Für die automatische Start- (und Ende-)Station neuer Touren.</string>
+    <string name="settings_home_section_hint">Damit neue Touren auf Karte und Stationsliste direkt zu Hause beginnen (und enden), statt erst bei der ersten echten Station.</string>
     <string name="home_location_default_name">Zuhause</string>
     <string name="home_location_valid_from">Gültig ab</string>
     <string name="home_location_valid_from_hint">Leer lassen, wenn unbekannt oder schon immer gültig</string>
@@ -246,8 +246,8 @@
     <string name="edit_track_switch_support">Startet die Aufzeichnung sofort.</string>
     <string name="edit_home_switch_title_start">Beginnt zu Hause</string>
     <string name="edit_home_switch_title_both">Beginnt und endet zu Hause</string>
-    <string name="edit_home_switch_support_start">Legt sofort eine Station bei %1$s an.</string>
-    <string name="edit_home_switch_support_both">Legt sofort je eine Station bei %1$s für Start und Ende an.</string>
+    <string name="edit_home_switch_support_start">Damit Karte und Stationsliste direkt zu Hause bei %1$s beginnen. Zählt nicht als Übernachtung.</string>
+    <string name="edit_home_switch_support_both">Damit Karte und Stationsliste direkt zu Hause bei %1$s beginnen und enden. Zählt nicht als Übernachtung.</string>
     <string name="tour_metrics_title">Kennzahlen</string>
     <string name="edit_new_tour_running_hint">Ohne Enddatum gilt diese Tour schon jetzt als laufend. Kennzahlen kommen automatisch dazu, sobald du sie beendest.</string>
     <string name="tour_metrics_automatic_hint">Werden beim Beenden automatisch aus Zeitraum, Stationen und GPS-Track berechnet.</string>
@@ -1433,8 +1433,8 @@
     <string name="guide_step_track_switch_body_enabled">Kreuz das an, um während der Fahrt einen GPS-Track aufzuzeichnen. CamperLog fragt die Standortberechtigung direkt jetzt an, damit die Aufzeichnung mit dem Ankreuzen starten kann.</string>
     <string name="guide_step_track_switch_body_disabled">Die GPS-Aufzeichnung hat eine eigene Einstellung. Du kannst sie hier bei Bedarf aktivieren; beim Trackstart wird die Standortberechtigung abgefragt. Wetter und Online-Karten bleiben davon getrennt.</string>
     <string name="guide_step_home_switch_title">Zuhause-Ort</string>
-    <string name="guide_step_home_switch_body_set">Kreuz das an, um sofort automatisch eine Station an deinem Zuhause-Ort anzulegen.</string>
-    <string name="guide_step_home_switch_body_unset">Legst du in den Einstellungen → Zuhause einen Ort fest, legt eine Checkbox hier automatisch eine Station dort an.</string>
+    <string name="guide_step_home_switch_body_set">Schon angekreuzt, weil ein Zuhause-Ort hinterlegt ist: Deine Reise beginnt (und endet) auf Karte und Stationsliste direkt zu Hause, nicht erst bei der ersten echten Station.</string>
+    <string name="guide_step_home_switch_body_unset">Legst du in den Einstellungen → Zuhause einen Ort fest, lässt eine Checkbox hier deine Reisen auf Karte und Stationsliste direkt zu Hause beginnen (und enden), nicht erst bei der ersten echten Station.</string>
     <string name="guide_step_other_costs_body">Trag hier Kosten ein, die für die ganze Tour gelten, zum Beispiel einen Jahresbeitrag für die Pannenhilfe.</string>
     <string name="guide_step_advanced_body">Der Slug ist ein kurzer, dateinamensicherer Kurzname für Berichte und Exporte; CamperLog schlägt automatisch einen vor.</string>
     <string name="guide_step_save_body">Alles ist schon gespeichert – tippe auf Zurück, wenn du fertig bist.</string>

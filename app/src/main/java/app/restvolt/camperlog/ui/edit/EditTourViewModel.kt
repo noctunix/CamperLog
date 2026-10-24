@@ -84,6 +84,11 @@ data class EditUiState(
     val trackSwitch: Boolean = false,
     /** Schalter "Beginnt zu Hause"; nur für neue Touren mit gesetzter Zuhause-Koordinate überhaupt sichtbar/wirksam. */
     val homeSwitch: Boolean = false,
+    /**
+     * Der Wert, auf den [homeSwitch] automatisch vorbelegt wurde (an, sobald eine Zuhause-Adresse
+     * bekannt ist), damit ein noch unberührter Entwurf trotz dieser Vorbelegung als unberührt gilt.
+     */
+    val initialHomeSwitch: Boolean = false,
     /** Die id der Tour, sobald sie bekannt ist: für eine neue Tour ab ihrer ersten Anlage, sonst ab dem Laden. */
     val tourId: Long? = null,
     /** Das vorbelegte Startdatum ist Teil eines unberührten neuen Entwurfs. */
@@ -103,7 +108,7 @@ internal fun EditUiState.isUnmodifiedNewTourDraft(): Boolean = isNew &&
     !isFinished &&
     input == (initialInput ?: TourInput(startDate = initialStartDate)) &&
     !trackSwitch &&
-    !homeSwitch
+    homeSwitch == initialHomeSwitch
 
 /**
  * Ob ein Verlassen zuerst den Verwerfen/Speichern-Dialog zeigen muss: Für eine neue Tour, solange
@@ -134,6 +139,7 @@ internal data class TourDraft(
     val openedManualCountriesRemoved: Set<String>? = null,
     val trackSwitch: Boolean = false,
     val homeSwitch: Boolean = false,
+    val initialHomeSwitch: Boolean = false,
     /** Markiert eine neue Tour, deren automatisch angelegte id bereits besteht. */
     val isNew: Boolean = false,
 )
@@ -190,6 +196,7 @@ class EditTourViewModel(
             } else null,
             trackSwitch = draft?.trackSwitch ?: false,
             homeSwitch = draft?.homeSwitch ?: false,
+            initialHomeSwitch = draft?.initialHomeSwitch ?: false,
         ).let { state ->
             if (draft == null) state else state.copy(isDirty = !state.isUnmodifiedNewTourDraft())
         },
@@ -274,6 +281,7 @@ class EditTourViewModel(
                                 isDirty = false,
                                 trackSwitch = false,
                                 homeSwitch = false,
+                                initialHomeSwitch = false,
                             )
                         }
                     }
@@ -303,6 +311,18 @@ class EditTourViewModel(
                         }
                         if (original == null) createNewTourPlaceholder()
                     }
+            }
+            if (homeLocations != null) {
+                viewModelScope.launch {
+                    homeLocations.observeAll().collect { list ->
+                        if (list.none { it.hasLocation }) return@collect
+                        _uiState.update { state ->
+                            // Nur vorbelegen, solange der Nutzer den Schalter noch nicht selbst verändert hat.
+                            if (state.homeSwitch != state.initialHomeSwitch || state.initialHomeSwitch) state
+                            else state.copy(homeSwitch = true, initialHomeSwitch = true)
+                        }
+                    }
+                }
             }
         } else {
             viewModelScope.launch {
@@ -360,6 +380,7 @@ class EditTourViewModel(
                         isDirty = restored != null,
                         trackSwitch = restored?.trackSwitch ?: it.trackSwitch,
                         homeSwitch = restored?.homeSwitch ?: it.homeSwitch,
+                        initialHomeSwitch = restored?.initialHomeSwitch ?: it.initialHomeSwitch,
                         isNew = restored?.isNew ?: false,
                         initialStartDate = if (restored?.isNew == true) initialStartDate else it.initialStartDate,
                         errors = if (restored == null) emptyMap() else it.errors,
@@ -676,6 +697,7 @@ class EditTourViewModel(
             openedManualCountriesRemoved = openedManualCountriesRemoved,
             trackSwitch = state.trackSwitch,
             homeSwitch = state.homeSwitch,
+            initialHomeSwitch = state.initialHomeSwitch,
             isNew = state.isNew,
         )
     }
