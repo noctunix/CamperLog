@@ -1,0 +1,3 @@
+• Added: payment method field for vehicle repair costs, matching stops
+• Improved: "starts at home" now switches on by default and explains what it does
+• Fixed: the tour export now shows WLAN, board type and amenities for hotel-style stays
