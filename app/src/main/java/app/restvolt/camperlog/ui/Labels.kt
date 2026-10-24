@@ -299,6 +299,7 @@ val RepairField.labelRes: Int
         RepairField.DESCRIPTION -> R.string.field_description
         RepairField.ODOMETER_KM -> R.string.field_odometer_km
         RepairField.COST -> R.string.field_cost
+        RepairField.PAYMENT_METHOD -> R.string.field_payment_method
     }
 
 /**
@@ -319,6 +320,7 @@ fun RepairError.messageRes(field: RepairField): String = when (this) {
         val max = java.text.NumberFormat.getIntegerInstance(currentLocale()).format(MAX_ODOMETER_KM)
         stringResource(R.string.error_value_too_large, "$max km")
     }
+    RepairError.TOO_LONG -> stringResource(R.string.error_text_too_long)
 }
 
 /** Bezeichnung eines Formularfelds des Tagebuchformulars, z. B. für die Fehlerzusammenfassung. */

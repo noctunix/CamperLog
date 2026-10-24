@@ -1115,6 +1115,32 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migration30To34AddsPaymentMethodToRepairsAndKeepsItEditable() = runTest {
+        createVersion30(
+            "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
+                "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
+                "breakdown_phone, travel_protection_provider, travel_protection_contract_number, " +
+                "travel_protection_phone, insurer_claims_phone, required_energy_types, created_at, updated_at) VALUES " +
+                "(1, 'veh-1', 'Bluebird', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 1000, 2000)",
+            "INSERT INTO repairs (id, uuid, vehicle_id, date, description, created_at, updated_at) VALUES " +
+                "(1, 'repair-1', 1, '2026-01-01', 'Bremsen erneuert', 1000, 2000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val repository = RoomVehicleRepository(db)
+            val repair = repository.observeRepairs(1).first().single()
+            assertEquals("", repair.paymentMethod)
+
+            repository.saveRepair(repair.copy(paymentMethod = "Bar"))
+            val updated = repository.observeRepairs(1).first().single()
+            assertEquals("Bar", updated.paymentMethod)
+        } finally {
+            db.close()
+        }
+    }
+
     /** Legt `camperlog.db` im Stand von Version 28 nach `schemas/…/28.json` an und füllt sie mit [inserts]. */
     private fun createVersion28(vararg inserts: String) = createDatabase(
         version = 28,

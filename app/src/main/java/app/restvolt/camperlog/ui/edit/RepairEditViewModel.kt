@@ -68,6 +68,7 @@ internal fun RepairEditUiState.isUnmodifiedNewRepairDraft(): Boolean = isNew &&
     input.time == null &&
     input.description.isBlank() &&
     input.workshopName.isBlank() &&
+    input.paymentMethod.isBlank() &&
     input.odometerKm.isBlank() &&
     input.cost.isBlank() &&
     input.latitude == null &&

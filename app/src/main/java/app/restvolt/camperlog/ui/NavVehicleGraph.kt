@@ -144,6 +144,7 @@ internal fun NavGraphBuilder.vehicleGraph(
             attachments = attachments,
             attachmentFileStore = attachmentFileStore,
             attachmentPickers = attachmentPickers,
+            paymentMethods = paymentMethods,
             onDone = { navController.popFrom(entry) },
             onDelete = { repair ->
                 if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {

@@ -245,6 +245,18 @@ class RepairFlowTest {
         compose.onNode(hasSetTextAction() and hasText("Werkstatt")).assertTextContains("Werkstatt Meier")
     }
 
+    @Test
+    fun addRepair_keepsPaymentMethodAfterReopening() {
+        start()
+        openNewRepairForm()
+        descriptionField().performTextInput("Ölwechsel")
+        compose.onNode(hasSetTextAction() and hasText("Zahlungsart")).performTextInput("Bar")
+        backKeepingChanges()
+
+        compose.onNodeWithText("Ölwechsel").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Zahlungsart")).assertTextContains("Bar")
+    }
+
     /** Löschen über die Kopfzeile wirkt unabhängig von der Verwerfen/Speichern-Abfrage, auch ohne jede Eingabe. */
     @Test
     fun deleteRepair_fromFormWithoutAnyChanges_doesNotAskToDiscardAndRemovesIt() {

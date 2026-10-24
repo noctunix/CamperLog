@@ -52,6 +52,7 @@ import app.restvolt.camperlog.data.AttachmentFileStore
 import app.restvolt.camperlog.domain.AttachmentOwnerType
 import app.restvolt.camperlog.domain.AttachmentRepository
 import app.restvolt.camperlog.domain.MAX_AMOUNT_MINOR
+import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.Repair
 import app.restvolt.camperlog.domain.RepairError
 import app.restvolt.camperlog.domain.RepairField
@@ -63,6 +64,7 @@ import app.restvolt.camperlog.ui.DateField
 import app.restvolt.camperlog.ui.EmptyHint
 import app.restvolt.camperlog.ui.LeaveDraftDialog
 import app.restvolt.camperlog.ui.LocationCaptureSection
+import app.restvolt.camperlog.ui.PaymentMethodChips
 import app.restvolt.camperlog.ui.SectionCard
 import app.restvolt.camperlog.ui.TimeField
 import app.restvolt.camperlog.ui.attachments.AndroidAttachmentPickers
@@ -88,10 +90,12 @@ fun RepairEditScreen(
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers = AndroidAttachmentPickers,
+    paymentMethods: PaymentMethodRepository? = null,
     onDone: () -> Unit,
     onDelete: (Repair) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val paymentMethodSuggestions = paymentMethods?.methods?.collectAsStateWithLifecycle()?.value.orEmpty()
     var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
@@ -144,6 +148,7 @@ fun RepairEditScreen(
                 attachments = attachments,
                 attachmentFileStore = attachmentFileStore,
                 attachmentPickers = attachmentPickers,
+                paymentMethodSuggestions = paymentMethodSuggestions,
                 snackbarHostState = snackbar,
                 modifier = Modifier
                     .padding(padding)
@@ -178,6 +183,7 @@ private fun RepairForm(
     attachments: AttachmentRepository,
     attachmentFileStore: AttachmentFileStore,
     attachmentPickers: AttachmentPickers,
+    paymentMethodSuggestions: List<String>,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier,
 ) {
@@ -249,6 +255,19 @@ private fun RepairForm(
                 onAmountChange = { value -> change { it.copy(cost = value) } },
                 onCurrencyChange = { value -> change { it.copy(costCurrency = value) } },
                 modifier = focusOf(RepairField.COST),
+            )
+            FormTextField(
+                label = stringResource(R.string.field_payment_method),
+                value = input.paymentMethod,
+                onValueChange = { value -> change { it.copy(paymentMethod = value) } },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
+                modifier = focusOf(RepairField.PAYMENT_METHOD),
+                error = errorOf(RepairField.PAYMENT_METHOD),
+            )
+            PaymentMethodChips(
+                suggestions = paymentMethodSuggestions,
+                selected = input.paymentMethod,
+                onSelect = { value -> change { it.copy(paymentMethod = value) } },
             )
         }
         PhotoAttachmentsSection(

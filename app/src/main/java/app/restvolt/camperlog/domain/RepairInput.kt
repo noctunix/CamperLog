@@ -17,15 +17,16 @@ data class RepairInput(
     val cost: String = "",
     @Serializable(with = CurrencySerializer::class) val costCurrency: Currency = EUR,
     val workshopName: String = "",
+    val paymentMethod: String = "",
     val latitude: Double? = null,
     val longitude: Double? = null,
 )
 
 /** Formularfelder, an denen ein Validierungsfehler auftreten kann. */
-enum class RepairField { DATE, DESCRIPTION, ODOMETER_KM, COST }
+enum class RepairField { DATE, DESCRIPTION, ODOMETER_KM, COST, PAYMENT_METHOD }
 
 /** Grund eines Validierungsfehlers. Den Text dazu liefert die UI aus den String-Ressourcen. */
-enum class RepairError { REQUIRED, NEGATIVE_NUMBER, INVALID_NUMBER, TOO_LARGE, INVALID_AMOUNT, AMOUNT_TOO_LARGE }
+enum class RepairError { REQUIRED, NEGATIVE_NUMBER, INVALID_NUMBER, TOO_LARGE, INVALID_AMOUNT, AMOUNT_TOO_LARGE, TOO_LONG }
 
 /**
  * Prüft alle fachlichen Regeln einer Reparatur-Eingabe.
@@ -51,6 +52,9 @@ fun RepairInput.validate(locale: Locale): Map<RepairField, RepairError> = buildM
             AmountReading.Invalid -> put(RepairField.COST, RepairError.INVALID_AMOUNT)
         }
     }
+    if (paymentMethod.length > MAX_PAYMENT_METHOD_LENGTH) {
+        put(RepairField.PAYMENT_METHOD, RepairError.TOO_LONG)
+    }
 }
 
 /**
@@ -70,6 +74,7 @@ fun RepairInput.toRepair(original: Repair?, vehicleId: Long, locale: Locale): Re
     odometerKm = parseOptionalInt(odometerKm),
     cost = parseMoney(cost, costCurrency, locale),
     workshopName = workshopName.trim(),
+    paymentMethod = paymentMethod.trim(),
     latitude = latitude,
     longitude = longitude,
     createdAt = original?.createdAt ?: Instant.EPOCH,
@@ -85,6 +90,7 @@ fun Repair.toInput(locale: Locale): RepairInput = RepairInput(
     cost = cost.toInput(locale),
     costCurrency = cost?.currency ?: EUR,
     workshopName = workshopName,
+    paymentMethod = paymentMethod,
     latitude = latitude,
     longitude = longitude,
 )

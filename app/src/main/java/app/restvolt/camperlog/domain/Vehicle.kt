@@ -138,6 +138,7 @@ data class Repair(
     val odometerKm: Int? = null,
     val cost: Money? = null,
     val workshopName: String = "",
+    val paymentMethod: String = "",
     val latitude: Double? = null,
     val longitude: Double? = null,
     val createdAt: Instant,

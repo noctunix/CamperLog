@@ -131,6 +131,7 @@ data class RepairEntity(
     @ColumnInfo(name = "cost_currency") val costCurrency: String? = null,
     @ColumnInfo(name = "cost_minor") val costMinor: Long? = null,
     @ColumnInfo(name = "workshop_name", defaultValue = "") val workshopName: String = "",
+    @ColumnInfo(name = "payment_method", defaultValue = "") val paymentMethod: String = "",
     val latitude: Double? = null,
     val longitude: Double? = null,
     @ColumnInfo(name = "created_at") val createdAtMillis: Long,

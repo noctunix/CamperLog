@@ -15,6 +15,7 @@ import app.restvolt.camperlog.domain.MAX_BATTERY_AH
 import app.restvolt.camperlog.domain.MAX_DIMENSION_CM
 import app.restvolt.camperlog.domain.MAX_DISPLACEMENT_CC
 import app.restvolt.camperlog.domain.MAX_ODOMETER_KM
+import app.restvolt.camperlog.domain.MAX_PAYMENT_METHOD_LENGTH
 import app.restvolt.camperlog.domain.MAX_PHONE_LENGTH
 import app.restvolt.camperlog.domain.MAX_POWER_KW
 import app.restvolt.camperlog.domain.MAX_SOLAR_WP
@@ -183,6 +184,7 @@ class BackupTest {
         odometerKm = 60000,
         cost = Money(45000, eur),
         workshopName = "Werkstatt Meier",
+        paymentMethod = "Bar",
         latitude = 52.5219,
         longitude = 13.4132,
         createdAt = Instant.parse("2025-06-02T08:00:00Z"),
@@ -278,7 +280,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 26" in text)
+        assert("\"schemaVersion\": 27" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -288,7 +290,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 26" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 27" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -430,6 +432,22 @@ class BackupTest {
     }
 
     @Test
+    fun read_importsOlderBackupsMissingThePaymentMethodField() {
+        val text = vehicleEncodedWith("\"paymentMethod\": \"Bar\",", "")
+
+        val decoded = success(text)
+
+        assertEquals("", decoded.vehicles.single().repairs.single().paymentMethod)
+    }
+
+    @Test
+    fun roundTrip_keepsRepairPaymentMethod() {
+        val decoded = success(encodeBackup(vehicleBackup))
+
+        assertEquals("Bar", decoded.vehicles.single().repairs.single().paymentMethod)
+    }
+
+    @Test
     fun roundTrip_keepsTourAndRepairTimes() {
         val timedTour = tour().copy(startTime = LocalTime.of(8, 30), endTime = LocalTime.of(17, 45))
         val timedBackup = vehicleBackup.copy(
@@ -536,7 +554,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 26" in text)
+        assert("\"schemaVersion\": 27" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -571,13 +589,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 26", "\"schemaVersion\": 27"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 27", "\"schemaVersion\": 28"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 26", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 27", it))?.error)
         }
     }
 
@@ -863,6 +881,7 @@ class BackupTest {
             "\"longitude\": 13.4132" to "\"longitude\": 181.0",
             "\"latitude\": 52.5219," to "",
             "\"workshopName\": \"Werkstatt Meier\"" to "\"workshopName\": \"${"x".repeat(MAX_DESTINATION_LENGTH + 1)}\"",
+            "\"paymentMethod\": \"Bar\"" to "\"paymentMethod\": \"${"x".repeat(MAX_PAYMENT_METHOD_LENGTH + 1)}\"",
         ).forEach { (old, new) ->
             assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1, repairNumber = 1), failure(vehicleEncodedWith(old, new)))
         }
@@ -914,7 +933,7 @@ class BackupTest {
         val legacyText = applyAll(
             encodeBackup(stationBackup),
             listOf(
-                "\"schemaVersion\": 26" to "\"schemaVersion\": 23",
+                "\"schemaVersion\": 27" to "\"schemaVersion\": 23",
                 "\"wifiCostIsExpense\": false," to "",
             ),
         )
@@ -929,12 +948,12 @@ class BackupTest {
                 costs = listOf(StationCost(CostCategory.WIFI, Money(350, eur))),
             )),
         )
-        val localVersion24 = encodeBackup(expenseBackup).replace("\"schemaVersion\": 26", "\"schemaVersion\": 24")
+        val localVersion24 = encodeBackup(expenseBackup).replace("\"schemaVersion\": 27", "\"schemaVersion\": 24")
         assertEquals(true, success(localVersion24).stations.single().wifiCostIsExpense)
         assertEquals(CostCategory.WIFI, success(localVersion24).stations.single().costs.single().category)
 
         val publishedVersion24 = encodeBackup(stationBackup)
-            .replace("\"schemaVersion\": 26", "\"schemaVersion\": 24")
+            .replace("\"schemaVersion\": 27", "\"schemaVersion\": 24")
             .replace("\"wifiCostIsExpense\": false,", "")
         assertEquals(false, success(publishedVersion24).stations.single().wifiCostIsExpense)
     }
@@ -943,7 +962,7 @@ class BackupTest {
     fun decode_requiresWifiExpenseFlagOnlyStartingWithVersion26() {
         val withLegacyFlag = applyAll(
             encodeBackup(stationBackup),
-            listOf("\"schemaVersion\": 26" to "\"schemaVersion\": 23"),
+            listOf("\"schemaVersion\": 27" to "\"schemaVersion\": 23"),
         )
         assertEquals(BackupError.INVALID_DATA, failure(withLegacyFlag)?.error)
 
@@ -956,7 +975,7 @@ class BackupTest {
         val legacyWifiCategory = applyAll(
             encodeBackup(wifiCategoryBackup),
             listOf(
-                "\"schemaVersion\": 26" to "\"schemaVersion\": 23",
+                "\"schemaVersion\": 27" to "\"schemaVersion\": 23",
                 "\"wifiCostIsExpense\": false," to "",
             ),
         )
@@ -969,7 +988,7 @@ class BackupTest {
         val text = applyAll(
             encodeBackup(olderBackup),
             listOf(
-                "\"schemaVersion\": 26" to "\"schemaVersion\": 23",
+                "\"schemaVersion\": 27" to "\"schemaVersion\": 23",
                 "\"wifiQuality\": \"OK\"," to "",
                 "\"wifiCostCurrency\": \"EUR\"," to "",
                 "\"wifiCostAmount\": \"3.50\"," to "",
