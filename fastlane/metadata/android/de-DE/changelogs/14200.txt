@@ -1,0 +1,4 @@
+• Neu: Der Tools-Reiter hat jetzt dieselbe Kopfzeile mit Suche/Daten/Einstellungen wie die anderen Reiter
+• Neu: Dauerton bei der Audio-Rückmeldung der Wasserwaage, wenn eben – statt Stille
+• Behoben: Die Audio-Rückmeldung konnte bei kleinem Sensor-Zittern mitten im Ton abbrechen
+• Neu: Wählbares Richtungsschema für die Audio-Rückmeldung (dominante Achse vs. Quadranten), jeweils mit Erklärung

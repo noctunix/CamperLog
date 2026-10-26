@@ -1,0 +1,4 @@
+• Added: the Tools tab now has the same search/data/settings header as the other tabs
+• Added: continuous tone for the level tool's audio feedback when level, instead of silence
+• Fixed: the level tool's audio feedback could cut itself off mid-beep or mid-tone on small sensor jitter
+• Added: selectable direction scheme for the level tool's audio feedback (dominant axis vs. quadrants), with an explanation for each
