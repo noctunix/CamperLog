@@ -33,8 +33,8 @@ internal fun resolveBufferSizeBytes(minBufferSizeResult: Int, desiredBufferSizeB
 
 /**
  * [LevelAudioFeedback] über [AudioTrack] mit synthetisch erzeugten Sinustönen je Richtung, damit
- * kein Audio-Asset benötigt wird. Nutzt `USAGE_ASSISTANCE_SONIFICATION`, damit sich der Ton
- * korrekt zur Systemlautstärke und zu Nicht-stören verhält.
+ * kein Audio-Asset benötigt wird. Nutzt `USAGE_MEDIA`, da `USAGE_ASSISTANCE_SONIFICATION` auf den
+ * Systemton-Regler mappt, der auf vielen Geräten standardmäßig stummgeschaltet ist.
  */
 class AndroidLevelAudioPlayer : LevelAudioFeedback {
 
@@ -64,7 +64,7 @@ class AndroidLevelAudioPlayer : LevelAudioFeedback {
         return AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build(),
             )
