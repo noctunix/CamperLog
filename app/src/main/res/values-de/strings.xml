@@ -662,6 +662,7 @@
     <string name="logbook_facts_costs">Kosten</string>
     <string name="logbook_history_empty">Noch keine Einträge.</string>
     <string name="logbook_entry_station">%1$s · %2$s</string>
+    <string name="logbook_quick_record_today_cd">%1$s für heute erfassen</string>
 
     <!-- Über -->
     <string name="about_title">Über CamperLog</string>

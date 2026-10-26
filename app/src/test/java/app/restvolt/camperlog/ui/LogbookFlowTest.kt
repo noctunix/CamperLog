@@ -149,6 +149,28 @@ class LogbookFlowTest {
     }
 
     @Test
+    fun quickAccessRowOnToursTab_sharesStateWithLogbookScreen() {
+        val vehicles = FakeVehicleRepository()
+        val logs = FakeLogRepository()
+        val repository = FakeTourRepository(emptyList()) { vehicles.currentVehicleId }
+        compose.setContent {
+            CamperLogTheme {
+                CamperLogNavHost(repository, vehicles, logs, FakeStationRepository(logs = logs), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, AccentColor.AZURE, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = FakeTrackRepository(), onAccentColorChange = { }, formDraftStore = FakeFormDraftStore()) { }
+            }
+        }
+
+        // Erste Kachel ist "Kassette geleert", über ihre Schnellzugriffs-Reihe auf dem Touren-Reiter erfasst.
+        compose.onNodeWithContentDescription("Kassette geleert für heute erfassen").performClick()
+        compose.onNodeWithText("Kassette geleert für heute erfasst · Station verknüpft; im Verlauf öffnen.").assertExists()
+
+        compose.onNodeWithText("Tools").performClick()
+        compose.onNodeWithText("Bordbuch").performClick()
+
+        // Dasselbe LogbookViewModel: die Kachel zeigt den soeben über den Touren-Reiter erfassten Eintrag.
+        compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(7)
+    }
+
+    @Test
     fun tiles_showOnlyTheCurrentVehiclesEntries() {
         val vehicles = FakeVehicleRepository(
             listOf(defaultVehicle(id = 1, name = "Wohnmobil A"), defaultVehicle(id = 2, name = "Wohnmobil B")),

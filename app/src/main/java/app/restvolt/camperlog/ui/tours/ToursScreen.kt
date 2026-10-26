@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.domain.ChecklistTemplate
+import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.Tour
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.displayTitle
@@ -67,7 +68,11 @@ import app.restvolt.camperlog.ui.TabTopBar
 import app.restvolt.camperlog.ui.guide.guideAnchor
 import app.restvolt.camperlog.ui.VehicleSwitcherTitle
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.iconRes
 import app.restvolt.camperlog.ui.labelRes
+import app.restvolt.camperlog.ui.logbook.LogTileState
+import app.restvolt.camperlog.ui.logbook.LogbookMessage
+import app.restvolt.camperlog.ui.logbook.LogbookViewModel
 import app.restvolt.camperlog.ui.vehicleDisplayName
 import java.time.LocalDate
 
@@ -76,6 +81,7 @@ import java.time.LocalDate
 @Composable
 fun ToursScreen(
     viewModel: ToursViewModel,
+    logbookViewModel: LogbookViewModel,
     onAddTour: () -> Unit,
     onAddStation: () -> Unit,
     onImportBackup: () -> Unit,
@@ -90,8 +96,11 @@ fun ToursScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val resources = LocalResources.current
+    val locale = currentLocale()
     val snackbar = remember { SnackbarHostState() }
     val message by viewModel.message.collectAsStateWithLifecycle()
+    val logbookState by logbookViewModel.uiState.collectAsStateWithLifecycle()
+    val logbookMessage by logbookViewModel.message.collectAsStateWithLifecycle()
     val finishingTourId by viewModel.finishingTourId.collectAsStateWithLifecycle()
     val startedChecklistId by viewModel.startedChecklistId.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -137,6 +146,11 @@ fun ToursScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (logbookState.tiles.isNotEmpty()) {
+                item {
+                    LogbookQuickAccessRow(logbookState.tiles, onRecordToday = logbookViewModel::recordToday)
+                }
+            }
             if (state.pinnedTemplates.isNotEmpty()) {
                 item {
                     PinnedChecklistsRow(state.pinnedTemplates, onStart = viewModel::startPinnedChecklist)
@@ -199,6 +213,31 @@ fun ToursScreen(
             is ToursMessage.Failed -> snackbar.showSnackbar(resources.getString(current.text), withDismissAction = true)
         }
         viewModel.onMessageShown(current)
+    }
+
+    // Dieselbe Rückmeldung wie auf dem Bordbuch-Screen, da beide Screens dasselbe LogbookViewModel
+    // teilen; wer die Tourenliste zwischendurch verlässt, sieht sie bei der Rückkehr erneut.
+    LaunchedEffect(logbookMessage) {
+        val current = logbookMessage ?: return@LaunchedEffect
+        when (current) {
+            is LogbookMessage.Recorded -> {
+                val typeLabel = resources.getString(current.entry.type.labelRes)
+                val text = if (current.wasToday) {
+                    resources.getString(R.string.logbook_recorded_today, typeLabel)
+                } else {
+                    resources.getString(R.string.logbook_recorded_on, typeLabel, formatDate(current.entry.date, locale))
+                }
+                val result = snackbar.showSnackbar(
+                    message = if (current.entry.stationId != null) resources.getString(R.string.logbook_recorded_with_station, text) else text,
+                    actionLabel = resources.getString(R.string.action_undo),
+                    withDismissAction = true,
+                    duration = SnackbarDuration.Long,
+                )
+                if (result == SnackbarResult.ActionPerformed) logbookViewModel.undoRecord(current.entry)
+            }
+            is LogbookMessage.Failed -> snackbar.showSnackbar(resources.getString(current.text), withDismissAction = true)
+        }
+        logbookViewModel.onMessageShown(current)
     }
 
     LaunchedEffect(startedChecklistId) {
@@ -269,6 +308,25 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         shape = MaterialTheme.shapes.medium,
     )
+}
+
+/**
+ * Schnellzugriffsreihe der Bordbuch-"Heute"-Kacheln, damit Kassette/Grauwasser/Heizung ohne Wechsel
+ * in den Tools-Reiter erfasst werden; fachlich identisch zu den Kacheln auf dem Bordbuch-Screen.
+ */
+@Composable
+private fun LogbookQuickAccessRow(tiles: List<LogTileState>, onRecordToday: (LogType) -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(tiles, key = { it.type }) { tile ->
+            val recordLabel = stringResource(R.string.logbook_quick_record_today_cd, stringResource(tile.type.labelRes))
+            AssistChip(
+                onClick = { onRecordToday(tile.type) },
+                label = { Text(stringResource(tile.type.labelRes)) },
+                leadingIcon = { Icon(painterResource(tile.type.iconRes), contentDescription = null) },
+                modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = recordLabel },
+            )
+        }
+    }
 }
 
 /** Schnellstart-Reihe der angepinnten Checklisten-Vorlagen; bei vielen Einträgen horizontal scrollbar statt umzubrechen. */

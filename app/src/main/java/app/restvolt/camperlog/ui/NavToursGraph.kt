@@ -38,6 +38,7 @@ import app.restvolt.camperlog.ui.detail.TrackRecordingStatusRow
 import app.restvolt.camperlog.ui.edit.EditTourScreen
 import app.restvolt.camperlog.ui.edit.EditTourViewModel
 import app.restvolt.camperlog.ui.edit.isUnmodifiedNewTourDraft
+import app.restvolt.camperlog.ui.logbook.LogbookViewModel
 import app.restvolt.camperlog.ui.map.MapScreen
 import app.restvolt.camperlog.ui.map.MapViewModel
 import app.restvolt.camperlog.ui.onboarding.FirstRunSetupScreen
@@ -52,13 +53,18 @@ import kotlinx.coroutines.launch
 /** Vom Startbildschirm aufgeschobene Aktion, die nach der Ersteinrichtung ausgeführt wird. */
 private enum class PendingFirstRunAction { ADD_TOUR, ADD_STATION }
 
-/** Navigationsziele: Touren-Reiter mit Tourdetail, Tagebuch, Tourkarte und Übersicht. */
+/**
+ * Navigationsziele: Touren-Reiter mit Tourdetail, Tagebuch, Tourkarte und Übersicht.
+ * [logbookViewModel] ist Activity-gebunden und dieselbe Instanz wie im Tools-Reiter, damit die
+ * Schnellzugriffsreihe der Tourenliste die Bordbuch-Kacheln ohne eigene Kopie des Zustands zeigt.
+ */
 internal fun NavGraphBuilder.toursGraph(
     navController: NavController,
     deps: NavDependencies,
     bottomBar: @Composable () -> Unit,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    logbookViewModel: LogbookViewModel,
 ) = with(deps) {
     composable<ToursRoute> {
         var showStationPicker by rememberSaveable { mutableStateOf(false) }
@@ -78,6 +84,7 @@ internal fun NavGraphBuilder.toursGraph(
                     onTourDeleted = { tourId -> app.restvolt.camperlog.tracking.TrackRecordingService.stopIfTracking(context, tourId) },
                 )
             },
+            logbookViewModel = logbookViewModel,
             onOpenChecklist = { checklistId, vehicleId -> navController.navigate(ChecklistRoute(checklistId = checklistId, vehicleId = vehicleId)) },
             onAddTour = {
                 // Schaltet den zweiten Schritt der Pilot-Tour frei, aber nur, wenn sie gerade läuft:

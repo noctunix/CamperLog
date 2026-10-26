@@ -108,6 +108,7 @@ import app.restvolt.camperlog.ui.guide.GuideHost
 import app.restvolt.camperlog.ui.guide.GuideProgressStore
 import app.restvolt.camperlog.ui.guide.GuideViewModel
 import app.restvolt.camperlog.ui.guide.guideAnchor
+import app.restvolt.camperlog.ui.logbook.LogbookViewModel
 import app.restvolt.camperlog.ui.onboarding.IntroductionSettings
 import app.restvolt.camperlog.ui.stations.StationsViewModel
 import app.restvolt.camperlog.ui.stations.StationsWhatsNewSettings
@@ -417,6 +418,10 @@ fun CamperLogNavHost(
     // GuideViewModel, damit der Fortschritt eine Bildschirmdrehung überlebt.
     val guideViewModel: GuideViewModel = viewModel { GuideViewModel(resolvedDemoTourSession) }
     val guideController = guideViewModel.controller
+
+    // Activity-gebunden wie GuideViewModel, damit die Schnellzugriffsreihe des Touren-Reiters und der
+    // Bordbuch-Screen im Tools-Reiter denselben Zustand sehen statt unabhängiger Instanzen.
+    val logbookViewModel: LogbookViewModel = viewModel { LogbookViewModel(logbook, vehicles, stations) }
     val guideProgressStore = remember { GuideProgressStore(context) }
     val guideState by guideController.state.collectAsStateWithLifecycle()
     LaunchedEffect(guideState.tour?.id, guideState.currentStep?.id, guideState.phase) {
@@ -549,10 +554,10 @@ fun CamperLogNavHost(
         resolvedDemoTourSession, diagnosticsLog, diagnosticsLogSettings, formDraftStore, introductionSettings,
     )
     NavHost(navController, startDestination = ToursRoute) {
-        toursGraph(navController, deps, bottomBar, themeMode, onThemeModeChange)
+        toursGraph(navController, deps, bottomBar, themeMode, onThemeModeChange, logbookViewModel)
         vehicleGraph(navController, deps, bottomBar)
         stationsGraph(navController, deps, bottomBar)
-        toolsGraph(navController, deps, bottomBar)
+        toolsGraph(navController, deps, bottomBar, logbookViewModel)
         settingsGraph(navController, deps, themeMode, onThemeModeChange, accentColor, onAccentColorChange)
     }
     GuideHost(guideController, modifier = Modifier.fillMaxSize())
