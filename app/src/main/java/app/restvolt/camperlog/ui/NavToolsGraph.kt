@@ -1,16 +1,21 @@
 package app.restvolt.camperlog.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import app.restvolt.camperlog.data.AndroidLevelSensor
 import app.restvolt.camperlog.ui.logbook.LogbookScreen
 import app.restvolt.camperlog.ui.logbook.LogbookViewModel
+import app.restvolt.camperlog.ui.tools.LevelScreen
+import app.restvolt.camperlog.ui.tools.LevelViewModel
 import app.restvolt.camperlog.ui.tools.ToolsScreen
 
 /**
- * Navigationsziele: Tools-Reiter mit Bordbuch. [logbookViewModel] ist Activity-gebunden, damit die
- * Schnellzugriffsreihe des Touren-Reiters denselben Zustand sieht.
+ * Navigationsziele: Tools-Reiter mit Bordbuch und Wasserwaage. [logbookViewModel] ist
+ * Activity-gebunden, damit die Schnellzugriffsreihe des Touren-Reiters denselben Zustand sieht.
  */
 internal fun NavGraphBuilder.toolsGraph(
     navController: NavController,
@@ -19,7 +24,11 @@ internal fun NavGraphBuilder.toolsGraph(
     logbookViewModel: LogbookViewModel,
 ) = with(deps) {
     composable<ToolsRoute> {
-        ToolsScreen(bottomBar = bottomBar, onOpenLogbook = { navController.navigate(LogbookRoute) })
+        ToolsScreen(
+            bottomBar = bottomBar,
+            onOpenLogbook = { navController.navigate(LogbookRoute) },
+            onOpenLevel = { navController.navigate(LevelRoute) },
+        )
     }
     composable<LogbookRoute> {
         LogbookScreen(
@@ -30,6 +39,13 @@ internal fun NavGraphBuilder.toolsGraph(
             onOpenSettings = { navController.navigate(SettingsRoute) },
             onOpenVehicles = { navController.navigate(VehiclesRoute) },
             bottomBar = bottomBar,
+        )
+    }
+    composable<LevelRoute> { entry ->
+        val context = LocalContext.current
+        LevelScreen(
+            viewModel = viewModel { LevelViewModel(AndroidLevelSensor(context)) },
+            onBack = { navController.popFrom(entry) },
         )
     }
 }

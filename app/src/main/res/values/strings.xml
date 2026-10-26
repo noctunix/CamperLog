@@ -1505,4 +1505,17 @@
     <string name="backup_scope_data_only">Data only; attachment files are not included</string>
     <string name="backup_folder_no_confirmed_run">No confirmed backup in this folder yet.</string>
     <string name="backup_folder_last_failed">The last backup attempt failed. The confirmed backup above remains unchanged.</string>
+
+    <!-- Tools: level -->
+    <string name="tools_level">Level</string>
+    <string name="level_pitch">Pitch (front/back): %1$s°</string>
+    <string name="level_roll">Roll (left/right): %1$s°</string>
+    <string name="level_status_level">Level</string>
+    <string name="level_status_tilted">Tilted</string>
+    <string name="level_calibrate">Zero on current surface</string>
+    <string name="level_calibrate_done">Zeroed to the current surface.</string>
+    <string name="level_sensor_unavailable">This device has no motion sensor for the level.</string>
+    <string name="level_measuring_points_title">Important measuring points</string>
+    <string name="level_measuring_point_drain">Drain &amp; waste tank: without a slope towards the outlet, grey and black water does not drain properly.</string>
+    <string name="level_measuring_point_fridge">Fridge: absorber fridges often need a narrow tilt tolerance. Check your fridge\'s manual for the exact figure; cooling power and lifespan suffer otherwise.</string>
 </resources>

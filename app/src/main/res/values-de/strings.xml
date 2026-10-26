@@ -1494,4 +1494,17 @@
     <string name="backup_scope_data_only">Nur Daten; Anhangsdateien sind nicht enthalten</string>
     <string name="backup_folder_no_confirmed_run">In diesem Ordner noch keine bestätigte Sicherung.</string>
     <string name="backup_folder_last_failed">Der letzte Sicherungsversuch ist fehlgeschlagen. Der oben bestätigte Sicherungsstand bleibt unverändert.</string>
+
+    <!-- Tools: Wasserwaage -->
+    <string name="tools_level">Wasserwaage</string>
+    <string name="level_pitch">Neigung vorne/hinten: %1$s°</string>
+    <string name="level_roll">Neigung links/rechts: %1$s°</string>
+    <string name="level_status_level">Eben</string>
+    <string name="level_status_tilted">Geneigt</string>
+    <string name="level_calibrate">Auf aktueller Fläche nullen</string>
+    <string name="level_calibrate_done">Auf die aktuelle Fläche genullt.</string>
+    <string name="level_sensor_unavailable">Dieses Gerät hat keinen Bewegungssensor für die Wasserwaage.</string>
+    <string name="level_measuring_points_title">Wichtige Messpunkte</string>
+    <string name="level_measuring_point_drain">Abfluss &amp; Kassette: ohne Gefälle zum Auslauf läuft Grau- oder Schwarzwasser nicht richtig ab.</string>
+    <string name="level_measuring_point_fridge">Kühlschrank: Absorberkühlschränke brauchen oft eine enge Neigungstoleranz. Die genaue Gradzahl findest du in der Bedienungsanleitung deines Kühlschranks; sonst leiden Kühlleistung und Lebensdauer.</string>
 </resources>

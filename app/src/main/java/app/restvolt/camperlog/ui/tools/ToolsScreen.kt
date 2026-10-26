@@ -25,10 +25,10 @@ import androidx.compose.ui.unit.dp
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.ui.SectionCard
 
-/** Tools-Reiter: Liste eigenständiger Helfer rund ums Fahrzeug, bislang nur der Sprung ins Bordbuch. */
+/** Tools-Reiter: Liste eigenständiger Helfer rund ums Fahrzeug. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ToolsScreen(onOpenLogbook: () -> Unit, bottomBar: @Composable () -> Unit = {}) {
+fun ToolsScreen(onOpenLogbook: () -> Unit, onOpenLevel: () -> Unit, bottomBar: @Composable () -> Unit = {}) {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text(stringResource(R.string.nav_tools), modifier = Modifier.semantics { heading() }) })
@@ -40,6 +40,7 @@ fun ToolsScreen(onOpenLogbook: () -> Unit, bottomBar: @Composable () -> Unit = {
                 .fillMaxSize()
                 .padding(padding)
                 .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             val logbookLabel = stringResource(R.string.nav_logbook)
             SectionCard(
@@ -54,6 +55,21 @@ fun ToolsScreen(onOpenLogbook: () -> Unit, bottomBar: @Composable () -> Unit = {
                 ) {
                     Icon(painterResource(R.drawable.ic_book), contentDescription = null)
                     Text(logbookLabel, style = MaterialTheme.typography.titleMedium)
+                }
+            }
+            val levelLabel = stringResource(R.string.tools_level)
+            SectionCard(
+                Modifier
+                    .clip(MaterialTheme.shapes.large)
+                    .clickable(onClickLabel = levelLabel, onClick = onOpenLevel),
+            ) {
+                Row(
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(painterResource(R.drawable.ic_square_foot), contentDescription = null)
+                    Text(levelLabel, style = MaterialTheme.typography.titleMedium)
                 }
             }
         }

@@ -140,6 +140,10 @@ internal object LogbookRoute
 @Serializable
 internal object ToolsRoute
 
+/** Wasserwaage-Ansicht des Tools-Reiters. */
+@Serializable
+internal object LevelRoute
+
 /** Verlauf einer Bordbuch-Art eines Fahrzeugs. */
 @Serializable
 internal data class LogHistoryRoute(val vehicleId: Long, val typeName: String) {
