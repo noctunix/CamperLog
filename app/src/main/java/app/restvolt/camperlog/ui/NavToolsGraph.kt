@@ -29,6 +29,9 @@ internal fun NavGraphBuilder.toolsGraph(
             bottomBar = bottomBar,
             onOpenLogbook = { navController.navigate(LogbookRoute) },
             onOpenLevel = { navController.navigate(LevelRoute) },
+            onOpenSearch = { navController.navigate(SearchRoute) },
+            onOpenData = { navController.navigate(DataRoute()) },
+            onOpenSettings = { navController.navigate(SettingsRoute) },
         )
     }
     composable<LogbookRoute> {

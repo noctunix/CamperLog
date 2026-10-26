@@ -12,7 +12,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,14 +23,27 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.ui.SectionCard
+import app.restvolt.camperlog.ui.TabTopBar
 
 /** Tools-Reiter: Liste eigenständiger Helfer rund ums Fahrzeug. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ToolsScreen(onOpenLogbook: () -> Unit, onOpenLevel: () -> Unit, bottomBar: @Composable () -> Unit = {}) {
+fun ToolsScreen(
+    onOpenLogbook: () -> Unit,
+    onOpenLevel: () -> Unit,
+    onOpenSearch: () -> Unit,
+    onOpenData: () -> Unit,
+    onOpenSettings: () -> Unit,
+    bottomBar: @Composable () -> Unit = {},
+) {
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.nav_tools), modifier = Modifier.semantics { heading() }) })
+            TabTopBar(
+                titleContent = { Text(stringResource(R.string.nav_tools), modifier = Modifier.semantics { heading() }) },
+                onOpenSearch = onOpenSearch,
+                onOpenData = onOpenData,
+                onOpenSettings = onOpenSettings,
+            )
         },
         bottomBar = bottomBar,
     ) { padding ->
