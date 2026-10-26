@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -150,7 +148,7 @@ fun VehicleScreen(
                         }
                     }
                 },
-                overflowMenu = { VehicleOverflowMenu(onManageVehicles = onOpenVehicles) },
+                overflowMenu = { closeMenu -> VehicleOverflowMenu(onManageVehicles = onOpenVehicles, closeMenu = closeMenu) },
                 onOpenSearch = onOpenSearch,
                 onOpenData = onOpenData,
                 onOpenSettings = onOpenSettings,
@@ -767,20 +765,12 @@ private fun maintenanceRows(vehicle: Vehicle, locale: Locale): List<Pair<String,
 }
 
 @Composable
-private fun VehicleOverflowMenu(onManageVehicles: () -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.more_options))
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.vehicle_switcher_manage)) },
-                onClick = {
-                    expanded = false
-                    onManageVehicles()
-                },
-            )
-        }
-    }
+private fun VehicleOverflowMenu(onManageVehicles: () -> Unit, closeMenu: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text(stringResource(R.string.vehicle_switcher_manage)) },
+        onClick = {
+            closeMenu()
+            onManageVehicles()
+        },
+    )
 }

@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,6 +23,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -68,8 +74,9 @@ fun BackTopBar(
 /**
  * Obere Leiste der Haupt- und Bordbuch-Reiter: [titleContent] zeigt Titel oder Fahrzeugwechsler, [onOpenSearch]
  * steht als erste Aktion vor allen anderen. [onOpenOverview] ist nur auf dem Touren-Reiter gesetzt.
- * [extraActions] stehen vor den übrigen gemeinsamen Aktionen, z. B. „Bearbeiten" auf dem
- * Fahrzeug-Reiter; [overflowMenu] steht als letztes.
+ * [extraActions] stehen vor den übrigen gemeinsamen Aktionen. Am Ende sitzt ein gemeinsames
+ * Dreipunktmenü mit „Daten" und „Einstellungen"; [overflowMenu] hängt dort weitere, reiterspezifische
+ * Einträge an und bekommt zum Schließen des Menüs nach einem Klick dessen `closeMenu`-Callback.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,8 +88,9 @@ fun TabTopBar(
     scrollBehavior: TopAppBarScrollBehavior? = null,
     onOpenOverview: (() -> Unit)? = null,
     extraActions: @Composable () -> Unit = {},
-    overflowMenu: @Composable () -> Unit = {},
+    overflowMenu: @Composable (closeMenu: () -> Unit) -> Unit = {},
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
         title = titleContent,
         actions = {
@@ -95,13 +103,28 @@ fun TabTopBar(
                     Icon(painterResource(R.drawable.ic_bar_chart), contentDescription = stringResource(R.string.tours_overview))
                 }
             }
-            IconButton(onClick = onOpenData, modifier = Modifier.guideAnchor("nav.data")) {
-                Icon(painterResource(R.drawable.ic_folder_zip), contentDescription = stringResource(R.string.data_title))
+            IconButton(onClick = { menuExpanded = true }, modifier = Modifier.guideAnchor("nav.data")) {
+                Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.more_options))
             }
-            IconButton(onClick = onOpenSettings) {
-                Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.settings_title))
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.data_title)) },
+                    leadingIcon = { Icon(painterResource(R.drawable.ic_folder_zip), contentDescription = null) },
+                    onClick = {
+                        menuExpanded = false
+                        onOpenData()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.settings_title)) },
+                    leadingIcon = { Icon(painterResource(R.drawable.ic_settings), contentDescription = null) },
+                    onClick = {
+                        menuExpanded = false
+                        onOpenSettings()
+                    },
+                )
+                overflowMenu { menuExpanded = false }
             }
-            overflowMenu()
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.background,

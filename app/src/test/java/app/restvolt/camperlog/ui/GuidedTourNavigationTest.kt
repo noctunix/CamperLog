@@ -112,13 +112,15 @@ class GuidedTourNavigationTest {
     }
 
     private fun openAbout() {
-        compose.onNodeWithContentDescription("Einstellungen").performClick()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Einstellungen").performClick()
         scrollUntilVisible("Über CamperLog")
         compose.onNodeWithText("Über CamperLog").performClick()
     }
 
     private fun openSettings() {
-        compose.onNodeWithContentDescription("Einstellungen").performClick()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Einstellungen").performClick()
     }
 
     /** Mittelpunkt des Knotens in Fensterkoordinaten, für einen echten `performTouchInput`-Klick. */
