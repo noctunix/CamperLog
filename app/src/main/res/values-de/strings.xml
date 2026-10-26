@@ -1515,4 +1515,6 @@
     <string name="level_measuring_points_title">Wichtige Messpunkte</string>
     <string name="level_measuring_point_drain">Abfluss &amp; Kassette: ohne Gefälle zum Auslauf läuft Grau- oder Schwarzwasser nicht richtig ab.</string>
     <string name="level_measuring_point_fridge">Kühlschrank: Absorberkühlschränke brauchen oft eine enge Neigungstoleranz. Die genaue Gradzahl findest du in der Bedienungsanleitung deines Kühlschranks; sonst leiden Kühlleistung und Lebensdauer.</string>
+    <string name="level_audio_feedback">Akustische Rückmeldung</string>
+    <string name="level_audio_feedback_hint">Ein Piepton je Richtung zeigt dir, wohin du nivellieren musst; er wird schneller, je näher du dem Ziel kommst.</string>
 </resources>

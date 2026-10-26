@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import app.restvolt.camperlog.data.AndroidLevelSensor
 import app.restvolt.camperlog.ui.logbook.LogbookScreen
 import app.restvolt.camperlog.ui.logbook.LogbookViewModel
+import app.restvolt.camperlog.ui.settings.LevelAudioSettings
 import app.restvolt.camperlog.ui.tools.LevelScreen
 import app.restvolt.camperlog.ui.tools.LevelViewModel
 import app.restvolt.camperlog.ui.tools.ToolsScreen
@@ -44,7 +45,7 @@ internal fun NavGraphBuilder.toolsGraph(
     composable<LevelRoute> { entry ->
         val context = LocalContext.current
         LevelScreen(
-            viewModel = viewModel { LevelViewModel(AndroidLevelSensor(context)) },
+            viewModel = viewModel { LevelViewModel(AndroidLevelSensor(context), LevelAudioSettings(context)) },
             onBack = { navController.popFrom(entry) },
         )
     }

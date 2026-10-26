@@ -2,11 +2,14 @@ package app.restvolt.camperlog.ui.tools
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.restvolt.camperlog.domain.LevelAudioCue
 import app.restvolt.camperlog.domain.LevelSensor
 import app.restvolt.camperlog.domain.LevelStatus
 import app.restvolt.camperlog.domain.Tilt
 import app.restvolt.camperlog.domain.calibrated
+import app.restvolt.camperlog.domain.levelAudioCue
 import app.restvolt.camperlog.domain.levelStatus
+import app.restvolt.camperlog.ui.settings.LevelAudioSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +30,7 @@ data class LevelUiState(
 )
 
 /** Hält die Session-Kalibrierung der Wasserwaage; der Nullpunkt wird nicht über die Sitzung hinaus gespeichert. */
-class LevelViewModel(sensor: LevelSensor) : ViewModel() {
+class LevelViewModel(sensor: LevelSensor, private val audioSettings: LevelAudioSettings) : ViewModel() {
 
     private val rawTilt: StateFlow<RawTilt> = sensor.observeTilt()
         .map { tilt -> tilt?.let { RawTilt.Available(it) } ?: RawTilt.Unavailable }
@@ -51,6 +54,20 @@ class LevelViewModel(sensor: LevelSensor) : ViewModel() {
         val raw = rawTilt.value
         if (raw is RawTilt.Available) zero.value = raw.tilt
     }
+
+    /** Ob die akustische Rückmeldung aktiv ist; persistiert über [audioSettings]. */
+    val audioEnabled: StateFlow<Boolean> = audioSettings.values
+
+    /** Schaltet die akustische Rückmeldung um und persistiert die Wahl. */
+    fun setAudioEnabled(value: Boolean) {
+        audioSettings.enabled = value
+    }
+
+    /** Aktuelle akustische Rückmeldung, abgeleitet aus [uiState] und [audioEnabled]; `null` wenn ausgeschaltet oder eben. */
+    val audioCue: StateFlow<LevelAudioCue?> = combine(uiState, audioEnabled) { state, enabled ->
+        val tilt = state.tilt
+        if (enabled && tilt != null) levelAudioCue(tilt) else null
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private sealed interface RawTilt {
         data object Loading : RawTilt

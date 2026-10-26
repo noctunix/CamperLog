@@ -1,11 +1,14 @@
 package app.restvolt.camperlog.ui.tools
 
+import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.FakeLevelSensor
 import app.restvolt.camperlog.domain.Tilt
+import app.restvolt.camperlog.ui.settings.LevelAudioSettings
 import app.restvolt.camperlog.ui.theme.CamperLogTheme
 import org.junit.Rule
 import org.junit.Test
@@ -22,7 +25,8 @@ class LevelScreenTest {
     val compose = createAndroidComposeRule<ComponentActivity>()
 
     private fun start(sensor: FakeLevelSensor) {
-        val viewModel = LevelViewModel(sensor)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val viewModel = LevelViewModel(sensor, LevelAudioSettings(context))
         compose.setContent {
             CamperLogTheme {
                 LevelScreen(viewModel = viewModel, onBack = {})

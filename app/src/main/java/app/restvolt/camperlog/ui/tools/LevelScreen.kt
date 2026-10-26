@@ -19,7 +19,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -31,12 +34,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
+import app.restvolt.camperlog.data.AndroidLevelAudioPlayer
 import app.restvolt.camperlog.domain.LevelStatus
 import app.restvolt.camperlog.domain.Tilt
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.settings.SwitchSettingRow
 import java.text.NumberFormat
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.delay
 
 /** Toleranz in Grad, bis zu der der Neigungspunkt in der Anzeige noch innerhalb des Zielkreises bleibt. */
 private const val DISPLAY_RANGE_DEGREES = 15.0
@@ -46,7 +52,21 @@ private const val DISPLAY_RANGE_DEGREES = 15.0
 @Composable
 fun LevelScreen(viewModel: LevelViewModel, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val audioEnabled by viewModel.audioEnabled.collectAsStateWithLifecycle()
+    val audioCue by viewModel.audioCue.collectAsStateWithLifecycle()
     val locale = currentLocale()
+
+    val audioPlayer = remember { AndroidLevelAudioPlayer() }
+    DisposableEffect(Unit) {
+        onDispose { audioPlayer.release() }
+    }
+    LaunchedEffect(audioCue) {
+        val cue = audioCue ?: return@LaunchedEffect
+        while (true) {
+            audioPlayer.playBeep(cue.direction)
+            delay(cue.beepIntervalMillis)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -77,6 +97,12 @@ fun LevelScreen(viewModel: LevelViewModel, onBack: () -> Unit) {
                     Button(onClick = viewModel::calibrate, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text(stringResource(R.string.level_calibrate))
                     }
+                    SwitchSettingRow(
+                        title = stringResource(R.string.level_audio_feedback),
+                        supportingText = stringResource(R.string.level_audio_feedback_hint),
+                        checked = audioEnabled,
+                        onCheckedChange = viewModel::setAudioEnabled,
+                    )
                 }
             }
             MeasuringPointsCard()
