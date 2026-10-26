@@ -3,6 +3,7 @@ package app.restvolt.camperlog.ui.tools
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.FakeLevelSensor
+import app.restvolt.camperlog.domain.LevelAudioCue
 import app.restvolt.camperlog.domain.LevelAudioDirection
 import app.restvolt.camperlog.domain.LevelStatus
 import app.restvolt.camperlog.domain.Tilt
@@ -131,10 +132,23 @@ class LevelViewModelTest {
 
         viewModel.setAudioEnabled(true)
 
-        assertEquals(LevelAudioDirection.BACK, viewModel.audioCue.value?.direction)
+        val cue = viewModel.audioCue.value
+        assertEquals(LevelAudioDirection.BACK, (cue as? LevelAudioCue.Beep)?.direction)
 
         viewModel.setAudioEnabled(false)
 
         assertNull(viewModel.audioCue.value)
+    }
+
+    @Test
+    fun audioCue_isLevelWhenEnabledAndWithinTolerance() = runTest(dispatcher) {
+        val sensor = FakeLevelSensor(Tilt(0.0, 0.0))
+        val viewModel = viewModel(sensor)
+        collect(viewModel.uiState)
+        collect(viewModel.audioCue)
+
+        viewModel.setAudioEnabled(true)
+
+        assertEquals(LevelAudioCue.Level, viewModel.audioCue.value)
     }
 }

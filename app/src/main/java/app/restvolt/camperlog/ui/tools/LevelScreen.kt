@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.AndroidLevelAudioPlayer
+import app.restvolt.camperlog.domain.LevelAudioCue
+import app.restvolt.camperlog.domain.LevelAudioFeedback
 import app.restvolt.camperlog.domain.LevelStatus
 import app.restvolt.camperlog.domain.Tilt
 import app.restvolt.camperlog.ui.currentLocale
@@ -42,10 +44,15 @@ import app.restvolt.camperlog.ui.settings.SwitchSettingRow
 import java.text.NumberFormat
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 /** Toleranz in Grad, bis zu der der Neigungspunkt in der Anzeige noch innerhalb des Zielkreises bleibt. */
 private const val DISPLAY_RANGE_DEGREES = 15.0
+
+/** Abfrageintervall zwischen zwei Blicken auf [LevelViewModel.audioCue], solange der Dauerton läuft. */
+internal const val LEVEL_AUDIO_POLL_INTERVAL_MILLIS = 200L
 
 /** Wasserwaage: zeigt die Geräteneigung über [LevelViewModel] und eine feste Hinweiskarte zu Abfluss und Kühlschrank. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,19 +60,15 @@ private const val DISPLAY_RANGE_DEGREES = 15.0
 fun LevelScreen(viewModel: LevelViewModel, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val audioEnabled by viewModel.audioEnabled.collectAsStateWithLifecycle()
-    val audioCue by viewModel.audioCue.collectAsStateWithLifecycle()
     val locale = currentLocale()
 
     val audioPlayer = remember { AndroidLevelAudioPlayer() }
     DisposableEffect(Unit) {
         onDispose { audioPlayer.release() }
     }
-    LaunchedEffect(audioCue) {
-        val cue = audioCue ?: return@LaunchedEffect
-        while (true) {
-            audioPlayer.playBeep(cue.direction)
-            delay(cue.beepIntervalMillis)
-        }
+    LaunchedEffect(audioEnabled) {
+        if (!audioEnabled) return@LaunchedEffect
+        runLevelAudioLoop({ viewModel.audioCue.value }, audioPlayer)
     }
 
     Scaffold(
@@ -107,6 +110,40 @@ fun LevelScreen(viewModel: LevelViewModel, onBack: () -> Unit) {
             }
             MeasuringPointsCard()
         }
+    }
+}
+
+/**
+ * Treibt [audioPlayer] anhand des jeweils aktuellen Werts von [currentCue], bis die Coroutine
+ * abgebrochen wird. Läuft nicht über eine Compose-Recomposition pro Neigungsänderung, sondern fragt
+ * [currentCue] in einer eigenen Schleife ab, damit ein kurzes Sensor-Zittern keinen laufenden Beep
+ * oder Dauerton mittendrin unterbricht.
+ */
+internal suspend fun runLevelAudioLoop(currentCue: () -> LevelAudioCue?, audioPlayer: LevelAudioFeedback) {
+    var tonePlaying = false
+    try {
+        while (currentCoroutineContext().isActive) {
+            when (val cue = currentCue()) {
+                is LevelAudioCue.Level -> {
+                    if (!tonePlaying) {
+                        audioPlayer.startContinuousTone()
+                        tonePlaying = true
+                    }
+                    delay(LEVEL_AUDIO_POLL_INTERVAL_MILLIS)
+                }
+                is LevelAudioCue.Beep -> {
+                    if (tonePlaying) {
+                        audioPlayer.stopContinuousTone()
+                        tonePlaying = false
+                    }
+                    audioPlayer.playBeep(cue.direction)
+                    delay(cue.beepIntervalMillis)
+                }
+                null -> delay(LEVEL_AUDIO_POLL_INTERVAL_MILLIS)
+            }
+        }
+    } finally {
+        if (tonePlaying) audioPlayer.stopContinuousTone()
     }
 }
 

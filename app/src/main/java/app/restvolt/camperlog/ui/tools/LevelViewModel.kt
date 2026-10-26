@@ -63,7 +63,10 @@ class LevelViewModel(sensor: LevelSensor, private val audioSettings: LevelAudioS
         audioSettings.enabled = value
     }
 
-    /** Aktuelle akustische Rückmeldung, abgeleitet aus [uiState] und [audioEnabled]; `null` wenn ausgeschaltet oder eben. */
+    /**
+     * Aktuelle akustische Rückmeldung, abgeleitet aus [uiState] und [audioEnabled]; `null` nur, wenn
+     * die Rückmeldung ausgeschaltet ist oder noch kein Sensorwert vorliegt.
+     */
     val audioCue: StateFlow<LevelAudioCue?> = combine(uiState, audioEnabled) { state, enabled ->
         val tilt = state.tilt
         if (enabled && tilt != null) levelAudioCue(tilt) else null

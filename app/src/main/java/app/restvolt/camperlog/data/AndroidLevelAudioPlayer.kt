@@ -7,6 +7,7 @@ import app.restvolt.camperlog.domain.LEVEL_AUDIO_FREQUENCY_BACK_HZ
 import app.restvolt.camperlog.domain.LEVEL_AUDIO_FREQUENCY_FRONT_HZ
 import app.restvolt.camperlog.domain.LEVEL_AUDIO_FREQUENCY_LEFT_HZ
 import app.restvolt.camperlog.domain.LEVEL_AUDIO_FREQUENCY_RIGHT_HZ
+import app.restvolt.camperlog.domain.LEVEL_AUDIO_TONE_FREQUENCY_HZ
 import app.restvolt.camperlog.domain.LevelAudioDirection
 import app.restvolt.camperlog.domain.LevelAudioFeedback
 import kotlin.math.PI
@@ -17,6 +18,13 @@ private const val SAMPLE_RATE_HZ = 44_100
 private const val BEEP_DURATION_MILLIS = 100
 private const val FADE_MILLIS = 12
 private const val AMPLITUDE = Short.MAX_VALUE * 0.6
+
+/**
+ * Anzahl voller Schwingungen im Loop-Puffer des Dauertons. Bei [LEVEL_AUDIO_TONE_FREQUENCY_HZ] (441 Hz)
+ * und [SAMPLE_RATE_HZ] (44100 Hz) entfallen genau 100 Samples auf eine Schwingung, sodass der Puffer
+ * ohne Phasensprung an seinem Ende nahtlos auf den Anfang zurückspringen kann.
+ */
+private const val CONTINUOUS_TONE_CYCLE_COUNT = 10
 
 /** Fallback, falls [AudioTrack.getMinBufferSize] einen Fehlercode statt einer gültigen Größe liefert. */
 private const val FALLBACK_MIN_BUFFER_SIZE_BYTES = SAMPLE_RATE_HZ * 2
@@ -40,6 +48,7 @@ class AndroidLevelAudioPlayer : LevelAudioFeedback {
 
     private val buffers = LevelAudioDirection.entries.associateWith { direction -> buildBeep(frequencyHzFor(direction)) }
     private val audioTrack = buildAudioTrack(buffers.values.first().size)
+    private val continuousToneTrack = buildContinuousToneTrack()
 
     override fun playBeep(direction: LevelAudioDirection) {
         if (audioTrack.state != AudioTrack.STATE_INITIALIZED) return
@@ -51,11 +60,27 @@ class AndroidLevelAudioPlayer : LevelAudioFeedback {
         audioTrack.play()
     }
 
+    override fun startContinuousTone() {
+        if (continuousToneTrack.state != AudioTrack.STATE_INITIALIZED) return
+        if (continuousToneTrack.playState == AudioTrack.PLAYSTATE_PLAYING) return
+        continuousToneTrack.play()
+    }
+
+    override fun stopContinuousTone() {
+        if (continuousToneTrack.state != AudioTrack.STATE_INITIALIZED) return
+        continuousToneTrack.pause()
+        continuousToneTrack.setPlaybackHeadPosition(0)
+    }
+
     override fun release() {
         if (audioTrack.state == AudioTrack.STATE_INITIALIZED) {
             audioTrack.stop()
         }
         audioTrack.release()
+        if (continuousToneTrack.state == AudioTrack.STATE_INITIALIZED) {
+            continuousToneTrack.stop()
+        }
+        continuousToneTrack.release()
     }
 
     private fun buildAudioTrack(desiredBufferSizeBytes: Int): AudioTrack {
@@ -80,6 +105,33 @@ class AndroidLevelAudioPlayer : LevelAudioFeedback {
             .build()
     }
 
+    /** Baut den Dauerton-Track im `MODE_STATIC` mit nahtlosem Endlos-Loop, siehe [buildContinuousTone]. */
+    private fun buildContinuousToneTrack(): AudioTrack {
+        val buffer = buildContinuousTone()
+        val track = AudioTrack.Builder()
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build(),
+            )
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setSampleRate(SAMPLE_RATE_HZ)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .build(),
+            )
+            .setBufferSizeInBytes(buffer.size)
+            .setTransferMode(AudioTrack.MODE_STATIC)
+            .build()
+        if (track.state != AudioTrack.STATE_INITIALIZED) return track
+        track.write(buffer, 0, buffer.size)
+        val frameCount = buffer.size / 2
+        track.setLoopPoints(0, frameCount, -1)
+        return track
+    }
+
     private fun frequencyHzFor(direction: LevelAudioDirection): Int = when (direction) {
         LevelAudioDirection.FRONT -> LEVEL_AUDIO_FREQUENCY_FRONT_HZ
         LevelAudioDirection.BACK -> LEVEL_AUDIO_FREQUENCY_BACK_HZ
@@ -96,6 +148,24 @@ class AndroidLevelAudioPlayer : LevelAudioFeedback {
             val timeSeconds = i.toDouble() / SAMPLE_RATE_HZ
             val fade = min(1.0, min(i.toDouble() / fadeSamples, (sampleCount - i).toDouble() / fadeSamples))
             val sample = (AMPLITUDE * fade * sin(2.0 * PI * frequencyHz * timeSeconds)).toInt().toShort()
+            bytes[i * 2] = (sample.toInt() and 0xFF).toByte()
+            bytes[i * 2 + 1] = ((sample.toInt() shr 8) and 0xFF).toByte()
+        }
+        return bytes
+    }
+
+    /**
+     * Erzeugt den Loop-Puffer des Dauertons: [CONTINUOUS_TONE_CYCLE_COUNT] volle Schwingungen bei
+     * [LEVEL_AUDIO_TONE_FREQUENCY_HZ], ohne Fade-in/-out, damit der Übergang vom letzten zum ersten
+     * Sample beim Loopen keinen Klick erzeugt.
+     */
+    private fun buildContinuousTone(): ByteArray {
+        val samplesPerCycle = SAMPLE_RATE_HZ / LEVEL_AUDIO_TONE_FREQUENCY_HZ
+        val sampleCount = samplesPerCycle * CONTINUOUS_TONE_CYCLE_COUNT
+        val bytes = ByteArray(sampleCount * 2)
+        for (i in 0 until sampleCount) {
+            val timeSeconds = i.toDouble() / SAMPLE_RATE_HZ
+            val sample = (AMPLITUDE * sin(2.0 * PI * LEVEL_AUDIO_TONE_FREQUENCY_HZ * timeSeconds)).toInt().toShort()
             bytes[i * 2] = (sample.toInt() and 0xFF).toByte()
             bytes[i * 2 + 1] = ((sample.toInt() shr 8) and 0xFF).toByte()
         }
