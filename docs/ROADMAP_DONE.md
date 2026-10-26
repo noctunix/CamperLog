@@ -2,6 +2,7 @@
 
 Shipped features, newest first.
 
+- 1.40.0 – Optional audio feedback for the level tool (off by default, toggle in the level screen itself): four distinct tones for the tilted direction (front/back/left/right), faster beeping the closer the tilt gets to level, no sound when already level
 - 1.39.0 – Axle load traffic light on the vehicle data sheet (allowed vs. measured front/rear axle load, shown and validated independently of the existing total-weight check), with a fixed reminder that values need real weighing
 - 1.38.0 – New Tools tab (replaces the logbook tab) with a level/tilt tool (sensor-fusion based, with hints for measuring at the drain/cassette and fridge); the logbook moved there, with a quick-access row on the tours tab so daily entries stay one tap away
 - 1.36.0 – Stop form now fully validates before finishing instead of silently dropping invalid fields; leave dialog no longer shows a misleading "Save" button when already auto-saved; hint when a manual electricity cost line adds to a calculated billing; first-run setup (theme, reminders, location/weather) now appears before the first tour/stop, or after a backup import

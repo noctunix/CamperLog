@@ -1,0 +1,1 @@
+• Added: optional audio feedback for the level tool (off by default) - four distinct tones for the tilted direction, faster beeping the closer you get to level

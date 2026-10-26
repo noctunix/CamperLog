@@ -1,0 +1,1 @@
+• Neu: optionale Audio-Rückmeldung für die Wasserwaage (standardmäßig aus) – vier unterscheidbare Töne je Neigungsrichtung, schnelleres Piepsen je näher an "eben"
