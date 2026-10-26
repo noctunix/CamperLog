@@ -2,6 +2,7 @@
 
 Shipped features, newest first.
 
+- 1.40.1 – Fixed the level tool's audio feedback staying silent on some devices: the AudioTrack buffer was sized to exactly one beep, ignoring the device's minimum buffer size
 - 1.40.0 – Optional audio feedback for the level tool (off by default, toggle in the level screen itself): four distinct tones for the tilted direction (front/back/left/right), faster beeping the closer the tilt gets to level, no sound when already level
 - 1.39.0 – Axle load traffic light on the vehicle data sheet (allowed vs. measured front/rear axle load, shown and validated independently of the existing total-weight check), with a fixed reminder that values need real weighing
 - 1.38.0 – New Tools tab (replaces the logbook tab) with a level/tilt tool (sensor-fusion based, with hints for measuring at the drain/cassette and fridge); the logbook moved there, with a quick-access row on the tours tab so daily entries stay one tap away

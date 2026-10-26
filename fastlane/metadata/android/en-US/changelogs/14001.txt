@@ -1,0 +1,1 @@
+• Fixed: the level tool's audio feedback could stay silent on some devices due to an undersized audio buffer

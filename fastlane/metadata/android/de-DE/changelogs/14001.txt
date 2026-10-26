@@ -1,0 +1,1 @@
+• Behoben: Die Audio-Rückmeldung der Wasserwaage konnte auf manchen Geräten wegen eines zu kleinen Audio-Puffers stumm bleiben
