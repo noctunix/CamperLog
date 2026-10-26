@@ -479,6 +479,10 @@
     <string name="field_gross_weight">zul. Gesamtgewicht</string>
     <string name="field_measured_empty_weight">Leergewicht (gewogen)</string>
     <string name="field_remaining_payload">Zuladung</string>
+    <string name="field_allowed_front_axle">zul. Achslast vorn</string>
+    <string name="field_allowed_rear_axle">zul. Achslast hinten</string>
+    <string name="field_measured_front_axle">gemessene Achslast vorn</string>
+    <string name="field_measured_rear_axle">gemessene Achslast hinten</string>
     <string name="field_breakdown_provider">Pannenhilfe (Anbieter)</string>
     <string name="field_breakdown_membership_number">Mitgliedsnummer</string>
     <string name="field_breakdown_phone">Telefon Pannenhilfe</string>
@@ -573,6 +577,11 @@
     <string name="vehicle_travel_protection_group">Schutzbrief</string>
     <string name="vehicle_travel_protection_contract_line">Vertragsnummer %1$s</string>
     <string name="vehicle_overloaded_by">Überladen um %1$s</string>
+    <string name="vehicle_axle_front">Vorderachse</string>
+    <string name="vehicle_axle_rear">Hinterachse</string>
+    <string name="vehicle_axle_reserve">%1$s: %2$s Reserve</string>
+    <string name="vehicle_axle_overloaded">%1$s: %2$s über dem Limit</string>
+    <string name="vehicle_axle_load_disclaimer">Werte müssen durch echtes Wiegen verifiziert werden, keine Rechtsgrundlage.</string>
     <string name="vehicle_call_action">%1$s anrufen, %2$s</string>
     <string name="vehicle_no_dialer">Keine Telefon-App gefunden</string>
     <string name="vehicle_copy_number">Nummer kopieren</string>

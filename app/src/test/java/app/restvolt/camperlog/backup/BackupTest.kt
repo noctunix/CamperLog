@@ -143,6 +143,10 @@ class BackupTest {
         heightCm = 295,
         grossWeightKg = 3500,
         measuredEmptyWeightKg = 3020,
+        allowedFrontAxleKg = 1850,
+        allowedRearAxleKg = 2500,
+        measuredFrontAxleKg = 1700,
+        measuredRearAxleKg = 2600,
         breakdownProvider = "ADAC",
         breakdownMembershipNumber = "123 456 789",
         breakdownPhone = "+49 89 22 22 22",
@@ -280,7 +284,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 27" in text)
+        assert("\"schemaVersion\": 28" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -290,7 +294,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 27" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 28" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -554,7 +558,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 27" in text)
+        assert("\"schemaVersion\": 28" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -589,13 +593,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 27", "\"schemaVersion\": 28"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 28", "\"schemaVersion\": 29"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 27", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 28", it))?.error)
         }
     }
 
@@ -816,6 +820,10 @@ class BackupTest {
             "\"lastOilChangeOdometerKm\": 12000" to "\"lastOilChangeOdometerKm\": ${MAX_ODOMETER_KM + 1}",
             "\"measuredEmptyWeightKg\": 3020" to "\"measuredEmptyWeightKg\": ${MAX_WEIGHT_KG + 1}",
             "\"measuredEmptyWeightKg\": 3020" to "\"measuredEmptyWeightKg\": -1",
+            "\"allowedFrontAxleKg\": 1850" to "\"allowedFrontAxleKg\": ${MAX_WEIGHT_KG + 1}",
+            "\"allowedRearAxleKg\": 2500" to "\"allowedRearAxleKg\": -1",
+            "\"measuredFrontAxleKg\": 1700" to "\"measuredFrontAxleKg\": ${MAX_WEIGHT_KG + 1}",
+            "\"measuredRearAxleKg\": 2600" to "\"measuredRearAxleKg\": -1",
             "\"transmission\": \"DSG\"" to "\"transmission\": \"UNKNOWN\"",
         ).forEach { (old, new) ->
             assertEquals(new, BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = 1), failure(vehicleEncodedWith(old, new)))
@@ -839,6 +847,27 @@ class BackupTest {
         assertEquals(null, vehicle.saleOdometerKm)
         assertEquals(null, vehicle.displacementCc)
         assertEquals(null, vehicle.transmission)
+    }
+
+    @Test
+    fun read_importsOlderBackupsMissingTheAxleLoadFields() {
+        val text = applyAll(
+            encodeBackup(vehicleBackup),
+            listOf(
+                "\"allowedFrontAxleKg\": 1850," to "",
+                "\"allowedRearAxleKg\": 2500," to "",
+                "\"measuredFrontAxleKg\": 1700," to "",
+                "\"measuredRearAxleKg\": 2600," to "",
+            ),
+        )
+
+        val decoded = success(text)
+
+        val vehicle = decoded.vehicles.single().vehicle
+        assertEquals(null, vehicle.allowedFrontAxleKg)
+        assertEquals(null, vehicle.allowedRearAxleKg)
+        assertEquals(null, vehicle.measuredFrontAxleKg)
+        assertEquals(null, vehicle.measuredRearAxleKg)
     }
 
     @Test
@@ -933,7 +962,7 @@ class BackupTest {
         val legacyText = applyAll(
             encodeBackup(stationBackup),
             listOf(
-                "\"schemaVersion\": 27" to "\"schemaVersion\": 23",
+                "\"schemaVersion\": 28" to "\"schemaVersion\": 23",
                 "\"wifiCostIsExpense\": false," to "",
             ),
         )
@@ -948,12 +977,12 @@ class BackupTest {
                 costs = listOf(StationCost(CostCategory.WIFI, Money(350, eur))),
             )),
         )
-        val localVersion24 = encodeBackup(expenseBackup).replace("\"schemaVersion\": 27", "\"schemaVersion\": 24")
+        val localVersion24 = encodeBackup(expenseBackup).replace("\"schemaVersion\": 28", "\"schemaVersion\": 24")
         assertEquals(true, success(localVersion24).stations.single().wifiCostIsExpense)
         assertEquals(CostCategory.WIFI, success(localVersion24).stations.single().costs.single().category)
 
         val publishedVersion24 = encodeBackup(stationBackup)
-            .replace("\"schemaVersion\": 27", "\"schemaVersion\": 24")
+            .replace("\"schemaVersion\": 28", "\"schemaVersion\": 24")
             .replace("\"wifiCostIsExpense\": false,", "")
         assertEquals(false, success(publishedVersion24).stations.single().wifiCostIsExpense)
     }
@@ -962,7 +991,7 @@ class BackupTest {
     fun decode_requiresWifiExpenseFlagOnlyStartingWithVersion26() {
         val withLegacyFlag = applyAll(
             encodeBackup(stationBackup),
-            listOf("\"schemaVersion\": 27" to "\"schemaVersion\": 23"),
+            listOf("\"schemaVersion\": 28" to "\"schemaVersion\": 23"),
         )
         assertEquals(BackupError.INVALID_DATA, failure(withLegacyFlag)?.error)
 
@@ -975,7 +1004,7 @@ class BackupTest {
         val legacyWifiCategory = applyAll(
             encodeBackup(wifiCategoryBackup),
             listOf(
-                "\"schemaVersion\": 27" to "\"schemaVersion\": 23",
+                "\"schemaVersion\": 28" to "\"schemaVersion\": 23",
                 "\"wifiCostIsExpense\": false," to "",
             ),
         )
@@ -988,7 +1017,7 @@ class BackupTest {
         val text = applyAll(
             encodeBackup(olderBackup),
             listOf(
-                "\"schemaVersion\": 27" to "\"schemaVersion\": 23",
+                "\"schemaVersion\": 28" to "\"schemaVersion\": 23",
                 "\"wifiQuality\": \"OK\"," to "",
                 "\"wifiCostCurrency\": \"EUR\"," to "",
                 "\"wifiCostAmount\": \"3.50\"," to "",

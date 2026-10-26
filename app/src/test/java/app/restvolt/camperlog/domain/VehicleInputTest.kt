@@ -249,6 +249,44 @@ class VehicleInputTest {
     }
 
     @Test
+    fun axleLoadFieldsFollowGrossWeightBounds() {
+        listOf(
+            VehicleField.ALLOWED_FRONT_AXLE_KG to valid.copy(allowedFrontAxleKg = "100001"),
+            VehicleField.ALLOWED_REAR_AXLE_KG to valid.copy(allowedRearAxleKg = "100001"),
+            VehicleField.MEASURED_FRONT_AXLE_KG to valid.copy(measuredFrontAxleKg = "100001"),
+            VehicleField.MEASURED_REAR_AXLE_KG to valid.copy(measuredRearAxleKg = "100001"),
+        ).forEach { (field, input) -> assertEquals(VehicleError.TOO_LARGE, input.validate(de, isNew = true)[field]) }
+        assertTrue(
+            valid.copy(
+                allowedFrontAxleKg = "1850",
+                allowedRearAxleKg = "2500",
+                measuredFrontAxleKg = "1700",
+                measuredRearAxleKg = "2600",
+            ).validate(de, isNew = true).isEmpty(),
+        )
+    }
+
+    @Test
+    fun axleReserveIsAllowedMinusMeasuredPerAxle() {
+        val vehicle = valid.copy(
+            allowedFrontAxleKg = "1850",
+            allowedRearAxleKg = "2500",
+            measuredFrontAxleKg = "1700",
+            measuredRearAxleKg = "2600",
+        ).toVehicle(null, de)
+
+        assertEquals(150, vehicle.frontAxleReserveKg)
+        assertEquals(-100, vehicle.rearAxleReserveKg)
+    }
+
+    @Test
+    fun axleReserveIsNullWhenEitherValueOfThatAxleIsMissing() {
+        val vehicle = valid.copy(allowedFrontAxleKg = "1850", measuredFrontAxleKg = "").toVehicle(null, de)
+        assertNull(vehicle.frontAxleReserveKg)
+        assertNull(vehicle.rearAxleReserveKg)
+    }
+
+    @Test
     fun phoneNumbersAcceptDigitsSpacesAndFormattingCharacters() {
         val input = valid.copy(breakdownPhone = "+49 89 22-22/22 (0)")
         assertTrue(input.validate(de, isNew = true).isEmpty())

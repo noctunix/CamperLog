@@ -131,6 +131,14 @@ internal data class VehicleDto(
     val heightCm: Int? = null,
     val grossWeightKg: Int? = null,
     val measuredEmptyWeightKg: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 28. */
+    val allowedFrontAxleKg: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 28. */
+    val allowedRearAxleKg: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 28. */
+    val measuredFrontAxleKg: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 28. */
+    val measuredRearAxleKg: Int? = null,
     val breakdownProvider: String = "",
     val breakdownMembershipNumber: String = "",
     val breakdownPhone: String = "",

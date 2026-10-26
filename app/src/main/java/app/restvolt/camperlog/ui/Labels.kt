@@ -201,6 +201,10 @@ val VehicleField.labelRes: Int
         VehicleField.HEIGHT -> R.string.field_height
         VehicleField.GROSS_WEIGHT_KG -> R.string.field_gross_weight
         VehicleField.MEASURED_EMPTY_WEIGHT_KG -> R.string.field_measured_empty_weight
+        VehicleField.ALLOWED_FRONT_AXLE_KG -> R.string.field_allowed_front_axle
+        VehicleField.ALLOWED_REAR_AXLE_KG -> R.string.field_allowed_rear_axle
+        VehicleField.MEASURED_FRONT_AXLE_KG -> R.string.field_measured_front_axle
+        VehicleField.MEASURED_REAR_AXLE_KG -> R.string.field_measured_rear_axle
         VehicleField.BREAKDOWN_PHONE -> R.string.field_breakdown_phone
         VehicleField.TRAVEL_PROTECTION_PHONE -> R.string.field_travel_protection_phone
         VehicleField.INSURER_CLAIMS_PHONE -> R.string.field_insurer_claims_phone
@@ -246,7 +250,10 @@ val EnergyType.labelRes: Int
 /** Höchstwert und Einheit eines Feldes mit Obergrenze, für die Fehlermeldung zu [VehicleError.TOO_LARGE]. */
 private fun vehicleFieldBound(field: VehicleField): Pair<Double, String> = when (field) {
     VehicleField.LENGTH, VehicleField.WIDTH, VehicleField.HEIGHT -> MAX_DIMENSION_CM.toDouble() to "cm"
-    VehicleField.GROSS_WEIGHT_KG, VehicleField.MEASURED_EMPTY_WEIGHT_KG -> MAX_WEIGHT_KG.toDouble() to "kg"
+    VehicleField.GROSS_WEIGHT_KG, VehicleField.MEASURED_EMPTY_WEIGHT_KG,
+    VehicleField.ALLOWED_FRONT_AXLE_KG, VehicleField.ALLOWED_REAR_AXLE_KG,
+    VehicleField.MEASURED_FRONT_AXLE_KG, VehicleField.MEASURED_REAR_AXLE_KG,
+    -> MAX_WEIGHT_KG.toDouble() to "kg"
     VehicleField.POWER_KW -> MAX_POWER_KW.toDouble() to "kW"
     VehicleField.DISPLACEMENT_CC -> MAX_DISPLACEMENT_CC.toDouble() to "cm³"
     VehicleField.TIRE_PRESSURE_FRONT, VehicleField.TIRE_PRESSURE_REAR -> MAX_TIRE_PRESSURE_BAR to "bar"

@@ -164,6 +164,34 @@ class VehicleFlowTest {
     }
 
     @Test
+    fun vehicleTab_showsAxleLoadStatusOnlyForAxlesWithBothValuesAndAlwaysWithDisclaimer() {
+        val vehicle = defaultVehicle(id = 1, name = "Camper").copy(
+            allowedFrontAxleKg = 1850,
+            measuredFrontAxleKg = 2000,
+            allowedRearAxleKg = 2500,
+            // measuredRearAxleKg bleibt unerfasst: die Hinterachse darf dann keine Ampelzeile zeigen.
+        )
+        start(FakeVehicleRepository(listOf(vehicle)))
+
+        compose.onNodeWithText("Fahrzeug").performClick()
+
+        compose.onNode(hasText("Vorderachse", substring = true) and hasText("über dem Limit", substring = true)).assertExists()
+        compose.onNode(hasText("Hinterachse", substring = true) and hasText("Reserve", substring = true)).assertDoesNotExist()
+        compose.onNode(hasText("Hinterachse", substring = true) and hasText("über dem Limit", substring = true)).assertDoesNotExist()
+        compose.onNodeWithText("Werte müssen durch echtes Wiegen verifiziert werden, keine Rechtsgrundlage.").assertExists()
+    }
+
+    @Test
+    fun vehicleTab_hidesAxleLoadDisclaimerWhenNoAxleHasBothValues() {
+        val vehicle = defaultVehicle(id = 1, name = "Camper").copy(allowedFrontAxleKg = 1850)
+        start(FakeVehicleRepository(listOf(vehicle)))
+
+        compose.onNodeWithText("Fahrzeug").performClick()
+
+        compose.onNodeWithText("Werte müssen durch echtes Wiegen verifiziert werden, keine Rechtsgrundlage.").assertDoesNotExist()
+    }
+
+    @Test
     fun bottomNavigation_switchesBetweenTabs() {
         start(FakeVehicleRepository())
 

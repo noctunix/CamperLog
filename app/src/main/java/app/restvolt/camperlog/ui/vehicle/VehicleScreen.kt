@@ -296,6 +296,7 @@ private fun VehicleSheet(
                             vehicle.remainingPayloadKg?.takeIf { it < 0 }?.let { over ->
                                 OverweightWarning(formatKg(abs(over), locale))
                             }
+                            AxleLoadStatus(vehicle, locale)
                         }
                     }
                 }
@@ -605,6 +606,47 @@ private fun OverweightWarning(overweightText: String) {
     }
 }
 
+/**
+ * Ampel je Achse: grün mit Reservetext, rot mit Überladungstext. Eine Achse erscheint nur, wenn für
+ * sie sowohl die zulässige als auch die gemessene Last erfasst sind; sonst wird sie weggelassen.
+ * Erscheint mindestens eine Achse, folgt darunter der Pflichthinweis zum echten Wiegen.
+ */
+@Composable
+private fun AxleLoadStatus(vehicle: Vehicle, locale: Locale) {
+    val rows = buildList {
+        vehicle.frontAxleReserveKg?.let { add(stringResource(R.string.vehicle_axle_front) to it) }
+        vehicle.rearAxleReserveKg?.let { add(stringResource(R.string.vehicle_axle_rear) to it) }
+    }
+    if (rows.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        rows.forEach { (axleLabel, reserveKg) ->
+            val overloaded = reserveKg < 0
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(
+                    painterResource(if (overloaded) R.drawable.ic_warning else R.drawable.ic_check),
+                    contentDescription = null,
+                    tint = if (overloaded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                )
+                val text = if (overloaded) {
+                    stringResource(R.string.vehicle_axle_overloaded, axleLabel, formatKg(abs(reserveKg), locale))
+                } else {
+                    stringResource(R.string.vehicle_axle_reserve, axleLabel, formatKg(reserveKg, locale))
+                }
+                Text(
+                    text,
+                    color = if (overloaded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+        }
+        Text(
+            stringResource(R.string.vehicle_axle_load_disclaimer),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 /** Öffnet den Wähler für [phone] über `ACTION_DIAL`; ohne Telefon-App bietet die Snackbar das Kopieren an. */
 private fun dialOrOfferCopy(
     scope: CoroutineScope,
@@ -671,6 +713,10 @@ private fun dimensionsRows(vehicle: Vehicle, locale: Locale): List<Pair<String, 
     vehicle.grossWeightKg?.let { add(stringResource(R.string.field_gross_weight) to formatKg(it, locale)) }
     vehicle.measuredEmptyWeightKg?.let { add(stringResource(R.string.field_measured_empty_weight) to formatKg(it, locale)) }
     vehicle.remainingPayloadKg?.let { add(stringResource(R.string.field_remaining_payload) to formatKg(abs(it), locale)) }
+    vehicle.allowedFrontAxleKg?.let { add(stringResource(R.string.field_allowed_front_axle) to formatKg(it, locale)) }
+    vehicle.allowedRearAxleKg?.let { add(stringResource(R.string.field_allowed_rear_axle) to formatKg(it, locale)) }
+    vehicle.measuredFrontAxleKg?.let { add(stringResource(R.string.field_measured_front_axle) to formatKg(it, locale)) }
+    vehicle.measuredRearAxleKg?.let { add(stringResource(R.string.field_measured_rear_axle) to formatKg(it, locale)) }
 }
 
 @Composable

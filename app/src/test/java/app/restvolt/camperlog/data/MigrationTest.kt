@@ -1141,6 +1141,38 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migration30To35AddsAxleLoadColumnsToVehiclesAndKeepsThemEditable() = runTest {
+        createVersion30(
+            "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
+                "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
+                "breakdown_phone, travel_protection_provider, travel_protection_contract_number, " +
+                "travel_protection_phone, insurer_claims_phone, required_energy_types, created_at, updated_at) VALUES " +
+                "(1, 'veh-1', 'Bluebird', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 1000, 2000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val repository = RoomVehicleRepository(db)
+            val vehicle = repository.observeVehicle(1).first()!!
+            assertNull(vehicle.allowedFrontAxleKg)
+            assertNull(vehicle.allowedRearAxleKg)
+            assertNull(vehicle.measuredFrontAxleKg)
+            assertNull(vehicle.measuredRearAxleKg)
+
+            repository.save(
+                vehicle.copy(allowedFrontAxleKg = 1850, allowedRearAxleKg = 2500, measuredFrontAxleKg = 1700, measuredRearAxleKg = 2600),
+            )
+            val updated = repository.observeVehicle(1).first()!!
+            assertEquals(1850, updated.allowedFrontAxleKg)
+            assertEquals(2500, updated.allowedRearAxleKg)
+            assertEquals(1700, updated.measuredFrontAxleKg)
+            assertEquals(2600, updated.measuredRearAxleKg)
+        } finally {
+            db.close()
+        }
+    }
+
     /** Legt `camperlog.db` im Stand von Version 28 nach `schemas/…/28.json` an und füllt sie mit [inserts]. */
     private fun createVersion28(vararg inserts: String) = createDatabase(
         version = 28,

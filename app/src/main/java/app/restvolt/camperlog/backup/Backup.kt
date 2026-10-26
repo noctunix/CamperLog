@@ -98,7 +98,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 27
+const val BACKUP_SCHEMA_VERSION = 28
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -808,6 +808,8 @@ private fun VehicleDto.toVehicle(): Vehicle? {
     if (!lengthCm.inBounds(MAX_DIMENSION_CM) || !widthCm.inBounds(MAX_DIMENSION_CM) || !heightCm.inBounds(MAX_DIMENSION_CM)) return null
     if (!grossWeightKg.inBounds(MAX_WEIGHT_KG) || !powerKw.inBounds(MAX_POWER_KW)) return null
     if (!measuredEmptyWeightKg.inBounds(MAX_WEIGHT_KG)) return null
+    if (!allowedFrontAxleKg.inBounds(MAX_WEIGHT_KG) || !allowedRearAxleKg.inBounds(MAX_WEIGHT_KG)) return null
+    if (!measuredFrontAxleKg.inBounds(MAX_WEIGHT_KG) || !measuredRearAxleKg.inBounds(MAX_WEIGHT_KG)) return null
     if (!displacementCc.inBounds(MAX_DISPLACEMENT_CC)) return null
     if (!saleOdometerKm.inBounds(MAX_ODOMETER_KM)) return null
     val transmissionValue = transmission?.let { enumOrNull<TransmissionType>(it) ?: return null }
@@ -852,6 +854,10 @@ private fun VehicleDto.toVehicle(): Vehicle? {
         heightCm = heightCm,
         grossWeightKg = grossWeightKg,
         measuredEmptyWeightKg = measuredEmptyWeightKg,
+        allowedFrontAxleKg = allowedFrontAxleKg,
+        allowedRearAxleKg = allowedRearAxleKg,
+        measuredFrontAxleKg = measuredFrontAxleKg,
+        measuredRearAxleKg = measuredRearAxleKg,
         breakdownProvider = breakdownProvider,
         breakdownMembershipNumber = breakdownMembershipNumber,
         breakdownPhone = breakdownPhone,
@@ -994,6 +1000,10 @@ private fun BackupVehicle.toDto(logEntryStationUuid: Map<String, String>) = vehi
         heightCm = v.heightCm,
         grossWeightKg = v.grossWeightKg,
         measuredEmptyWeightKg = v.measuredEmptyWeightKg,
+        allowedFrontAxleKg = v.allowedFrontAxleKg,
+        allowedRearAxleKg = v.allowedRearAxleKg,
+        measuredFrontAxleKg = v.measuredFrontAxleKg,
+        measuredRearAxleKg = v.measuredRearAxleKg,
         breakdownProvider = v.breakdownProvider,
         breakdownMembershipNumber = v.breakdownMembershipNumber,
         breakdownPhone = v.breakdownPhone,

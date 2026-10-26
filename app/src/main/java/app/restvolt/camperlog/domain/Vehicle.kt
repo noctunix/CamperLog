@@ -78,6 +78,10 @@ data class Vehicle(
     val heightCm: Int? = null,
     val grossWeightKg: Int? = null,
     val measuredEmptyWeightKg: Int? = null,
+    val allowedFrontAxleKg: Int? = null,
+    val allowedRearAxleKg: Int? = null,
+    val measuredFrontAxleKg: Int? = null,
+    val measuredRearAxleKg: Int? = null,
     val breakdownProvider: String = "",
     val breakdownMembershipNumber: String = "",
     val breakdownPhone: String = "",
@@ -116,6 +120,14 @@ data class Vehicle(
     /** Restzuladung = zulässiges Gesamtgewicht minus gewogenes Leergewicht; nur, wenn beide erfasst sind. */
     val remainingPayloadKg: Int?
         get() = if (grossWeightKg != null && measuredEmptyWeightKg != null) grossWeightKg - measuredEmptyWeightKg else null
+
+    /** Reserve der Vorderachse = zulässige minus gemessene Achslast; nur, wenn beide erfasst sind. */
+    val frontAxleReserveKg: Int?
+        get() = if (allowedFrontAxleKg != null && measuredFrontAxleKg != null) allowedFrontAxleKg - measuredFrontAxleKg else null
+
+    /** Reserve der Hinterachse = zulässige minus gemessene Achslast; nur, wenn beide erfasst sind. */
+    val rearAxleReserveKg: Int?
+        get() = if (allowedRearAxleKg != null && measuredRearAxleKg != null) allowedRearAxleKg - measuredRearAxleKg else null
 
     /** Ob die Karte „Panne & Unfall" angezeigt werden soll. */
     val hasBreakdownInfo: Boolean

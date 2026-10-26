@@ -374,6 +374,22 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 stringResource(R.string.field_measured_empty_weight), input.measuredEmptyWeightKg, "kg", KeyboardType.Number,
                 errorOf(VehicleField.MEASURED_EMPTY_WEIGHT_KG), focusOf(VehicleField.MEASURED_EMPTY_WEIGHT_KG),
             ) { value -> change { it.copy(measuredEmptyWeightKg = value) } }
+            UnitField(
+                stringResource(R.string.field_allowed_front_axle), input.allowedFrontAxleKg, "kg", KeyboardType.Number,
+                errorOf(VehicleField.ALLOWED_FRONT_AXLE_KG), focusOf(VehicleField.ALLOWED_FRONT_AXLE_KG),
+            ) { value -> change { it.copy(allowedFrontAxleKg = value) } }
+            UnitField(
+                stringResource(R.string.field_allowed_rear_axle), input.allowedRearAxleKg, "kg", KeyboardType.Number,
+                errorOf(VehicleField.ALLOWED_REAR_AXLE_KG), focusOf(VehicleField.ALLOWED_REAR_AXLE_KG),
+            ) { value -> change { it.copy(allowedRearAxleKg = value) } }
+            UnitField(
+                stringResource(R.string.field_measured_front_axle), input.measuredFrontAxleKg, "kg", KeyboardType.Number,
+                errorOf(VehicleField.MEASURED_FRONT_AXLE_KG), focusOf(VehicleField.MEASURED_FRONT_AXLE_KG),
+            ) { value -> change { it.copy(measuredFrontAxleKg = value) } }
+            UnitField(
+                stringResource(R.string.field_measured_rear_axle), input.measuredRearAxleKg, "kg", KeyboardType.Number,
+                errorOf(VehicleField.MEASURED_REAR_AXLE_KG), focusOf(VehicleField.MEASURED_REAR_AXLE_KG),
+            ) { value -> change { it.copy(measuredRearAxleKg = value) } }
         }
         SectionCard {
             SectionHeading(stringResource(R.string.section_engine))

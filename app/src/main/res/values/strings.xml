@@ -479,6 +479,10 @@
     <string name="field_gross_weight">Gross weight</string>
     <string name="field_measured_empty_weight">Measured empty weight</string>
     <string name="field_remaining_payload">Remaining payload</string>
+    <string name="field_allowed_front_axle">Allowed load, front axle</string>
+    <string name="field_allowed_rear_axle">Allowed load, rear axle</string>
+    <string name="field_measured_front_axle">Measured load, front axle</string>
+    <string name="field_measured_rear_axle">Measured load, rear axle</string>
     <string name="field_breakdown_provider">Breakdown service</string>
     <string name="field_breakdown_membership_number">Membership number</string>
     <string name="field_breakdown_phone">Breakdown phone</string>
@@ -573,6 +577,11 @@
     <string name="vehicle_travel_protection_group">Travel protection</string>
     <string name="vehicle_travel_protection_contract_line">Contract number %1$s</string>
     <string name="vehicle_overloaded_by">Overloaded by %1$s</string>
+    <string name="vehicle_axle_front">Front axle</string>
+    <string name="vehicle_axle_rear">Rear axle</string>
+    <string name="vehicle_axle_reserve">%1$s: %2$s reserve</string>
+    <string name="vehicle_axle_overloaded">%1$s: %2$s over the limit</string>
+    <string name="vehicle_axle_load_disclaimer">Values must be verified by actual weighing, not a legal basis.</string>
     <string name="vehicle_call_action">Call %1$s, %2$s</string>
     <string name="vehicle_no_dialer">No phone app found</string>
     <string name="vehicle_copy_number">Copy number</string>
