@@ -1,0 +1,2 @@
+• Fixed: the level tool's audio feedback stayed completely silent on many devices (wrong audio stream); now routed through the media volume
+• Changed: "Data" and "Settings" moved from always-visible icons into a shared overflow menu

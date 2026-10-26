@@ -1,0 +1,2 @@
+• Behoben: Die Audio-Rückmeldung der Wasserwaage blieb auf vielen Geräten komplett stumm (falscher Audiostream); läuft jetzt über die Medienlautstärke
+• Geändert: "Daten" und "Einstellungen" wandern von eigenen Icons in ein gemeinsames Dreipunktmenü
