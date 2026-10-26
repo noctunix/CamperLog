@@ -1,0 +1,1 @@
+• Added: axle load traffic light on the vehicle data sheet (allowed vs. measured front/rear axle load), separate from the existing total-weight check, with a reminder to verify by actual weighing

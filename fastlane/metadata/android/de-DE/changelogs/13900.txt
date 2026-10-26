@@ -1,0 +1,1 @@
+• Neu: Achslast-Ampel im Fahrzeug-Datenblatt (zulässige vs. gemessene Achslast vorne/hinten), getrennt von der bisherigen Gesamtmassen-Prüfung, mit Hinweis auf echtes Wiegen
