@@ -1517,4 +1517,8 @@
     <string name="level_measuring_point_fridge">Kühlschrank: Absorberkühlschränke brauchen oft eine enge Neigungstoleranz. Die genaue Gradzahl findest du in der Bedienungsanleitung deines Kühlschranks; sonst leiden Kühlleistung und Lebensdauer.</string>
     <string name="level_audio_feedback">Akustische Rückmeldung</string>
     <string name="level_audio_feedback_hint">Ein Piepton je Richtung zeigt dir, wohin du nivellieren musst; er wird schneller, je näher du dem Ziel kommst.</string>
+    <string name="level_audio_scheme_dominant_axis">Dominante Achse</string>
+    <string name="level_audio_scheme_dominant_axis_hint">Reagiert auf die stärker geneigte Achse – in der Praxis meist angenehmer.</string>
+    <string name="level_audio_scheme_quadrant">Quadranten</string>
+    <string name="level_audio_scheme_quadrant_hint">Berücksichtigt beide Achsen gleichzeitig – exakter, aber bei Diagonalneigung unruhiger.</string>
 </resources>

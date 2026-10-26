@@ -37,9 +37,11 @@ import app.restvolt.camperlog.R
 import app.restvolt.camperlog.data.AndroidLevelAudioPlayer
 import app.restvolt.camperlog.domain.LevelAudioCue
 import app.restvolt.camperlog.domain.LevelAudioFeedback
+import app.restvolt.camperlog.domain.LevelAudioScheme
 import app.restvolt.camperlog.domain.LevelStatus
 import app.restvolt.camperlog.domain.Tilt
 import app.restvolt.camperlog.ui.currentLocale
+import app.restvolt.camperlog.ui.settings.RadioOptionGroup
 import app.restvolt.camperlog.ui.settings.SwitchSettingRow
 import java.text.NumberFormat
 import kotlin.math.max
@@ -51,6 +53,18 @@ import kotlinx.coroutines.isActive
 /** Toleranz in Grad, bis zu der der Neigungspunkt in der Anzeige noch innerhalb des Zielkreises bleibt. */
 private const val DISPLAY_RANGE_DEGREES = 15.0
 
+private val LevelAudioScheme.label: Int
+    get() = when (this) {
+        LevelAudioScheme.DOMINANT_AXIS -> R.string.level_audio_scheme_dominant_axis
+        LevelAudioScheme.QUADRANT -> R.string.level_audio_scheme_quadrant
+    }
+
+private val LevelAudioScheme.hint: Int
+    get() = when (this) {
+        LevelAudioScheme.DOMINANT_AXIS -> R.string.level_audio_scheme_dominant_axis_hint
+        LevelAudioScheme.QUADRANT -> R.string.level_audio_scheme_quadrant_hint
+    }
+
 /** Abfrageintervall zwischen zwei Blicken auf [LevelViewModel.audioCue], solange der Dauerton läuft. */
 internal const val LEVEL_AUDIO_POLL_INTERVAL_MILLIS = 200L
 
@@ -60,6 +74,7 @@ internal const val LEVEL_AUDIO_POLL_INTERVAL_MILLIS = 200L
 fun LevelScreen(viewModel: LevelViewModel, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val audioEnabled by viewModel.audioEnabled.collectAsStateWithLifecycle()
+    val audioScheme by viewModel.audioScheme.collectAsStateWithLifecycle()
     val locale = currentLocale()
 
     val audioPlayer = remember { AndroidLevelAudioPlayer() }
@@ -106,6 +121,15 @@ fun LevelScreen(viewModel: LevelViewModel, onBack: () -> Unit) {
                         checked = audioEnabled,
                         onCheckedChange = viewModel::setAudioEnabled,
                     )
+                    if (audioEnabled) {
+                        RadioOptionGroup(
+                            options = LevelAudioScheme.entries,
+                            selected = audioScheme,
+                            onSelect = viewModel::setAudioScheme,
+                            label = { stringResource(it.label) },
+                            supportingText = { stringResource(it.hint) },
+                        )
+                    }
                 }
             }
             MeasuringPointsCard()

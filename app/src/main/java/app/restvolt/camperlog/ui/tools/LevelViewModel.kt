@@ -3,6 +3,7 @@ package app.restvolt.camperlog.ui.tools
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.restvolt.camperlog.domain.LevelAudioCue
+import app.restvolt.camperlog.domain.LevelAudioScheme
 import app.restvolt.camperlog.domain.LevelSensor
 import app.restvolt.camperlog.domain.LevelStatus
 import app.restvolt.camperlog.domain.Tilt
@@ -63,13 +64,21 @@ class LevelViewModel(sensor: LevelSensor, private val audioSettings: LevelAudioS
         audioSettings.enabled = value
     }
 
+    /** Richtungslogik der akustischen Rückmeldung; persistiert über [audioSettings]. */
+    val audioScheme: StateFlow<LevelAudioScheme> = audioSettings.schemeValues
+
+    /** Wechselt die Richtungslogik der akustischen Rückmeldung und persistiert die Wahl. */
+    fun setAudioScheme(value: LevelAudioScheme) {
+        audioSettings.scheme = value
+    }
+
     /**
-     * Aktuelle akustische Rückmeldung, abgeleitet aus [uiState] und [audioEnabled]; `null` nur, wenn
-     * die Rückmeldung ausgeschaltet ist oder noch kein Sensorwert vorliegt.
+     * Aktuelle akustische Rückmeldung, abgeleitet aus [uiState], [audioEnabled] und [audioScheme];
+     * `null` nur, wenn die Rückmeldung ausgeschaltet ist oder noch kein Sensorwert vorliegt.
      */
-    val audioCue: StateFlow<LevelAudioCue?> = combine(uiState, audioEnabled) { state, enabled ->
+    val audioCue: StateFlow<LevelAudioCue?> = combine(uiState, audioEnabled, audioScheme) { state, enabled, scheme ->
         val tilt = state.tilt
-        if (enabled && tilt != null) levelAudioCue(tilt) else null
+        if (enabled && tilt != null) levelAudioCue(tilt, scheme = scheme) else null
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private sealed interface RawTilt {

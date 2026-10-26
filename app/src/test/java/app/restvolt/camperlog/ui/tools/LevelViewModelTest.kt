@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.restvolt.camperlog.domain.FakeLevelSensor
 import app.restvolt.camperlog.domain.LevelAudioCue
 import app.restvolt.camperlog.domain.LevelAudioDirection
+import app.restvolt.camperlog.domain.LevelAudioScheme
 import app.restvolt.camperlog.domain.LevelStatus
 import app.restvolt.camperlog.domain.Tilt
 import app.restvolt.camperlog.ui.settings.LevelAudioSettings
@@ -138,6 +139,28 @@ class LevelViewModelTest {
         viewModel.setAudioEnabled(false)
 
         assertNull(viewModel.audioCue.value)
+    }
+
+    @Test
+    fun setAudioScheme_changesTheAudioCueDirectionAndIsPersisted() = runTest(dispatcher) {
+        // Pitch dominiert den Betrag (10 > 3), aber das Roll-Vorzeichen ist negativ: DOMINANT_AXIS und
+        // QUADRANT müssen hier auf unterschiedliche Richtungen kommen.
+        val sensor = FakeLevelSensor(Tilt(10.0, -3.0))
+        val audioSettings = LevelAudioSettings(context)
+        val viewModel = viewModel(sensor, audioSettings)
+        collect(viewModel.uiState)
+        collect(viewModel.audioScheme)
+        collect(viewModel.audioCue)
+
+        viewModel.setAudioEnabled(true)
+        assertEquals(LevelAudioScheme.DOMINANT_AXIS, viewModel.audioScheme.value)
+        assertEquals(LevelAudioDirection.BACK, (viewModel.audioCue.value as? LevelAudioCue.Beep)?.direction)
+
+        viewModel.setAudioScheme(LevelAudioScheme.QUADRANT)
+
+        assertEquals(LevelAudioScheme.QUADRANT, viewModel.audioScheme.value)
+        assertEquals(LevelAudioDirection.LEFT, (viewModel.audioCue.value as? LevelAudioCue.Beep)?.direction)
+        assertEquals(LevelAudioScheme.QUADRANT, audioSettings.scheme)
     }
 
     @Test

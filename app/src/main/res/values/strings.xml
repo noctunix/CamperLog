@@ -1528,4 +1528,8 @@
     <string name="level_measuring_point_fridge">Fridge: absorber fridges often need a narrow tilt tolerance. Check your fridge\'s manual for the exact figure; cooling power and lifespan suffer otherwise.</string>
     <string name="level_audio_feedback">Audio feedback</string>
     <string name="level_audio_feedback_hint">A beep per direction tells you how to level; beeping speeds up as you get closer.</string>
+    <string name="level_audio_scheme_dominant_axis">Dominant axis</string>
+    <string name="level_audio_scheme_dominant_axis_hint">Reacts to whichever axis is tilted more — usually more pleasant in practice.</string>
+    <string name="level_audio_scheme_quadrant">Quadrants</string>
+    <string name="level_audio_scheme_quadrant_hint">Takes both axes into account at once — more exact, but can feel busier on a diagonal tilt.</string>
 </resources>

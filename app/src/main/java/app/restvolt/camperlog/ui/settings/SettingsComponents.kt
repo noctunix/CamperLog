@@ -114,6 +114,37 @@ internal fun ThemeModeRadioGroup(themeMode: ThemeMode, onThemeModeChange: (Theme
     }
 }
 
+/**
+ * Auswahl aus [options] mit Titel und kurzer Erklärung je Zeile (wie [ThemeModeRadioGroup], aber mit
+ * zusätzlichem Erklärungstext); geteilt zwischen Einstellungen und einzelnen Tool-Bildschirmen.
+ */
+@Composable
+internal fun <T> RadioOptionGroup(
+    options: List<T>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    label: @Composable (T) -> String,
+    supportingText: @Composable (T) -> String,
+) {
+    Column(Modifier.selectableGroup()) {
+        options.forEach { option ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(selected = option == selected, role = Role.RadioButton) { onSelect(option) }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = option == selected, onClick = null)
+                Column(Modifier.padding(start = 12.dp)) {
+                    Text(label(option), style = MaterialTheme.typography.bodyLarge)
+                    Text(supportingText(option), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
 /** Farbige Kreis-Swatches zur Auswahl der Akzentfarbe. */
 @Composable
 internal fun AccentColorSwatchRow(accentColor: AccentColor, onAccentColorChange: (AccentColor) -> Unit) {
