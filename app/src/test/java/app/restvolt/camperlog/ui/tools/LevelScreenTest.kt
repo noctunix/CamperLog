@@ -22,9 +22,10 @@ class LevelScreenTest {
     val compose = createAndroidComposeRule<ComponentActivity>()
 
     private fun start(sensor: FakeLevelSensor) {
+        val viewModel = LevelViewModel(sensor)
         compose.setContent {
             CamperLogTheme {
-                LevelScreen(viewModel = LevelViewModel(sensor), onBack = {})
+                LevelScreen(viewModel = viewModel, onBack = {})
             }
         }
     }

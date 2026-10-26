@@ -1513,7 +1513,6 @@
     <string name="level_status_level">Level</string>
     <string name="level_status_tilted">Tilted</string>
     <string name="level_calibrate">Zero on current surface</string>
-    <string name="level_calibrate_done">Zeroed to the current surface.</string>
     <string name="level_sensor_unavailable">This device has no motion sensor for the level.</string>
     <string name="level_measuring_points_title">Important measuring points</string>
     <string name="level_measuring_point_drain">Drain &amp; waste tank: without a slope towards the outlet, grey and black water does not drain properly.</string>

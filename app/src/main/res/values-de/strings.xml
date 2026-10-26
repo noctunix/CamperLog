@@ -1502,7 +1502,6 @@
     <string name="level_status_level">Eben</string>
     <string name="level_status_tilted">Geneigt</string>
     <string name="level_calibrate">Auf aktueller Fläche nullen</string>
-    <string name="level_calibrate_done">Auf die aktuelle Fläche genullt.</string>
     <string name="level_sensor_unavailable">Dieses Gerät hat keinen Bewegungssensor für die Wasserwaage.</string>
     <string name="level_measuring_points_title">Wichtige Messpunkte</string>
     <string name="level_measuring_point_drain">Abfluss &amp; Kassette: ohne Gefälle zum Auslauf läuft Grau- oder Schwarzwasser nicht richtig ab.</string>
