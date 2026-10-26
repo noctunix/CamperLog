@@ -1,0 +1,2 @@
+• Added: a new Tools tab, home for a level/tilt tool (useful for pitching the vehicle and for fridge/drain measuring points) with the logbook moved there too
+• Added: a logbook quick-access row on the tours tab, so daily entries stay one tap away

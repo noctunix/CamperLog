@@ -1,0 +1,2 @@
+• Neu: ein neuer Tools-Reiter, darin eine Wasserwaage/Neigungsanzeige (hilfreich beim Ausrichten des Fahrzeugs und an Abfluss/Kühlschrank) sowie das dorthin umgezogene Bordbuch
+• Neu: Bordbuch-Schnellzugriff auf dem Touren-Tab, damit das tägliche Eintragen weiter nur einen Tap braucht

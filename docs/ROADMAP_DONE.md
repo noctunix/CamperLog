@@ -2,6 +2,7 @@
 
 Shipped features, newest first.
 
+- 1.38.0 – New Tools tab (replaces the logbook tab) with a level/tilt tool (sensor-fusion based, with hints for measuring at the drain/cassette and fridge); the logbook moved there, with a quick-access row on the tours tab so daily entries stay one tap away
 - 1.36.0 – Stop form now fully validates before finishing instead of silently dropping invalid fields; leave dialog no longer shows a misleading "Save" button when already auto-saved; hint when a manual electricity cost line adds to a calculated billing; first-run setup (theme, reminders, location/weather) now appears before the first tour/stop, or after a backup import
 - 1.35.1 – The system back button steps back through the introduction tour (and ends it at the first step) instead of navigating the app underneath
 - 1.35.0 – Introduction tour ends with a "Let's go" step pointing to the new-tour button; re-saving a fuel stop adds the missing logbook entry; merge import reports payment methods that no longer fit into the list of 30; example-tour track points never lie in the future
