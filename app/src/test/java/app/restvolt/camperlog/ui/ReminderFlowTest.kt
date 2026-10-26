@@ -80,7 +80,8 @@ class ReminderFlowTest {
         compose.onNodeWithText("Fahrzeug").performClick()
         compose.onNode(hasText("fällig in", substring = true)).assertExists()
 
-        compose.onNodeWithContentDescription("Einstellungen").performClick()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Einstellungen").performClick()
         compose.onNodeWithText("Vor Fälligkeit erinnern").performClick()
         compose.onNodeWithText("7 Tage vorher").performClick()
         compose.onNodeWithContentDescription("Zurück").performClick()

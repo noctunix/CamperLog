@@ -234,7 +234,8 @@ class RatesFlowTest {
     fun settings_changeThemeAndMainCurrency_andOpenRates() {
         val rates = startOnOverview(FakeExchangeRateRepository(listOf(rate(nok, "10"), rate(dkk, "7.5"))))
         compose.onNodeWithContentDescription("Zurück").performClick()
-        compose.onNodeWithContentDescription("Einstellungen").performClick()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Einstellungen").performClick()
 
         compose.onNodeWithText("Dunkel").performClick()
         compose.onNodeWithText("Dunkel").assertIsSelected()

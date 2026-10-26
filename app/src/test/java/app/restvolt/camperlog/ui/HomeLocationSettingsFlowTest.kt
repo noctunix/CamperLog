@@ -53,7 +53,8 @@ class HomeLocationSettingsFlowTest {
             }
         }
         compose.onNodeWithText("Fahrzeug").performClick()
-        compose.onNodeWithContentDescription("Einstellungen").performClick()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Einstellungen").performClick()
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Zuhause"))
         return homeLocations
     }

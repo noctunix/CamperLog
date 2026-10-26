@@ -700,7 +700,8 @@ class TourFlowTest {
         val repository = start(tour(id = 1, destination = "Gardasee"))
         repository.failExportRead = true
 
-        compose.onNodeWithContentDescription("Daten").performClick()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Daten").performClick()
         compose.onNodeWithText("Als CSV exportieren").performClick()
 
         compose.onNodeWithText("CSV-Export fehlgeschlagen").assertExists()
