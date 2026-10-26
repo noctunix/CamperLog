@@ -22,7 +22,7 @@ class GuideToursTest {
         assertEquals(
             listOf(
                 null, "nav.tab.tours", "nav.tab.stations", "nav.tab.stations", "nav.tab.stations",
-                "nav.tab.logbook", "nav.tab.vehicle", "nav.tab.vehicle", "overview.totals", "map.view", "nav.data", "tours.fab.add",
+                "nav.tab.tools", "nav.tab.vehicle", "nav.tab.vehicle", "overview.totals", "map.view", "nav.data", "tours.fab.add",
             ),
             tour.steps.map { it.anchorId },
         )

@@ -26,7 +26,7 @@ fun introductionTour() = TourDefinition(
             "station-types-extras", "nav.tab.stations",
             R.string.title_intro_station_types_extras, R.string.body_intro_station_types_extras, StepCompletion.Information,
         ),
-        TourStep("logbook", "nav.tab.logbook", R.string.title_intro_logbook, R.string.body_intro_logbook, StepCompletion.Information),
+        TourStep("logbook", "nav.tab.tools", R.string.title_intro_logbook, R.string.body_intro_logbook, StepCompletion.Information),
         TourStep("vehicle", "nav.tab.vehicle", R.string.title_intro_vehicle, R.string.body_intro_vehicle, StepCompletion.Information),
         TourStep("checklists", "nav.tab.vehicle", R.string.title_intro_checklists, R.string.body_intro_checklists, StepCompletion.Information),
         TourStep(

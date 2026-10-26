@@ -167,6 +167,8 @@ class VehicleFlowTest {
     fun bottomNavigation_switchesBetweenTabs() {
         start(FakeVehicleRepository())
 
+        compose.onNodeWithText("Tools").performClick()
+        compose.onNode(hasText("Tools") and isHeading()).assertExists()
         compose.onNodeWithText("Bordbuch").performClick()
         compose.onNode(hasText("Bordbuch") and isHeading()).assertExists()
 

@@ -135,6 +135,10 @@ internal object StationsRoute
 @Serializable
 internal object LogbookRoute
 
+/** Tools-Reiter: Liste eigenständiger Helfer rund ums Fahrzeug. */
+@Serializable
+internal object ToolsRoute
+
 /** Verlauf einer Bordbuch-Art eines Fahrzeugs. */
 @Serializable
 internal data class LogHistoryRoute(val vehicleId: Long, val typeName: String) {
@@ -548,6 +552,7 @@ fun CamperLogNavHost(
         toursGraph(navController, deps, bottomBar, themeMode, onThemeModeChange)
         vehicleGraph(navController, deps, bottomBar)
         stationsGraph(navController, deps, bottomBar)
+        toolsGraph(navController, deps, bottomBar)
         settingsGraph(navController, deps, themeMode, onThemeModeChange, accentColor, onAccentColorChange)
     }
     GuideHost(guideController, modifier = Modifier.fillMaxSize())
@@ -604,11 +609,11 @@ private fun CamperLogBottomBar(navController: NavController, current: NavDestina
             modifier = Modifier.guideAnchor("nav.tab.stations"),
         )
         NavigationBarItem(
-            selected = current.isOnTab<LogbookRoute>(),
-            onClick = { navController.navigateToTab(LogbookRoute) },
-            icon = { Icon(painterResource(R.drawable.ic_book), contentDescription = null) },
-            label = { NavLabel(stringResource(R.string.nav_logbook)) },
-            modifier = Modifier.guideAnchor("nav.tab.logbook"),
+            selected = current.isOnTab<ToolsRoute>(),
+            onClick = { navController.navigateToTab(ToolsRoute) },
+            icon = { Icon(painterResource(R.drawable.ic_build), contentDescription = null) },
+            label = { NavLabel(stringResource(R.string.nav_tools)) },
+            modifier = Modifier.guideAnchor("nav.tab.tools"),
         )
         val vehicleLabel = stringResource(R.string.nav_vehicle)
         val vehicleItemModifier = if (reminderCount > 0) {

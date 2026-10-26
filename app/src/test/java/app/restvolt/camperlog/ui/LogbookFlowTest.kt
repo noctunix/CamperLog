@@ -51,6 +51,7 @@ class LogbookFlowTest {
                 CamperLogNavHost(repository, vehicles, logs, FakeStationRepository(stations, logs = logs), FakeExchangeRateRepository(), FakeVehicleDocumentRepository(), FakeDiaryEntryRepository(), FakeChecklistRepository(), FakeChecklistTemplateRepository(), FakeAttachmentRepository(), FakeAttachmentFileStore(), FakeBackupImporter(), ThemeMode.SYSTEM, AccentColor.AZURE, canShowStartDialogs = false, countryLookup = FakeCountryLookupRepository(), tracks = FakeTrackRepository(), onAccentColorChange = { }, formDraftStore = FakeFormDraftStore()) { }
             }
         }
+        compose.onNodeWithText("Tools").performClick()
         compose.onNodeWithText("Bordbuch").performClick()
         return logs
     }

@@ -422,6 +422,7 @@ class StationFlowTest {
         // untere Navigation hat; erst zurück zu den Touren, dann ins Bordbuch.
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithContentDescription("Zurück").performClick()
+        compose.onNodeWithText("Tools").performClick()
         compose.onNodeWithText("Bordbuch").performClick()
         compose.onAllNodesWithText("Noch nicht erfasst").assertCountEquals(7)
     }

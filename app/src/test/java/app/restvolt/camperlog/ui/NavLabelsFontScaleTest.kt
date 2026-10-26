@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 
 /**
  * Prüft die Beschriftungen der unteren Navigation bei 200 % Schriftgröße auf 360 dp Breite:
- * mit vier Reitern bleiben 84 dp pro Eintrag, "Stationen" und "Bordbuch" sind dort am längsten.
+ * mit vier Reitern bleiben 84 dp pro Eintrag, "Stationen" ist dort am längsten.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "de-rDE-w360dp-h800dp-xxhdpi")
@@ -56,7 +56,7 @@ class NavLabelsFontScaleTest {
             }
         }
 
-        listOf("Touren", "Stationen", "Bordbuch", "Fahrzeug").forEach { label ->
+        listOf("Touren", "Stationen", "Tools", "Fahrzeug").forEach { label ->
             val result = compose.onNodeWithText(label).textLayoutResult()
             assertTrue("Label muss bei 2.0x lesbar bleiben", result.lineCount in 1..2)
             assertTrue("Label darf nicht auf Kleinstschrift schrumpfen", result.layoutInput.style.fontSize.value >= 12f)

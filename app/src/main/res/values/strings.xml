@@ -27,6 +27,7 @@
     <!-- Bottom navigation -->
     <string name="nav_tours">Tours</string>
     <string name="nav_logbook">Logbook</string>
+    <string name="nav_tools">Tools</string>
     <string name="nav_vehicle">Vehicle</string>
 
     <!-- Vehicle switcher -->

@@ -27,6 +27,7 @@
     <!-- Untere Navigation -->
     <string name="nav_tours">Touren</string>
     <string name="nav_logbook">Bordbuch</string>
+    <string name="nav_tools">Tools</string>
     <string name="nav_vehicle">Fahrzeug</string>
 
     <!-- Fahrzeugwechsler -->

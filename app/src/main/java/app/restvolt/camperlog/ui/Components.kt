@@ -66,7 +66,7 @@ fun BackTopBar(
 }
 
 /**
- * Obere Leiste der vier Hauptreiter: [titleContent] zeigt Titel oder Fahrzeugwechsler, [onOpenSearch]
+ * Obere Leiste der Haupt- und Bordbuch-Reiter: [titleContent] zeigt Titel oder Fahrzeugwechsler, [onOpenSearch]
  * steht als erste Aktion vor allen anderen. [onOpenOverview] ist nur auf dem Touren-Reiter gesetzt.
  * [extraActions] stehen vor den übrigen gemeinsamen Aktionen, z. B. „Bearbeiten" auf dem
  * Fahrzeug-Reiter; [overflowMenu] steht als letztes.

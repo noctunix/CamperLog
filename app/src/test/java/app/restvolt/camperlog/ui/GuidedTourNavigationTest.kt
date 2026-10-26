@@ -687,6 +687,7 @@ class GuidedTourNavigationTest {
         try {
             start()
             // Von irgendeinem anderen Reiter aus gestartet, damit die Navigation wirklich zählt.
+            compose.onNodeWithText("Tools").performClick()
             compose.onNodeWithText("Bordbuch").performClick()
             openAbout()
             compose.onAllNodesWithText("Starten")[1].performClick()

@@ -32,8 +32,6 @@ import app.restvolt.camperlog.ui.edit.RepairEditViewModel
 import app.restvolt.camperlog.ui.edit.isUnmodifiedNewVehicleDraft
 import app.restvolt.camperlog.ui.logbook.LogHistoryScreen
 import app.restvolt.camperlog.ui.logbook.LogHistoryViewModel
-import app.restvolt.camperlog.ui.logbook.LogbookScreen
-import app.restvolt.camperlog.ui.logbook.LogbookViewModel
 import app.restvolt.camperlog.ui.vehicle.VehicleDocumentDetailScreen
 import app.restvolt.camperlog.ui.vehicle.VehicleDocumentDetailViewModel
 import app.restvolt.camperlog.ui.vehicle.VehicleDocumentEditScreen
@@ -45,23 +43,12 @@ import app.restvolt.camperlog.ui.vehicles.VehiclesScreen
 import app.restvolt.camperlog.ui.vehicles.VehiclesViewModel
 import kotlinx.coroutines.launch
 
-/** Navigationsziele: Logbuch- und Fahrzeug-Reiter mit Reparaturen, Dokumenten und Checklisten. */
+/** Navigationsziele: Fahrzeug-Reiter mit Reparaturen, Dokumenten und Checklisten; dazu die Bordbuch-Verlaufsseite. */
 internal fun NavGraphBuilder.vehicleGraph(
     navController: NavController,
     deps: NavDependencies,
     bottomBar: @Composable () -> Unit,
 ) = with(deps) {
-    composable<LogbookRoute> {
-        LogbookScreen(
-            viewModel = viewModel { LogbookViewModel(logbook, vehicles, stations) },
-            onOpenHistory = { vehicleId, type -> navController.navigate(LogHistoryRoute(vehicleId, type.name)) },
-            onOpenSearch = { navController.navigate(SearchRoute) },
-            onOpenData = { navController.navigate(DataRoute()) },
-            onOpenSettings = { navController.navigate(SettingsRoute) },
-            onOpenVehicles = { navController.navigate(VehiclesRoute) },
-            bottomBar = bottomBar,
-        )
-    }
     composable<LogHistoryRoute> { entry ->
         val route = entry.toRoute<LogHistoryRoute>()
         LogHistoryScreen(

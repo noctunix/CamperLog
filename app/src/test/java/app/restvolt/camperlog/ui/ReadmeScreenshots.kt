@@ -117,6 +117,7 @@ class ReadmeScreenshots {
         compose.onNodeWithContentDescription(if (german) "Zurück" else "Back").performClick()
         compose.onNodeWithText(if (german) "Fahrzeug" else "Vehicle").performClick()
         capture(output, "5_vehicle")
+        compose.onNodeWithText("Tools").performClick()
         compose.onNodeWithText(if (german) "Bordbuch" else "Logbook").performClick()
         capture(output, "6_logbook")
         compose.onNodeWithText(if (german) "Stationen" else "Stops").performClick()
