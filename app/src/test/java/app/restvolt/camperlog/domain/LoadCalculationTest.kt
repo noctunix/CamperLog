@@ -85,7 +85,7 @@ class LoadCalculationTest {
 
         val rearAxleCheck = checkNotNull(forecast.rearAxleCheck)
 
-        assertEquals(3774.0, forecast.totalKg, 0.001)
+        assertEquals(3774.0, checkNotNull(forecast.totalKg), 0.001)
         assertEquals(1530.0, forecast.frontAxleKg!!, 0.001)
         assertEquals(2244.0, forecast.rearAxleKg!!, 0.001)
         assertTrue(forecast.totalCheck!!.ok)
@@ -112,7 +112,7 @@ class LoadCalculationTest {
         val activeForecast = forecastLoad(vehicle, activePlan, profileId = 1)
         val inactiveForecast = forecastLoad(vehicle, inactivePlan, profileId = 1)
 
-        assertEquals(15.0, activeForecast.totalKg - inactiveForecast.totalKg, 0.001)
+        assertEquals(15.0, activeForecast.deltaKg - inactiveForecast.deltaKg, 0.001)
     }
 
     @Test
@@ -130,7 +130,7 @@ class LoadCalculationTest {
 
         val forecast = forecastLoad(vehicle, plan, profileId = 1)
 
-        assertEquals(baseline - 20.0, forecast.totalKg, 0.001)
+        assertEquals(baseline - 20.0, checkNotNull(forecast.totalKg), 0.001)
     }
 
     @Test
@@ -149,7 +149,7 @@ class LoadCalculationTest {
         val forecast = forecastLoad(vehicle, plan, profileId = 1)
 
         val expectedDeltaKg = (800 - 400) * 835 / 10_000.0
-        assertEquals(baseline + expectedDeltaKg, forecast.totalKg, 0.001)
+        assertEquals(baseline + expectedDeltaKg, checkNotNull(forecast.totalKg), 0.001)
     }
 
     @Test
@@ -167,7 +167,7 @@ class LoadCalculationTest {
 
         val forecast = forecastLoad(vehicle, plan, profileId = 1)
 
-        assertEquals(baseline + 10.0, forecast.totalKg, 0.001)
+        assertEquals(baseline + 10.0, checkNotNull(forecast.totalKg), 0.001)
         assertNull(forecast.frontAxleKg)
         assertNull(forecast.rearAxleKg)
         assertTrue(forecast.warnings.any { it is LoadWarning.ItemsWithoutPosition })
@@ -205,7 +205,7 @@ class LoadCalculationTest {
         val measuredRearAxleKg = checkNotNull(vehicle.measuredRearAxleKg)
         assertEquals(measuredFrontAxleKg.toDouble(), forecast.frontAxleKg!!, 0.0001)
         assertEquals(measuredRearAxleKg.toDouble(), forecast.rearAxleKg!!, 0.0001)
-        assertEquals((measuredFrontAxleKg + measuredRearAxleKg).toDouble(), forecast.totalKg, 0.0001)
+        assertEquals((measuredFrontAxleKg + measuredRearAxleKg).toDouble(), checkNotNull(forecast.totalKg), 0.0001)
         assertTrue(forecast.warnings.isEmpty())
     }
 
@@ -223,7 +223,9 @@ class LoadCalculationTest {
 
         val forecast = forecastLoad(vehicle, plan, profileId = 1)
 
-        assertEquals(10.0, forecast.totalKg, 0.0001)
+        assertEquals(10.0, forecast.deltaKg, 0.0001)
+        assertNull(forecast.totalKg)
+        assertNull(forecast.totalCheck)
         assertNull(forecast.frontAxleKg)
         assertNull(forecast.rearAxleKg)
         assertTrue(forecast.warnings.any { it is LoadWarning.NoWeighing })

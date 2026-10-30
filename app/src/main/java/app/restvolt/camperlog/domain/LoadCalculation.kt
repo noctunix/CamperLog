@@ -1,5 +1,7 @@
 package app.restvolt.camperlog.domain
 
+import kotlin.math.abs
+
 /**
  * Statisches Hebelgesetz für eine Masse [massKg] im Abstand [positionCm] von der Vorderachse bei
  * Radstand [wheelbaseCm]: `ΔHinterachse = masse·position/radstand`, `ΔVorderachse = masse − ΔHinterachse`.
@@ -61,18 +63,20 @@ sealed interface LoadWarning {
 /**
  * Hochrechnung der Gesamt- und Achslasten eines Profils gegenüber der dokumentierten Wiegung.
  *
- * @param totalKg erwartetes Gesamtgewicht; Wiegung plus alle Massenänderungen
+ * @param deltaKg Summe aller Massenänderungen gegenüber der Wiegung
+ * @param totalKg erwartetes Gesamtgewicht (Wiegung plus [deltaKg]), oder `null` ohne erfasste Wiegung
  * @param frontAxleKg erwartete Vorderachslast, oder `null`, wenn sie nicht berechnet werden kann
  *   (keine Achslastwiegung, fehlender Radstand oder eine Massenänderung ohne bekannte Position)
  * @param rearAxleKg erwartete Hinterachslast, unter denselben Bedingungen wie [frontAxleKg]
  * @param centerOfGravityCm Schwerpunkt in cm von der Vorderachse, nur wenn [frontAxleKg] bekannt ist
- * @param totalCheck Prüfung von [totalKg] gegen [Vehicle.grossWeightKg], falls beide erfasst sind
+ * @param totalCheck Prüfung von [totalKg] gegen [Vehicle.grossWeightKg], falls beide bekannt sind
  * @param frontAxleCheck Prüfung von [frontAxleKg] gegen [Vehicle.allowedFrontAxleKg], falls beide bekannt sind
  * @param rearAxleCheck Prüfung von [rearAxleKg] gegen [Vehicle.allowedRearAxleKg], falls beide bekannt sind
  * @param warnings Hinweise auf unvollständige oder widersprüchliche Daten
  */
 data class LoadForecast(
-    val totalKg: Double,
+    val deltaKg: Double,
+    val totalKg: Double?,
     val frontAxleKg: Double?,
     val rearAxleKg: Double?,
     val centerOfGravityCm: Double?,
@@ -87,11 +91,13 @@ private fun Boolean.toUnit(): Int = if (this) 1 else 0
 private data class LeverLoad(val massKg: Double, val positionCm: Int)
 
 /**
- * Berechnet die Hochrechnung des Profils [profileId] aus [plan] gegenüber der Wiegung von [vehicle].
- * Ein Profil ohne eigene Zeilen entspricht genau dem gewogenen Zustand. Fehlt bei einer
- * Massenänderung ungleich 0 die Position eines Gegenstands oder Tanks, oder fehlt der Radstand bei
- * mindestens einer solchen Massenänderung, bleiben die Achslasten `null`; das Gesamtgewicht bleibt
- * davon unberührt.
+ * Rechnet ein Beladungsprofil gegenüber der dokumentierten Wiegung hoch. Achslasten bleiben `null`,
+ * wenn eine Massenänderung ungleich 0 keine Position hat oder der Radstand fehlt (keine 50:50-Annahme).
+ *
+ * @param vehicle Fahrzeug mit Wiegung, Radstand, Tankkapazitäten und zulässigen Lasten
+ * @param plan Beladungsplan des Fahrzeugs
+ * @param profileId Profil, dessen Abweichungen gelten; ohne eigene Zeilen gilt der gewogene Zustand
+ * @return die Hochrechnung samt Grenzprüfungen und Warnungen
  */
 fun forecastLoad(vehicle: Vehicle, plan: LoadPlan, profileId: Long): LoadForecast {
     val warnings = mutableListOf<LoadWarning>()
@@ -121,7 +127,7 @@ fun forecastLoad(vehicle: Vehicle, plan: LoadPlan, profileId: Long): LoadForecas
         val position = item.positionCm
         if (position == null) {
             unknownItemCount++
-            unknownItemMassKg += kotlin.math.abs(deltaMassKg)
+            unknownItemMassKg += abs(deltaMassKg)
             hasUnpositionedDelta = true
         } else {
             leverLoads += LeverLoad(deltaMassKg, position)
@@ -140,14 +146,14 @@ fun forecastLoad(vehicle: Vehicle, plan: LoadPlan, profileId: Long): LoadForecas
         deltaTotalKg += deltaMassKg
         val position = settings.positionCm
         if (position == null) {
-            warnings += LoadWarning.TankWithoutPosition(kind, kotlin.math.abs(deltaMassKg))
+            warnings += LoadWarning.TankWithoutPosition(kind, abs(deltaMassKg))
             hasUnpositionedDelta = true
         } else {
             leverLoads += LeverLoad(deltaMassKg, position)
         }
     }
 
-    val totalKg = (baselineTotalKg ?: 0.0) + deltaTotalKg
+    val totalKg = baselineTotalKg?.plus(deltaTotalKg)
 
     val wheelbase = vehicle.wheelbaseCm
     val missingWheelbase = leverLoads.isNotEmpty() && (wheelbase == null || wheelbase <= 0)
@@ -168,18 +174,19 @@ fun forecastLoad(vehicle: Vehicle, plan: LoadPlan, profileId: Long): LoadForecas
         if (frontAxleKg <= 0) warnings += LoadWarning.FrontAxleNonPositive
     }
 
-    val centerOfGravityCm = if (frontAxleKg != null && rearAxleKg != null && wheelbase != null && totalKg > 0) {
+    val centerOfGravityCm = if (rearAxleKg != null && totalKg != null && wheelbase != null && totalKg > 0) {
         rearAxleKg * wheelbase / totalKg
     } else {
         null
     }
 
     return LoadForecast(
+        deltaKg = deltaTotalKg,
         totalKg = totalKg,
         frontAxleKg = frontAxleKg,
         rearAxleKg = rearAxleKg,
         centerOfGravityCm = centerOfGravityCm,
-        totalCheck = checkLimit(totalKg, vehicle.grossWeightKg),
+        totalCheck = totalKg?.let { checkLimit(it, vehicle.grossWeightKg) },
         frontAxleCheck = frontAxleKg?.let { checkLimit(it, vehicle.allowedFrontAxleKg) },
         rearAxleCheck = rearAxleKg?.let { checkLimit(it, vehicle.allowedRearAxleKg) },
         warnings = warnings,
