@@ -199,12 +199,15 @@ val VehicleField.labelRes: Int
         VehicleField.LENGTH -> R.string.field_length
         VehicleField.WIDTH -> R.string.field_width
         VehicleField.HEIGHT -> R.string.field_height
+        VehicleField.WHEELBASE -> R.string.field_wheelbase
+        VehicleField.FRONT_OVERHANG -> R.string.field_front_overhang
         VehicleField.GROSS_WEIGHT_KG -> R.string.field_gross_weight
         VehicleField.MEASURED_EMPTY_WEIGHT_KG -> R.string.field_measured_empty_weight
         VehicleField.ALLOWED_FRONT_AXLE_KG -> R.string.field_allowed_front_axle
         VehicleField.ALLOWED_REAR_AXLE_KG -> R.string.field_allowed_rear_axle
         VehicleField.MEASURED_FRONT_AXLE_KG -> R.string.field_measured_front_axle
         VehicleField.MEASURED_REAR_AXLE_KG -> R.string.field_measured_rear_axle
+        VehicleField.WEIGHING_DATE -> R.string.field_weighing_date
         VehicleField.BREAKDOWN_PHONE -> R.string.field_breakdown_phone
         VehicleField.TRAVEL_PROTECTION_PHONE -> R.string.field_travel_protection_phone
         VehicleField.INSURER_CLAIMS_PHONE -> R.string.field_insurer_claims_phone

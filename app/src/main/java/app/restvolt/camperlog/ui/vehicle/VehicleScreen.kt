@@ -708,6 +708,8 @@ private fun dimensionsRows(vehicle: Vehicle, locale: Locale): List<Pair<String, 
     vehicle.lengthCm?.let { add(stringResource(R.string.field_length) to formatCm(it, locale)) }
     vehicle.widthCm?.let { add(stringResource(R.string.field_width) to formatCm(it, locale)) }
     vehicle.heightCm?.let { add(stringResource(R.string.field_height) to formatCm(it, locale)) }
+    vehicle.wheelbaseCm?.let { add(stringResource(R.string.field_wheelbase) to formatCm(it, locale)) }
+    vehicle.frontOverhangCm?.let { add(stringResource(R.string.field_front_overhang) to formatCm(it, locale)) }
     vehicle.grossWeightKg?.let { add(stringResource(R.string.field_gross_weight) to formatKg(it, locale)) }
     vehicle.measuredEmptyWeightKg?.let { add(stringResource(R.string.field_measured_empty_weight) to formatKg(it, locale)) }
     vehicle.remainingPayloadKg?.let { add(stringResource(R.string.field_remaining_payload) to formatKg(abs(it), locale)) }
@@ -715,6 +717,7 @@ private fun dimensionsRows(vehicle: Vehicle, locale: Locale): List<Pair<String, 
     vehicle.allowedRearAxleKg?.let { add(stringResource(R.string.field_allowed_rear_axle) to formatKg(it, locale)) }
     vehicle.measuredFrontAxleKg?.let { add(stringResource(R.string.field_measured_front_axle) to formatKg(it, locale)) }
     vehicle.measuredRearAxleKg?.let { add(stringResource(R.string.field_measured_rear_axle) to formatKg(it, locale)) }
+    vehicle.weighingDate?.let { add(stringResource(R.string.field_weighing_date) to formatDate(it, locale)) }
 }
 
 @Composable

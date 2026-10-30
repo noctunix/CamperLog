@@ -476,6 +476,8 @@
     <string name="field_length">Länge</string>
     <string name="field_width">Breite</string>
     <string name="field_height">Höhe</string>
+    <string name="field_wheelbase">Radstand</string>
+    <string name="field_front_overhang">Überhang vorn</string>
     <string name="field_gross_weight">zul. Gesamtgewicht</string>
     <string name="field_measured_empty_weight">Leergewicht (gewogen)</string>
     <string name="field_remaining_payload">Zuladung</string>
@@ -483,6 +485,7 @@
     <string name="field_allowed_rear_axle">zul. Achslast hinten</string>
     <string name="field_measured_front_axle">gemessene Achslast vorn</string>
     <string name="field_measured_rear_axle">gemessene Achslast hinten</string>
+    <string name="field_weighing_date">Datum der Wiegung</string>
     <string name="field_breakdown_provider">Pannenhilfe (Anbieter)</string>
     <string name="field_breakdown_membership_number">Mitgliedsnummer</string>
     <string name="field_breakdown_phone">Telefon Pannenhilfe</string>

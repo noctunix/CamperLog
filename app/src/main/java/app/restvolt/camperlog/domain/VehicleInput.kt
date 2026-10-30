@@ -63,12 +63,15 @@ data class VehicleInput(
     val lengthCm: String = "",
     val widthCm: String = "",
     val heightCm: String = "",
+    val wheelbaseCm: String = "",
+    val frontOverhangCm: String = "",
     val grossWeightKg: String = "",
     val measuredEmptyWeightKg: String = "",
     val allowedFrontAxleKg: String = "",
     val allowedRearAxleKg: String = "",
     val measuredFrontAxleKg: String = "",
     val measuredRearAxleKg: String = "",
+    @Serializable(with = LocalDateSerializer::class) val weighingDate: LocalDate? = null,
     val breakdownProvider: String = "",
     val breakdownMembershipNumber: String = "",
     val breakdownPhone: String = "",
@@ -113,12 +116,15 @@ enum class VehicleField {
     LENGTH,
     WIDTH,
     HEIGHT,
+    WHEELBASE,
+    FRONT_OVERHANG,
     GROSS_WEIGHT_KG,
     MEASURED_EMPTY_WEIGHT_KG,
     ALLOWED_FRONT_AXLE_KG,
     ALLOWED_REAR_AXLE_KG,
     MEASURED_FRONT_AXLE_KG,
     MEASURED_REAR_AXLE_KG,
+    WEIGHING_DATE,
     BREAKDOWN_PHONE,
     TRAVEL_PROTECTION_PHONE,
     INSURER_CLAIMS_PHONE,
@@ -179,12 +185,17 @@ fun VehicleInput.validate(locale: Locale, isNew: Boolean, today: LocalDate = Loc
         positiveIntError(lengthCm, MAX_DIMENSION_CM)?.let { put(VehicleField.LENGTH, it) }
         positiveIntError(widthCm, MAX_DIMENSION_CM)?.let { put(VehicleField.WIDTH, it) }
         positiveIntError(heightCm, MAX_DIMENSION_CM)?.let { put(VehicleField.HEIGHT, it) }
+        positiveIntError(wheelbaseCm, MAX_DIMENSION_CM)?.let { put(VehicleField.WHEELBASE, it) }
+        intError(frontOverhangCm, MAX_DIMENSION_CM)?.let { put(VehicleField.FRONT_OVERHANG, it) }
         intError(grossWeightKg, MAX_WEIGHT_KG)?.let { put(VehicleField.GROSS_WEIGHT_KG, it) }
         intError(measuredEmptyWeightKg, MAX_WEIGHT_KG)?.let { put(VehicleField.MEASURED_EMPTY_WEIGHT_KG, it) }
         intError(allowedFrontAxleKg, MAX_WEIGHT_KG)?.let { put(VehicleField.ALLOWED_FRONT_AXLE_KG, it) }
         intError(allowedRearAxleKg, MAX_WEIGHT_KG)?.let { put(VehicleField.ALLOWED_REAR_AXLE_KG, it) }
         intError(measuredFrontAxleKg, MAX_WEIGHT_KG)?.let { put(VehicleField.MEASURED_FRONT_AXLE_KG, it) }
         intError(measuredRearAxleKg, MAX_WEIGHT_KG)?.let { put(VehicleField.MEASURED_REAR_AXLE_KG, it) }
+        if (weighingDate != null && weighingDate.isAfter(today)) {
+            put(VehicleField.WEIGHING_DATE, VehicleError.DATE_IN_FUTURE)
+        }
         phoneError(breakdownPhone)?.let { put(VehicleField.BREAKDOWN_PHONE, it) }
         phoneError(travelProtectionPhone)?.let { put(VehicleField.TRAVEL_PROTECTION_PHONE, it) }
         phoneError(insurerClaimsPhone)?.let { put(VehicleField.INSURER_CLAIMS_PHONE, it) }
@@ -238,12 +249,15 @@ fun VehicleInput.toVehicle(original: Vehicle?, locale: Locale): Vehicle = Vehicl
     lengthCm = parseOptionalInt(lengthCm),
     widthCm = parseOptionalInt(widthCm),
     heightCm = parseOptionalInt(heightCm),
+    wheelbaseCm = parseOptionalInt(wheelbaseCm),
+    frontOverhangCm = parseOptionalInt(frontOverhangCm),
     grossWeightKg = parseOptionalInt(grossWeightKg),
     measuredEmptyWeightKg = parseOptionalInt(measuredEmptyWeightKg),
     allowedFrontAxleKg = parseOptionalInt(allowedFrontAxleKg),
     allowedRearAxleKg = parseOptionalInt(allowedRearAxleKg),
     measuredFrontAxleKg = parseOptionalInt(measuredFrontAxleKg),
     measuredRearAxleKg = parseOptionalInt(measuredRearAxleKg),
+    weighingDate = weighingDate,
     breakdownProvider = breakdownProvider.trim(),
     breakdownMembershipNumber = breakdownMembershipNumber.trim(),
     breakdownPhone = breakdownPhone.trim(),
@@ -302,12 +316,15 @@ fun Vehicle.toInput(locale: Locale): VehicleInput = VehicleInput(
     lengthCm = lengthCm?.toString().orEmpty(),
     widthCm = widthCm?.toString().orEmpty(),
     heightCm = heightCm?.toString().orEmpty(),
+    wheelbaseCm = wheelbaseCm?.toString().orEmpty(),
+    frontOverhangCm = frontOverhangCm?.toString().orEmpty(),
     grossWeightKg = grossWeightKg?.toString().orEmpty(),
     measuredEmptyWeightKg = measuredEmptyWeightKg?.toString().orEmpty(),
     allowedFrontAxleKg = allowedFrontAxleKg?.toString().orEmpty(),
     allowedRearAxleKg = allowedRearAxleKg?.toString().orEmpty(),
     measuredFrontAxleKg = measuredFrontAxleKg?.toString().orEmpty(),
     measuredRearAxleKg = measuredRearAxleKg?.toString().orEmpty(),
+    weighingDate = weighingDate,
     breakdownProvider = breakdownProvider,
     breakdownMembershipNumber = breakdownMembershipNumber,
     breakdownPhone = breakdownPhone,

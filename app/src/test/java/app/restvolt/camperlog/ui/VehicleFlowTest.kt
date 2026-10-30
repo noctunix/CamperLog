@@ -192,6 +192,24 @@ class VehicleFlowTest {
     }
 
     @Test
+    fun vehicleTab_showsWheelbaseFrontOverhangAndWeighingDate() {
+        val weighingDate = LocalDate.of(2026, 3, 1)
+        val vehicle = defaultVehicle(id = 1, name = "Camper").copy(
+            wheelbaseCm = 415,
+            frontOverhangCm = 90,
+            weighingDate = weighingDate,
+        )
+        start(FakeVehicleRepository(listOf(vehicle)))
+
+        compose.onNodeWithText("Fahrzeug").performClick()
+
+        compose.onNodeWithText("Radstand").assertExists()
+        compose.onNodeWithText("Überhang vorn").assertExists()
+        compose.onNodeWithText("Datum der Wiegung").assertExists()
+        compose.onNodeWithText(formatDate(weighingDate, Locale.GERMANY)).assertExists()
+    }
+
+    @Test
     fun bottomNavigation_switchesBetweenTabs() {
         start(FakeVehicleRepository())
 

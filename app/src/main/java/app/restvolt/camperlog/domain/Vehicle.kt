@@ -82,6 +82,12 @@ data class Vehicle(
     val allowedRearAxleKg: Int? = null,
     val measuredFrontAxleKg: Int? = null,
     val measuredRearAxleKg: Int? = null,
+    /** Tag der Achslastwiegung, die [measuredFrontAxleKg]/[measuredRearAxleKg] ergeben hat. */
+    val weighingDate: LocalDate? = null,
+    /** Radstand in cm, Grundlage der Hebelgesetz-Berechnung beim Beladungsplan. */
+    val wheelbaseCm: Int? = null,
+    /** Abstand von der Fahrzeugfront zur Vorderachse in cm, nur für die Seitenansicht des Beladungsplans. */
+    val frontOverhangCm: Int? = null,
     val breakdownProvider: String = "",
     val breakdownMembershipNumber: String = "",
     val breakdownPhone: String = "",

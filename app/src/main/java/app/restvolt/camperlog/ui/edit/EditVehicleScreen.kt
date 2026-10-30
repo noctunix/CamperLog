@@ -367,6 +367,14 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 errorOf(VehicleField.HEIGHT), focusOf(VehicleField.HEIGHT),
             ) { value -> change { it.copy(heightCm = value) } }
             UnitField(
+                stringResource(R.string.field_wheelbase), input.wheelbaseCm, "cm", KeyboardType.Number,
+                errorOf(VehicleField.WHEELBASE), focusOf(VehicleField.WHEELBASE),
+            ) { value -> change { it.copy(wheelbaseCm = value) } }
+            UnitField(
+                stringResource(R.string.field_front_overhang), input.frontOverhangCm, "cm", KeyboardType.Number,
+                errorOf(VehicleField.FRONT_OVERHANG), focusOf(VehicleField.FRONT_OVERHANG),
+            ) { value -> change { it.copy(frontOverhangCm = value) } }
+            UnitField(
                 stringResource(R.string.field_gross_weight), input.grossWeightKg, "kg", KeyboardType.Number,
                 errorOf(VehicleField.GROSS_WEIGHT_KG), focusOf(VehicleField.GROSS_WEIGHT_KG),
             ) { value -> change { it.copy(grossWeightKg = value) } }
@@ -390,6 +398,13 @@ private fun VehicleForm(state: EditVehicleUiState, viewModel: EditVehicleViewMod
                 stringResource(R.string.field_measured_rear_axle), input.measuredRearAxleKg, "kg", KeyboardType.Number,
                 errorOf(VehicleField.MEASURED_REAR_AXLE_KG), focusOf(VehicleField.MEASURED_REAR_AXLE_KG),
             ) { value -> change { it.copy(measuredRearAxleKg = value) } }
+            DateField(
+                stringResource(R.string.field_weighing_date),
+                input.weighingDate,
+                errorOf(VehicleField.WEIGHING_DATE),
+                { date -> change { it.copy(weighingDate = date) } },
+                modifier = focusOf(VehicleField.WEIGHING_DATE),
+            )
         }
         SectionCard {
             SectionHeading(stringResource(R.string.section_engine))

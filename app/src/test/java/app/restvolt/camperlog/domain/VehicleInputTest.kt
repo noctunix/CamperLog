@@ -287,6 +287,34 @@ class VehicleInputTest {
     }
 
     @Test
+    fun wheelbaseMustBePositiveAndWithinBounds() {
+        assertEquals(VehicleError.NOT_POSITIVE, valid.copy(wheelbaseCm = "0").validate(de, isNew = true)[VehicleField.WHEELBASE])
+        assertEquals(VehicleError.TOO_LARGE, valid.copy(wheelbaseCm = "3001").validate(de, isNew = true)[VehicleField.WHEELBASE])
+        val vehicle = valid.copy(wheelbaseCm = "415").toVehicle(null, de)
+        assertEquals(415, vehicle.wheelbaseCm)
+        assertEquals(415, vehicle.toInput(de).toVehicle(vehicle, de).wheelbaseCm)
+    }
+
+    @Test
+    fun frontOverhangFollowsDimensionBoundsAndRoundTrips() {
+        assertEquals(VehicleError.NEGATIVE_NUMBER, valid.copy(frontOverhangCm = "-1").validate(de, isNew = true)[VehicleField.FRONT_OVERHANG])
+        assertEquals(VehicleError.TOO_LARGE, valid.copy(frontOverhangCm = "3001").validate(de, isNew = true)[VehicleField.FRONT_OVERHANG])
+        val vehicle = valid.copy(frontOverhangCm = "90").toVehicle(null, de)
+        assertEquals(90, vehicle.frontOverhangCm)
+        assertEquals(90, vehicle.toInput(de).toVehicle(vehicle, de).frontOverhangCm)
+    }
+
+    @Test
+    fun weighingDateCannotBeInTheFutureAndRoundTrips() {
+        val today = LocalDate.of(2026, 10, 5)
+        val future = valid.copy(weighingDate = today.plusDays(1))
+        assertEquals(VehicleError.DATE_IN_FUTURE, future.validate(de, isNew = true, today)[VehicleField.WEIGHING_DATE])
+        val vehicle = valid.copy(weighingDate = today).toVehicle(null, de)
+        assertEquals(today, vehicle.weighingDate)
+        assertEquals(today, vehicle.toInput(de).toVehicle(vehicle, de).weighingDate)
+    }
+
+    @Test
     fun phoneNumbersAcceptDigitsSpacesAndFormattingCharacters() {
         val input = valid.copy(breakdownPhone = "+49 89 22-22/22 (0)")
         assertTrue(input.validate(de, isNew = true).isEmpty())

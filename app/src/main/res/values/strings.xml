@@ -476,6 +476,8 @@
     <string name="field_length">Length</string>
     <string name="field_width">Width</string>
     <string name="field_height">Height</string>
+    <string name="field_wheelbase">Wheelbase</string>
+    <string name="field_front_overhang">Front overhang</string>
     <string name="field_gross_weight">Gross weight</string>
     <string name="field_measured_empty_weight">Measured empty weight</string>
     <string name="field_remaining_payload">Remaining payload</string>
@@ -483,6 +485,7 @@
     <string name="field_allowed_rear_axle">Allowed load, rear axle</string>
     <string name="field_measured_front_axle">Measured load, front axle</string>
     <string name="field_measured_rear_axle">Measured load, rear axle</string>
+    <string name="field_weighing_date">Weighing date</string>
     <string name="field_breakdown_provider">Breakdown service</string>
     <string name="field_breakdown_membership_number">Membership number</string>
     <string name="field_breakdown_phone">Breakdown phone</string>
