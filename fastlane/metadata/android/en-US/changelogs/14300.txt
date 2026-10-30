@@ -1,0 +1,3 @@
+• Added: load planner under Tools – forecasts total weight and axle loads from your weighing, with load profiles, tank levels and a side view to place items by dragging
+• Added: compare two load profiles side by side
+• Added: wheelbase, front overhang and weighing date in the vehicle data sheet

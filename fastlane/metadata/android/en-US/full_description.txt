@@ -8,8 +8,8 @@
 <li>Photos on stops, repairs and logbook entries, and a document wallet per vehicle with expiry reminders.</li>
 <li>Maintenance and repairs: next inspection, gas check and leak test dates, last oil change with its odometer reading, and a repair log with costs.</li>
 <li>Reminders: cards on the vehicle tab flag upcoming maintenance, with configurable lead time and oil-change interval; optional notifications (off by default) from a daily check, with no exact alarms.</li>
+<li>Tools: a level for parking and a load planner that forecasts total weight and axle loads from your weighing, with profiles per trip and a side view to place loads.</li>
 <li>Checklists (departure, arrival, winterizing …) from your own templates, ticked off per tour or vehicle; full-text search across all data.</li>
-<li>Multiple currencies: costs keep their currency and precision; amounts use your device's number format.</li>
 <li>Overview: tours, distance, travel days, overnight stays, countries, and costs per currency, in total and per year, for one vehicle or all of them; optionally converted into a main currency with your own exchange rates.</li>
 <li>Export: tours and stops as CSV; one tour as a ZIP with a printable HTML page, Markdown, GPX with track, CSV and photos.</li>
 <li>Backup and restore: one ZIP file with all data, photos and documents; restoring shows a preview first. Optional backup folder with one-tap or automatic backups and a reminder.</li>

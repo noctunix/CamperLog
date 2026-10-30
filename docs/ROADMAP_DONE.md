@@ -2,6 +2,7 @@
 
 Shipped features, newest first.
 
+- 1.43.0 – Load planner under Tools: total weight and axle loads forecast from the documented weighing (lever model for two axles), load profiles that only store deviations from the weighed state, tank levels with density, a side view to place loads by dragging with live axle loads and centre of gravity, profile comparison; no 50:50 guess when a position is missing. Vehicles gained wheelbase, front overhang and weighing date
 - 1.42.0 – Tools tab got the shared search/data/settings header it was missing; level tool's audio feedback now plays a continuous tone when level instead of silence, and no longer cuts itself off mid-beep/mid-tone on sensor jitter (root-caused to a Compose effect restarting on every tiny tilt change); added a selectable direction scheme (dominant axis vs. quadrants, each with an explanation) after owner device-testing showed the single-axis default ignores the other axis until it crosses zero
 - 1.41.0 – Owner device-testing round: the level tool's audio feedback was completely silent on real devices (ASSISTANCE_SONIFICATION maps to a stream many OEMs mute independently of media volume); switched to the media stream. "Data" and "Settings" moved from always-visible top-bar icons into a shared overflow menu
 - 1.40.1 – Fixed the level tool's audio feedback staying silent on some devices: the AudioTrack buffer was sized to exactly one beep, ignoring the device's minimum buffer size

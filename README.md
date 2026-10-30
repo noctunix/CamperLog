@@ -18,6 +18,7 @@ CamperLog helps you record camper trips, stops, costs, vehicle details and maint
 - Record a tour's track with optional location access. View it on the map and include it in GPX exports.
 - Keep details for multiple vehicles, maintenance, repairs, documents and a logbook.
 - Add photos, checklists and reminders.
+- Level the camper and plan its load: total weight and axle loads from your weighing.
 - Search your records, view totals and export tours or stops as CSV. Export a tour as a ZIP with HTML, Markdown, GPX, CSV and photos.
 - Back up and restore your data, including photos and documents.
 

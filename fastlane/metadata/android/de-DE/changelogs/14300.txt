@@ -1,0 +1,3 @@
+• Neu: Beladungsplaner unter Tools – rechnet Gesamtgewicht und Achslasten aus deiner Wiegung hoch, mit Beladungsprofilen, Tankfüllständen und einer Seitenansicht zum Platzieren per Ziehen
+• Neu: zwei Beladungsprofile vergleichen
+• Neu: Radstand, Überhang vorne und Wiegedatum im Fahrzeug-Datenblatt
