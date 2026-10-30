@@ -104,6 +104,7 @@ fun VehicleScreen(
     onOpenSettings: () -> Unit,
     onOpenVehicles: () -> Unit,
     onEditVehicle: (Long) -> Unit,
+    onPlanLoad: (Long) -> Unit,
     onAddRepair: (Long) -> Unit,
     onOpenRepair: (Long, Long) -> Unit,
     onAddDocument: (Long) -> Unit,
@@ -170,6 +171,7 @@ fun VehicleScreen(
                 onEnableLocation = onEnableLocation,
                 onWhereAmI = { showWhereAmI = true },
                 onAddDetails = { onEditVehicle(vehicle.id) },
+                onPlanLoad = { onPlanLoad(vehicle.id) },
                 onOpenReminder = { reminder ->
                     val documentId = reminder.documentId
                     if (reminder.kind == ReminderKind.DOCUMENT_EXPIRY && documentId != null) {
@@ -226,6 +228,7 @@ private fun VehicleSheet(
     onEnableLocation: () -> Unit,
     onWhereAmI: () -> Unit,
     onAddDetails: () -> Unit,
+    onPlanLoad: () -> Unit,
     onOpenReminder: (Reminder) -> Unit,
     onAddRepair: () -> Unit,
     onOpenRepair: (Repair) -> Unit,
@@ -295,6 +298,7 @@ private fun VehicleSheet(
                                 OverweightWarning(formatKg(abs(over), locale))
                             }
                             AxleLoadStatus(vehicle, locale)
+                            TextButton(onClick = onPlanLoad) { Text(stringResource(R.string.vehicle_plan_load_action)) }
                         }
                     }
                 }

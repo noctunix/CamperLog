@@ -74,6 +74,7 @@ internal fun NavGraphBuilder.vehicleGraph(
             onOpenSettings = { navController.navigate(SettingsRoute) },
             onOpenVehicles = { navController.navigate(VehiclesRoute) },
             onEditVehicle = { id -> navController.navigate(VehicleEditRoute(id)) },
+            onPlanLoad = { id -> navController.navigate(LoadPlannerRoute(id)) },
             onAddRepair = { vehicleId -> navController.navigate(RepairEditRoute(vehicleId)) },
             onOpenRepair = { vehicleId, repairId -> navController.navigate(RepairEditRoute(vehicleId, repairId)) },
             onAddDocument = { vehicleId -> navController.navigate(DocumentEditRoute(vehicleId)) },
