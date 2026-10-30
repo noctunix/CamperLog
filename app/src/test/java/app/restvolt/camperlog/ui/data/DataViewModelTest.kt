@@ -28,6 +28,7 @@ import app.restvolt.camperlog.ui.FakeChecklistTemplateRepository
 import app.restvolt.camperlog.ui.FakeDiaryEntryRepository
 import app.restvolt.camperlog.ui.FakeExchangeRateRepository
 import app.restvolt.camperlog.ui.FakeHomeLocationRepository
+import app.restvolt.camperlog.ui.FakeLoadPlanRepository
 import app.restvolt.camperlog.ui.FakeLogRepository
 import app.restvolt.camperlog.ui.FakeStationRepository
 import app.restvolt.camperlog.ui.FakeTourRepository
@@ -107,6 +108,7 @@ class DataViewModelTest {
             FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(), FakeTrackRepository(),
             FakeAttachmentRepository(),
             FakeHomeLocationRepository(),
+            FakeLoadPlanRepository(),
             FakeAttachmentFileStore(),
             FakeBackupImporter(),
             files,
@@ -151,6 +153,7 @@ class DataViewModelTest {
             FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(), FakeTrackRepository(),
             FakeAttachmentRepository(),
             FakeHomeLocationRepository(),
+            FakeLoadPlanRepository(),
             FakeAttachmentFileStore(),
             FakeBackupImporter(),
             files,
@@ -185,6 +188,7 @@ class DataViewModelTest {
             FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(), FakeTrackRepository(),
             FakeAttachmentRepository(),
             FakeHomeLocationRepository(),
+            FakeLoadPlanRepository(),
             FakeAttachmentFileStore(),
             importer,
             files,
@@ -284,6 +288,7 @@ class DataViewModelTest {
             FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(), FakeTrackRepository(),
             FakeAttachmentRepository(),
             FakeHomeLocationRepository(),
+            FakeLoadPlanRepository(),
             FakeAttachmentFileStore(),
             FakeBackupImporter(),
             files,
@@ -318,6 +323,7 @@ class DataViewModelTest {
             FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(), FakeTrackRepository(),
             FakeAttachmentRepository(),
             FakeHomeLocationRepository(),
+            FakeLoadPlanRepository(),
             FakeAttachmentFileStore(),
             FakeBackupImporter(),
             files,
@@ -376,6 +382,7 @@ class DataViewModelTest {
             FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(), FakeTrackRepository(),
             FakeAttachmentRepository(),
             FakeHomeLocationRepository(),
+            FakeLoadPlanRepository(),
             FakeAttachmentFileStore(),
             FakeBackupImporter(),
             files,
@@ -436,6 +443,7 @@ class DataViewModelTest {
             FakeDiaryEntryRepository(), FakeChecklistTemplateRepository(), FakeChecklistRepository(), FakeTrackRepository(),
             FakeAttachmentRepository(initial = listOf(attachment)),
             FakeHomeLocationRepository(),
+            FakeLoadPlanRepository(),
             fileStore,
             FakeBackupImporter(),
             files,

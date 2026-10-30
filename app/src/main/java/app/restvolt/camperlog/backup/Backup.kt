@@ -26,6 +26,19 @@ import app.restvolt.camperlog.domain.LATITUDE_RANGE
 import app.restvolt.camperlog.domain.LONGITUDE_RANGE
 import app.restvolt.camperlog.domain.LegacyPitchFields
 import app.restvolt.camperlog.domain.LodgingAmenity
+import app.restvolt.camperlog.domain.LoadCategory
+import app.restvolt.camperlog.domain.LoadItem
+import app.restvolt.camperlog.domain.LoadProfile
+import app.restvolt.camperlog.domain.LoadTankKind
+import app.restvolt.camperlog.domain.LoadTankSettings
+import app.restvolt.camperlog.domain.MAX_LOAD_ITEM_MASS_KG
+import app.restvolt.camperlog.domain.MAX_LOAD_ITEM_NAME_LENGTH
+import app.restvolt.camperlog.domain.MAX_LOAD_ITEM_QUANTITY
+import app.restvolt.camperlog.domain.MAX_LOAD_POSITION_CM
+import app.restvolt.camperlog.domain.MAX_LOAD_PROFILE_NAME_LENGTH
+import app.restvolt.camperlog.domain.MAX_LOAD_TANK_DENSITY_GRAMS_PER_LITRE
+import app.restvolt.camperlog.domain.MIN_LOAD_POSITION_CM
+import app.restvolt.camperlog.domain.MIN_LOAD_TANK_DENSITY_GRAMS_PER_LITRE
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
 import app.restvolt.camperlog.domain.LteQuality
@@ -98,7 +111,7 @@ import java.util.UUID
 const val BACKUP_FORMAT = "camperlog-backup"
 
 /** Aktuelle Version des Sicherungsformats; ältere Versionen müssen lesbar bleiben. */
-const val BACKUP_SCHEMA_VERSION = 28
+const val BACKUP_SCHEMA_VERSION = 29
 
 /** Größte einlesbare Sicherungsdatei in Bytes. */
 const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -129,6 +142,11 @@ internal const val MAX_CHECKLIST_ITEM_TEXT_LENGTH = 500
 internal const val MAX_HOME_LOCATIONS = 1_000
 internal const val MAX_TRACK_SEGMENTS = 10_000
 internal const val MAX_TRACK_POINTS = 2_000_000
+internal const val MAX_LOAD_ITEMS_PER_VEHICLE = 2_000
+internal const val MAX_LOAD_PROFILES_PER_VEHICLE = 200
+internal const val MAX_LOAD_ITEM_STATES_PER_VEHICLE = 50_000
+internal const val MAX_LOAD_TANK_LEVELS_PER_VEHICLE = 2_000
+internal const val MAX_LOAD_TANK_SETTINGS_PER_VEHICLE = 10
 private const val MAX_ABS_ALTITUDE_M = 12_000
 
 private const val MAX_ATTACHMENT_DIMENSION = 20_000
@@ -203,12 +221,28 @@ data class Backup(
     val paymentMethods: List<String>? = null,
 )
 
-/** Ein Fahrzeug einer Sicherung mit seinen Reparaturen und Bordbuch-Einträgen. */
+/**
+ * Ein Fahrzeug einer Sicherung mit seinen Reparaturen, Bordbuch-Einträgen und seinem Beladungsplan
+ * (Formatversion 29). [loadItems], [loadProfiles] und [loadTankSettings] tragen `vehicleId == 0`, wie
+ * [repairs] und [logEntries]; [loadItemStates] und [loadTankLevels] verweisen auf Profil und
+ * Gegenstand über ihre UUID statt über eine lokale id.
+ */
 data class BackupVehicle(
     val vehicle: Vehicle,
     val repairs: List<Repair>,
     val logEntries: List<LogEntry>,
+    val loadItems: List<LoadItem> = emptyList(),
+    val loadProfiles: List<LoadProfile> = emptyList(),
+    val loadItemStates: List<BackupLoadItemState> = emptyList(),
+    val loadTankLevels: List<BackupLoadTankLevel> = emptyList(),
+    val loadTankSettings: List<LoadTankSettings> = emptyList(),
 )
+
+/** Ob Gegenstand [itemUuid] im Profil [profileUuid] aktiv ist; siehe [app.restvolt.camperlog.domain.LoadProfileItemState]. */
+data class BackupLoadItemState(val itemUuid: String, val profileUuid: String, val active: Boolean)
+
+/** Füllstand der Tankart [kind] im Profil [profileUuid]; siehe [app.restvolt.camperlog.domain.LoadProfileTankLevel]. */
+data class BackupLoadTankLevel(val profileUuid: String, val kind: LoadTankKind, val levelDl: Int)
 
 /** Ein Fahrzeugdokument einer Sicherung mit [vehicleUuid], der UUID seines Fahrzeugs. */
 data class BackupVehicleDocument(val document: VehicleDocument, val vehicleUuid: String)
@@ -441,7 +475,45 @@ private fun BackupDto.toBackup(): BackupReadResult {
             }
             entry
         }
-        BackupVehicle(vehicle, repairs, logEntries)
+
+        if (dto.loadItems.size > MAX_LOAD_ITEMS_PER_VEHICLE || dto.loadProfiles.size > MAX_LOAD_PROFILES_PER_VEHICLE ||
+            dto.loadItemStates.size > MAX_LOAD_ITEM_STATES_PER_VEHICLE || dto.loadTankLevels.size > MAX_LOAD_TANK_LEVELS_PER_VEHICLE ||
+            dto.loadTankSettings.size > MAX_LOAD_TANK_SETTINGS_PER_VEHICLE
+        ) {
+            return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+        }
+        val seenLoadItemUuids = HashSet<String>()
+        val loadItems = dto.loadItems.map { itemDto ->
+            val item = itemDto.toLoadItem() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+            if (!seenLoadItemUuids.add(item.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+            item
+        }
+        val seenLoadProfileUuids = HashSet<String>()
+        val loadProfiles = dto.loadProfiles.map { profileDto ->
+            val profile = profileDto.toLoadProfile() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+            if (!seenLoadProfileUuids.add(profile.uuid)) return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+            profile
+        }
+        val loadItemStates = dto.loadItemStates.map { stateDto ->
+            val state = stateDto.toBackupLoadItemState() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+            if (state.itemUuid !in seenLoadItemUuids || state.profileUuid !in seenLoadProfileUuids) {
+                return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+            }
+            state
+        }
+        val loadTankLevels = dto.loadTankLevels.map { levelDto ->
+            val level = levelDto.toBackupLoadTankLevel() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+            if (level.profileUuid !in seenLoadProfileUuids) return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+            level
+        }
+        val seenLoadTankKinds = HashSet<LoadTankKind>()
+        val loadTankSettings = dto.loadTankSettings.map { settingsDto ->
+            val settings = settingsDto.toLoadTankSettings() ?: return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+            if (!seenLoadTankKinds.add(settings.kind)) return BackupReadResult.Failure(BackupError.INVALID_DATA, vehicleNumber = vehicleNumber)
+            settings
+        }
+
+        BackupVehicle(vehicle, repairs, logEntries, loadItems, loadProfiles, loadItemStates, loadTankLevels, loadTankSettings)
     }
 
     val currentVehicleUuid = currentVehicle?.let { candidate ->
@@ -801,11 +873,14 @@ private fun VehicleDto.toVehicle(): Vehicle? {
     val nextGasCheckDate = nextGasCheckDate?.let { parseDate(it) ?: return null }
     val nextLeakTestDate = nextLeakTestDate?.let { parseDate(it) ?: return null }
     val lastOilChangeDate = lastOilChangeDate?.let { parseDate(it) ?: return null }
+    val weighingDate = weighingDate?.let { parseDate(it) ?: return null }
     val purchasePriceMoney = purchasePrice?.let { it.toMoney() ?: return null }
     val salePriceMoney = salePrice?.let { it.toMoney() ?: return null }
     val insurancePremium = insurancePremiumPerYear?.let { it.toMoney() ?: return null }
     val vehicleTax = vehicleTaxPerYear?.let { it.toMoney() ?: return null }
     if (!lengthCm.inBounds(MAX_DIMENSION_CM) || !widthCm.inBounds(MAX_DIMENSION_CM) || !heightCm.inBounds(MAX_DIMENSION_CM)) return null
+    if (wheelbaseCm != null && (wheelbaseCm <= 0 || wheelbaseCm > MAX_DIMENSION_CM)) return null
+    if (!frontOverhangCm.inBounds(MAX_DIMENSION_CM)) return null
     if (!grossWeightKg.inBounds(MAX_WEIGHT_KG) || !powerKw.inBounds(MAX_POWER_KW)) return null
     if (!measuredEmptyWeightKg.inBounds(MAX_WEIGHT_KG)) return null
     if (!allowedFrontAxleKg.inBounds(MAX_WEIGHT_KG) || !allowedRearAxleKg.inBounds(MAX_WEIGHT_KG)) return null
@@ -858,6 +933,9 @@ private fun VehicleDto.toVehicle(): Vehicle? {
         allowedRearAxleKg = allowedRearAxleKg,
         measuredFrontAxleKg = measuredFrontAxleKg,
         measuredRearAxleKg = measuredRearAxleKg,
+        weighingDate = weighingDate,
+        wheelbaseCm = wheelbaseCm,
+        frontOverhangCm = frontOverhangCm,
         breakdownProvider = breakdownProvider,
         breakdownMembershipNumber = breakdownMembershipNumber,
         breakdownPhone = breakdownPhone,
@@ -923,6 +1001,65 @@ private fun LogEntryDto.toLogEntry(): LogEntry? {
     val date = parseDate(date) ?: return null
     val type = enumOrNull<LogType>(type) ?: return null
     return LogEntry(uuid = uuid, vehicleId = 0, type = type, date = date, createdAt = parseInstant(createdAt) ?: return null)
+}
+
+private fun LoadItemDto.toLoadItem(): LoadItem? {
+    val uuid = parseUuid(uuid) ?: return null
+    val name = name.trim().takeIf { it.isNotEmpty() && it.length <= MAX_LOAD_ITEM_NAME_LENGTH } ?: return null
+    val category = enumOrNull<LoadCategory>(category) ?: return null
+    if (massGrams <= 0 || massGrams > MAX_LOAD_ITEM_MASS_KG.toLong() * 1000) return null
+    if (quantity < 1 || quantity > MAX_LOAD_ITEM_QUANTITY) return null
+    if (positionCm != null && positionCm !in MIN_LOAD_POSITION_CM..MAX_LOAD_POSITION_CM) return null
+    if (sortOrder < 0) return null
+    return LoadItem(
+        uuid = uuid,
+        vehicleId = 0,
+        name = name,
+        category = category,
+        massGrams = massGrams,
+        quantity = quantity,
+        positionCm = positionCm,
+        inWeighing = inWeighing,
+        sortOrder = sortOrder,
+        createdAt = parseInstant(createdAt) ?: return null,
+        updatedAt = parseInstant(updatedAt) ?: return null,
+    )
+}
+
+private fun LoadProfileDto.toLoadProfile(): LoadProfile? {
+    val uuid = parseUuid(uuid) ?: return null
+    val name = name.trim().takeIf { it.isNotEmpty() && it.length <= MAX_LOAD_PROFILE_NAME_LENGTH } ?: return null
+    if (sortOrder < 0) return null
+    return LoadProfile(uuid = uuid, vehicleId = 0, name = name, sortOrder = sortOrder)
+}
+
+private fun LoadItemStateDto.toBackupLoadItemState(): BackupLoadItemState? {
+    val itemUuid = parseUuid(itemUuid) ?: return null
+    val profileUuid = parseUuid(profileUuid) ?: return null
+    return BackupLoadItemState(itemUuid = itemUuid, profileUuid = profileUuid, active = active)
+}
+
+private fun LoadTankLevelDto.toBackupLoadTankLevel(): BackupLoadTankLevel? {
+    val profileUuid = parseUuid(profileUuid) ?: return null
+    val kindValue = enumOrNull<LoadTankKind>(kind) ?: return null
+    if (!levelDl.inBounds(MAX_TANK_DL)) return null
+    return BackupLoadTankLevel(profileUuid = profileUuid, kind = kindValue, levelDl = levelDl)
+}
+
+private fun LoadTankSettingsDto.toLoadTankSettings(): LoadTankSettings? {
+    val kindValue = enumOrNull<LoadTankKind>(kind) ?: return null
+    if (positionCm != null && positionCm !in MIN_LOAD_POSITION_CM..MAX_LOAD_POSITION_CM) return null
+    if (densityGramsPerLitre < MIN_LOAD_TANK_DENSITY_GRAMS_PER_LITRE || densityGramsPerLitre > MAX_LOAD_TANK_DENSITY_GRAMS_PER_LITRE) {
+        return null
+    }
+    if (!weighingLevelDl.inBounds(MAX_TANK_DL)) return null
+    return LoadTankSettings(
+        vehicleId = 0,
+        kind = kindValue,
+        positionCm = positionCm,
+        densityGramsPerLitre = densityGramsPerLitre,
+        weighingLevelDl = weighingLevelDl,
+    )
 }
 
 private fun Int?.inBounds(max: Int): Boolean = this == null || this in 0..max
@@ -1004,6 +1141,9 @@ private fun BackupVehicle.toDto(logEntryStationUuid: Map<String, String>) = vehi
         allowedRearAxleKg = v.allowedRearAxleKg,
         measuredFrontAxleKg = v.measuredFrontAxleKg,
         measuredRearAxleKg = v.measuredRearAxleKg,
+        weighingDate = v.weighingDate?.toString(),
+        wheelbaseCm = v.wheelbaseCm,
+        frontOverhangCm = v.frontOverhangCm,
         breakdownProvider = v.breakdownProvider,
         breakdownMembershipNumber = v.breakdownMembershipNumber,
         breakdownPhone = v.breakdownPhone,
@@ -1036,8 +1176,39 @@ private fun BackupVehicle.toDto(logEntryStationUuid: Map<String, String>) = vehi
         updatedAt = v.updatedAt.toString(),
         repairs = repairs.map { json.encodeToJsonElement(RepairDto.serializer(), it.toDto()) },
         logEntries = logEntries.map { json.encodeToJsonElement(LogEntryDto.serializer(), it.toDto(logEntryStationUuid[it.uuid])) },
+        loadItems = loadItems.map { it.toDto() },
+        loadProfiles = loadProfiles.map { it.toDto() },
+        loadItemStates = loadItemStates.map { it.toDto() },
+        loadTankLevels = loadTankLevels.map { it.toDto() },
+        loadTankSettings = loadTankSettings.map { it.toDto() },
     )
 }
+
+private fun LoadItem.toDto() = LoadItemDto(
+    uuid = uuid,
+    name = name,
+    category = category.name,
+    massGrams = massGrams,
+    quantity = quantity,
+    positionCm = positionCm,
+    inWeighing = inWeighing,
+    sortOrder = sortOrder,
+    createdAt = createdAt.toString(),
+    updatedAt = updatedAt.toString(),
+)
+
+private fun LoadProfile.toDto() = LoadProfileDto(uuid = uuid, name = name, sortOrder = sortOrder)
+
+private fun BackupLoadItemState.toDto() = LoadItemStateDto(itemUuid = itemUuid, profileUuid = profileUuid, active = active)
+
+private fun BackupLoadTankLevel.toDto() = LoadTankLevelDto(profileUuid = profileUuid, kind = kind.name, levelDl = levelDl)
+
+private fun LoadTankSettings.toDto() = LoadTankSettingsDto(
+    kind = kind.name,
+    positionCm = positionCm,
+    densityGramsPerLitre = densityGramsPerLitre,
+    weighingLevelDl = weighingLevelDl,
+)
 
 private fun Repair.toDto() = RepairDto(
     uuid = uuid,

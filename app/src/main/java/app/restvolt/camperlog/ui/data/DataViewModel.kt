@@ -26,6 +26,7 @@ import app.restvolt.camperlog.domain.ChecklistTemplateRepository
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.HomeLocationRepository
+import app.restvolt.camperlog.domain.LoadPlanRepository
 import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.RunningTourAlreadyExistsException
@@ -113,6 +114,7 @@ class DataViewModel(
     private val tracks: TrackRepository,
     private val attachments: AttachmentRepository,
     private val homeLocations: HomeLocationRepository,
+    private val loadPlans: LoadPlanRepository,
     private val attachmentFileStore: AttachmentFileStore,
     private val importer: BackupImporter,
     private val files: DataFiles,
@@ -299,7 +301,7 @@ class DataViewModel(
     private suspend fun currentBackup(): Backup =
         buildBackup(
             repository, exchangeRates, vehicles, logs, stations, documents, diaryEntries, checklistTemplates, checklists, tracks,
-            attachments, homeLocations, clock(), paymentMethods,
+            attachments, homeLocations, loadPlans, clock(), paymentMethods,
         )
 
     /** Schreibt [json] und die Dateien der [backup]-Anhänge direkt in den gelieferten Ausgabestrom. */

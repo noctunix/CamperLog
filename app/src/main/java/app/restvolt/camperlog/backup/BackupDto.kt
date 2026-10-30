@@ -129,6 +129,10 @@ internal data class VehicleDto(
     val lengthCm: Int? = null,
     val widthCm: Int? = null,
     val heightCm: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 29. */
+    val wheelbaseCm: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 29. */
+    val frontOverhangCm: Int? = null,
     val grossWeightKg: Int? = null,
     val measuredEmptyWeightKg: Int? = null,
     /** Fehlt in Sicherungen vor Formatversion 28. */
@@ -139,6 +143,8 @@ internal data class VehicleDto(
     val measuredFrontAxleKg: Int? = null,
     /** Fehlt in Sicherungen vor Formatversion 28. */
     val measuredRearAxleKg: Int? = null,
+    /** Fehlt in Sicherungen vor Formatversion 29. */
+    val weighingDate: String? = null,
     val breakdownProvider: String = "",
     val breakdownMembershipNumber: String = "",
     val breakdownPhone: String = "",
@@ -178,6 +184,61 @@ internal data class VehicleDto(
     val repairs: List<JsonElement> = emptyList(),
     /** Einzeln als [LogEntryDto] gelesen, damit Fehler eines Bordbuch-Eintrags zugeordnet werden können. */
     val logEntries: List<JsonElement> = emptyList(),
+    /** Gegenstände des Beladungsplans; fehlt in Sicherungen vor Formatversion 29. */
+    val loadItems: List<LoadItemDto> = emptyList(),
+    /** Beladungsprofile; fehlt in Sicherungen vor Formatversion 29. */
+    val loadProfiles: List<LoadProfileDto> = emptyList(),
+    /** Vom gewogenen Zustand abweichende Aktiv-Zustände der Beladungsgegenstände je Profil; fehlt vor Formatversion 29. */
+    val loadItemStates: List<LoadItemStateDto> = emptyList(),
+    /** Vom gewogenen Zustand abweichende Tankfüllstände je Profil; fehlt vor Formatversion 29. */
+    val loadTankLevels: List<LoadTankLevelDto> = emptyList(),
+    /** Lagerposition, Dichte und Wiege-Füllstand je Tankart; fehlt in Sicherungen vor Formatversion 29. */
+    val loadTankSettings: List<LoadTankSettingsDto> = emptyList(),
+)
+
+@Serializable
+internal data class LoadItemDto(
+    val uuid: String,
+    val name: String = "",
+    val category: String,
+    val massGrams: Long,
+    val quantity: Int = 1,
+    val positionCm: Int? = null,
+    val inWeighing: Boolean = false,
+    val sortOrder: Int = 0,
+    val createdAt: String,
+    val updatedAt: String,
+)
+
+@Serializable
+internal data class LoadProfileDto(
+    val uuid: String,
+    val name: String = "",
+    val sortOrder: Int = 0,
+)
+
+@Serializable
+internal data class LoadItemStateDto(
+    val itemUuid: String,
+    val profileUuid: String,
+    val active: Boolean,
+)
+
+@Serializable
+internal data class LoadTankLevelDto(
+    val profileUuid: String,
+    /** Name von [app.restvolt.camperlog.domain.LoadTankKind]. */
+    val kind: String,
+    val levelDl: Int,
+)
+
+@Serializable
+internal data class LoadTankSettingsDto(
+    /** Name von [app.restvolt.camperlog.domain.LoadTankKind]. */
+    val kind: String,
+    val positionCm: Int? = null,
+    val densityGramsPerLitre: Int,
+    val weighingLevelDl: Int = 0,
 )
 
 @Serializable

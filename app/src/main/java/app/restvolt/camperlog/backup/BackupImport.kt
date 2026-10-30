@@ -48,6 +48,10 @@ data class ImportResult(
     val updatedHomeLocations: Int = 0,
     val addedAttachments: Int = 0,
     val addedTrackPoints: Int = 0,
+    val addedLoadItems: Int = 0,
+    val updatedLoadItems: Int = 0,
+    val addedLoadProfiles: Int = 0,
+    val updatedLoadProfiles: Int = 0,
     /** Anzahl der Zahlungsarten, die nach dem Import in der Liste stehen; 0, wenn die Sicherung keine enthielt. */
     val importedPaymentMethods: Int = 0,
     /** Number of imported payment methods dropped because the list is full. */

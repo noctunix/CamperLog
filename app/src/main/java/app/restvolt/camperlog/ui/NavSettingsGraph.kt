@@ -161,6 +161,7 @@ internal fun NavGraphBuilder.settingsGraph(
                     tracks,
                     attachments,
                     homeLocations,
+                    loadPlans,
                     attachmentFileStore,
                     backupImporter,
                     AndroidDataFiles(context),

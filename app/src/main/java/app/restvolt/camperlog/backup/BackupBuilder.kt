@@ -7,6 +7,7 @@ import app.restvolt.camperlog.domain.ChecklistTemplateRepository
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.HomeLocationRepository
+import app.restvolt.camperlog.domain.LoadPlanRepository
 import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
@@ -36,6 +37,7 @@ suspend fun buildBackup(
     tracks: TrackRepository,
     attachments: AttachmentRepository,
     homeLocations: HomeLocationRepository,
+    loadPlans: LoadPlanRepository,
     exportedAt: Instant,
     /** Quelle der konfigurierbaren Zahlungsarten; `null` lässt sie aus der Sicherung weg. */
     paymentMethods: PaymentMethodRepository? = null,
@@ -68,10 +70,25 @@ suspend fun buildBackup(
         tours = tours,
         tourVehicleUuid = tours.mapNotNull { tour -> vehicleUuidById[tour.vehicleId]?.let { tour.uuid to it } }.toMap(),
         vehicles = allVehicles.map { vehicle ->
+            val plan = loadPlans.observePlan(vehicle.id).first()
+            val itemUuidById = plan.items.associate { it.id to it.uuid }
+            val profileUuidById = plan.profiles.associate { it.id to it.uuid }
             BackupVehicle(
                 vehicle = vehicle,
                 repairs = repairsByVehicle[vehicle.id].orEmpty(),
                 logEntries = logEntriesByVehicle[vehicle.id].orEmpty(),
+                loadItems = plan.items,
+                loadProfiles = plan.profiles,
+                loadItemStates = plan.itemStates.mapNotNull { state ->
+                    val itemUuid = itemUuidById[state.itemId] ?: return@mapNotNull null
+                    val profileUuid = profileUuidById[state.profileId] ?: return@mapNotNull null
+                    BackupLoadItemState(itemUuid = itemUuid, profileUuid = profileUuid, active = state.active)
+                },
+                loadTankLevels = plan.tankLevels.mapNotNull { level ->
+                    val profileUuid = profileUuidById[level.profileId] ?: return@mapNotNull null
+                    BackupLoadTankLevel(profileUuid = profileUuid, kind = level.kind, levelDl = level.levelDl)
+                },
+                loadTankSettings = plan.tankSettings,
             )
         },
         currentVehicleUuid = vehicles.observeCurrentVehicle().first().uuid,

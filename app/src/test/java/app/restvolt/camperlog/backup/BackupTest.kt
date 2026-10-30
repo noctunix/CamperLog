@@ -7,6 +7,11 @@ import app.restvolt.camperlog.domain.CostCategory
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.EnergyType
 import app.restvolt.camperlog.domain.ExchangeRate
+import app.restvolt.camperlog.domain.LoadCategory
+import app.restvolt.camperlog.domain.LoadItem
+import app.restvolt.camperlog.domain.LoadProfile
+import app.restvolt.camperlog.domain.LoadTankKind
+import app.restvolt.camperlog.domain.LoadTankSettings
 import app.restvolt.camperlog.domain.LodgingAmenity
 import app.restvolt.camperlog.domain.LogEntry
 import app.restvolt.camperlog.domain.LogType
@@ -147,6 +152,9 @@ class BackupTest {
         allowedRearAxleKg = 2500,
         measuredFrontAxleKg = 1700,
         measuredRearAxleKg = 2600,
+        weighingDate = LocalDate.of(2025, 12, 1),
+        wheelbaseCm = 415,
+        frontOverhangCm = 90,
         breakdownProvider = "ADAC",
         breakdownMembershipNumber = "123 456 789",
         breakdownPhone = "+49 89 22 22 22",
@@ -284,7 +292,7 @@ class BackupTest {
         val text = encodeBackup(running)
         val decoded = success(text)
 
-        assert("\"schemaVersion\": 28" in text)
+        assert("\"schemaVersion\": 29" in text)
         assert("\"endDate\": null" in text)
         assertEquals(null, decoded.tours.single().endDate)
     }
@@ -294,7 +302,7 @@ class BackupTest {
         val old = applyAll(
             encodeBackup(backup),
             listOf(
-                "\"schemaVersion\": 28" to "\"schemaVersion\": 10",
+                "\"schemaVersion\": 29" to "\"schemaVersion\": 10",
                 "\"endDate\": \"2026-07-14\"," to "",
             ),
         )
@@ -398,6 +406,25 @@ class BackupTest {
     }
 
     @Test
+    fun read_importsOlderBackupsMissingTheWheelbaseOverhangAndWeighingDateFields() {
+        val text = applyAll(
+            encodeBackup(vehicleBackup),
+            listOf(
+                "\"wheelbaseCm\": 415," to "",
+                "\"frontOverhangCm\": 90," to "",
+                "\"weighingDate\": \"2025-12-01\"," to "",
+            ),
+        )
+
+        val decoded = success(text)
+
+        val vehicle = decoded.vehicles.single().vehicle
+        assertEquals(null, vehicle.wheelbaseCm)
+        assertEquals(null, vehicle.frontOverhangCm)
+        assertEquals(null, vehicle.weighingDate)
+    }
+
+    @Test
     fun read_importsOlderBackupsMissingTheRequiredEnergyTypesField() {
         val text = vehicleEncodedWith("\"requiredEnergyTypes\": [],", "")
 
@@ -484,6 +511,76 @@ class BackupTest {
         assertEquals(null, decoded.vehicles.single().repairs.single().time)
     }
 
+    private val loadItemUuid = "6b6f5e2a-6c1d-4e8a-9f3b-2d7c1a4e5f60"
+    private val loadProfileUuid = "7b6f5e2a-6c1d-4e8a-9f3b-2d7c1a4e5f60"
+
+    private fun loadItem(uuid: String = loadItemUuid) = LoadItem(
+        uuid = uuid,
+        vehicleId = 0,
+        name = "Fahrradträger",
+        category = LoadCategory.FIXTURE,
+        massGrams = 15_000,
+        quantity = 1,
+        positionCm = 640,
+        inWeighing = true,
+        sortOrder = 0,
+        createdAt = Instant.parse("2026-01-01T08:00:00Z"),
+        updatedAt = Instant.parse("2026-01-01T08:00:00Z"),
+    )
+
+    private fun loadProfile(uuid: String = loadProfileUuid) = LoadProfile(uuid = uuid, vehicleId = 0, name = "Langreise", sortOrder = 0)
+
+    private val loadPlanBackup = vehicleBackup.copy(
+        vehicles = listOf(
+            BackupVehicle(
+                vehicle = fullVehicle(),
+                repairs = listOf(repair()),
+                logEntries = listOf(logEntry()),
+                loadItems = listOf(loadItem()),
+                loadProfiles = listOf(loadProfile()),
+                loadItemStates = listOf(BackupLoadItemState(itemUuid = loadItemUuid, profileUuid = loadProfileUuid, active = false)),
+                loadTankLevels = listOf(BackupLoadTankLevel(profileUuid = loadProfileUuid, kind = LoadTankKind.FRESH_WATER, levelDl = 500)),
+                loadTankSettings = listOf(
+                    LoadTankSettings(vehicleId = 0, kind = LoadTankKind.FRESH_WATER, positionCm = 200, densityGramsPerLitre = 1000, weighingLevelDl = 1000),
+                ),
+            ),
+        ),
+    )
+
+    @Test
+    fun roundTrip_keepsLoadPlan() {
+        val decoded = success(encodeBackup(loadPlanBackup))
+
+        val vehicle = decoded.vehicles.single()
+        assertEquals(listOf(loadItem()), vehicle.loadItems)
+        assertEquals(listOf(loadProfile()), vehicle.loadProfiles)
+        assertEquals(listOf(BackupLoadItemState(loadItemUuid, loadProfileUuid, false)), vehicle.loadItemStates)
+        assertEquals(listOf(BackupLoadTankLevel(loadProfileUuid, LoadTankKind.FRESH_WATER, 500)), vehicle.loadTankLevels)
+        assertEquals(
+            listOf(LoadTankSettings(vehicleId = 0, kind = LoadTankKind.FRESH_WATER, positionCm = 200, densityGramsPerLitre = 1000, weighingLevelDl = 1000)),
+            vehicle.loadTankSettings,
+        )
+    }
+
+    @Test
+    fun read_importsOlderBackupsWithoutLoadPlanFields() {
+        val text = applyAll(
+            encodeBackup(vehicleBackup),
+            listOf(
+                "\"wheelbaseCm\": 415," to "",
+                "\"frontOverhangCm\": 90," to "",
+                "\"weighingDate\": \"2025-12-01\"," to "",
+            ),
+        )
+
+        val decoded = success(text)
+
+        val vehicle = decoded.vehicles.single()
+        assertEquals(emptyList<LoadItem>(), vehicle.loadItems)
+        assertEquals(emptyList<LoadProfile>(), vehicle.loadProfiles)
+        assertEquals(emptyList<LoadTankSettings>(), vehicle.loadTankSettings)
+    }
+
     private fun vehicleBackupWithEnergyTypes(types: Set<EnergyType>) = vehicleBackup.copy(
         vehicles = listOf(BackupVehicle(fullVehicle().copy(requiredEnergyTypes = types), listOf(repair()), listOf(logEntry()))),
     )
@@ -558,7 +655,7 @@ class BackupTest {
         assert("\"amount\": \"1234.56\"" in text)
         assert("\"amount\": \"3200.00\"" in text)
         assert("\"amount\": \"1500\"" in text)
-        assert("\"schemaVersion\": 28" in text)
+        assert("\"schemaVersion\": 29" in text)
         assert("\"format\": \"camperlog-backup\"" in text)
     }
 
@@ -593,13 +690,13 @@ class BackupTest {
 
     @Test
     fun decode_rejectsNewerVersion() {
-        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 28", "\"schemaVersion\": 29"))?.error)
+        assertEquals(BackupError.NEWER_VERSION, failure(encodedWith("\"schemaVersion\": 29", "\"schemaVersion\": 30"))?.error)
     }
 
     @Test
     fun decode_rejectsMissingOrInvalidVersion() {
         listOf("\"schemaVersion\": 0", "\"schemaVersion\": \"1\"", "\"schemaVersion\": 1.5", "\"v\": 1").forEach {
-            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 28", it))?.error)
+            assertEquals(it, BackupError.INVALID_DATA, failure(encodedWith("\"schemaVersion\": 29", it))?.error)
         }
     }
 
@@ -962,7 +1059,7 @@ class BackupTest {
         val legacyText = applyAll(
             encodeBackup(stationBackup),
             listOf(
-                "\"schemaVersion\": 28" to "\"schemaVersion\": 23",
+                "\"schemaVersion\": 29" to "\"schemaVersion\": 23",
                 "\"wifiCostIsExpense\": false," to "",
             ),
         )
@@ -977,12 +1074,12 @@ class BackupTest {
                 costs = listOf(StationCost(CostCategory.WIFI, Money(350, eur))),
             )),
         )
-        val localVersion24 = encodeBackup(expenseBackup).replace("\"schemaVersion\": 28", "\"schemaVersion\": 24")
+        val localVersion24 = encodeBackup(expenseBackup).replace("\"schemaVersion\": 29", "\"schemaVersion\": 24")
         assertEquals(true, success(localVersion24).stations.single().wifiCostIsExpense)
         assertEquals(CostCategory.WIFI, success(localVersion24).stations.single().costs.single().category)
 
         val publishedVersion24 = encodeBackup(stationBackup)
-            .replace("\"schemaVersion\": 28", "\"schemaVersion\": 24")
+            .replace("\"schemaVersion\": 29", "\"schemaVersion\": 24")
             .replace("\"wifiCostIsExpense\": false,", "")
         assertEquals(false, success(publishedVersion24).stations.single().wifiCostIsExpense)
     }
@@ -991,7 +1088,7 @@ class BackupTest {
     fun decode_requiresWifiExpenseFlagOnlyStartingWithVersion26() {
         val withLegacyFlag = applyAll(
             encodeBackup(stationBackup),
-            listOf("\"schemaVersion\": 28" to "\"schemaVersion\": 23"),
+            listOf("\"schemaVersion\": 29" to "\"schemaVersion\": 23"),
         )
         assertEquals(BackupError.INVALID_DATA, failure(withLegacyFlag)?.error)
 
@@ -1004,7 +1101,7 @@ class BackupTest {
         val legacyWifiCategory = applyAll(
             encodeBackup(wifiCategoryBackup),
             listOf(
-                "\"schemaVersion\": 28" to "\"schemaVersion\": 23",
+                "\"schemaVersion\": 29" to "\"schemaVersion\": 23",
                 "\"wifiCostIsExpense\": false," to "",
             ),
         )
@@ -1017,7 +1114,7 @@ class BackupTest {
         val text = applyAll(
             encodeBackup(olderBackup),
             listOf(
-                "\"schemaVersion\": 28" to "\"schemaVersion\": 23",
+                "\"schemaVersion\": 29" to "\"schemaVersion\": 23",
                 "\"wifiQuality\": \"OK\"," to "",
                 "\"wifiCostCurrency\": \"EUR\"," to "",
                 "\"wifiCostAmount\": \"3.50\"," to "",

@@ -65,6 +65,7 @@ import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.GeoIntentLocation
 import app.restvolt.camperlog.domain.HomeLocationRepository
+import app.restvolt.camperlog.domain.LoadPlanRepository
 import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.LocationProvider
 import app.restvolt.camperlog.domain.guide.DemoTourSession
@@ -292,6 +293,7 @@ internal class NavDependencies(
     val backupFolderWriter: AndroidBackupFolderWriter,
     val homeLocationSettings: HomeLocationSettings,
     val homeLocations: HomeLocationRepository,
+    val loadPlans: LoadPlanRepository,
     val paymentMethods: PaymentMethodRepository,
     val guideController: GuideController,
     val guideProgressStore: GuideProgressStore,
@@ -364,6 +366,8 @@ fun CamperLogNavHost(
     tracks: TrackRepository = (LocalContext.current.applicationContext as CamperLogApp).tracks,
     /** Heimatadressen-Historie für den Schalter "Beginnt zu Hause"; in Tests ein Fake. */
     homeLocations: HomeLocationRepository = (LocalContext.current.applicationContext as CamperLogApp).homeLocations,
+    /** Beladungspläne der Fahrzeuge; in Tests ein Fake. */
+    loadPlans: LoadPlanRepository = (LocalContext.current.applicationContext as CamperLogApp).loadPlans,
     /** Konfigurierbare Zahlungsarten (Einstellungen, Vorschläge im Stationsformular); in Tests ein Fake. */
     paymentMethods: PaymentMethodRepository = (LocalContext.current.applicationContext as CamperLogApp).paymentMethods,
     /** Lokales Diagnoseprotokoll; in Tests ein Fake. */
@@ -554,7 +558,7 @@ fun CamperLogNavHost(
         repository, vehicles, logbook, stations, exchangeRates, documents, diaryEntries, checklists, checklistTemplates,
         attachments, attachmentFileStore, backupImporter, locationProvider, weatherProvider, placeSearchProvider, tileLoader,
         countryLookup, attachmentPickers, tracks, reminderSettings, locationSettings, trackSettings, weatherSettings,
-        notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings, homeLocations, paymentMethods, guideController, guideProgressStore,
+        notificationSettings, backupSettings, backupFolderWriter, homeLocationSettings, homeLocations, loadPlans, paymentMethods, guideController, guideProgressStore,
         resolvedDemoTourSession, diagnosticsLog, diagnosticsLogSettings, formDraftStore, introductionSettings,
     )
     NavHost(navController, startDestination = ToursRoute) {

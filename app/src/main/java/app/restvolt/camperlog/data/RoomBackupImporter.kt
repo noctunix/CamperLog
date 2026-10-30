@@ -3,6 +3,8 @@ package app.restvolt.camperlog.data
 import androidx.room.withTransaction
 import app.restvolt.camperlog.backup.Backup
 import app.restvolt.camperlog.backup.BackupImporter
+import app.restvolt.camperlog.backup.BackupLoadItemState
+import app.restvolt.camperlog.backup.BackupLoadTankLevel
 import app.restvolt.camperlog.backup.BackupVehicle
 import app.restvolt.camperlog.domain.Attachment
 import app.restvolt.camperlog.domain.AttachmentOwnerType
@@ -58,6 +60,7 @@ class RoomBackupImporter(
         val checklistDao = database.checklistDao()
         val attachmentDao = database.attachmentDao()
         val homeLocationDao = database.homeLocationDao()
+        val loadDao = database.loadDao()
 
         val importedVehicles = backup.vehicles.map { it.notAfter(now, today) }
 
@@ -157,6 +160,88 @@ class RoomBackupImporter(
                     }
                     else -> repairLocalIdByUuid[repair.uuid] = existing.id
                 }
+            }
+        }
+
+        // --- Beladungsplan: Gegenstände wie Reparaturen über ihre UUID abgeglichen; Profile, Zustände,
+        // Füllstände und Tankeinstellungen tragen keinen eigenen Zeitstempel und werden je Fahrzeug
+        // bzw. Profil vollständig durch den Stand der Sicherung ersetzt (wie Checklisten-Punkte).
+        var addedLoadItems = 0
+        var updatedLoadItems = 0
+        var addedLoadProfiles = 0
+        var updatedLoadProfiles = 0
+        for (backupVehicle in importedVehicles) {
+            val localVehicleId = checkNotNull(localIdByVehicleUuid[backupVehicle.vehicle.uuid])
+            val itemLocalIdByUuid = HashMap<String, Long>()
+            if (mode == ImportMode.REPLACE) {
+                backupVehicle.loadItems.forEach { item ->
+                    val id = loadDao.insertItem(item.copy(id = 0, vehicleId = localVehicleId).toEntity())
+                    itemLocalIdByUuid[item.uuid] = id
+                    addedLoadItems++
+                }
+            } else {
+                val storedItems = loadDao.getItemVersions(localVehicleId).associateBy(LoadItemVersionRow::uuid)
+                for (item in backupVehicle.loadItems) {
+                    val existing = storedItems[item.uuid]
+                    val localId = when {
+                        existing == null -> {
+                            val id = loadDao.insertItem(item.copy(id = 0, vehicleId = localVehicleId).toEntity())
+                            addedLoadItems++
+                            id
+                        }
+                        item.updatedAt.toEpochMilli() > existing.updatedAtMillis -> {
+                            loadDao.updateItem(item.copy(id = existing.id, vehicleId = localVehicleId).toEntity())
+                            updatedLoadItems++
+                            existing.id
+                        }
+                        else -> existing.id
+                    }
+                    itemLocalIdByUuid[item.uuid] = localId
+                }
+            }
+
+            val profileLocalIdByUuid = HashMap<String, Long>()
+            val storedProfileIds = loadDao.getProfileIds(localVehicleId).associate { it.uuid to it.id }
+            for (profile in backupVehicle.loadProfiles) {
+                val existingId = storedProfileIds[profile.uuid]
+                val localId = if (existingId == null) {
+                    val id = loadDao.insertProfile(profile.copy(id = 0, vehicleId = localVehicleId).toEntity())
+                    addedLoadProfiles++
+                    id
+                } else {
+                    loadDao.updateProfile(profile.copy(id = existingId, vehicleId = localVehicleId).toEntity())
+                    updatedLoadProfiles++
+                    existingId
+                }
+                profileLocalIdByUuid[profile.uuid] = localId
+            }
+
+            for (profile in backupVehicle.loadProfiles) {
+                val profileId = checkNotNull(profileLocalIdByUuid[profile.uuid])
+                loadDao.deleteItemStatesForProfile(profileId)
+                loadDao.deleteTankLevelsForProfile(profileId)
+            }
+            val statesByProfile = backupVehicle.loadItemStates.groupBy(BackupLoadItemState::profileUuid)
+            for (profile in backupVehicle.loadProfiles) {
+                val profileId = checkNotNull(profileLocalIdByUuid[profile.uuid])
+                val states = statesByProfile[profile.uuid].orEmpty().mapNotNull { state ->
+                    itemLocalIdByUuid[state.itemUuid]?.let { itemId ->
+                        LoadProfileItemStateEntity(profileId = profileId, itemId = itemId, active = state.active)
+                    }
+                }
+                if (states.isNotEmpty()) loadDao.insertItemStates(states)
+            }
+            val levelsByProfile = backupVehicle.loadTankLevels.groupBy(BackupLoadTankLevel::profileUuid)
+            for (profile in backupVehicle.loadProfiles) {
+                val profileId = checkNotNull(profileLocalIdByUuid[profile.uuid])
+                val levels = levelsByProfile[profile.uuid].orEmpty().map { level ->
+                    LoadProfileTankLevelEntity(profileId = profileId, kind = level.kind.name, levelDl = level.levelDl)
+                }
+                if (levels.isNotEmpty()) loadDao.insertTankLevels(levels)
+            }
+
+            backupVehicle.loadTankSettings.forEach { settings ->
+                loadDao.saveTankSettings(settings.copy(vehicleId = localVehicleId).toEntity())
             }
         }
 
@@ -488,6 +573,10 @@ class RoomBackupImporter(
             updatedHomeLocations = updatedHomeLocations,
             addedAttachments = addedAttachments,
             addedTrackPoints = addedTrackPoints,
+            addedLoadItems = addedLoadItems,
+            updatedLoadItems = updatedLoadItems,
+            addedLoadProfiles = addedLoadProfiles,
+            updatedLoadProfiles = updatedLoadProfiles,
             importedPaymentMethods = importedPaymentMethods,
             skippedPaymentMethods = skippedPaymentMethods,
         )
@@ -520,6 +609,7 @@ private fun BackupVehicle.notAfter(now: Instant, today: LocalDate): BackupVehicl
         it.copy(date = minOf(it.date, today), createdAt = minOf(it.createdAt, now), updatedAt = minOf(it.updatedAt, now))
     },
     logEntries = logEntries.map { it.copy(date = minOf(it.date, today), createdAt = minOf(it.createdAt, now)) },
+    loadItems = loadItems.map { it.copy(createdAt = minOf(it.createdAt, now), updatedAt = minOf(it.updatedAt, now)) },
 )
 
 private fun Station.notAfter(now: Instant, today: LocalDate): Station = copy(
