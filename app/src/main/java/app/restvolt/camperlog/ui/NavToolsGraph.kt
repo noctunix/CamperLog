@@ -18,7 +18,7 @@ import app.restvolt.camperlog.ui.tools.LoadPlannerViewModel
 import app.restvolt.camperlog.ui.tools.ToolsScreen
 
 /**
- * Navigationsziele: Tools-Reiter mit Bordbuch und Wasserwaage. [logbookViewModel] ist
+ * Navigationsziele: Tools-Reiter mit Bordbuch, Wasserwaage und Beladung. [logbookViewModel] ist
  * Activity-gebunden, damit die Schnellzugriffsreihe des Touren-Reiters denselben Zustand sieht.
  */
 internal fun NavGraphBuilder.toolsGraph(

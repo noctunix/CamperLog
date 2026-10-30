@@ -21,6 +21,16 @@ fun axleDelta(massKg: Double, positionCm: Int, wheelbaseCm: Int): AxleDelta {
 /** Änderung der Achslasten durch eine einzelne Masse, siehe [axleDelta]. */
 data class AxleDelta(val frontKg: Double, val rearKg: Double)
 
+/**
+ * Massenänderung eines Tanks bei Füllstand [levelDl] gegenüber seinem Füllstand bei der Wiegung.
+ *
+ * @param settings Dichte und Füllstand bei der Wiegung
+ * @param levelDl Füllstand in dl
+ * @return Massenänderung in kg, negativ bei weniger Inhalt als bei der Wiegung
+ */
+fun tankMassDeltaKg(settings: LoadTankSettings, levelDl: Int): Double =
+    (levelDl - settings.weighingLevelDl) * settings.densityGramsPerLitre / 10_000.0
+
 /** Prüfergebnis einer Last gegen ihr zulässiges Höchstgewicht. */
 data class LoadLimitCheck(
     val valueKg: Double,
@@ -142,7 +152,7 @@ fun forecastLoad(vehicle: Vehicle, plan: LoadPlan, profileId: Long): LoadForecas
             ?: settings.weighingLevelDl
         val deltaLevelDl = profileLevelDl - settings.weighingLevelDl
         if (deltaLevelDl == 0) continue
-        val deltaMassKg = deltaLevelDl * settings.densityGramsPerLitre / 10_000.0
+        val deltaMassKg = tankMassDeltaKg(settings, profileLevelDl)
         deltaTotalKg += deltaMassKg
         val position = settings.positionCm
         if (position == null) {

@@ -99,7 +99,7 @@ class LoadPlannerViewModel(
         viewModelScope.launch { loadPlans.saveProfile(profile.copy(name = newName)) }
     }
 
-    /** Duplitiert [profile] unter [newName] und wählt die Kopie aus. */
+    /** Dupliziert [profile] unter [newName] und wählt die Kopie aus. */
     fun duplicateProfile(profile: LoadProfile, newName: String) {
         viewModelScope.launch {
             val id = loadPlans.duplicateProfile(profile.id, newName)

@@ -86,6 +86,7 @@ import app.restvolt.camperlog.domain.formatKg
 import app.restvolt.camperlog.domain.formatLitres
 import app.restvolt.camperlog.domain.parseKgPerLitreToDensityGramsPerLitre
 import app.restvolt.camperlog.domain.tankLevelDl
+import app.restvolt.camperlog.domain.tankMassDeltaKg
 import app.restvolt.camperlog.domain.tankSettingsOrDefault
 import app.restvolt.camperlog.domain.toInput
 import app.restvolt.camperlog.domain.toSettings
@@ -490,12 +491,11 @@ private fun TanksSection(
                 val capacityDl = checkNotNull(kind.capacityDlOf(vehicle))
                 val settings = plan.tankSettingsOrDefault(vehicle, kind)
                 val levelDl = plan.tankLevelDl(vehicle, profileId, kind)
-                val massDeltaKg = (levelDl - settings.weighingLevelDl) * settings.densityGramsPerLitre / 10_000.0
                 TankRow(
                     kind = kind,
                     capacityDl = capacityDl,
                     levelDl = levelDl,
-                    massDeltaKg = massDeltaKg,
+                    settings = settings,
                     locale = locale,
                     onLevelChange = { onLevelChange(kind, it) },
                     onOpenSettings = { onOpenSettings(kind) },
@@ -510,32 +510,38 @@ private fun TankRow(
     kind: LoadTankKind,
     capacityDl: Int,
     levelDl: Int,
-    massDeltaKg: Double,
+    settings: LoadTankSettings,
     locale: Locale,
     onLevelChange: (Int) -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     val label = stringResource(kind.labelRes)
     val capacityL = (capacityDl / 10).coerceAtLeast(1)
+    // Während des Ziehens nur lokal, sonst schreibt jeder Zwischenwert in die Datenbank und der
+    // Regler springt auf den verzögert zurückgelieferten Stand.
+    var draggedLevelDl by remember(levelDl) { mutableStateOf<Int?>(null) }
+    val shownLevelDl = draggedLevelDl ?: levelDl
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-            Text(formatLitres(levelDl, locale), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatLitres(shownLevelDl, locale), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             IconButton(onClick = onOpenSettings, modifier = Modifier.size(48.dp)) {
                 Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.load_tank_settings_action, label))
             }
         }
         Slider(
-            value = (levelDl / 10f).coerceIn(0f, capacityL.toFloat()),
-            onValueChange = { onLevelChange((it.roundToInt() * 10).coerceIn(0, capacityDl)) },
+            value = (shownLevelDl / 10f).coerceIn(0f, capacityL.toFloat()),
+            onValueChange = { draggedLevelDl = (it.roundToInt() * 10).coerceIn(0, capacityDl) },
+            onValueChangeFinished = {
+                draggedLevelDl?.let(onLevelChange)
+            },
             valueRange = 0f..capacityL.toFloat(),
-            steps = (capacityL - 1).coerceAtLeast(0),
             modifier = Modifier
                 .fillMaxWidth()
-                .semantics { contentDescription = "$label ${formatLitres(levelDl, locale)}" },
+                .semantics { contentDescription = "$label ${formatLitres(shownLevelDl, locale)}" },
         )
         Text(
-            stringResource(R.string.load_tank_mass_change, formatSignedKg(massDeltaKg, locale)),
+            stringResource(R.string.load_tank_mass_change, formatSignedKg(tankMassDeltaKg(settings, shownLevelDl), locale)),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
