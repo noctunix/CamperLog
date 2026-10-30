@@ -13,6 +13,7 @@ import app.restvolt.camperlog.domain.LoadTankSettings
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.VehicleRepository
 import app.restvolt.camperlog.domain.forecastLoad
+import app.restvolt.camperlog.domain.tankSettingsOrDefault
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -135,13 +136,20 @@ class LoadPlannerViewModel(
         viewModelScope.launch { loadPlans.saveTankSettings(settings) }
     }
 
-    /** Setzt die Position von [item] auf [positionCm], z. B. nach dem Ziehen in der Seitenansicht. */
-    fun setItemPosition(item: LoadItem, positionCm: Int) {
+    /**
+     * Setzt die Position des Gegenstands [itemId] auf [positionCm]; übernimmt dabei seinen aktuellen
+     * Stand statt einer womöglich veralteten Kopie aus der Oberfläche.
+     */
+    fun setItemPosition(itemId: Long, positionCm: Int) {
+        val item = uiState.value.plan.items.firstOrNull { it.id == itemId } ?: return
         viewModelScope.launch { loadPlans.saveItem(item.copy(positionCm = positionCm)) }
     }
 
-    /** Setzt die Position des Tanks [settings] auf [positionCm], z. B. nach dem Ziehen in der Seitenansicht. */
-    fun setTankPosition(settings: LoadTankSettings, positionCm: Int) {
+    /** Setzt die Position des Tanks [kind] auf [positionCm], ausgehend von seinen aktuellen Einstellungen. */
+    fun setTankPosition(kind: LoadTankKind, positionCm: Int) {
+        val state = uiState.value
+        val vehicle = state.vehicle ?: return
+        val settings = state.plan.tankSettingsOrDefault(vehicle, kind)
         viewModelScope.launch { loadPlans.saveTankSettings(settings.copy(positionCm = positionCm)) }
     }
 

@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -240,10 +241,11 @@ fun LoadSideView(
                     label = item.name.take(1).ifBlank { "?" },
                     description = stringResource(R.string.load_side_view_marker_description, item.name, formatCm(currentCm, locale)),
                     backgroundColor = itemColor,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     isDragging = draggingPositions.containsKey(key),
-                    onDrag = { deltaPx ->
-                        val basePx = scale.cmToPx(draggingPositions[key] ?: checkNotNull(item.positionCm))
-                        draggingPositions = draggingPositions + (key to scale.pxToCm(basePx + deltaPx))
+                    onDrag = { totalDeltaPx ->
+                        val startPx = scale.cmToPx(checkNotNull(item.positionCm))
+                        draggingPositions = draggingPositions + (key to scale.pxToCm(startPx + totalDeltaPx))
                     },
                     onDragEnd = {
                         val finalCm = draggingPositions[key]
@@ -265,10 +267,11 @@ fun LoadSideView(
                         formatCm(currentCm, locale),
                     ),
                     backgroundColor = tankColor,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     isDragging = draggingPositions.containsKey(key),
-                    onDrag = { deltaPx ->
-                        val basePx = scale.cmToPx(draggingPositions[key] ?: checkNotNull(settings.positionCm))
-                        draggingPositions = draggingPositions + (key to scale.pxToCm(basePx + deltaPx))
+                    onDrag = { totalDeltaPx ->
+                        val startPx = scale.cmToPx(checkNotNull(settings.positionCm))
+                        draggingPositions = draggingPositions + (key to scale.pxToCm(startPx + totalDeltaPx))
                     },
                     onDragEnd = {
                         val finalCm = draggingPositions[key]
@@ -334,8 +337,9 @@ private fun AxleLoadText(
 }
 
 /**
- * Eine ziehbare Markierung in der Seitenansicht. [onDrag] erhält die Verschiebung in px seit der
- * letzten Rückmeldung, [onDragEnd] wird genau einmal beim Loslassen aufgerufen.
+ * Eine ziehbare Markierung in der Seitenansicht. [onDrag] erhält die gesamte Verschiebung in px seit
+ * Beginn des Ziehens (erst der Aufrufer rastert, sonst gingen kleine Einzelschritte verloren),
+ * [onDragEnd] wird genau einmal beim Loslassen aufgerufen.
  */
 @Composable
 private fun SideViewDragMarker(
@@ -344,12 +348,17 @@ private fun SideViewDragMarker(
     label: String,
     description: String,
     backgroundColor: Color,
+    contentColor: Color,
     isDragging: Boolean,
     onDrag: (Float) -> Unit,
     onDragEnd: () -> Unit,
 ) {
     val density = LocalDensity.current
     val laneOffset = (MARKER_VISUAL_SIZE + 4.dp) * laneIndex
+    // pointerInput(Unit) startet nicht neu; ohne aktuelle Rückrufe arbeitete das nächste Ziehen mit
+    // dem Gegenstand und der Position aus der ersten Komposition.
+    val currentOnDrag by rememberUpdatedState(onDrag)
+    val currentOnDragEnd by rememberUpdatedState(onDragEnd)
     Box(
         modifier = Modifier
             .offset {
@@ -360,12 +369,15 @@ private fun SideViewDragMarker(
             }
             .size(MARKER_TOUCH_SIZE)
             .pointerInput(Unit) {
+                var totalDeltaPx = 0f
                 detectDragGestures(
-                    onDragEnd = onDragEnd,
-                    onDragCancel = onDragEnd,
+                    onDragStart = { totalDeltaPx = 0f },
+                    onDragEnd = { currentOnDragEnd() },
+                    onDragCancel = { currentOnDragEnd() },
                 ) { change, dragAmount ->
                     change.consume()
-                    onDrag(dragAmount.x)
+                    totalDeltaPx += dragAmount.x
+                    currentOnDrag(totalDeltaPx)
                 }
             }
             .semantics { contentDescription = description },
@@ -377,7 +389,7 @@ private fun SideViewDragMarker(
                 .background(if (isDragging) backgroundColor.copy(alpha = 0.7f) else backgroundColor, shape = CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            Text(label, style = MaterialTheme.typography.labelSmall)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = contentColor)
         }
     }
 }

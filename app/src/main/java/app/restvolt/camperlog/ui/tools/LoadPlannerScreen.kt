@@ -179,8 +179,8 @@ fun LoadPlannerScreen(
                             profileId = selectedProfileId,
                             forecast = forecast,
                             locale = locale,
-                            onItemPositionChange = { item, positionCm -> viewModel.setItemPosition(item, positionCm) },
-                            onTankPositionChange = { settings, positionCm -> viewModel.setTankPosition(settings, positionCm) },
+                            onItemPositionChange = { item, positionCm -> viewModel.setItemPosition(item.id, positionCm) },
+                            onTankPositionChange = { settings, positionCm -> viewModel.setTankPosition(settings.kind, positionCm) },
                         )
                     }
                 }

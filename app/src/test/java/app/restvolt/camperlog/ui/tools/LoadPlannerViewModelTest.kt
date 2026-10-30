@@ -151,7 +151,7 @@ class LoadPlannerViewModelTest {
         val viewModel = LoadPlannerViewModel(vehicles, loadPlans, requestedVehicleId = null)
         collect(viewModel.uiState)
 
-        viewModel.setItemPosition(item, 200)
+        viewModel.setItemPosition(item.id, 200)
 
         val updated = viewModel.uiState.value.plan.items.single { it.id == 5L }
         assertEquals(200, updated.positionCm)
@@ -165,10 +165,26 @@ class LoadPlannerViewModelTest {
         val viewModel = LoadPlannerViewModel(vehicles, loadPlans, requestedVehicleId = null)
         collect(viewModel.uiState)
 
-        viewModel.setItemPosition(item, 300)
+        viewModel.setItemPosition(item.id, 300)
 
         val updated = viewModel.uiState.value.plan.items.single { it.id == 5L }
         assertEquals(300, updated.positionCm)
+    }
+
+    @Test
+    fun setItemPosition_keepsChangesMadeSinceTheScreenLastRendered() = runTest(dispatcher) {
+        val vehicles = FakeVehicleRepository(listOf(weighedVehicle()))
+        val item = newItem(id = 5, name = "Grill", positionCm = 100, inWeighing = false)
+        val loadPlans = FakeLoadPlanRepository(items = listOf(item), profiles = listOf(LoadProfile(id = 1, vehicleId = 1, name = "Standard")))
+        val viewModel = LoadPlannerViewModel(vehicles, loadPlans, requestedVehicleId = null)
+        collect(viewModel.uiState)
+        loadPlans.saveItem(item.copy(name = "Gasgrill"))
+
+        viewModel.setItemPosition(item.id, 200)
+
+        val updated = viewModel.uiState.value.plan.items.single { it.id == 5L }
+        assertEquals("Gasgrill", updated.name)
+        assertEquals(200, updated.positionCm)
     }
 
     @Test
@@ -179,7 +195,7 @@ class LoadPlannerViewModelTest {
         val viewModel = LoadPlannerViewModel(vehicles, loadPlans, requestedVehicleId = null)
         collect(viewModel.uiState)
 
-        viewModel.setTankPosition(settings, 250)
+        viewModel.setTankPosition(LoadTankKind.FUEL, 250)
 
         val updated = viewModel.uiState.value.plan.tankSettings.single { it.kind == LoadTankKind.FUEL }
         assertEquals(250, updated.positionCm)
