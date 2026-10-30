@@ -135,6 +135,16 @@ class LoadPlannerViewModel(
         viewModelScope.launch { loadPlans.saveTankSettings(settings) }
     }
 
+    /** Setzt die Position von [item] auf [positionCm], z. B. nach dem Ziehen in der Seitenansicht. */
+    fun setItemPosition(item: LoadItem, positionCm: Int) {
+        viewModelScope.launch { loadPlans.saveItem(item.copy(positionCm = positionCm)) }
+    }
+
+    /** Setzt die Position des Tanks [settings] auf [positionCm], z. B. nach dem Ziehen in der Seitenansicht. */
+    fun setTankPosition(settings: LoadTankSettings, positionCm: Int) {
+        viewModelScope.launch { loadPlans.saveTankSettings(settings.copy(positionCm = positionCm)) }
+    }
+
     /**
      * Legt [item] an oder aktualisiert ihn. Ein neu angelegter, bei der Wiegung nicht vorhandener
      * Gegenstand wird dabei im Profil [currentProfileId] aktiviert, damit er sofort sichtbar wird.

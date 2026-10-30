@@ -1594,4 +1594,29 @@
     <string name="load_category_supplies">Supplies</string>
     <string name="load_category_person">Person</string>
     <string name="load_category_other">Other</string>
+    <string name="load_side_view_outline_hint">Outline simplified – enter length and front overhang in the vehicle data for a true-to-scale view.</string>
+    <string name="load_side_view_axle_summary">Front %1$s, rear %2$s expected.</string>
+    <string name="load_side_view_axle_over">over</string>
+    <string name="load_side_view_no_axle_summary">Axle loads not available yet.</string>
+    <string name="load_side_view_center_of_gravity">Center of gravity %1$s from the front axle.</string>
+    <string name="load_side_view_cg_label">CG</string>
+    <plurals name="load_side_view_items_placed">
+        <item quantity="one">%1$d load placed.</item>
+        <item quantity="other">%1$d loads placed.</item>
+    </plurals>
+    <string name="load_side_view_place_chip">Place: %1$s</string>
+    <string name="load_side_view_placing_hint">Tap the vehicle to place %1$s.</string>
+    <string name="load_side_view_marker_description">%1$s, %2$s</string>
+    <string name="load_profile_compare">Compare with…</string>
+    <string name="load_compare_picker_title">Compare with</string>
+    <string name="load_compare_title">Comparison: %1$s vs. %2$s</string>
+    <string name="load_compare_total">Total weight</string>
+    <string name="load_compare_front">Front axle</string>
+    <string name="load_compare_rear">Rear axle</string>
+    <string name="load_compare_items_title">Different items</string>
+    <string name="load_compare_no_item_differences">All items are set the same in both profiles.</string>
+    <string name="load_compare_item_active_only_in">%1$s: only active in %2$s</string>
+    <string name="load_compare_tanks_title">Different tank levels</string>
+    <string name="load_compare_no_tank_differences">All tank levels are the same in both profiles.</string>
+    <string name="load_compare_tank_difference">%1$s: %2$s in %3$s, %4$s in %5$s (%6$s)</string>
 </resources>

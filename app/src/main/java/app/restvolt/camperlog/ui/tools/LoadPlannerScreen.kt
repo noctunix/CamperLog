@@ -64,6 +64,7 @@ import app.restvolt.camperlog.domain.LoadItem
 import app.restvolt.camperlog.domain.LoadLimitCheck
 import app.restvolt.camperlog.domain.LoadPlan
 import app.restvolt.camperlog.domain.LoadProfile
+import app.restvolt.camperlog.domain.LoadProfileComparison
 import app.restvolt.camperlog.domain.LoadProfileError
 import app.restvolt.camperlog.domain.LoadProfileField
 import app.restvolt.camperlog.domain.LoadProfileInput
@@ -79,6 +80,7 @@ import app.restvolt.camperlog.domain.MAX_LOAD_POSITION_CM
 import app.restvolt.camperlog.domain.MIN_LOAD_TANK_DENSITY_GRAMS_PER_LITRE
 import app.restvolt.camperlog.domain.Vehicle
 import app.restvolt.camperlog.domain.capacityDlOf
+import app.restvolt.camperlog.domain.compareProfiles
 import app.restvolt.camperlog.domain.densityGramsPerLitreToKgPerLitreInput
 import app.restvolt.camperlog.domain.formatCm
 import app.restvolt.camperlog.domain.formatDate
@@ -126,6 +128,8 @@ fun LoadPlannerScreen(
     var showAddItem by rememberSaveable { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<LoadItem?>(null) }
     var tankSettingsKind by remember { mutableStateOf<LoadTankKind?>(null) }
+    var showComparePicker by remember { mutableStateOf(false) }
+    var compareWithProfileId by remember { mutableStateOf<Long?>(null) }
 
     Scaffold(
         topBar = { BackTopBar(title = stringResource(R.string.load_planner_title), onBack = onBack) },
@@ -163,10 +167,40 @@ fun LoadPlannerScreen(
                         onRename = { renamingProfile = it },
                         onDuplicate = { duplicatingProfile = it },
                         onDelete = { confirmDeleteProfile = it },
+                        onCompare = { showComparePicker = true },
                     )
                 }
                 state.forecast?.let { forecast ->
                     item(key = "result") { ResultCard(vehicle, forecast, locale, onEditVehicle = { onEditVehicle(vehicle.id) }) }
+                    item(key = "side_view") {
+                        LoadSideView(
+                            vehicle = vehicle,
+                            plan = plan,
+                            profileId = selectedProfileId,
+                            forecast = forecast,
+                            locale = locale,
+                            onItemPositionChange = { item, positionCm -> viewModel.setItemPosition(item, positionCm) },
+                            onTankPositionChange = { settings, positionCm -> viewModel.setTankPosition(settings, positionCm) },
+                        )
+                    }
+                }
+                compareWithProfileId?.let { otherId ->
+                    val otherProfile = plan.profiles.firstOrNull { it.id == otherId }
+                    val selectedProfile = plan.profiles.firstOrNull { it.id == selectedProfileId }
+                    if (otherProfile != null && selectedProfile != null) {
+                        item(key = "compare") {
+                            val comparison = remember(plan, vehicle, selectedProfileId, otherId) {
+                                compareProfiles(vehicle, plan, selectedProfileId, otherId)
+                            }
+                            CompareCard(
+                                profileA = selectedProfile,
+                                profileB = otherProfile,
+                                comparison = comparison,
+                                locale = locale,
+                                onDismiss = { compareWithProfileId = null },
+                            )
+                        }
+                    }
                 }
                 item(key = "tanks") {
                     TanksSection(
@@ -295,6 +329,18 @@ fun LoadPlannerScreen(
         }
     }
 
+    if (showComparePicker && vehicle != null) {
+        val otherProfiles = state.plan.profiles.filterNot { it.id == state.selectedProfileId }
+        LoadComparePickerDialog(
+            profiles = otherProfiles,
+            onDismiss = { showComparePicker = false },
+            onSelect = { profile ->
+                compareWithProfileId = profile.id
+                showComparePicker = false
+            },
+        )
+    }
+
     val message by viewModel.message.collectAsStateWithLifecycle()
     LaunchedEffect(message) {
         val current = message ?: return@LaunchedEffect
@@ -322,6 +368,7 @@ private fun ProfileChipsRow(
     onRename: (LoadProfile) -> Unit,
     onDuplicate: (LoadProfile) -> Unit,
     onDelete: (LoadProfile) -> Unit,
+    onCompare: () -> Unit,
 ) {
     val selected = profiles.firstOrNull { it.id == selectedProfileId }
     var menuExpanded by remember { mutableStateOf(false) }
@@ -342,6 +389,7 @@ private fun ProfileChipsRow(
                     DropdownMenuItem(text = { Text(stringResource(R.string.load_profile_duplicate)) }, onClick = { menuExpanded = false; onDuplicate(selected) })
                     if (profiles.size > 1) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.load_profile_delete)) }, onClick = { menuExpanded = false; onDelete(selected) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.load_profile_compare)) }, onClick = { menuExpanded = false; onCompare() })
                     }
                 }
             }
@@ -382,6 +430,91 @@ private fun LoadProfileNameDialog(title: String, initialName: String, onDismiss:
 private fun profileErrorText(error: LoadProfileError): String = when (error) {
     LoadProfileError.REQUIRED -> stringResource(R.string.load_name_required)
     LoadProfileError.TOO_LONG -> stringResource(R.string.error_text_too_long)
+}
+
+@Composable
+private fun LoadComparePickerDialog(profiles: List<LoadProfile>, onDismiss: () -> Unit, onSelect: (LoadProfile) -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.load_compare_picker_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                profiles.forEach { profile ->
+                    Text(
+                        profile.name,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .clickable(onClick = { onSelect(profile) }),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}
+
+@Composable
+private fun CompareCard(profileA: LoadProfile, profileB: LoadProfile, comparison: LoadProfileComparison, locale: Locale, onDismiss: () -> Unit) {
+    SectionCard {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            SectionHeading(stringResource(R.string.load_compare_title, profileA.name, profileB.name))
+            IconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) {
+                Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.action_close))
+            }
+        }
+        CompareRow(stringResource(R.string.load_compare_total), comparison.forecastA.totalKg, comparison.forecastB.totalKg, comparison.totalDeltaKg, locale)
+        CompareRow(stringResource(R.string.load_compare_front), comparison.forecastA.frontAxleKg, comparison.forecastB.frontAxleKg, comparison.frontAxleDeltaKg, locale)
+        CompareRow(stringResource(R.string.load_compare_rear), comparison.forecastA.rearAxleKg, comparison.forecastB.rearAxleKg, comparison.rearAxleDeltaKg, locale)
+
+        Text(stringResource(R.string.load_compare_items_title), style = MaterialTheme.typography.titleSmall)
+        if (comparison.itemDifferences.isEmpty()) {
+            Text(stringResource(R.string.load_compare_no_item_differences), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            comparison.itemDifferences.forEach { difference ->
+                val activeProfileName = if (difference.activeInA) profileA.name else profileB.name
+                Text(
+                    stringResource(R.string.load_compare_item_active_only_in, difference.item.name, activeProfileName),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+
+        Text(stringResource(R.string.load_compare_tanks_title), style = MaterialTheme.typography.titleSmall)
+        if (comparison.tankDifferences.isEmpty()) {
+            Text(stringResource(R.string.load_compare_no_tank_differences), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            comparison.tankDifferences.forEach { difference ->
+                Text(
+                    stringResource(
+                        R.string.load_compare_tank_difference,
+                        stringResource(difference.kind.labelRes),
+                        formatLitres(difference.levelDlA, locale),
+                        profileA.name,
+                        formatLitres(difference.levelDlB, locale),
+                        profileB.name,
+                        formatSignedKg(difference.massDeltaKg, locale),
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompareRow(label: String, valueA: Double?, valueB: Double?, deltaKg: Double?, locale: Locale) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            "${valueA?.let { formatKg(it.roundToInt(), locale) } ?: "–"} / " +
+                "${valueB?.let { formatKg(it.roundToInt(), locale) } ?: "–"}" +
+                (deltaKg?.let { " (${formatSignedKg(it, locale)})" } ?: ""),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+    }
 }
 
 @Composable

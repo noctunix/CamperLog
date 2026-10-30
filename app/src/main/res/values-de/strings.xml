@@ -1583,4 +1583,29 @@
     <string name="load_category_supplies">Vorräte</string>
     <string name="load_category_person">Person</string>
     <string name="load_category_other">Sonstiges</string>
+    <string name="load_side_view_outline_hint">Umriss vereinfacht – trage Länge und vorderen Überhang im Fahrzeug-Datenblatt ein für eine maßstäbliche Ansicht.</string>
+    <string name="load_side_view_axle_summary">Erwartet: vorne %1$s, hinten %2$s.</string>
+    <string name="load_side_view_axle_over">über dem Limit</string>
+    <string name="load_side_view_no_axle_summary">Achslasten noch nicht verfügbar.</string>
+    <string name="load_side_view_center_of_gravity">Schwerpunkt %1$s von der Vorderachse.</string>
+    <string name="load_side_view_cg_label">Schwerpunkt</string>
+    <plurals name="load_side_view_items_placed">
+        <item quantity="one">%1$d Gegenstand platziert.</item>
+        <item quantity="other">%1$d Gegenstände platziert.</item>
+    </plurals>
+    <string name="load_side_view_place_chip">Platzieren: %1$s</string>
+    <string name="load_side_view_placing_hint">Tippe auf das Fahrzeug, um %1$s zu platzieren.</string>
+    <string name="load_side_view_marker_description">%1$s, %2$s</string>
+    <string name="load_profile_compare">Vergleichen mit…</string>
+    <string name="load_compare_picker_title">Vergleichen mit</string>
+    <string name="load_compare_title">Vergleich: %1$s vs. %2$s</string>
+    <string name="load_compare_total">Gesamtgewicht</string>
+    <string name="load_compare_front">Vorderachse</string>
+    <string name="load_compare_rear">Hinterachse</string>
+    <string name="load_compare_items_title">Unterschiedliche Gegenstände</string>
+    <string name="load_compare_no_item_differences">Alle Gegenstände sind in beiden Profilen gleich eingestellt.</string>
+    <string name="load_compare_item_active_only_in">%1$s: nur aktiv in %2$s</string>
+    <string name="load_compare_tanks_title">Unterschiedliche Tankfüllstände</string>
+    <string name="load_compare_no_tank_differences">Alle Tankfüllstände sind in beiden Profilen gleich.</string>
+    <string name="load_compare_tank_difference">%1$s: %2$s in %3$s, %4$s in %5$s (%6$s)</string>
 </resources>
