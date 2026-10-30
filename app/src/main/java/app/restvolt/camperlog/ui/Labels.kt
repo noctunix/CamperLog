@@ -15,6 +15,8 @@ import app.restvolt.camperlog.domain.DocumentKind
 import app.restvolt.camperlog.domain.BoardType
 import app.restvolt.camperlog.domain.ElectricityBilling
 import app.restvolt.camperlog.domain.EnergyType
+import app.restvolt.camperlog.domain.LoadCategory
+import app.restvolt.camperlog.domain.LoadTankKind
 import app.restvolt.camperlog.domain.LodgingAmenity
 import app.restvolt.camperlog.domain.LogRecency
 import app.restvolt.camperlog.domain.LogType
@@ -699,3 +701,26 @@ fun coordinatesContentDescription(latitude: Double, longitude: Double, accuracyM
         base
     }
 }
+
+/** Anzeigetext einer Beladungskategorie. */
+@get:StringRes
+val LoadCategory.labelRes: Int
+    get() = when (this) {
+        LoadCategory.FIXTURE -> R.string.load_category_fixture
+        LoadCategory.EQUIPMENT -> R.string.load_category_equipment
+        LoadCategory.SUPPLIES -> R.string.load_category_supplies
+        LoadCategory.PERSON -> R.string.load_category_person
+        LoadCategory.OTHER -> R.string.load_category_other
+    }
+
+/** Anzeigetext einer Tankart im Beladungsplaner. */
+@get:StringRes
+val LoadTankKind.labelRes: Int
+    get() = when (this) {
+        LoadTankKind.FUEL -> R.string.field_fuel_tank
+        LoadTankKind.ADBLUE -> R.string.field_ad_blue_tank
+        LoadTankKind.FRESH_WATER -> R.string.field_fresh_water_tank
+        LoadTankKind.BOILER -> R.string.field_boiler
+        LoadTankKind.GREY_WATER -> R.string.field_grey_water_tank
+        LoadTankKind.CASSETTE -> R.string.field_cassette
+    }

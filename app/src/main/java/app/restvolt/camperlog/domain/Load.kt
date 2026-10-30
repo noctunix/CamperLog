@@ -140,6 +140,15 @@ data class LoadPlan(
     val tankLevels: List<LoadProfileTankLevel> = emptyList(),
 )
 
+/** Einstellungen der Tankart [kind], oder [defaultTankSettings], solange keine eigene Zeile existiert. */
+fun LoadPlan.tankSettingsOrDefault(vehicle: Vehicle, kind: LoadTankKind): LoadTankSettings =
+    tankSettings.firstOrNull { it.kind == kind } ?: defaultTankSettings(vehicle.id, kind, vehicle)
+
+/** Füllstand der Tankart [kind] im Profil [profileId] in dl; ohne eigene Zeile gilt der Füllstand bei der Wiegung. */
+fun LoadPlan.tankLevelDl(vehicle: Vehicle, profileId: Long, kind: LoadTankKind): Int =
+    tankLevels.firstOrNull { it.profileId == profileId && it.kind == kind }?.levelDl
+        ?: tankSettingsOrDefault(vehicle, kind).weighingLevelDl
+
 /** Zugriff auf den Beladungsplan eines Fahrzeugs. */
 interface LoadPlanRepository {
 

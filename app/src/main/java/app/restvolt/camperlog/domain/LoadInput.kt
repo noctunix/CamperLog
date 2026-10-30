@@ -215,6 +215,19 @@ fun LoadTankSettings.toInput(locale: Locale): LoadTankSettingsInput = LoadTankSe
     weighingLevelL = scaledLitresToInput(weighingLevelDl, locale),
 )
 
+/** Dichte in g/l als kg/l im Zahlenformat von [locale], für die leichter lesbare Eingabe im Formular. */
+fun densityGramsPerLitreToKgPerLitreInput(gramsPerLitre: Int, locale: Locale): String {
+    val value = BigDecimal.valueOf(gramsPerLitre.toLong(), 3).stripTrailingZeros()
+    return value.toPlainString().replace('.', DecimalFormatSymbols.getInstance(locale).decimalSeparator)
+}
+
+/** Wandelt eine im Zahlenformat von [locale] eingegebene Dichte in kg/l nach g/l um, oder `null` bei ungültiger Eingabe. */
+fun parseKgPerLitreToDensityGramsPerLitre(text: String, locale: Locale): Int? {
+    if (text.isBlank()) return null
+    val value = parseDecimal(text, locale, maxFractionDigits = 3) ?: return null
+    return runCatching { value.movePointRight(3).intValueExact() }.getOrNull()
+}
+
 private const val LOAD_MASS_FRACTION_DIGITS = 3
 private const val LOAD_TANK_LEVEL_FRACTION_DIGITS = 1
 
