@@ -1552,6 +1552,7 @@
     <string name="load_profile_delete_confirm_text">Delete profile \"%1$s\"? Its switches and tank levels for this profile are lost.</string>
     <string name="load_profile_menu_description">Profile actions</string>
     <string name="load_name_required">Name required</string>
+    <string name="load_result_title">Expected load</string>
     <string name="load_result_total">Total weight</string>
     <string name="load_result_limit">Limit</string>
     <string name="load_result_within_limit">%1$s reserve (%2$s)</string>

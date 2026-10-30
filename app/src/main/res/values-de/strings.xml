@@ -1541,6 +1541,7 @@
     <string name="load_profile_delete_confirm_text">Profil „%1$s" löschen? Seine Schalter und Tankfüllstände für dieses Profil gehen dabei verloren.</string>
     <string name="load_profile_menu_description">Profilaktionen</string>
     <string name="load_name_required">Name erforderlich</string>
+    <string name="load_result_title">Erwartete Beladung</string>
     <string name="load_result_total">Gesamtgewicht</string>
     <string name="load_result_limit">Zulässig</string>
     <string name="load_result_within_limit">%1$s Reserve (%2$s)</string>

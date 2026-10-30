@@ -386,7 +386,7 @@ private fun profileErrorText(error: LoadProfileError): String = when (error) {
 @Composable
 private fun ResultCard(vehicle: Vehicle, forecast: LoadForecast, locale: Locale, onEditVehicle: () -> Unit) {
     SectionCard {
-        SectionHeading(stringResource(R.string.load_planner_title))
+        SectionHeading(stringResource(R.string.load_result_title))
         forecast.totalKg?.let { LoadLimitRow(stringResource(R.string.load_result_total), it, forecast.totalCheck, locale) }
         forecast.frontAxleKg?.let { LoadLimitRow(stringResource(R.string.vehicle_axle_front), it, forecast.frontAxleCheck, locale) }
         forecast.rearAxleKg?.let { LoadLimitRow(stringResource(R.string.vehicle_axle_rear), it, forecast.rearAxleCheck, locale) }
