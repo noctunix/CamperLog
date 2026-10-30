@@ -31,6 +31,7 @@ import app.restvolt.camperlog.ui.TabTopBar
 fun ToolsScreen(
     onOpenLogbook: () -> Unit,
     onOpenLevel: () -> Unit,
+    onOpenLoadPlanner: () -> Unit,
     onOpenSearch: () -> Unit,
     onOpenData: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -82,6 +83,21 @@ fun ToolsScreen(
                 ) {
                     Icon(painterResource(R.drawable.ic_square_foot), contentDescription = null)
                     Text(levelLabel, style = MaterialTheme.typography.titleMedium)
+                }
+            }
+            val loadPlannerLabel = stringResource(R.string.tools_load_planner)
+            SectionCard(
+                Modifier
+                    .clip(MaterialTheme.shapes.large)
+                    .clickable(onClickLabel = loadPlannerLabel, onClick = onOpenLoadPlanner),
+            ) {
+                Row(
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(painterResource(R.drawable.ic_weight), contentDescription = null)
+                    Text(loadPlannerLabel, style = MaterialTheme.typography.titleMedium)
                 }
             }
         }

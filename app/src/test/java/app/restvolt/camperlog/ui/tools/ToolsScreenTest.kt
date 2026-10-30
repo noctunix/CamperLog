@@ -30,6 +30,7 @@ class ToolsScreenTest {
                 ToolsScreen(
                     onOpenLogbook = {},
                     onOpenLevel = {},
+                    onOpenLoadPlanner = {},
                     onOpenSearch = {},
                     onOpenData = { openedData = true },
                     onOpenSettings = { openedSettings = true },
@@ -54,6 +55,7 @@ class ToolsScreenTest {
                 ToolsScreen(
                     onOpenLogbook = {},
                     onOpenLevel = {},
+                    onOpenLoadPlanner = {},
                     onOpenSearch = { openedSearch = true },
                     onOpenData = {},
                     onOpenSettings = {},

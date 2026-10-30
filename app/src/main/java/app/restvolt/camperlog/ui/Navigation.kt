@@ -145,6 +145,10 @@ internal object ToolsRoute
 @Serializable
 internal object LevelRoute
 
+/** Beladungsplaner; ohne [vehicleId] gilt das aktuell gewählte Fahrzeug. */
+@Serializable
+internal data class LoadPlannerRoute(val vehicleId: Long? = null)
+
 /** Verlauf einer Bordbuch-Art eines Fahrzeugs. */
 @Serializable
 internal data class LogHistoryRoute(val vehicleId: Long, val typeName: String) {

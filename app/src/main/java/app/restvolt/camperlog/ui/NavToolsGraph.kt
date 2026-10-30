@@ -6,12 +6,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import androidx.navigation.toRoute
 import app.restvolt.camperlog.data.AndroidLevelSensor
 import app.restvolt.camperlog.ui.logbook.LogbookScreen
 import app.restvolt.camperlog.ui.logbook.LogbookViewModel
 import app.restvolt.camperlog.ui.settings.LevelAudioSettings
 import app.restvolt.camperlog.ui.tools.LevelScreen
 import app.restvolt.camperlog.ui.tools.LevelViewModel
+import app.restvolt.camperlog.ui.tools.LoadPlannerScreen
+import app.restvolt.camperlog.ui.tools.LoadPlannerViewModel
 import app.restvolt.camperlog.ui.tools.ToolsScreen
 
 /**
@@ -29,6 +32,7 @@ internal fun NavGraphBuilder.toolsGraph(
             bottomBar = bottomBar,
             onOpenLogbook = { navController.navigate(LogbookRoute) },
             onOpenLevel = { navController.navigate(LevelRoute) },
+            onOpenLoadPlanner = { navController.navigate(LoadPlannerRoute()) },
             onOpenSearch = { navController.navigate(SearchRoute) },
             onOpenData = { navController.navigate(DataRoute()) },
             onOpenSettings = { navController.navigate(SettingsRoute) },
@@ -50,6 +54,14 @@ internal fun NavGraphBuilder.toolsGraph(
         LevelScreen(
             viewModel = viewModel { LevelViewModel(AndroidLevelSensor(context), LevelAudioSettings(context)) },
             onBack = { navController.popFrom(entry) },
+        )
+    }
+    composable<LoadPlannerRoute> { entry ->
+        val route = entry.toRoute<LoadPlannerRoute>()
+        LoadPlannerScreen(
+            viewModel = viewModel { LoadPlannerViewModel(vehicles, loadPlans, route.vehicleId) },
+            onBack = { navController.popFrom(entry) },
+            onEditVehicle = { vehicleId -> navController.navigate(VehicleEditRoute(vehicleId)) },
         )
     }
 }

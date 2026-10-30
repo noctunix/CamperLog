@@ -558,6 +558,7 @@
     <string name="error_sale_before_purchase">Verkaufsdatum liegt vor dem Kaufdatum</string>
     <string name="error_must_be_positive">Muss größer als 0 %1$s sein</string>
     <string name="error_value_too_large">Wert zu groß, höchstens %1$s</string>
+    <string name="error_out_of_range">Muss zwischen %1$s und %2$s liegen</string>
     <string name="error_date_required">Datum erforderlich</string>
     <string name="error_description_required">Beschreibung erforderlich</string>
     <string name="error_invalid_phone">Nur Ziffern, Leerzeichen und + - / ( ) sind erlaubt.</string>
@@ -585,6 +586,7 @@
     <string name="vehicle_axle_reserve">%1$s: %2$s Reserve</string>
     <string name="vehicle_axle_overloaded">%1$s: %2$s über dem Limit</string>
     <string name="vehicle_axle_load_disclaimer">Werte müssen durch echtes Wiegen verifiziert werden, keine Rechtsgrundlage.</string>
+    <string name="vehicle_plan_load_action">Beladung planen</string>
     <string name="vehicle_call_action">%1$s anrufen, %2$s</string>
     <string name="vehicle_no_dialer">Keine Telefon-App gefunden</string>
     <string name="vehicle_copy_number">Nummer kopieren</string>
@@ -1524,4 +1526,60 @@
     <string name="level_audio_scheme_dominant_axis_hint">Reagiert auf die stärker geneigte Achse – in der Praxis meist angenehmer.</string>
     <string name="level_audio_scheme_quadrant">Quadranten</string>
     <string name="level_audio_scheme_quadrant_hint">Berücksichtigt beide Achsen gleichzeitig – exakter, aber bei Diagonalneigung unruhiger.</string>
+
+    <!-- Tools: Beladungsplaner -->
+    <string name="tools_load_planner">Beladung</string>
+    <string name="load_planner_title">Beladung</string>
+    <string name="load_profile_default_name">Standard</string>
+    <string name="load_profile_add">Neues Profil</string>
+    <string name="load_profile_rename">Umbenennen</string>
+    <string name="load_profile_rename_title">Profil umbenennen</string>
+    <string name="load_profile_duplicate">Duplizieren</string>
+    <string name="load_profile_duplicate_copy_suffix">%1$s (Kopie)</string>
+    <string name="load_profile_delete">Löschen</string>
+    <string name="load_profile_delete_confirm_title">Profil löschen?</string>
+    <string name="load_profile_delete_confirm_text">Profil „%1$s" löschen? Seine Schalter und Tankfüllstände für dieses Profil gehen dabei verloren.</string>
+    <string name="load_profile_menu_description">Profilaktionen</string>
+    <string name="load_name_required">Name erforderlich</string>
+    <string name="load_result_total">Gesamtgewicht</string>
+    <string name="load_result_limit">Zulässig</string>
+    <string name="load_result_within_limit">%1$s Reserve (%2$s)</string>
+    <string name="load_result_over_limit">%1$s über dem zulässigen Wert</string>
+    <string name="load_result_delta">Änderung gegenüber der Wiegung: %1$s</string>
+    <string name="load_result_based_on_weighing">Basierend auf der Wiegung vom %1$s: vorne %2$s, hinten %3$s</string>
+    <string name="load_result_based_on_weighing_no_date">Basierend auf der Wiegung: vorne %1$s, hinten %2$s</string>
+    <string name="load_disclaimer">Vereinfachte Hebelrechnung mit zwei Achsen zur Planung. Verifiziere das Ergebnis immer durch eine echte Wiegung; keine Rechtsgrundlage.</string>
+    <string name="load_warning_no_weighing">Für dieses Fahrzeug ist keine Wiegung erfasst; nur die Änderung gegenüber der Wiegung ist bekannt.</string>
+    <string name="load_warning_no_wheelbase">Radstand nicht erfasst; Gegenstände mit bekannter Position können nicht auf die Achsen verteilt werden.</string>
+    <plurals name="load_warning_items_without_position">
+        <item quantity="one">%1$d Gegenstand (%2$s) hat keine bekannte Position; dafür lassen sich keine Achslasten berechnen.</item>
+        <item quantity="other">%1$d Gegenstände (%2$s) haben keine bekannte Position; dafür lassen sich keine Achslasten berechnen.</item>
+    </plurals>
+    <string name="load_warning_tank_without_position">%1$s: Position unbekannt, seine %2$s lassen sich nicht auf die Achsen verteilen.</string>
+    <string name="load_warning_front_axle_non_positive">Die berechnete Vorderachslast ist null oder negativ; prüfe deine Eingaben.</string>
+    <string name="load_tanks_title">Tanks</string>
+    <string name="load_tanks_empty_hint">Tankgrößen stammen aus dem Fahrzeug-Datenblatt.</string>
+    <string name="load_tank_mass_change">Änderung: %1$s</string>
+    <string name="load_tank_settings_action">Tankeinstellungen für %1$s</string>
+    <string name="load_tank_settings_title">Tankeinstellungen: %1$s</string>
+    <string name="load_position_label">Position (cm)</string>
+    <string name="load_position_supporting">Abstand von der Vorderachse; negativ = davor.</string>
+    <string name="load_tank_density_label">Dichte (kg/l)</string>
+    <string name="load_tank_weighing_level_label">Füllstand bei der Wiegung (l)</string>
+    <string name="load_items_add_fab">Gegenstand hinzufügen</string>
+    <string name="load_item_dialog_title_add">Neuer Gegenstand</string>
+    <string name="load_item_dialog_title_edit">Gegenstand bearbeiten</string>
+    <string name="load_item_mass_label">Masse pro Stück (kg)</string>
+    <string name="load_item_quantity_label">Anzahl</string>
+    <string name="load_item_in_weighing_label">War bei der Wiegung an Bord</string>
+    <string name="load_item_mass_times">%1$d × %2$s</string>
+    <string name="load_item_position_missing">Position fehlt</string>
+    <string name="load_item_active_description">%1$s in diesem Profil aktiv</string>
+    <string name="load_item_delete_action">Gegenstand löschen</string>
+    <string name="load_item_deleted">Gegenstand gelöscht</string>
+    <string name="load_category_fixture">Fest verbaut</string>
+    <string name="load_category_equipment">Ausstattung</string>
+    <string name="load_category_supplies">Vorräte</string>
+    <string name="load_category_person">Person</string>
+    <string name="load_category_other">Sonstiges</string>
 </resources>

@@ -558,6 +558,7 @@
     <string name="error_sale_before_purchase">Sale date is before the purchase date</string>
     <string name="error_must_be_positive">Must be greater than 0 %1$s</string>
     <string name="error_value_too_large">Value too large, at most %1$s</string>
+    <string name="error_out_of_range">Must be between %1$s and %2$s</string>
     <string name="error_date_required">Date required</string>
     <string name="error_description_required">Description required</string>
     <string name="error_invalid_phone">Only digits, spaces and + - / ( ) are allowed.</string>
@@ -585,6 +586,7 @@
     <string name="vehicle_axle_reserve">%1$s: %2$s reserve</string>
     <string name="vehicle_axle_overloaded">%1$s: %2$s over the limit</string>
     <string name="vehicle_axle_load_disclaimer">Values must be verified by actual weighing, not a legal basis.</string>
+    <string name="vehicle_plan_load_action">Plan load</string>
     <string name="vehicle_call_action">Call %1$s, %2$s</string>
     <string name="vehicle_no_dialer">No phone app found</string>
     <string name="vehicle_copy_number">Copy number</string>
@@ -1535,4 +1537,60 @@
     <string name="level_audio_scheme_dominant_axis_hint">Reacts to whichever axis is tilted more — usually more pleasant in practice.</string>
     <string name="level_audio_scheme_quadrant">Quadrants</string>
     <string name="level_audio_scheme_quadrant_hint">Takes both axes into account at once — more exact, but can feel busier on a diagonal tilt.</string>
+
+    <!-- Tools: load planner -->
+    <string name="tools_load_planner">Load planner</string>
+    <string name="load_planner_title">Load planner</string>
+    <string name="load_profile_default_name">Standard</string>
+    <string name="load_profile_add">New profile</string>
+    <string name="load_profile_rename">Rename</string>
+    <string name="load_profile_rename_title">Rename profile</string>
+    <string name="load_profile_duplicate">Duplicate</string>
+    <string name="load_profile_duplicate_copy_suffix">%1$s (copy)</string>
+    <string name="load_profile_delete">Delete</string>
+    <string name="load_profile_delete_confirm_title">Delete profile?</string>
+    <string name="load_profile_delete_confirm_text">Delete profile \"%1$s\"? Its switches and tank levels for this profile are lost.</string>
+    <string name="load_profile_menu_description">Profile actions</string>
+    <string name="load_name_required">Name required</string>
+    <string name="load_result_total">Total weight</string>
+    <string name="load_result_limit">Limit</string>
+    <string name="load_result_within_limit">%1$s reserve (%2$s)</string>
+    <string name="load_result_over_limit">Over the limit by %1$s</string>
+    <string name="load_result_delta">Change compared to weighing: %1$s</string>
+    <string name="load_result_based_on_weighing">Based on the weighing of %1$s: front %2$s, rear %3$s</string>
+    <string name="load_result_based_on_weighing_no_date">Based on the weighing: front %1$s, rear %2$s</string>
+    <string name="load_disclaimer">Simplified two-axle lever calculation to help with planning. Always confirm with an actual weighing; this is not a legal basis.</string>
+    <string name="load_warning_no_weighing">No weighing recorded for this vehicle; only the change compared to the weighing is known.</string>
+    <string name="load_warning_no_wheelbase">Wheelbase not recorded; items with a known position cannot be distributed to the axles.</string>
+    <plurals name="load_warning_items_without_position">
+        <item quantity="one">%1$d item (%2$s) has no known position; axle loads cannot be calculated for it.</item>
+        <item quantity="other">%1$d items (%2$s) have no known position; axle loads cannot be calculated for them.</item>
+    </plurals>
+    <string name="load_warning_tank_without_position">%1$s: position unknown, its %2$s cannot be distributed to the axles.</string>
+    <string name="load_warning_front_axle_non_positive">The calculated front axle load is zero or negative; check your inputs.</string>
+    <string name="load_tanks_title">Tanks</string>
+    <string name="load_tanks_empty_hint">Tank sizes come from the vehicle data sheet.</string>
+    <string name="load_tank_mass_change">Change: %1$s</string>
+    <string name="load_tank_settings_action">Tank settings for %1$s</string>
+    <string name="load_tank_settings_title">Tank settings: %1$s</string>
+    <string name="load_position_label">Position (cm)</string>
+    <string name="load_position_supporting">Distance from the front axle; negative = in front of it.</string>
+    <string name="load_tank_density_label">Density (kg/l)</string>
+    <string name="load_tank_weighing_level_label">Level at weighing (l)</string>
+    <string name="load_items_add_fab">Add item</string>
+    <string name="load_item_dialog_title_add">New item</string>
+    <string name="load_item_dialog_title_edit">Edit item</string>
+    <string name="load_item_mass_label">Mass per piece (kg)</string>
+    <string name="load_item_quantity_label">Quantity</string>
+    <string name="load_item_in_weighing_label">On board when weighed</string>
+    <string name="load_item_mass_times">%1$d × %2$s</string>
+    <string name="load_item_position_missing">Position missing</string>
+    <string name="load_item_active_description">%1$s active in this profile</string>
+    <string name="load_item_delete_action">Delete item</string>
+    <string name="load_item_deleted">Item deleted</string>
+    <string name="load_category_fixture">Fixture</string>
+    <string name="load_category_equipment">Equipment</string>
+    <string name="load_category_supplies">Supplies</string>
+    <string name="load_category_person">Person</string>
+    <string name="load_category_other">Other</string>
 </resources>
