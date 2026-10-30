@@ -16,6 +16,7 @@ import app.restvolt.camperlog.data.RoomExchangeRateRepository
 import app.restvolt.camperlog.data.PreferencesPaymentMethodRepository
 import app.restvolt.camperlog.data.RoomHomeLocationRepository
 import app.restvolt.camperlog.data.RoomFormDraftStore
+import app.restvolt.camperlog.data.RoomLoadPlanRepository
 import app.restvolt.camperlog.data.RoomLogRepository
 import app.restvolt.camperlog.data.RoomStationRepository
 import app.restvolt.camperlog.data.RoomTourRepository
@@ -32,6 +33,7 @@ import app.restvolt.camperlog.domain.DiagnosticsLogSource
 import app.restvolt.camperlog.domain.DiaryEntryRepository
 import app.restvolt.camperlog.domain.ExchangeRateRepository
 import app.restvolt.camperlog.domain.HomeLocationRepository
+import app.restvolt.camperlog.domain.LoadPlanRepository
 import app.restvolt.camperlog.domain.PaymentMethodRepository
 import app.restvolt.camperlog.domain.LogRepository
 import app.restvolt.camperlog.domain.StationRepository
@@ -96,6 +98,9 @@ class CamperLogApp : Application() {
 
     /** Gestartete Checklisten einer Tour oder eines Fahrzeugs. */
     val checklists: ChecklistRepository by lazy { RoomChecklistRepository(database) }
+
+    /** Beladungspläne der Fahrzeuge. */
+    val loadPlans: LoadPlanRepository by lazy { RoomLoadPlanRepository(database) }
 
     /** Aufgezeichnete Trackpunkte der Touren. */
     val tracks: TrackRepository by lazy { RoomTrackRepository(database) }

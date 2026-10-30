@@ -1173,6 +1173,36 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migration35To36AddsVehicleFieldsAndLoadPlanTables() = runTest {
+        createVersion30(
+            "INSERT INTO vehicles (id, uuid, name, license_plate, manufacturer, model, vin, notes, insurer, " +
+                "insurance_policy_number, tire_size, breakdown_provider, breakdown_membership_number, " +
+                "breakdown_phone, travel_protection_provider, travel_protection_contract_number, " +
+                "travel_protection_phone, insurer_claims_phone, required_energy_types, created_at, updated_at) VALUES " +
+                "(1, 'veh-1', 'Bluebird', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 1000, 2000)",
+        )
+
+        val db = CamperLogDatabase.open(context)
+        try {
+            val repository = RoomVehicleRepository(db)
+            val vehicle = repository.observeVehicle(1).first()!!
+            assertEquals("Bluebird", vehicle.name)
+            assertNull(vehicle.wheelbaseCm)
+            assertNull(vehicle.frontOverhangCm)
+            assertNull(vehicle.weighingDate)
+
+            db.openHelper.readableDatabase.query(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN " +
+                    "('load_items', 'load_profiles', 'load_profile_item_states', 'load_profile_tank_levels', 'load_tank_settings')",
+            ).use { cursor -> assertEquals(5, cursor.count) }
+
+            db.openHelper.readableDatabase.query("PRAGMA foreign_key_check").use { cursor -> assertEquals(0, cursor.count) }
+        } finally {
+            db.close()
+        }
+    }
+
     /** Legt `camperlog.db` im Stand von Version 28 nach `schemas/…/28.json` an und füllt sie mit [inserts]. */
     private fun createVersion28(vararg inserts: String) = createDatabase(
         version = 28,

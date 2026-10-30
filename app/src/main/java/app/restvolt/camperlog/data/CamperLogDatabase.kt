@@ -41,8 +41,13 @@ import java.util.UUID
         TrackPointEntity::class,
         HomeLocationEntity::class,
         FormDraftEntity::class,
+        LoadItemEntity::class,
+        LoadProfileEntity::class,
+        LoadProfileItemStateEntity::class,
+        LoadProfileTankLevelEntity::class,
+        LoadTankSettingsEntity::class,
     ],
-    version = 35,
+    version = 36,
     exportSchema = true,
 )
 abstract class CamperLogDatabase : RoomDatabase() {
@@ -73,6 +78,8 @@ abstract class CamperLogDatabase : RoomDatabase() {
 
     abstract fun formDraftDao(): FormDraftDao
 
+    abstract fun loadDao(): LoadDao
+
     companion object {
         /**
          * Öffnet die Datenbankdatei der App. Nur einmal pro Prozess aufrufen.
@@ -89,7 +96,7 @@ abstract class CamperLogDatabase : RoomDatabase() {
                     MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
                     MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
                     MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
-                    MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
+                    MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36,
                 )
                 .build()
     }
@@ -983,5 +990,64 @@ internal val MIGRATION_34_35 = object : Migration(34, 35) {
         db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `allowed_rear_axle_kg` INTEGER")
         db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `measured_front_axle_kg` INTEGER")
         db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `measured_rear_axle_kg` INTEGER")
+    }
+}
+
+/**
+ * Version 36: Radstand, vorderer Überhang und Wiege-Datum kommen zu `vehicles` hinzu; der
+ * Beladungsplan ([app.restvolt.camperlog.domain.LoadItem], [app.restvolt.camperlog.domain.LoadProfile])
+ * bekommt die neuen Tabellen `load_items`, `load_profiles`, `load_profile_item_states`,
+ * `load_profile_tank_levels` und `load_tank_settings`. Alle fünf Tabellen sind neu, daher reicht
+ * `CREATE TABLE` ohne Datenübernahme.
+ */
+internal val MIGRATION_35_36 = object : Migration(35, 36) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `wheelbase_cm` INTEGER")
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `front_overhang_cm` INTEGER")
+        db.execSQL("ALTER TABLE `vehicles` ADD COLUMN `weighing_date` TEXT")
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `load_items` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `category` TEXT NOT NULL, " +
+                "`mass_grams` INTEGER NOT NULL, `quantity` INTEGER NOT NULL, `position_cm` INTEGER, " +
+                "`in_weighing` INTEGER NOT NULL, `sort_order` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, " +
+                "`updated_at` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_load_items_uuid` ON `load_items` (`uuid`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_load_items_vehicle_id` ON `load_items` (`vehicle_id`)")
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `load_profiles` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`uuid` TEXT NOT NULL, `vehicle_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `sort_order` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_load_profiles_uuid` ON `load_profiles` (`uuid`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_load_profiles_vehicle_id` ON `load_profiles` (`vehicle_id`)")
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `load_profile_item_states` (`profile_id` INTEGER NOT NULL, " +
+                "`item_id` INTEGER NOT NULL, `active` INTEGER NOT NULL, PRIMARY KEY(`profile_id`, `item_id`), " +
+                "FOREIGN KEY(`profile_id`) REFERENCES `load_profiles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , " +
+                "FOREIGN KEY(`item_id`) REFERENCES `load_items`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_load_profile_item_states_item_id` ON `load_profile_item_states` (`item_id`)")
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `load_profile_tank_levels` (`profile_id` INTEGER NOT NULL, " +
+                "`kind` TEXT NOT NULL, `level_dl` INTEGER NOT NULL, PRIMARY KEY(`profile_id`, `kind`), " +
+                "FOREIGN KEY(`profile_id`) REFERENCES `load_profiles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `load_tank_settings` (`vehicle_id` INTEGER NOT NULL, `kind` TEXT NOT NULL, " +
+                "`position_cm` INTEGER, `density_grams_per_litre` INTEGER NOT NULL, `weighing_level_dl` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`vehicle_id`, `kind`), " +
+                "FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+
+        db.query("PRAGMA foreign_key_check").use { cursor ->
+            check(cursor.count == 0) { "Fremdschlüsselverletzung nach Migration 35→36" }
+        }
     }
 }
