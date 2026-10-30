@@ -3,6 +3,8 @@ package app.restvolt.camperlog.ui.tools
 import app.restvolt.camperlog.domain.LoadCategory
 import app.restvolt.camperlog.domain.LoadItem
 import app.restvolt.camperlog.domain.LoadProfile
+import app.restvolt.camperlog.domain.LoadTankKind
+import app.restvolt.camperlog.domain.LoadTankSettings
 import app.restvolt.camperlog.ui.FakeLoadPlanRepository
 import app.restvolt.camperlog.ui.FakeVehicleRepository
 import app.restvolt.camperlog.ui.defaultVehicle
@@ -139,6 +141,48 @@ class LoadPlannerViewModelTest {
 
         viewModel.restoreItem(item)
         assertEquals(listOf(item), viewModel.uiState.value.plan.items)
+    }
+
+    @Test
+    fun setItemPosition_persistsExactlyTheNewPositionOnce() = runTest(dispatcher) {
+        val vehicles = FakeVehicleRepository(listOf(weighedVehicle()))
+        val item = newItem(id = 5, name = "Grill", positionCm = 100, inWeighing = false)
+        val loadPlans = FakeLoadPlanRepository(items = listOf(item), profiles = listOf(LoadProfile(id = 1, vehicleId = 1, name = "Standard")))
+        val viewModel = LoadPlannerViewModel(vehicles, loadPlans, requestedVehicleId = null)
+        collect(viewModel.uiState)
+
+        viewModel.setItemPosition(item, 200)
+
+        val updated = viewModel.uiState.value.plan.items.single { it.id == 5L }
+        assertEquals(200, updated.positionCm)
+    }
+
+    @Test
+    fun setItemPosition_placesAPreviouslyUnpositionedItem() = runTest(dispatcher) {
+        val vehicles = FakeVehicleRepository(listOf(weighedVehicle()))
+        val item = newItem(id = 5, name = "Grill", positionCm = null, inWeighing = false)
+        val loadPlans = FakeLoadPlanRepository(items = listOf(item), profiles = listOf(LoadProfile(id = 1, vehicleId = 1, name = "Standard")))
+        val viewModel = LoadPlannerViewModel(vehicles, loadPlans, requestedVehicleId = null)
+        collect(viewModel.uiState)
+
+        viewModel.setItemPosition(item, 300)
+
+        val updated = viewModel.uiState.value.plan.items.single { it.id == 5L }
+        assertEquals(300, updated.positionCm)
+    }
+
+    @Test
+    fun setTankPosition_persistsExactlyTheNewPositionOnce() = runTest(dispatcher) {
+        val vehicles = FakeVehicleRepository(listOf(weighedVehicle().copy(fuelTankDl = 800)))
+        val settings = LoadTankSettings(vehicleId = 1, kind = LoadTankKind.FUEL, positionCm = 100, densityGramsPerLitre = 835, weighingLevelDl = 400)
+        val loadPlans = FakeLoadPlanRepository(tankSettings = listOf(settings), profiles = listOf(LoadProfile(id = 1, vehicleId = 1, name = "Standard")))
+        val viewModel = LoadPlannerViewModel(vehicles, loadPlans, requestedVehicleId = null)
+        collect(viewModel.uiState)
+
+        viewModel.setTankPosition(settings, 250)
+
+        val updated = viewModel.uiState.value.plan.tankSettings.single { it.kind == LoadTankKind.FUEL }
+        assertEquals(250, updated.positionCm)
     }
 
     private fun newItem(
